@@ -1,0 +1,397 @@
+package config
+
+import (
+	"errors"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+	"time"
+	"unicode"
+
+	"go.yaml.in/yaml/v3"
+)
+
+const (
+	Version1 = 1
+	Version  = 2
+)
+
+var githubName = regexp.MustCompile(`^[^/\s]+/[^/\s]+$`)
+
+type Settings struct {
+	ScanInterval           time.Duration
+	TrackedRefreshInterval time.Duration
+	UntrackedProbeInterval time.Duration
+	RemoteRefreshInterval  time.Duration
+	StaleAfter             time.Duration
+	MaxParallel            int
+	GitHubAuthor           string
+	GitHubScope            GitHubScope
+	OllamaModel            string
+}
+
+type GitHubScope string
+
+const (
+	GitHubScopeMine GitHubScope = "mine"
+	GitHubScopeAll  GitHubScope = "all"
+)
+
+type Source struct {
+	Path string `yaml:"path" json:"path"`
+}
+
+type Repository struct {
+	Name      string `yaml:"name" json:"name"`
+	Path      string `yaml:"path" json:"path"`
+	GitHub    string `yaml:"github" json:"github"`
+	Base      string `yaml:"base" json:"base"`
+	Remote    string `yaml:"remote" json:"remote"`
+	CommonDir string `yaml:"-" json:"-"`
+}
+
+type Config struct {
+	Version      int
+	Settings     Settings
+	Projects     []Source
+	Sources      []Source
+	Repositories []Repository
+	Path         string
+}
+
+type rawConfig struct {
+	Version      int             `yaml:"version"`
+	Settings     rawSettings     `yaml:"settings"`
+	Projects     []rawSource     `yaml:"projects"`
+	Sources      []rawSource     `yaml:"sources"`
+	Repositories []rawRepository `yaml:"repositories"`
+}
+
+type rawSettings struct {
+	ScanInterval           string `yaml:"scan_interval"`
+	TrackedRefreshInterval string `yaml:"tracked_refresh_interval"`
+	UntrackedProbeInterval string `yaml:"untracked_probe_interval"`
+	RemoteRefreshInterval  string `yaml:"remote_refresh_interval"`
+	StaleAfter             string `yaml:"stale_after"`
+	MaxParallel            int    `yaml:"max_parallel"`
+	GitHubAuthor           string `yaml:"github_author"`
+	GitHubScope            string `yaml:"github_scope"`
+	OllamaModel            string `yaml:"ollama_model"`
+}
+
+type rawSource struct {
+	Path string `yaml:"path"`
+}
+
+type rawRepository struct {
+	Name   string `yaml:"name"`
+	Path   string `yaml:"path"`
+	GitHub string `yaml:"github"`
+	Base   string `yaml:"base"`
+	Remote string `yaml:"remote"`
+}
+
+func ResolvePath(explicit string) (string, error) {
+	if explicit != "" {
+		return CanonicalizePath(explicit)
+	}
+	if value := os.Getenv("HYPERLITE_CONFIG"); value != "" {
+		return CanonicalizePath(value)
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("resolve home directory: %w", err)
+	}
+	return filepath.Join(home, ".config", "hyperlite", "config.yaml"), nil
+}
+
+// EnsureDefaultConfig makes Hyperlite's first-run migration explicit and
+// one-way. A previously configured Beacon installation gives Hyperlite a
+// useful starting selection, but Hyperlite never reads it again after copying.
+// Explicit and environment-selected paths remain fully caller-owned.
+func EnsureDefaultConfig(explicit string) (string, error) {
+	path, err := ResolvePath(explicit)
+	if err != nil {
+		return "", err
+	}
+	if explicit != "" || os.Getenv("HYPERLITE_CONFIG") != "" {
+		return path, nil
+	}
+	if _, err := os.Lstat(path); err == nil {
+		return path, nil
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return "", fmt.Errorf("inspect Hyperlite config %s: %w", path, err)
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("resolve home directory: %w", err)
+	}
+	beaconPath := filepath.Join(home, ".config", "beacon", "config.yaml")
+	contents, err := os.ReadFile(beaconPath)
+	if errors.Is(err, os.ErrNotExist) {
+		return path, nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("read Beacon config %s: %w", beaconPath, err)
+	}
+	info, err := os.Stat(beaconPath)
+	if err != nil {
+		return "", fmt.Errorf("inspect Beacon config %s: %w", beaconPath, err)
+	}
+	if !info.Mode().IsRegular() {
+		return "", fmt.Errorf("Beacon config is not a regular file: %s", beaconPath)
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return "", fmt.Errorf("create Hyperlite config directory: %w", err)
+	}
+	temporary, err := os.CreateTemp(filepath.Dir(path), ".config.yaml-*")
+	if err != nil {
+		return "", fmt.Errorf("create Hyperlite config migration file: %w", err)
+	}
+	temporaryPath := temporary.Name()
+	defer os.Remove(temporaryPath)
+	if err := temporary.Chmod(info.Mode().Perm()); err != nil {
+		temporary.Close()
+		return "", fmt.Errorf("set Hyperlite config permissions: %w", err)
+	}
+	if _, err := temporary.Write(contents); err != nil {
+		temporary.Close()
+		return "", fmt.Errorf("write Hyperlite config migration: %w", err)
+	}
+	if err := temporary.Close(); err != nil {
+		return "", fmt.Errorf("close Hyperlite config migration: %w", err)
+	}
+	if err := os.Link(temporaryPath, path); err != nil {
+		if errors.Is(err, os.ErrExist) {
+			return path, nil
+		}
+		return "", fmt.Errorf("install Hyperlite config migration: %w", err)
+	}
+	return path, nil
+}
+
+func Load(path string) (Config, error) {
+	resolved, err := ResolvePath(path)
+	if err != nil {
+		return Config{}, err
+	}
+	file, err := os.Open(resolved)
+	if err != nil {
+		return Config{}, fmt.Errorf("open config %s: %w", resolved, err)
+	}
+	defer file.Close()
+
+	decoder := yaml.NewDecoder(file)
+	decoder.KnownFields(true)
+	var raw rawConfig
+	if err := decoder.Decode(&raw); err != nil {
+		return Config{}, fmt.Errorf("decode config %s: %w", resolved, err)
+	}
+	var extra any
+	if err := decoder.Decode(&extra); !errors.Is(err, io.EOF) {
+		if err == nil {
+			return Config{}, fmt.Errorf("decode config %s: multiple YAML documents are not supported", resolved)
+		}
+		return Config{}, fmt.Errorf("decode config %s: %w", resolved, err)
+	}
+	return normalize(raw, resolved)
+}
+
+// ForSources builds an in-memory configuration for one scan. It applies the
+// same path and settings validation as a persisted version 2 configuration
+// without assigning a config path.
+func ForSources(paths []string) (Config, error) {
+	if len(paths) == 0 {
+		return Config{}, errors.New("at least one source path is required")
+	}
+	raw := rawConfig{Version: Version}
+	for _, path := range paths {
+		raw.Sources = append(raw.Sources, rawSource{Path: path})
+	}
+	return normalize(raw, "")
+}
+
+func normalize(raw rawConfig, path string) (Config, error) {
+	if raw.Version != Version1 && raw.Version != Version {
+		return Config{}, fmt.Errorf("config version must be %d or %d", Version1, Version)
+	}
+	if raw.Version == Version1 && len(raw.Sources) != 0 {
+		return Config{}, errors.New("config version 1 does not support sources")
+	}
+	if raw.Version == Version1 && len(raw.Projects) != 0 {
+		return Config{}, errors.New("config version 1 does not support projects")
+	}
+	if raw.Version == Version1 && raw.Settings.GitHubScope != "" {
+		return Config{}, errors.New("config version 1 does not support settings.github_scope")
+	}
+	if raw.Version == Version1 && raw.Settings.OllamaModel != "" {
+		return Config{}, errors.New("config version 1 does not support settings.ollama_model")
+	}
+	if raw.Version == Version1 && len(raw.Repositories) == 0 {
+		return Config{}, errors.New("config must contain at least one source or repository")
+	}
+	settings, err := normalizeSettings(raw.Settings)
+	if err != nil {
+		return Config{}, err
+	}
+	config := Config{Version: raw.Version, Settings: settings, Path: path}
+	seenProjects := make(map[string]struct{}, len(raw.Projects))
+	for index, rawProject := range raw.Projects {
+		project, err := normalizeSource(rawProject)
+		if err != nil {
+			return Config{}, fmt.Errorf("project %d: %w", index+1, err)
+		}
+		if _, exists := seenProjects[project.Path]; exists {
+			return Config{}, fmt.Errorf("project path %q is duplicated", project.Path)
+		}
+		seenProjects[project.Path] = struct{}{}
+		config.Projects = append(config.Projects, project)
+	}
+	seenSources := make(map[string]struct{}, len(raw.Sources))
+	for index, rawSource := range raw.Sources {
+		source, err := normalizeSource(rawSource)
+		if err != nil {
+			return Config{}, fmt.Errorf("source %d: %w", index+1, err)
+		}
+		if _, exists := seenSources[source.Path]; exists {
+			return Config{}, fmt.Errorf("source path %q is duplicated", source.Path)
+		}
+		seenSources[source.Path] = struct{}{}
+		config.Sources = append(config.Sources, source)
+	}
+	seen := make(map[string]struct{}, len(raw.Repositories))
+	for index, rawRepo := range raw.Repositories {
+		repo, err := normalizeRepository(rawRepo)
+		if err != nil {
+			return Config{}, fmt.Errorf("repository %d: %w", index+1, err)
+		}
+		if _, exists := seen[repo.Name]; exists {
+			return Config{}, fmt.Errorf("repository name %q is duplicated", repo.Name)
+		}
+		seen[repo.Name] = struct{}{}
+		config.Repositories = append(config.Repositories, repo)
+	}
+	return config, nil
+}
+
+func normalizeSettings(raw rawSettings) (Settings, error) {
+	ollamaModel, err := NormalizeOllamaModel(raw.OllamaModel)
+	if err != nil {
+		return Settings{}, err
+	}
+	settings := Settings{
+		MaxParallel: raw.MaxParallel, GitHubAuthor: raw.GitHubAuthor,
+		GitHubScope: GitHubScope(strings.TrimSpace(raw.GitHubScope)),
+		OllamaModel: ollamaModel,
+	}
+	if settings.MaxParallel == 0 {
+		settings.MaxParallel = 4
+	}
+	if settings.MaxParallel < 1 || settings.MaxParallel > 32 {
+		return Settings{}, errors.New("settings.max_parallel must be between 1 and 32")
+	}
+	if settings.GitHubAuthor == "" {
+		settings.GitHubAuthor = "@me"
+	}
+	if settings.GitHubScope == "" {
+		settings.GitHubScope = GitHubScopeMine
+	}
+	if settings.GitHubScope != GitHubScopeMine && settings.GitHubScope != GitHubScopeAll {
+		return Settings{}, errors.New("settings.github_scope must be mine or all")
+	}
+	if settings.ScanInterval, err = durationOrDefault(raw.ScanInterval, time.Minute); err != nil {
+		return Settings{}, fmt.Errorf("settings.scan_interval: %w", err)
+	}
+	if settings.TrackedRefreshInterval, err = durationOrDefault(raw.TrackedRefreshInterval, settings.ScanInterval); err != nil {
+		return Settings{}, fmt.Errorf("settings.tracked_refresh_interval: %w", err)
+	}
+	if settings.UntrackedProbeInterval, err = durationOrDefault(raw.UntrackedProbeInterval, 10*time.Minute); err != nil {
+		return Settings{}, fmt.Errorf("settings.untracked_probe_interval: %w", err)
+	}
+	if settings.RemoteRefreshInterval, err = durationOrDefault(raw.RemoteRefreshInterval, 45*time.Minute); err != nil {
+		return Settings{}, fmt.Errorf("settings.remote_refresh_interval: %w", err)
+	}
+	if settings.StaleAfter, err = durationOrDefault(raw.StaleAfter, 24*time.Hour); err != nil {
+		return Settings{}, fmt.Errorf("settings.stale_after: %w", err)
+	}
+	return settings, nil
+}
+
+func NormalizeOllamaModel(value string) (string, error) {
+	value = strings.TrimSpace(value)
+	if len(value) > 200 {
+		return "", errors.New("settings.ollama_model must be at most 200 characters")
+	}
+	if strings.IndexFunc(value, unicode.IsControl) >= 0 {
+		return "", errors.New("settings.ollama_model must not contain control characters")
+	}
+	return value, nil
+}
+
+func normalizeSource(raw rawSource) (Source, error) {
+	if strings.TrimSpace(raw.Path) == "" {
+		return Source{}, errors.New("path is required")
+	}
+	path, err := CanonicalizeSourcePath(raw.Path)
+	if err != nil {
+		return Source{}, err
+	}
+	info, err := os.Lstat(path)
+	if err != nil {
+		return Source{}, fmt.Errorf("inspect path %s: %w", path, err)
+	}
+	if info.Mode()&os.ModeSymlink != 0 {
+		return Source{}, fmt.Errorf("source path must not be a symbolic link: %s", path)
+	}
+	if !info.IsDir() {
+		return Source{}, fmt.Errorf("path is not a directory: %s", path)
+	}
+	return Source{Path: path}, nil
+}
+
+func normalizeRepository(raw rawRepository) (Repository, error) {
+	repo := Repository{
+		Name: strings.TrimSpace(raw.Name), GitHub: strings.TrimSpace(raw.GitHub),
+		Base: strings.TrimSpace(raw.Base), Remote: strings.TrimSpace(raw.Remote),
+	}
+	if repo.Name == "" || raw.Path == "" || repo.GitHub == "" {
+		return Repository{}, errors.New("name, path, and github are required")
+	}
+	if !githubName.MatchString(repo.GitHub) {
+		return Repository{}, fmt.Errorf("github must use owner/repository form: %q", repo.GitHub)
+	}
+	if repo.Base == "" {
+		repo.Base = "main"
+	}
+	if repo.Remote == "" {
+		repo.Remote = "origin"
+	}
+	path, err := CanonicalizePath(raw.Path)
+	if err != nil {
+		return Repository{}, err
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		return Repository{}, fmt.Errorf("inspect path %s: %w", path, err)
+	}
+	if !info.IsDir() {
+		return Repository{}, fmt.Errorf("path is not a directory: %s", path)
+	}
+	repo.Path = path
+	return repo, nil
+}
+
+func durationOrDefault(value string, fallback time.Duration) (time.Duration, error) {
+	if value == "" {
+		return fallback, nil
+	}
+	duration, err := time.ParseDuration(value)
+	if err != nil || duration <= 0 {
+		return 0, fmt.Errorf("must be a positive Go duration: %q", value)
+	}
+	return duration, nil
+}
