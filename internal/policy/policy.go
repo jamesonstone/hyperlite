@@ -75,13 +75,19 @@ func matchingLocal(locals []gitscan.LocalLane, used []bool, pullRequest model.Pu
 }
 
 func matchingIssue(pullRequest model.PullRequest, issues map[int]model.Issue) *model.Issue {
+	var fallback *model.Issue
 	for _, closing := range pullRequest.ClosingIssues {
 		if issue, ok := issues[closing.Number]; ok {
 			copy := issue
 			return &copy
 		}
-		copy := closing
-		return &copy
+		if fallback == nil {
+			copy := closing
+			fallback = &copy
+		}
+	}
+	if fallback != nil {
+		return fallback
 	}
 	return issueForBranch(pullRequest.HeadRefName, issues)
 }

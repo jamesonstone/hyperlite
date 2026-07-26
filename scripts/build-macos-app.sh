@@ -8,6 +8,7 @@ application="${HYPERLITE_APP:-$repository_root/build/Hyperlite.app}"
 version="${HYPERLITE_VERSION:-dev}"
 commit="${HYPERLITE_COMMIT:-$(git -C "$repository_root" rev-parse --short HEAD)}"
 build_date="${HYPERLITE_BUILD_DATE:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"
+build_number_file="$repository_root/build/.hyperlite-build-number"
 
 case "$application" in
   "$repository_root"/build/Hyperlite.app) ;;
@@ -16,9 +17,21 @@ esac
 
 rm -rf "$application"
 mkdir -p "$application/Contents/MacOS" "$application/Contents/Resources" "$repository_root/build/helpers"
+build_number="$(date -u +%s)"
+if [[ -f "$build_number_file" ]]; then
+  previous_build_number="$(<"$build_number_file")"
+  if [[ ! "$previous_build_number" =~ ^[0-9]+$ ]]; then
+    printf 'invalid build number in %s\n' "$build_number_file" >&2
+    exit 2
+  fi
+  if (( previous_build_number >= build_number )); then
+    build_number=$((previous_build_number + 1))
+  fi
+fi
+printf '%s\n' "$build_number" > "$build_number_file"
 cp "$repository_root/macos/Hyperlite/Info.plist" "$application/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $version" "$application/Contents/Info.plist"
-/usr/libexec/PlistBuddy -c "Set :CFBundleVersion 1" "$application/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $build_number" "$application/Contents/Info.plist"
 
 ldflags="-s -w -X github.com/jamesonstone/hyperlite/internal/cli.Version=$version -X github.com/jamesonstone/hyperlite/internal/cli.Commit=$commit -X github.com/jamesonstone/hyperlite/internal/cli.Date=$build_date"
 for architecture in arm64 amd64; do
@@ -29,10 +42,13 @@ for architecture in arm64 amd64; do
 done
 /usr/bin/lipo -create "$repository_root/build/helpers/hyperlite-arm64" "$repository_root/build/helpers/hyperlite-amd64" -output "$application/Contents/MacOS/hyperlite-cli"
 
-xcrun swiftc -parse-as-library -O -framework SwiftUI -framework AppKit -framework Carbon \
-  "$repository_root/macos/Hyperlite/HyperliteApp.swift" \
-  "$repository_root/macos/Hyperlite/HyperliteModels.swift" \
-  -o "$application/Contents/MacOS/Hyperlite"
+for architecture in arm64 x86_64; do
+  xcrun swiftc -parse-as-library -O -target "$architecture-apple-macos13.0" -framework SwiftUI -framework AppKit -framework Carbon \
+    "$repository_root/macos/Hyperlite/HyperliteApp.swift" \
+    "$repository_root/macos/Hyperlite/HyperliteModels.swift" \
+    -o "$repository_root/build/helpers/Hyperlite-$architecture"
+done
+/usr/bin/lipo -create "$repository_root/build/helpers/Hyperlite-arm64" "$repository_root/build/helpers/Hyperlite-x86_64" -output "$application/Contents/MacOS/Hyperlite"
 
 /usr/bin/codesign --force --sign - --timestamp=none "$application/Contents/MacOS/hyperlite-cli"
 /usr/bin/codesign --force --deep --sign - --timestamp=none "$application"

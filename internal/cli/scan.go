@@ -44,7 +44,8 @@ func (a App) scanCommand(configPath *string) *cobra.Command {
 }
 
 func (a App) runScan(ctx context.Context, configPath string, options scanOptions, colorMode string) error {
-	if _, err := a.resolveColor(colorMode); err != nil {
+	color, err := a.resolveColor(colorMode)
+	if err != nil {
 		return err
 	}
 	if len(options.paths) > 0 {
@@ -55,7 +56,7 @@ func (a App) runScan(ctx context.Context, configPath string, options scanOptions
 		if err != nil {
 			return err
 		}
-		return a.writeScan(ctx, cfg, options)
+		return a.writeScan(ctx, cfg, options, color)
 	}
 	path, err := config.EnsureDefaultConfig(configPath)
 	if err != nil {
@@ -70,10 +71,10 @@ func (a App) runScan(ctx context.Context, configPath string, options scanOptions
 	}
 	cfg.Sources = append([]config.Source(nil), cfg.Projects...)
 	cfg.Repositories = nil
-	return a.writeScan(ctx, cfg, options)
+	return a.writeScan(ctx, cfg, options, color)
 }
 
-func (a App) writeScan(ctx context.Context, cfg config.Config, options scanOptions) error {
+func (a App) writeScan(ctx context.Context, cfg config.Config, options scanOptions, color bool) error {
 	var (
 		result model.WorkScan
 		err    error
@@ -90,5 +91,5 @@ func (a App) writeScan(ctx context.Context, cfg config.Config, options scanOptio
 		encoder := json.NewEncoder(a.Out)
 		return encoder.Encode(result)
 	}
-	return writeTerminal(a.Out, result, options.includeIdle)
+	return writeTerminal(a.Out, result, options.includeIdle, color)
 }

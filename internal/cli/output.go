@@ -8,8 +8,16 @@ import (
 	"github.com/jamesonstone/hyperlite/internal/model"
 )
 
-func writeTerminal(out io.Writer, result model.WorkScan, includeIdle bool) error {
-	if _, err := fmt.Fprintf(out, "Hyperlite · %d project%s · %d active item%s\n", result.Summary.Projects, pluralSuffix(result.Summary.Projects), result.Summary.WorkItems, pluralSuffix(result.Summary.WorkItems)); err != nil {
+const (
+	terminalReset  = "\x1b[0m"
+	terminalCyan   = "\x1b[36m"
+	terminalRed    = "\x1b[31m"
+	terminalYellow = "\x1b[33m"
+)
+
+func writeTerminal(out io.Writer, result model.WorkScan, includeIdle, color bool) error {
+	title := terminalText("Hyperlite", terminalCyan, color)
+	if _, err := fmt.Fprintf(out, "%s · %d project%s · %d active item%s\n", title, result.Summary.Projects, pluralSuffix(result.Summary.Projects), result.Summary.WorkItems, pluralSuffix(result.Summary.WorkItems)); err != nil {
 		return err
 	}
 	for _, item := range result.Items {
@@ -24,11 +32,28 @@ func writeTerminal(out io.Writer, result model.WorkScan, includeIdle bool) error
 			return err
 		}
 	}
-	for _, diagnostic := range append(append([]model.ScanError{}, result.Errors...), result.Warnings...) {
-		parts := []string{diagnostic.Repository, diagnostic.Stage, diagnostic.Message}
-		if _, err := fmt.Fprintf(out, "! %s\n", strings.TrimSpace(strings.Join(parts, " · "))); err != nil {
+	for _, diagnostic := range result.Errors {
+		if err := writeTerminalDiagnostic(out, "ERROR", terminalRed, diagnostic, color); err != nil {
+			return err
+		}
+	}
+	for _, diagnostic := range result.Warnings {
+		if err := writeTerminalDiagnostic(out, "WARNING", terminalYellow, diagnostic, color); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func writeTerminalDiagnostic(out io.Writer, label, style string, diagnostic model.ScanError, color bool) error {
+	parts := []string{diagnostic.Repository, diagnostic.Stage, diagnostic.Message}
+	_, err := fmt.Fprintf(out, "%s · %s\n", terminalText(label, style, color), strings.TrimSpace(strings.Join(parts, " · ")))
+	return err
+}
+
+func terminalText(text, style string, color bool) string {
+	if !color {
+		return text
+	}
+	return style + text + terminalReset
 }

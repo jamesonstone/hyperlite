@@ -118,6 +118,43 @@ func TestBuildKeepsSameBranchWorktreesDistinct(t *testing.T) {
 	}
 }
 
+func TestMatchingIssuePrefersScopedClosingIssue(t *testing.T) {
+	scoped := model.Issue{Number: 4, Title: "Scoped issue"}
+	pullRequest := model.PullRequest{
+		ClosingIssues: []model.Issue{
+			{Number: 1, Title: "Unscoped issue"},
+			{Number: 4, Title: "Stale closing issue"},
+		},
+	}
+
+	issue := matchingIssue(pullRequest, map[int]model.Issue{4: scoped})
+	if issue == nil || issue.Number != scoped.Number || issue.Title != scoped.Title {
+		t.Fatalf("issue = %#v", issue)
+	}
+}
+
+func TestMatchingIssueFallsBackToFirstClosingIssueBeforeBranch(t *testing.T) {
+	pullRequest := model.PullRequest{
+		HeadRefName: "GH-3",
+		ClosingIssues: []model.Issue{
+			{Number: 1, Title: "First unscoped issue"},
+			{Number: 2, Title: "Second unscoped issue"},
+		},
+	}
+
+	issue := matchingIssue(pullRequest, map[int]model.Issue{3: {Number: 3, Title: "Branch issue"}})
+	if issue == nil || issue.Number != 1 || issue.Title != "First unscoped issue" {
+		t.Fatalf("issue = %#v", issue)
+	}
+}
+
+func TestMatchingIssueUsesBranchWhenNoClosingIssuesExist(t *testing.T) {
+	issue := matchingIssue(model.PullRequest{HeadRefName: "GH-3"}, map[int]model.Issue{3: {Number: 3, Title: "Branch issue"}})
+	if issue == nil || issue.Number != 3 || issue.Title != "Branch issue" {
+		t.Fatalf("issue = %#v", issue)
+	}
+}
+
 func mutatePR(value model.PullRequest, mutate func(*model.PullRequest)) *model.PullRequest {
 	mutate(&value)
 	return &value

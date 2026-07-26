@@ -6,6 +6,10 @@ import SwiftUI
 
 private let defaultHotKey = "Control+Shift+H"
 
+private func openHyperliteSettings() {
+    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+}
+
 @main
 struct HyperliteApp: App {
     @NSApplicationDelegateAdaptor(HyperliteApplicationDelegate.self) private var applicationDelegate
@@ -214,9 +218,12 @@ final class HyperliteState: ObservableObject {
                 let decoder = JSONDecoder()
                 decoder.dateDecodingStrategy = .custom { decoder in
                     let value = try decoder.singleValueContainer().decode(String.self)
-                    let formatter = ISO8601DateFormatter()
-                    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-                    if let date = formatter.date(from: value) { return date }
+                    let fractionalSecondsFormatter = ISO8601DateFormatter()
+                    fractionalSecondsFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                    if let date = fractionalSecondsFormatter.date(from: value) { return date }
+                    let internetDateTimeFormatter = ISO8601DateFormatter()
+                    internetDateTimeFormatter.formatOptions = [.withInternetDateTime]
+                    if let date = internetDateTimeFormatter.date(from: value) { return date }
                     let container = try decoder.singleValueContainer()
                     throw DecodingError.dataCorruptedError(in: container, debugDescription: "invalid ISO-8601 date")
                 }
@@ -271,6 +278,7 @@ private enum HyperliteError: LocalizedError {
 private struct HyperliteMenuBarLabel: View {
     @ObservedObject var state: HyperliteState
     @AppStorage("hyperlite.max-age-days") private var maxAgeDays = 10
+    @AppStorage("hyperlite.hotkey") private var hotkey = defaultHotKey
 
     var body: some View {
         let count = state.attentionProjectCount(maxAgeDays: maxAgeDays)
@@ -279,7 +287,7 @@ private struct HyperliteMenuBarLabel: View {
             Text("✦ \(count > 99 ? "99+" : "\(count)")")
                 .font(.system(size: 10, weight: .bold, design: .rounded))
         }
-        .help("Hyperlite — \(count) project\(count == 1 ? "" : "s") need attention — \(defaultHotKey)")
+        .help("Hyperlite — \(count) project\(count == 1 ? "" : "s") need attention — \(hotkey)")
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Hyperlite, \(count) projects need attention")
     }
@@ -295,7 +303,7 @@ private struct HyperliteMenu: View {
         }
         Button("Refresh") { state.refresh() }
         Divider()
-        SettingsLink { Text("Settings…") }
+        Button("Settings…") { openHyperliteSettings() }
         Button("Quit Hyperlite") { NSApp.terminate(nil) }
     }
 }
@@ -320,7 +328,7 @@ struct HyperliteWindow: View {
                     .buttonStyle(.bordered)
                     .disabled(state.isRefreshing)
                     .help("Refresh Git and pull request status")
-                SettingsLink { Image(systemName: "gearshape.fill") }
+                Button(action: openHyperliteSettings) { Image(systemName: "gearshape.fill") }
                     .buttonStyle(.bordered)
                     .help("Hyperlite settings")
             }
@@ -332,14 +340,34 @@ struct HyperliteWindow: View {
             } else if state.scan == nil {
                 ProgressView("Checking local work…")
                     .controlSize(.small)
-            } else if visibleItems.isEmpty {
-                ContentUnavailableView("Nothing needs attention", systemImage: "sparkles", description: Text("No recent worktrees, main-branch changes, or pull requests."))
-            } else {
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 7) {
-                        ForEach(visibleItems) { item in
-                            HyperliteRow(item: item)
-                            if item.id != visibleItems.last?.id { Divider() }
+            } else if let scan = state.scan {
+                if !scan.errors.isEmpty || !scan.warnings.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Label(partialScanSummary(for: scan), systemImage: "exclamationmark.triangle.fill")
+                            .font(.subheadline)
+                            .foregroundStyle(scan.errors.isEmpty ? .orange : .red)
+                        ForEach(scan.errors.indices, id: \.self) { index in
+                            Text("Error: \(diagnosticDescription(scan.errors[index]))")
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                        }
+                        ForEach(scan.warnings.indices, id: \.self) { index in
+                            Text("Warning: \(diagnosticDescription(scan.warnings[index]))")
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                        }
+                    }
+                }
+
+                if visibleItems.isEmpty {
+                    HyperliteEmptyState()
+                } else {
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 7) {
+                            ForEach(visibleItems) { item in
+                                HyperliteRow(item: item)
+                                if item.id != visibleItems.last?.id { Divider() }
+                            }
                         }
                     }
                 }
@@ -347,6 +375,39 @@ struct HyperliteWindow: View {
         }
         .padding(20)
         .frame(minWidth: 440, minHeight: 560)
+    }
+
+    private func partialScanSummary(for scan: HyperliteWorkScan) -> String {
+        var diagnostics: [String] = []
+        if !scan.errors.isEmpty {
+            diagnostics.append("\(scan.errors.count) error\(scan.errors.count == 1 ? "" : "s")")
+        }
+        if !scan.warnings.isEmpty {
+            diagnostics.append("\(scan.warnings.count) warning\(scan.warnings.count == 1 ? "" : "s")")
+        }
+        return "Partial scan: \(diagnostics.joined(separator: " and ")). Results may be incomplete."
+    }
+
+    private func diagnosticDescription(_ diagnostic: HyperliteDiagnostic) -> String {
+        "\(diagnostic.repository) (\(diagnostic.stage)): \(diagnostic.message)"
+    }
+}
+
+private struct HyperliteEmptyState: View {
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 28))
+                .foregroundStyle(.secondary)
+            Text("Nothing needs attention")
+                .font(.headline)
+            Text("No recent worktrees, main-branch changes, or pull requests.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 48)
     }
 }
 

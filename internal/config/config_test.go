@@ -190,6 +190,7 @@ func TestLoadAllowsEmptyVersionTwoProjectSelection(t *testing.T) {
 
 func TestCanonicalizeSourcePathResolvesAncestorsButRejectsFinalSymlink(t *testing.T) {
 	root := t.TempDir()
+	t.Setenv("HOME", root)
 	realParent := filepath.Join(root, "real")
 	realSource := filepath.Join(realParent, "source")
 	if err := os.MkdirAll(realSource, 0o755); err != nil {
@@ -206,6 +207,18 @@ func TestCanonicalizeSourcePathResolvesAncestorsButRejectsFinalSymlink(t *testin
 	}
 	if err != nil || resolved != canonicalRealSource {
 		t.Fatalf("resolved = %q, %v", resolved, err)
+	}
+	canonicalHome, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolved, err = CanonicalizeSourcePath("~")
+	if err != nil || resolved != canonicalHome {
+		t.Fatalf("bare home = %q, %v; want %q", resolved, err, canonicalHome)
+	}
+	resolved, err = CanonicalizeSourcePath("~/real/source")
+	if err != nil || resolved != canonicalRealSource {
+		t.Fatalf("home source = %q, %v; want %q", resolved, err, canonicalRealSource)
 	}
 	finalLink := filepath.Join(root, "source-link")
 	if err := os.Symlink(realSource, finalLink); err != nil {

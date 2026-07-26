@@ -35,7 +35,11 @@ func CanonicalizePath(path string) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("resolve home directory: %w", err)
 		}
-		path = filepath.Join(home, strings.TrimPrefix(path, "~/"))
+		if path == "~" {
+			path = home
+		} else {
+			path = filepath.Join(home, strings.TrimPrefix(path, "~/"))
+		}
 	}
 	absolute, err := filepath.Abs(path)
 	if err != nil {
