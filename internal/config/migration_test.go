@@ -75,3 +75,23 @@ func TestEnsureDefaultConfigCopiesBeaconConfigOnce(t *testing.T) {
 		t.Fatalf("existing Hyperlite config was overwritten: %q", written)
 	}
 }
+
+func TestEnsureDefaultConfigRejectsNonRegularBeaconConfig(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	beaconPath := filepath.Join(home, ".config", "beacon", "config.yaml")
+	if err := os.MkdirAll(beaconPath, 0o700); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := EnsureDefaultConfig("")
+	if err == nil {
+		t.Fatal("EnsureDefaultConfig() error = nil")
+	}
+	if !strings.Contains(err.Error(), "Beacon config is not a regular file") {
+		t.Fatalf("EnsureDefaultConfig() error = %q", err)
+	}
+	if _, statErr := os.Stat(filepath.Join(home, ".config", "hyperlite", "config.yaml")); !os.IsNotExist(statErr) {
+		t.Fatalf("Hyperlite config stat error = %v, want not exist", statErr)
+	}
+}

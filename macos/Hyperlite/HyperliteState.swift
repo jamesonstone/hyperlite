@@ -64,32 +64,71 @@ final class HyperliteState: ObservableObject {
             let process = Process()
             let output = Pipe()
             let errors = Pipe()
+            let completion = HyperliteRunCompletion(continuation)
+            let timeout = DispatchWorkItem {
+                guard process.isRunning, let continuation = completion.takeContinuation() else { return }
+                if process.isRunning { process.terminate() }
+                continuation.resume(throwing: HyperliteError.scanTimedOut)
+            }
             process.executableURL = executable
             process.arguments = arguments
             process.standardOutput = output
             process.standardError = errors
             process.terminationHandler = { process in
+                timeout.cancel()
                 let data = output.fileHandleForReading.readDataToEndOfFile()
                 guard process.terminationStatus == 0 else {
                     let message = String(data: errors.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
-                    continuation.resume(throwing: HyperliteError.scanFailed(message ?? "hyperlite exited with status \(process.terminationStatus)"))
+                    completion.resume(throwing: HyperliteError.scanFailed(message ?? "hyperlite exited with status \(process.terminationStatus)"))
                     return
                 }
-                continuation.resume(returning: data)
+                completion.resume(returning: data)
             }
-            do { try process.run() } catch { continuation.resume(throwing: error) }
+            do {
+                try process.run()
+                DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + .seconds(30), execute: timeout)
+            } catch {
+                timeout.cancel()
+                completion.resume(throwing: error)
+            }
         }
+    }
+}
+
+private final class HyperliteRunCompletion {
+    private let lock = NSLock()
+    private var continuation: CheckedContinuation<Data, Error>?
+
+    init(_ continuation: CheckedContinuation<Data, Error>) {
+        self.continuation = continuation
+    }
+
+    func resume(returning data: Data) {
+        takeContinuation()?.resume(returning: data)
+    }
+
+    func resume(throwing error: Error) {
+        takeContinuation()?.resume(throwing: error)
+    }
+
+    func takeContinuation() -> CheckedContinuation<Data, Error>? {
+        lock.lock()
+        defer { lock.unlock() }
+        defer { continuation = nil }
+        return continuation
     }
 }
 
 private enum HyperliteError: LocalizedError {
     case helperMissing
     case scanFailed(String)
+    case scanTimedOut
 
     var errorDescription: String? {
         switch self {
         case .helperMissing: "Hyperlite's scan helper is unavailable"
         case let .scanFailed(message): "Hyperlite scan failed: \(message)"
+        case .scanTimedOut: "Hyperlite scan timed out"
         }
     }
 }

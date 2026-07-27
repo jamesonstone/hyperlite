@@ -3,8 +3,17 @@ import SwiftUI
 
 let defaultHotKey = "Control+Shift+H"
 
+@available(macOS 14.0, *)
+@MainActor
+private var settingsWindowAction: OpenSettingsAction?
+
+@MainActor
 func openHyperliteSettings() {
-    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+    if #available(macOS 14.0, *) {
+        settingsWindowAction?()
+    } else {
+        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+    }
 }
 
 @main
@@ -15,6 +24,7 @@ struct HyperliteApp: App {
     var body: some Scene {
         WindowGroup("Hyperlite", id: "hyperlite") {
             HyperliteWindow(state: state)
+                .background(HyperliteSettingsActionInstaller())
         }
         .defaultSize(width: 480, height: 650)
         .windowResizability(.contentMinSize)
@@ -29,5 +39,25 @@ struct HyperliteApp: App {
         Settings {
             HyperliteSettingsView()
         }
+    }
+}
+
+private struct HyperliteSettingsActionInstaller: View {
+    var body: some View {
+        Group {
+            if #available(macOS 14.0, *) {
+                HyperliteSettingsActionBridge()
+            }
+        }
+    }
+}
+
+@available(macOS 14.0, *)
+private struct HyperliteSettingsActionBridge: View {
+    @Environment(\.openSettings) private var openSettings
+
+    var body: some View {
+        Color.clear
+            .onAppear { settingsWindowAction = openSettings }
     }
 }

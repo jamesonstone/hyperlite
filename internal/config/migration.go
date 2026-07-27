@@ -44,19 +44,22 @@ func EnsureDefaultConfig(explicit string) (string, error) {
 		return "", fmt.Errorf("resolve home directory: %w", err)
 	}
 	beaconPath := filepath.Join(home, ".config", "beacon", "config.yaml")
+	info, err := os.Stat(beaconPath)
+	if errors.Is(err, os.ErrNotExist) {
+		return path, nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("inspect Beacon config %s: %w", beaconPath, err)
+	}
+	if !info.Mode().IsRegular() {
+		return "", fmt.Errorf("Beacon config is not a regular file: %s", beaconPath)
+	}
 	contents, err := os.ReadFile(beaconPath)
 	if errors.Is(err, os.ErrNotExist) {
 		return path, nil
 	}
 	if err != nil {
 		return "", fmt.Errorf("read Beacon config %s: %w", beaconPath, err)
-	}
-	info, err := os.Stat(beaconPath)
-	if err != nil {
-		return "", fmt.Errorf("inspect Beacon config %s: %w", beaconPath, err)
-	}
-	if !info.Mode().IsRegular() {
-		return "", fmt.Errorf("Beacon config is not a regular file: %s", beaconPath)
 	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return "", fmt.Errorf("create Hyperlite config directory: %w", err)
