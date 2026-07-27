@@ -42,6 +42,7 @@ struct HyperliteWindow: View {
     @State private var pendingPrune: HyperliteDiagnostic?
     @State private var highlightedItemID: String?
     @State private var revealItemID: String?
+    @State private var highlightClearTask: Task<Void, Never>?
 
     private var visibleItems: [HyperliteWorkItem] { state.items(maxAgeDays: maxAgeDays) }
     private var errors: [HyperliteDiagnostic] { state.scan?.errors ?? [] }
@@ -111,6 +112,7 @@ struct HyperliteWindow: View {
                         .onChange(of: revealItemID) { itemID in
                             guard let itemID else { return }
                             proxy.scrollTo(itemID, anchor: .center)
+                            scheduleHighlightClear(for: itemID)
                             revealItemID = nil
                         }
                     }
@@ -147,6 +149,12 @@ struct HyperliteWindow: View {
         } message: {
             Text("Git will prune all stale worktree records for \(pendingPrune?.repository ?? "this repository") after re-verifying the selected path.")
         }
+        .onDisappear {
+            highlightClearTask?.cancel()
+            highlightClearTask = nil
+            highlightedItemID = nil
+            revealItemID = nil
+        }
     }
 
     private var pruneConfirmationPresented: Binding<Bool> {
@@ -168,8 +176,19 @@ struct HyperliteWindow: View {
         case let .prune(diagnostic):
             pendingPrune = diagnostic
         case let .reveal(itemID):
+            highlightClearTask?.cancel()
+            highlightClearTask = nil
             highlightedItemID = itemID
             revealItemID = itemID
+        }
+    }
+
+    private func scheduleHighlightClear(for itemID: String) {
+        highlightClearTask?.cancel()
+        highlightClearTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_200_000_000)
+            guard !Task.isCancelled, highlightedItemID == itemID else { return }
+            highlightedItemID = nil
         }
     }
 }
