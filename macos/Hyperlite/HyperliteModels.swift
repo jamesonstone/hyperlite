@@ -86,6 +86,11 @@ struct HyperliteWorktree: Codable, Equatable {
     let conflicted: Int
     let ahead: Int
     let aheadBase: Int
+
+    enum CodingKeys: String, CodingKey {
+        case path, staged, unstaged, untracked, conflicted, ahead
+        case aheadBase = "ahead_base"
+    }
 }
 
 enum HyperliteStatus: String, CaseIterable, Equatable {
