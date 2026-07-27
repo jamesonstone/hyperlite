@@ -7,15 +7,16 @@ struct HyperliteMenuBarLabel: View {
     @AppStorage("hyperlite.hotkey") private var hotkey = defaultHotKey
 
     var body: some View {
-        let count = state.attentionProjectCount(maxAgeDays: maxAgeDays)
+        let count = state.items(maxAgeDays: maxAgeDays).count
         HStack(spacing: 2) {
-            Text("🚀")
-            Text("✦ \(count > 99 ? "99+" : "\(count)")")
-                .font(.system(size: 10, weight: .bold, design: .rounded))
+            HyperliteGhostMark()
+                .frame(width: 15, height: 15)
+            Text(count > 99 ? "99+" : "\(count)")
+                .font(.system(size: 10, weight: .bold, design: .rounded).monospacedDigit())
         }
-        .help("Hyperlite — \(count) project\(count == 1 ? "" : "s") need attention — \(hotkey)")
+        .help("Hyperlite — \(count) item\(count == 1 ? "" : "s") require attention — \(hotkey)")
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Hyperlite, \(count) projects need attention")
+        .accessibilityLabel("Hyperlite, \(count) items require attention")
     }
 }
 
@@ -56,9 +57,13 @@ struct HyperliteWindow: View {
                 HStack(alignment: .firstTextBaseline) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Hyperlite").font(.system(size: 22, weight: .bold, design: .rounded))
-                        Text("🚀 \(activeProjectCount) active project\(activeProjectCount == 1 ? "" : "s")")
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(.secondary)
+                        HStack(spacing: 4) {
+                            HyperliteGhostMark()
+                                .frame(width: 12, height: 12)
+                            Text("\(activeProjectCount) active project\(activeProjectCount == 1 ? "" : "s")")
+                        }
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.secondary)
                     }
                     Spacer()
                     Button { state.refresh() } label: { Image(systemName: "arrow.clockwise") }

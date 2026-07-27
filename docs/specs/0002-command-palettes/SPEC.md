@@ -13,7 +13,7 @@ feature:
   dir: 0002-command-palettes
 references:
   - id: issue-5
-    name: Add performant command palettes and diagnostics actions
+    name: Add performant navigation, diagnostics, and ghost branding
     type: github-issue
     target: https://github.com/jamesonstone/hyperlite/issues/5
     relation: implements
@@ -21,7 +21,7 @@ references:
     used_for: interaction scope and acceptance criteria
     status: active
   - id: pr-6
-    name: Add command palettes and diagnostics
+    name: Add navigation, diagnostics, and ghost branding
     type: github-pull-request
     target: https://github.com/jamesonstone/hyperlite/pull/6
     relation: verifies
@@ -36,8 +36,9 @@ references:
 Hyperlite should keep the main attention list visually quiet while making every
 current action quickly reachable from the keyboard. Scan diagnostics move into
 a compact header control, stale worktree metadata becomes safely actionable,
-and concise hover cards make list items understandable without turning the
-viewer into Beacon's heavier evidence surface.
+concise hover cards make list items understandable without turning the viewer
+into Beacon's heavier evidence surface, and a liquid-metal ghost gives the
+application a precise identity at both app-icon and menu-bar scales.
 
 ## CONTEXT
 
@@ -83,10 +84,15 @@ opening a palette, scanning, or explicitly pruning.
 - R7: Escape and clicking outside dismiss either palette.
 - R8: No continuous timers, display links, animations, background indexing, or
   eager palette data construction may be introduced.
+- R9: Package a 1024-pixel liquid-chrome ghost master as a complete macOS
+  `.icns` set with a deterministic build step and a valid bundle icon entry.
+- R10: Replace the color emoji menu-bar mark with a crisp, adaptive monochrome
+  ghost silhouette and show the current attention work-item count beside it.
 
 Non-goals: fuzzy search, persistent palette state, global system-wide Command-K
 or Command-P shortcuts, Beacon-style evidence panels, automatic pruning, force
-removal, branch deletion, or broad repository cleanup.
+removal, branch deletion, broad repository cleanup, animated branding, or
+runtime raster processing.
 
 ## ASSUMPTIONS
 
@@ -113,6 +119,9 @@ removal, branch deletion, or broad repository cleanup.
   mechanism performs work while idle.
 - AC7: Focused Go tests, Swift interaction-model tests, type-checking, race
   tests, CLI build, and universal app build pass.
+- AC8: The signed packaged app contains `Hyperlite.icns` with 16 through
+  1024-pixel representations; the menu-bar label uses the ghost mark and counts
+  work items rather than distinct projects.
 
 ## IMPLEMENTATION PLAN
 
@@ -128,6 +137,9 @@ removal, branch deletion, or broad repository cleanup.
    polling, or retained work after dismissal.
 6. Validate failure paths, exact mutation scope, keyboard state transitions,
    idle design, full builds, and the packaged helper.
+7. Generate one high-resolution liquid-metal ghost master, derive the app icon
+   representations during packaging, and use a code-native template silhouette
+   for the menu bar so no runtime image conversion is required.
 
 Risk: `git worktree prune --expire now` affects every stale record for the
 selected repository. Mitigation: confirmation text states this scope, the
@@ -144,6 +156,7 @@ backward compatible because new diagnostic fields are optional.
 - [x] Add pure interaction models and focused tests (AC3-AC6).
 - [x] Add diagnostics and hover popovers (AC1, AC2, AC6).
 - [x] Add Command-K, Command-P, and main-list reveal (AC3-AC5).
+- [x] Add the packaged application icon and counted menu-bar ghost (AC8).
 - [x] Run full validation and curate repository memory (AC7).
 - [x] Deliver ready PR from `GH-5`.
 
@@ -155,6 +168,8 @@ backward compatible because new diagnostic fields are optional.
   packaged-app keyboard verification, and idle-process inspection.
 - AC7: `make fmt-check vet test test-race build macos-test macos-build`,
   strict code-signature verification, and diff review.
+- AC8: bundle-plist inspection, `.icns` round-trip inspection, signed packaged
+  app launch, and real native-window rendering of the 16-pixel ghost mark.
 
 ## REFLECTION NOTES
 
@@ -170,11 +185,19 @@ backward compatible because new diagnostic fields are optional.
 - The current SDK deprecates the one-parameter `onChange` overload, but the
   replacement requires macOS 14. Retaining the older overload is necessary for
   Hyperlite's macOS 13 deployment target.
+- The photorealistic master and the menu-bar mark intentionally share a
+  silhouette, not a raster. A code-native even-odd shape gives macOS a sharp,
+  adaptive monochrome status item without loading or processing icon pixels at
+  runtime.
 
 ## DOCUMENTATION UPDATES
 
 - This specification records the durable product and safety behavior.
 - `README.md` records the user-facing shortcuts and diagnostic behavior.
+- `macos/Hyperlite/Assets/HyperliteIcon.prompt.md` records the generated
+  artwork's reproducible design prompt and focused refinement.
+- The standalone spec retains its historical rocket decision and now records
+  that this feature supersedes it with the ghost/item-count identity.
 - No Constitution or reusable-rule change is warranted: this is
   feature-specific interaction and safety behavior, not a new project
   invariant or cross-feature practice.
@@ -203,3 +226,9 @@ targets `main`; delivery hard-gate recon completed with no blockers.
   confirms no `Timer`, `TimelineView`, display link, or continuous animation.
 - Ready pull request #6 carries the implementation from `GH-5` and closes
   issue #5 when merged.
+- The packaged `Info.plist` resolves `CFBundleIconFile` to
+  `Contents/Resources/Hyperlite.icns`; round-trip extraction contains every
+  required 16, 32, 128, 256, 512, and 1024 representation.
+- The rebuilt native app shows the adaptive ghost mark in the header. The same
+  mark is used by `MenuBarExtra`, where its adjacent value is computed from the
+  visible work-item array rather than the distinct-project set.
