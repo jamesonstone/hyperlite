@@ -25,7 +25,7 @@ references:
     type: github-pull-request
     target: https://github.com/jamesonstone/hyperlite/pull/6
     relation: verifies
-    read_policy: must
+    read_policy: evidence
     used_for: review and hosted validation
     status: active
 ---
