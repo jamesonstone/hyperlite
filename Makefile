@@ -3,6 +3,7 @@
 .PHONY: help build test test-race vet fmt fmt-check install scan scan-json macos-build macos-test stop-hyper hyper
 
 HYPERLITE_APP ?= $(CURDIR)/build/Hyperlite.app
+SWIFT_SOURCES := $(sort $(wildcard macos/Hyperlite/*.swift))
 
 help:
 	@printf '%s\n' 'Hyperlite developer workflow'
@@ -42,7 +43,7 @@ macos-build:
 	HYPERLITE_APP="$(HYPERLITE_APP)" ./scripts/build-macos-app.sh
 
 macos-test:
-	xcrun swiftc -parse-as-library -typecheck -framework SwiftUI -framework AppKit -framework Carbon macos/Hyperlite/HyperliteApp.swift macos/Hyperlite/HyperliteModels.swift
+	xcrun swiftc -parse-as-library -typecheck -framework SwiftUI -framework AppKit -framework Carbon $(SWIFT_SOURCES)
 
 stop-hyper:
 	@osascript -e 'tell application id "com.jamesonstone.hyperlite" to quit' >/dev/null 2>&1 || true

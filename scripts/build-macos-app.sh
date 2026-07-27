@@ -42,10 +42,10 @@ for architecture in arm64 amd64; do
 done
 /usr/bin/lipo -create "$repository_root/build/helpers/hyperlite-arm64" "$repository_root/build/helpers/hyperlite-amd64" -output "$application/Contents/MacOS/hyperlite-cli"
 
+swift_sources=("$repository_root"/macos/Hyperlite/*.swift)
 for architecture in arm64 x86_64; do
   xcrun swiftc -parse-as-library -O -target "$architecture-apple-macos13.0" -framework SwiftUI -framework AppKit -framework Carbon \
-    "$repository_root/macos/Hyperlite/HyperliteApp.swift" \
-    "$repository_root/macos/Hyperlite/HyperliteModels.swift" \
+    "${swift_sources[@]}" \
     -o "$repository_root/build/helpers/Hyperlite-$architecture"
 done
 /usr/bin/lipo -create "$repository_root/build/helpers/Hyperlite-arm64" "$repository_root/build/helpers/Hyperlite-x86_64" -output "$application/Contents/MacOS/Hyperlite"

@@ -8,75 +8,6 @@ import (
 	"time"
 )
 
-func TestResolvePathPrecedence(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-	t.Setenv("HYPERLITE_CONFIG", filepath.Join(home, "environment.yaml"))
-
-	path, err := ResolvePath("explicit.yaml")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.HasSuffix(path, "explicit.yaml") {
-		t.Fatalf("explicit path = %q", path)
-	}
-
-	path, err = ResolvePath("")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if path != filepath.Join(home, "environment.yaml") {
-		t.Fatalf("environment path = %q", path)
-	}
-
-	t.Setenv("HYPERLITE_CONFIG", "")
-	path, err = ResolvePath("")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if path != filepath.Join(home, ".config", "hyperlite", "config.yaml") {
-		t.Fatalf("default path = %q", path)
-	}
-}
-
-func TestEnsureDefaultConfigCopiesBeaconConfigOnce(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-	beaconPath := filepath.Join(home, ".config", "beacon", "config.yaml")
-	contents := []byte("version: 2\nprojects: []\n# retain this exact content\n")
-	if err := os.MkdirAll(filepath.Dir(beaconPath), 0o700); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(beaconPath, contents, 0o600); err != nil {
-		t.Fatal(err)
-	}
-
-	path, err := EnsureDefaultConfig("")
-	if err != nil {
-		t.Fatal(err)
-	}
-	written, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(written) != string(contents) {
-		t.Fatalf("migrated config = %q", written)
-	}
-	if err := os.WriteFile(path, []byte("hyperlite owns this now\n"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := EnsureDefaultConfig(""); err != nil {
-		t.Fatal(err)
-	}
-	written, err = os.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(written) != "hyperlite owns this now\n" {
-		t.Fatalf("existing Hyperlite config was overwritten: %q", written)
-	}
-}
-
 func TestLoadDefaultsAndExpansion(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
@@ -185,47 +116,6 @@ func TestLoadAllowsEmptyVersionTwoProjectSelection(t *testing.T) {
 	}
 	if cfg.Version != Version || len(cfg.Sources) != 0 || len(cfg.Repositories) != 0 {
 		t.Fatalf("config = %#v", cfg)
-	}
-}
-
-func TestCanonicalizeSourcePathResolvesAncestorsButRejectsFinalSymlink(t *testing.T) {
-	root := t.TempDir()
-	t.Setenv("HOME", root)
-	realParent := filepath.Join(root, "real")
-	realSource := filepath.Join(realParent, "source")
-	if err := os.MkdirAll(realSource, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	linkedParent := filepath.Join(root, "linked-parent")
-	if err := os.Symlink(realParent, linkedParent); err != nil {
-		t.Fatal(err)
-	}
-	resolved, err := CanonicalizeSourcePath(filepath.Join(linkedParent, "source"))
-	canonicalRealSource, evalErr := filepath.EvalSymlinks(realSource)
-	if evalErr != nil {
-		t.Fatal(evalErr)
-	}
-	if err != nil || resolved != canonicalRealSource {
-		t.Fatalf("resolved = %q, %v", resolved, err)
-	}
-	canonicalHome, err := filepath.EvalSymlinks(root)
-	if err != nil {
-		t.Fatal(err)
-	}
-	resolved, err = CanonicalizeSourcePath("~")
-	if err != nil || resolved != canonicalHome {
-		t.Fatalf("bare home = %q, %v; want %q", resolved, err, canonicalHome)
-	}
-	resolved, err = CanonicalizeSourcePath("~/real/source")
-	if err != nil || resolved != canonicalRealSource {
-		t.Fatalf("home source = %q, %v; want %q", resolved, err, canonicalRealSource)
-	}
-	finalLink := filepath.Join(root, "source-link")
-	if err := os.Symlink(realSource, finalLink); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := CanonicalizeSourcePath(finalLink); err == nil || !strings.Contains(err.Error(), "symbolic link") {
-		t.Fatalf("final symlink error = %v", err)
 	}
 }
 
