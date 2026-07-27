@@ -31,6 +31,7 @@ type App struct {
 	OutputIsTTY                     func() bool
 	workScannerSource               workSnapshotScanner
 	configuredProjectPrompterSource configuredProjectPrompter
+	worktreePrunerSource            staleWorktreePruner
 }
 
 type workSnapshotScanner interface {
@@ -64,7 +65,8 @@ func (a App) Root() *cobra.Command {
 		SilenceUsage:  true,
 		Args:          noArgs,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			if cmd.Name() == "version" || (cmd.Name() == "scan" && len(args) > 0) {
+			if cmd.Name() == "version" || cmd.Name() == "prune-worktree" ||
+				(cmd.Name() == "scan" && len(args) > 0) {
 				return nil
 			}
 			_, err := config.EnsureDefaultConfig(configPath)
@@ -81,6 +83,7 @@ func (a App) Root() *cobra.Command {
 	root.AddCommand(
 		a.scanCommand(&configPath),
 		a.configuredProjectsCommand(&configPath),
+		a.pruneWorktreeCommand(),
 		versionCommand(a.Out),
 	)
 	return root

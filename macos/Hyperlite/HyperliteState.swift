@@ -7,14 +7,54 @@ final class HyperliteState: ObservableObject {
 
     @Published private(set) var scan: HyperliteWorkScan?
     @Published private(set) var isRefreshing = false
+    @Published private(set) var isPruning = false
     @Published private(set) var errorMessage: String?
+    @Published private(set) var paletteMode: HyperlitePaletteMode?
     private var refreshTask: Task<Void, Never>?
+    private var pruneTask: Task<Void, Never>?
 
     init() { refresh(localOnly: true) }
 
-    deinit { refreshTask?.cancel() }
+    deinit {
+        refreshTask?.cancel()
+        pruneTask?.cancel()
+    }
 
     func refresh() { refresh(localOnly: false) }
+
+    func showPalette(_ mode: HyperlitePaletteMode) {
+        paletteMode = mode
+    }
+
+    func dismissPalette() {
+        paletteMode = nil
+    }
+
+    func prune(_ diagnostic: HyperliteDiagnostic) {
+        guard !isPruning, !isRefreshing,
+              diagnostic.isPrunableWorktree,
+              let repositoryPath = diagnostic.repositoryPath,
+              let worktreePath = diagnostic.worktreePath
+        else { return }
+        isPruning = true
+        pruneTask?.cancel()
+        pruneTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                _ = try await Self.runHyperlite(
+                    arguments: ["prune-worktree", repositoryPath, worktreePath],
+                    operation: "prune"
+                )
+                isPruning = false
+                refresh(localOnly: true)
+            } catch is CancellationError {
+                isPruning = false
+            } catch {
+                errorMessage = error.localizedDescription
+                isPruning = false
+            }
+        }
+    }
 
     func items(maxAgeDays: Int, now: Date = Date()) -> [HyperliteWorkItem] {
         guard let scan else { return [] }
@@ -33,7 +73,7 @@ final class HyperliteState: ObservableObject {
             guard let self else { return }
             do {
                 let arguments = localOnly ? ["--json", "--local", "--no-refresh"] : ["--json"]
-                let data = try await Self.runHyperlite(arguments: arguments)
+                let data = try await Self.runHyperlite(arguments: arguments, operation: "scan")
                 let decoder = JSONDecoder()
                 decoder.dateDecodingStrategy = .custom { decoder in
                     let value = try decoder.singleValueContainer().decode(String.self)
@@ -57,7 +97,7 @@ final class HyperliteState: ObservableObject {
         }
     }
 
-    private static func runHyperlite(arguments: [String]) async throws -> Data {
+    private static func runHyperlite(arguments: [String], operation: String) async throws -> Data {
         let executable = Bundle.main.bundleURL.appendingPathComponent("Contents/MacOS/hyperlite-cli")
         guard FileManager.default.isExecutableFile(atPath: executable.path) else { throw HyperliteError.helperMissing }
         return try await withCheckedThrowingContinuation { continuation in
@@ -68,7 +108,7 @@ final class HyperliteState: ObservableObject {
             let timeout = DispatchWorkItem {
                 guard process.isRunning, let continuation = completion.takeContinuation() else { return }
                 if process.isRunning { process.terminate() }
-                continuation.resume(throwing: HyperliteError.scanTimedOut)
+                continuation.resume(throwing: HyperliteError.commandTimedOut(operation))
             }
             process.executableURL = executable
             process.arguments = arguments
@@ -79,7 +119,10 @@ final class HyperliteState: ObservableObject {
                 let data = output.fileHandleForReading.readDataToEndOfFile()
                 guard process.terminationStatus == 0 else {
                     let message = String(data: errors.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
-                    completion.resume(throwing: HyperliteError.scanFailed(message ?? "hyperlite exited with status \(process.terminationStatus)"))
+                    completion.resume(throwing: HyperliteError.commandFailed(
+                        operation,
+                        message ?? "hyperlite exited with status \(process.terminationStatus)"
+                    ))
                     return
                 }
                 completion.resume(returning: data)
@@ -121,14 +164,14 @@ private final class HyperliteRunCompletion {
 
 private enum HyperliteError: LocalizedError {
     case helperMissing
-    case scanFailed(String)
-    case scanTimedOut
+    case commandFailed(String, String)
+    case commandTimedOut(String)
 
     var errorDescription: String? {
         switch self {
         case .helperMissing: "Hyperlite's scan helper is unavailable"
-        case let .scanFailed(message): "Hyperlite scan failed: \(message)"
-        case .scanTimedOut: "Hyperlite scan timed out"
+        case let .commandFailed(operation, message): "Hyperlite \(operation) failed: \(message)"
+        case let .commandTimedOut(operation): "Hyperlite \(operation) timed out"
         }
     }
 }

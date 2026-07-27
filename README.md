@@ -34,6 +34,12 @@ The native window starts with a fast local scan; its refresh button and
 Control+Shift+H hotkey refresh Git and pull-request state. The menu-bar rocket
 count is the number of distinct recent projects requiring attention.
 
+Hover a work item for a concise local summary. Use Command+K for all current
+actions and items, or Command+P for a collapsed project navigator controlled
+with Arrow keys or J/K, Space, and Enter. Scan diagnostics live behind the
+header warning icon; verified stale worktree records can be pruned there after
+confirmation.
+
 ## Development
 
 ```sh

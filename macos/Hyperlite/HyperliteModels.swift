@@ -124,10 +124,27 @@ struct HyperlitePullRequest: Codable, Equatable {
     let review: String
 }
 
-struct HyperliteDiagnostic: Codable, Equatable {
+struct HyperliteDiagnostic: Codable, Equatable, Identifiable {
     let repository: String
+    let repositoryPath: String?
     let stage: String
     let message: String
+    let code: String?
+    let worktreePath: String?
+
+    var id: String {
+        [repository, stage, code ?? "", worktreePath ?? "", message].joined(separator: "\u{1F}")
+    }
+
+    var isPrunableWorktree: Bool {
+        code == "worktree_prunable" && repositoryPath != nil && worktreePath != nil
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case repository, stage, message, code
+        case repositoryPath = "repository_path"
+        case worktreePath = "worktree_path"
+    }
 }
 
 enum HyperlitePresentation {

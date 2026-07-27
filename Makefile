@@ -4,6 +4,8 @@
 
 HYPERLITE_APP ?= $(CURDIR)/build/Hyperlite.app
 SWIFT_SOURCES := $(sort $(wildcard macos/Hyperlite/*.swift))
+SWIFT_MODEL_TEST_SOURCES := macos/Hyperlite/HyperliteModels.swift macos/Hyperlite/HyperliteInteractionModels.swift macos/HyperliteTests/HyperliteInteractionModelTests.swift
+SWIFT_MODEL_TEST_BINARY := build/tests/HyperliteInteractionModelTests
 
 help:
 	@printf '%s\n' 'Hyperlite developer workflow'
@@ -44,6 +46,9 @@ macos-build:
 
 macos-test:
 	xcrun swiftc -parse-as-library -typecheck -framework SwiftUI -framework AppKit -framework Carbon $(SWIFT_SOURCES)
+	mkdir -p "$(dir $(SWIFT_MODEL_TEST_BINARY))"
+	xcrun swiftc -parse-as-library $(SWIFT_MODEL_TEST_SOURCES) -o "$(SWIFT_MODEL_TEST_BINARY)"
+	"$(SWIFT_MODEL_TEST_BINARY)"
 
 stop-hyper:
 	@osascript -e 'tell application id "com.jamesonstone.hyperlite" to quit' >/dev/null 2>&1 || true
