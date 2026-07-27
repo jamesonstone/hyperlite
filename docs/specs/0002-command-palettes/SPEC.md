@@ -20,6 +20,14 @@ references:
     read_policy: must
     used_for: interaction scope and acceptance criteria
     status: active
+  - id: pr-6
+    name: Add command palettes and diagnostics
+    type: github-pull-request
+    target: https://github.com/jamesonstone/hyperlite/pull/6
+    relation: verifies
+    read_policy: must
+    used_for: review and hosted validation
+    status: active
 ---
 # Performant Command Palettes And Diagnostics
 
@@ -137,7 +145,7 @@ backward compatible because new diagnostic fields are optional.
 - [x] Add diagnostics and hover popovers (AC1, AC2, AC6).
 - [x] Add Command-K, Command-P, and main-list reveal (AC3-AC5).
 - [x] Run full validation and curate repository memory (AC7).
-- [ ] Deliver ready PR from `GH-5`.
+- [x] Deliver ready PR from `GH-5`.
 
 ## VALIDATION MAP
 
@@ -173,8 +181,8 @@ backward compatible because new diagnostic fields are optional.
 
 ## DELIVERY DECISION
 
-Implement on issue #5 in branch and worktree `GH-5`, then open a ready pull
-request against `main`. Delivery hard-gate recon is complete with no blockers.
+Implemented on issue #5 in branch and worktree `GH-5`. Ready pull request #6
+targets `main`; delivery hard-gate recon completed with no blockers.
 
 ## EVIDENCE
 
@@ -193,3 +201,5 @@ request against `main`. Delivery hard-gate recon is complete with no blockers.
   implementation is included in the native type-check and packaged build.
 - Idle process samples remained between 0.0% and 0.2% CPU. Source inspection
   confirms no `Timer`, `TimelineView`, display link, or continuous animation.
+- Ready pull request #6 carries the implementation from `GH-5` and closes
+  issue #5 when merged.
