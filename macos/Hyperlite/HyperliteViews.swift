@@ -7,15 +7,16 @@ struct HyperliteMenuBarLabel: View {
     @AppStorage("hyperlite.hotkey") private var hotkey = defaultHotKey
 
     var body: some View {
-        let count = state.attentionProjectCount(maxAgeDays: maxAgeDays)
+        let count = state.items(maxAgeDays: maxAgeDays).count
         HStack(spacing: 2) {
-            Text("🚀")
-            Text("✦ \(count > 99 ? "99+" : "\(count)")")
-                .font(.system(size: 10, weight: .bold, design: .rounded))
+            HyperliteGhostMark()
+                .frame(width: 15, height: 15)
+            Text(count > 99 ? "99+" : "\(count)")
+                .font(.system(size: 10, weight: .bold, design: .rounded).monospacedDigit())
         }
-        .help("Hyperlite — \(count) project\(count == 1 ? "" : "s") need attention — \(hotkey)")
+        .help("Hyperlite — \(count) item\(count == 1 ? "" : "s") require attention — \(hotkey)")
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Hyperlite, \(count) projects need attention")
+        .accessibilityLabel("Hyperlite, \(count) items require attention")
     }
 }
 
@@ -37,85 +38,158 @@ struct HyperliteMenu: View {
 struct HyperliteWindow: View {
     @ObservedObject var state: HyperliteState
     @AppStorage("hyperlite.max-age-days") private var maxAgeDays = 10
+    @State private var diagnosticsClickRequest = 0
+    @State private var pendingPrune: HyperliteDiagnostic?
+    @State private var highlightedItemID: String?
+    @State private var revealItemID: String?
+    @State private var highlightClearTask: Task<Void, Never>?
 
     private var visibleItems: [HyperliteWorkItem] { state.items(maxAgeDays: maxAgeDays) }
+    private var errors: [HyperliteDiagnostic] { state.scan?.errors ?? [] }
+    private var warnings: [HyperliteDiagnostic] { state.scan?.warnings ?? [] }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Hyperlite").font(.system(size: 22, weight: .bold, design: .rounded))
-                    Text("🚀 \(state.attentionProjectCount(maxAgeDays: maxAgeDays)) active project\(state.attentionProjectCount(maxAgeDays: maxAgeDays) == 1 ? "" : "s")")
+        let items = visibleItems
+        let currentErrors = errors
+        let currentWarnings = warnings
+        let activeProjectCount = Set(items.map(\.repositoryPath)).count
+        return ZStack {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Hyperlite").font(.system(size: 22, weight: .bold, design: .rounded))
+                        HStack(spacing: 4) {
+                            HyperliteGhostMark()
+                                .frame(width: 12, height: 12)
+                            Text("\(activeProjectCount) active project\(activeProjectCount == 1 ? "" : "s")")
+                        }
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(.secondary)
-                }
-                Spacer()
-                Button { state.refresh() } label: { Image(systemName: "arrow.clockwise") }
-                    .buttonStyle(.bordered)
-                    .disabled(state.isRefreshing)
-                    .help("Refresh Git and pull request status")
-                Button(action: openHyperliteSettings) { Image(systemName: "gearshape.fill") }
-                    .buttonStyle(.bordered)
-                    .help("Hyperlite settings")
-            }
-
-            if let errorMessage = state.errorMessage {
-                Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
-                    .font(.subheadline)
-                    .foregroundStyle(.red)
-            } else if state.scan == nil {
-                ProgressView("Checking local work…")
-                    .controlSize(.small)
-            } else if let scan = state.scan {
-                if !scan.errors.isEmpty || !scan.warnings.isEmpty {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Label(partialScanSummary(for: scan), systemImage: "exclamationmark.triangle.fill")
-                            .font(.subheadline)
-                            .foregroundStyle(scan.errors.isEmpty ? .orange : .red)
-                        ForEach(scan.errors.indices, id: \.self) { index in
-                            Text("Error: \(diagnosticDescription(scan.errors[index]))")
-                                .font(.caption)
-                                .foregroundStyle(.red)
-                        }
-                        ForEach(scan.warnings.indices, id: \.self) { index in
-                            Text("Warning: \(diagnosticDescription(scan.warnings[index]))")
-                                .font(.caption)
-                                .foregroundStyle(.orange)
-                        }
                     }
+                    Spacer()
+                    Button { state.refresh() } label: { Image(systemName: "arrow.clockwise") }
+                        .buttonStyle(.bordered)
+                        .disabled(state.isRefreshing || state.isPruning)
+                        .help("Refresh Git and pull request status")
+                    if !currentErrors.isEmpty || !currentWarnings.isEmpty {
+                        HyperliteDiagnosticsButton(
+                            errors: currentErrors,
+                            warnings: currentWarnings,
+                            isPruning: state.isPruning,
+                            clickRequest: diagnosticsClickRequest,
+                            onPruneRequest: { pendingPrune = $0 }
+                        )
+                    }
+                    Button(action: openHyperliteSettings) { Image(systemName: "gearshape.fill") }
+                        .buttonStyle(.bordered)
+                        .help("Hyperlite settings")
                 }
 
-                if visibleItems.isEmpty {
+                if let errorMessage = state.errorMessage {
+                    Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(.red)
+                }
+                if state.scan == nil {
+                    ProgressView("Checking local work…")
+                        .controlSize(.small)
+                } else if items.isEmpty {
                     HyperliteEmptyState()
                 } else {
-                    ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 7) {
-                            ForEach(visibleItems) { item in
-                                HyperliteRow(item: item)
-                                if item.id != visibleItems.last?.id { Divider() }
+                    ScrollViewReader { proxy in
+                        ScrollView {
+                            LazyVStack(alignment: .leading, spacing: 7) {
+                                ForEach(items) { item in
+                                    HyperliteRow(
+                                        item: item,
+                                        highlighted: item.id == highlightedItemID
+                                    )
+                                    .id(item.id)
+                                    if item.id != items.last?.id { Divider() }
+                                }
                             }
+                        }
+                        .onChange(of: revealItemID) { itemID in
+                            guard let itemID else { return }
+                            proxy.scrollTo(itemID, anchor: .center)
+                            scheduleHighlightClear(for: itemID)
+                            revealItemID = nil
                         }
                     }
                 }
             }
+            .padding(20)
+
+            if let mode = state.paletteMode {
+                Color.black.opacity(0.34)
+                    .contentShape(Rectangle())
+                    .onTapGesture { state.dismissPalette() }
+                HyperliteCommandPalette(
+                    mode: mode,
+                    items: items,
+                    errors: currentErrors,
+                    warnings: currentWarnings,
+                    onAction: handlePaletteAction,
+                    onDismiss: state.dismissPalette
+                )
+                .id(mode)
+            }
         }
-        .padding(20)
         .frame(minWidth: 440, minHeight: 560)
+        .confirmationDialog(
+            "Prune stale worktree metadata?",
+            isPresented: pruneConfirmationPresented,
+            titleVisibility: .visible
+        ) {
+            Button("Prune All Stale Metadata", role: .destructive) {
+                if let pendingPrune { state.prune(pendingPrune) }
+                pendingPrune = nil
+            }
+            Button("Cancel", role: .cancel) { pendingPrune = nil }
+        } message: {
+            Text("Git will prune all stale worktree records for \(pendingPrune?.repository ?? "this repository") after re-verifying the selected path.")
+        }
+        .onDisappear {
+            highlightClearTask?.cancel()
+            highlightClearTask = nil
+            highlightedItemID = nil
+            revealItemID = nil
+        }
     }
 
-    private func partialScanSummary(for scan: HyperliteWorkScan) -> String {
-        var diagnostics: [String] = []
-        if !scan.errors.isEmpty {
-            diagnostics.append("\(scan.errors.count) error\(scan.errors.count == 1 ? "" : "s")")
-        }
-        if !scan.warnings.isEmpty {
-            diagnostics.append("\(scan.warnings.count) warning\(scan.warnings.count == 1 ? "" : "s")")
-        }
-        return "Partial scan: \(diagnostics.joined(separator: " and ")). Results may be incomplete."
+    private var pruneConfirmationPresented: Binding<Bool> {
+        Binding(
+            get: { pendingPrune != nil },
+            set: { if !$0 { pendingPrune = nil } }
+        )
     }
 
-    private func diagnosticDescription(_ diagnostic: HyperliteDiagnostic) -> String {
-        "\(diagnostic.repository) (\(diagnostic.stage)): \(diagnostic.message)"
+    private func handlePaletteAction(_ action: HyperlitePaletteAction) {
+        state.dismissPalette()
+        switch action {
+        case .refresh:
+            state.refresh()
+        case .settings:
+            openHyperliteSettings()
+        case .diagnostics:
+            diagnosticsClickRequest += 1
+        case let .prune(diagnostic):
+            pendingPrune = diagnostic
+        case let .reveal(itemID):
+            highlightClearTask?.cancel()
+            highlightClearTask = nil
+            highlightedItemID = itemID
+            revealItemID = itemID
+        }
+    }
+
+    private func scheduleHighlightClear(for itemID: String) {
+        highlightClearTask?.cancel()
+        highlightClearTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_200_000_000)
+            guard !Task.isCancelled, highlightedItemID == itemID else { return }
+            highlightedItemID = nil
+        }
     }
 }
 
@@ -168,6 +242,7 @@ struct HyperliteSettingsView: View {
 
 private struct HyperliteRow: View {
     let item: HyperliteWorkItem
+    let highlighted: Bool
 
     var body: some View {
         Button(action: activate) {
@@ -196,10 +271,16 @@ private struct HyperliteRow: View {
                 }
             }
             .padding(.vertical, 7)
+            .padding(.horizontal, 6)
             .contentShape(Rectangle())
+            .background(
+                highlighted ? Color.accentColor.opacity(0.16) : Color.clear,
+                in: RoundedRectangle(cornerRadius: 8)
+            )
         }
         .buttonStyle(.plain)
         .help(description)
+        .hyperliteHoverPopover { HyperliteItemHoverCard(item: item) }
     }
 
     private var description: String {

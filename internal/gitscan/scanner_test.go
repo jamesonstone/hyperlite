@@ -66,10 +66,14 @@ func TestParseCounts(t *testing.T) {
 }
 
 func TestPrunableWorktreeIsWarningNotError(t *testing.T) {
-	lane, errors, warnings := (Scanner{}).scanWorktree(context.Background(), config.Repository{GitHub: "owner/repo"}, worktreeRecord{
+	lane, errors, warnings := (Scanner{}).scanWorktree(context.Background(), config.Repository{
+		Path: "/repo", GitHub: "owner/repo",
+	}, worktreeRecord{
 		Path: "/missing/worktree", HeadOID: "abcdef", Branch: "feature", Prunable: true,
 	})
-	if !lane.Worktree.Prunable || len(errors) != 0 || len(warnings) != 1 || warnings[0].Stage != "worktree" {
+	if !lane.Worktree.Prunable || len(errors) != 0 || len(warnings) != 1 ||
+		warnings[0].Stage != "worktree" || warnings[0].Code != "worktree_prunable" ||
+		warnings[0].WorktreePath != "/missing/worktree" {
 		t.Fatalf("lane=%#v errors=%#v warnings=%#v", lane, errors, warnings)
 	}
 }

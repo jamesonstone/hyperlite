@@ -33,6 +33,20 @@ cp "$repository_root/macos/Hyperlite/Info.plist" "$application/Contents/Info.pli
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $version" "$application/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $build_number" "$application/Contents/Info.plist"
 
+icon_source="$repository_root/macos/Hyperlite/Assets/HyperliteIcon.png"
+iconset="$repository_root/build/Hyperlite.iconset"
+rm -rf "$iconset"
+mkdir -p "$iconset"
+for size in 16 32 128 256 512; do
+  double_size=$((size * 2))
+  /usr/bin/sips -z "$size" "$size" "$icon_source" \
+    --out "$iconset/icon_${size}x${size}.png" >/dev/null
+  /usr/bin/sips -z "$double_size" "$double_size" "$icon_source" \
+    --out "$iconset/icon_${size}x${size}@2x.png" >/dev/null
+done
+/usr/bin/iconutil -c icns "$iconset" -o "$application/Contents/Resources/Hyperlite.icns"
+rm -rf "$iconset"
+
 ldflags="-s -w -X github.com/jamesonstone/hyperlite/internal/cli.Version=$version -X github.com/jamesonstone/hyperlite/internal/cli.Commit=$commit -X github.com/jamesonstone/hyperlite/internal/cli.Date=$build_date"
 for architecture in arm64 amd64; do
   (

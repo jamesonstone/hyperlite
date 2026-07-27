@@ -80,10 +80,12 @@ func (s Scanner) Scan(ctx context.Context, repo config.Repository, refresh bool,
 		result.Lanes = append(result.Lanes, lane)
 		for _, scanErr := range scanErrors {
 			scanErr.Repository = repo.Name
+			scanErr.RepositoryPath = repo.Path
 			result.Errors = append(result.Errors, scanErr)
 		}
 		for _, scanWarning := range scanWarnings {
 			scanWarning.Repository = repo.Name
+			scanWarning.RepositoryPath = repo.Path
 			result.Warnings = append(result.Warnings, scanWarning)
 		}
 	}
@@ -139,7 +141,10 @@ func (s Scanner) scanWorktree(ctx context.Context, repo config.Repository, recor
 		Publication: model.PublicationUnknown,
 	}
 	if record.Prunable {
-		return lane, nil, []model.ScanError{{Stage: "worktree", Message: fmt.Sprintf("worktree is prunable: %s", record.Path)}}
+		return lane, nil, []model.ScanError{{
+			Stage: "worktree", Message: fmt.Sprintf("worktree is prunable: %s", record.Path),
+			Code: "worktree_prunable", WorktreePath: record.Path,
+		}}
 	}
 
 	output, err := s.run(ctx, localTimeout, record.Path, "git", "status", "--porcelain=v2", "--branch", "--untracked-files=all", "-z")

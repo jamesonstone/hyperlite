@@ -76,6 +76,10 @@ Git history mutation, or automatic configuration overwrite.
   reads Beacon's config as its ongoing source of truth after initialization.
 - A standard window is the primary interaction surface; the menu bar provides
   a compact launch/count affordance, not the only way to find the app.
+- The original rocket and distinct-project count were the standalone launch
+  identity. On 2026-07-27, feature `0002-command-palettes` superseded that
+  visual with the liquid-metal ghost identity and changed the menu-bar value to
+  the number of attention work items; the compact launch affordance remains.
 - The scanner remains read-only. It uses local Git facts and `gh` only to list
   open pull requests, preserving the small, inspectable status model.
 

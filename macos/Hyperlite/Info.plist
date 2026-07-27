@@ -8,6 +8,8 @@
     <string>Hyperlite</string>
     <key>CFBundleIdentifier</key>
     <string>com.jamesonstone.hyperlite</string>
+    <key>CFBundleIconFile</key>
+    <string>Hyperlite.icns</string>
     <key>CFBundleName</key>
     <string>Hyperlite</string>
     <key>CFBundlePackageType</key>

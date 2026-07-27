@@ -28,6 +28,14 @@ struct HyperliteApp: App {
         }
         .defaultSize(width: 480, height: 650)
         .windowResizability(.contentMinSize)
+        .commands {
+            CommandMenu("Navigate") {
+                Button("Command Palette") { state.showPalette(.commands) }
+                    .keyboardShortcut("k", modifiers: .command)
+                Button("Project Palette") { state.showPalette(.projects) }
+                    .keyboardShortcut("p", modifiers: .command)
+            }
+        }
 
         MenuBarExtra {
             HyperliteMenu(state: state)
