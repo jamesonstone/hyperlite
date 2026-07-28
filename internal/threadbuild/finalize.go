@@ -120,7 +120,7 @@ func derivedPhase(thread model.Thread, hasSpec bool, issueNumber int) model.Thre
 	return model.ThreadImplementing
 }
 
-func phaseFromDocument(phase string) model.ThreadPhase {
+func phaseFromDocument(phase string, workflowVersion int) model.ThreadPhase {
 	switch strings.ToLower(strings.TrimSpace(phase)) {
 	case "brainstorm", "research", "clarify", "spec":
 		return model.ThreadShaping
@@ -133,6 +133,9 @@ func phaseFromDocument(phase string) model.ThreadPhase {
 	case "delivery", "operationalize", "operationalizing":
 		return model.ThreadOperationalizing
 	case "reflect", "reflection":
+		if workflowVersion < 2 {
+			return model.ThreadComplete
+		}
 		return model.ThreadReflecting
 	case "deliver", "complete", "removed":
 		return model.ThreadComplete

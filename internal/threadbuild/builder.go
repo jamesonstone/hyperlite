@@ -54,9 +54,7 @@ func Build(input Input) []model.Thread {
 	threads := make([]model.Thread, 0, len(builders))
 	for _, builder := range builders {
 		finalize(&builder.thread, builder.hasSpec, builder.issueNumber, input.Now)
-		if builder.thread.Active || recent(builder.thread.UpdatedAt, input.Now, 30*24*time.Hour) {
-			threads = append(threads, builder.thread)
-		}
+		threads = append(threads, builder.thread)
 	}
 	sort.Slice(threads, func(i, j int) bool {
 		if threads[i].Active != threads[j].Active {
@@ -92,7 +90,7 @@ func addDocument(repo config.Repository, document memoryscan.Document, builders 
 	builder.thread.Goal = firstNonEmpty(builder.thread.Goal, firstParagraph(document.Purpose))
 	builder.thread.Rationale = firstNonEmpty(builder.thread.Rationale, firstParagraph(document.Context))
 	if builder.thread.Phase == "" {
-		builder.thread.Phase = phaseFromDocument(document.Phase)
+		builder.thread.Phase = phaseFromDocument(document.Phase, document.WorkflowVersion)
 	}
 	evidenceID := specAlias
 	excerpt := joinExcerpt(document.Purpose, document.Context, document.Plan, document.Decisions, document.Outcome)

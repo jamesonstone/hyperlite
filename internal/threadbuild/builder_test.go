@@ -182,6 +182,35 @@ func TestMultipleDocumentsDoNotEraseCanonicalFields(t *testing.T) {
 	}
 }
 
+func TestReflectionPhaseFollowsWorkflowVersion(t *testing.T) {
+	now := time.Now().UTC()
+	threads := Build(Input{
+		Repository: config.Repository{Name: "repo", GitHub: "owner/repo"},
+		Documents: []memoryscan.Document{
+			{
+				ID: "spec:0001", FeatureID: "0001", Title: "Legacy",
+				Phase: "reflect", Path: "docs/specs/0001-legacy/SPEC.md", UpdatedAt: now,
+			},
+			{
+				ID: "spec:0002", FeatureID: "0002", Title: "Living",
+				Phase: "reflect", WorkflowVersion: 2,
+				Path: "docs/specs/0002-living/SPEC.md", UpdatedAt: now,
+			},
+		},
+		Now: now,
+	})
+	if len(threads) != 2 {
+		t.Fatalf("threads = %#v", threads)
+	}
+	phases := map[string]model.ThreadPhase{}
+	for _, thread := range threads {
+		phases[thread.Title] = thread.Phase
+	}
+	if phases["Legacy"] != model.ThreadComplete || phases["Living"] != model.ThreadReflecting {
+		t.Fatalf("phases = %#v", phases)
+	}
+}
+
 func contains(values []string, want string) bool {
 	for _, value := range values {
 		if value == want {

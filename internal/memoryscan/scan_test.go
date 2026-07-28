@@ -102,3 +102,35 @@ deploy --production example
 		t.Fatalf("candidates = %#v", values)
 	}
 }
+
+func TestReflectionCompletionFollowsWorkflowVersion(t *testing.T) {
+	root := t.TempDir()
+	for _, test := range []struct {
+		id              string
+		workflowVersion string
+		satisfied       bool
+	}{
+		{id: "0001", satisfied: true},
+		{id: "0002", workflowVersion: "workflow_version: 2\n", satisfied: false},
+	} {
+		directory := filepath.Join(root, "docs", "specs", test.id+"-feature")
+		if err := os.MkdirAll(directory, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		spec := "---\n" + test.workflowVersion +
+			"phase: reflect\nfeature:\n  id: \"" + test.id + "\"\n  slug: feature\n---\n" +
+			"# Feature\n\n## Requirements\n\n- Deploy the production worker.\n"
+		path := filepath.Join(directory, "SPEC.md")
+		if err := os.WriteFile(path, []byte(spec), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		document, diagnostics := loadDocument(root, path, nil)
+		if len(diagnostics) != 0 || len(document.Obligations) != 1 {
+			t.Fatalf("document=%#v diagnostics=%#v", document, diagnostics)
+		}
+		if document.Obligations[0].Satisfied != test.satisfied {
+			t.Fatalf("workflow version %d satisfied=%t, want %t",
+				document.WorkflowVersion, document.Obligations[0].Satisfied, test.satisfied)
+		}
+	}
+}

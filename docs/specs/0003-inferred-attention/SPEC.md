@@ -92,6 +92,11 @@ completion.
   work window applies only to completed threads.
 - R16: Preserve the root JSON scan entrypoint and add bounded CLI operations for
   inference, seen revisions, and stdin-supplied notes.
+- R17: Interpret lifecycle evidence according to its source workflow. A legacy
+  staged feature at `reflect` is canonical reflected closure; a versioned
+  living spec at `reflect` remains active until its later delivery or completion
+  phase. Correcting an already-observed lifecycle classification must not replay
+  a synthetic attention moment.
 
 Non-goals: user-authored task tracking, manual lifecycle management, hosted
 model calls, continuous polling, notifications, agent transcript ingestion,
@@ -120,6 +125,9 @@ automatic project selection.
 7. Validate the model with focused unit and integration fixtures, including
    distinct related R2 and Event Sink threads whose implementation pull
    requests do not satisfy their operational obligations.
+8. Keep workflow-version semantics through repository-memory parsing, derive
+   legacy reflected features as complete, and reconcile terminal projections
+   before applying recent-work retention.
 
 ## DECISIONS
 
@@ -129,6 +137,9 @@ automatic project selection.
 - Artifact completion must not be mistaken for goal completion.
 - Active-thread retention follows unresolved coordination state, not artifact
   age.
+- A phase label is not globally authoritative without its workflow version.
+  Legacy staged `reflect` means implementation and reflection are complete,
+  while V2/V3 `reflect` is an active living-spec phase.
 - Reading is the only acknowledgement gesture. Hyperlite has no manual
   attention state, parking, pinning, or completion controls.
 - Optional notes are durable user context, not lifecycle authority.
@@ -157,6 +168,9 @@ automatic project selection.
 - AC9: The cached primary surface renders within two seconds in a packaged app.
 - AC10: Full Go, race, Swift model, type-check, CLI build, and universal macOS
   app validation passes.
+- AC11: Historical legacy reflected specs do not count as in-flight threads,
+  versioned reflected specs remain active, and correcting this classification
+  creates no unread attention.
 
 ## VALIDATION MAP
 
@@ -166,6 +180,8 @@ automatic project selection.
 - AC8: golden multi-repository scanner fixture and read-only live scan.
 - AC9: packaged-app launch and cached-render timing.
 - AC10: `make fmt-check vet test test-race build macos-test macos-build`.
+- AC11: repository-memory phase contract tests, lifecycle derivation tests, and
+  state reconciliation coverage for an observed active-to-terminal correction.
 
 ## DISCOVERIES
 
@@ -216,6 +232,13 @@ automatic project selection.
 - Superseding a native refresh must cancel its running helper process before
   launching the replacement. Generation guards prevent stale rendering but do
   not prevent overlapping GitHub work by an obsolete helper.
+- A live selected-project snapshot exposed 45 active projections: 43 were
+  `reflecting`, including 31 historical Kit staged specs whose task-derived
+  phase was `reflect`. Hyperlite had discarded the workflow-version distinction
+  and therefore interpreted canonical legacy reflection as indefinite active
+  coordination. Terminal projections also need to reach state reconciliation
+  before recent-work filtering, or their prior active snapshots are retained as
+  false missing-evidence uncertainty.
 
 ## VALIDATION
 
@@ -228,6 +251,15 @@ automatic project selection.
   malformed-model fallback, seen revisions, notes, cross-process mutation
   serialization, idempotent summaries, bounded exact-anchor hydration, and
   degraded inference.
+- Workflow-version contract tests prove that legacy reflected specs satisfy
+  their extracted obligations and become terminal while V2/V3 reflected specs
+  remain active. State reconciliation coverage proves that correcting an
+  observed legacy thread does not create unread attention or retain a false
+  missing-evidence snapshot.
+- A local-only scan against a copied live state reduced the active projection
+  from 45 to 15 by removing 31 historical legacy reflected specs. The remaining
+  projection contains 13 recent merged threads awaiting canonical closure, one
+  shaping spec, and one implementation worktree.
 - A repository-wide null-delimited audit confirms every tracked handwritten
   implementation and test file is at or below 300 lines after responsibility-
   based Go and Swift splits.

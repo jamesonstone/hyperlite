@@ -76,6 +76,9 @@ func changedCandidate(previous, current MaterialSignature, thread model.Thread) 
 	if candidate := currentCandidate(thread); candidate != nil {
 		return candidate
 	}
+	if thread.Phase == model.ThreadComplete {
+		return nil
+	}
 	switch {
 	case previous.Dependencies != current.Dependencies || previous.Obligations != current.Obligations:
 		return &candidate{
@@ -97,7 +100,7 @@ func changedCandidate(previous, current MaterialSignature, thread model.Thread) 
 			evidence: evidenceIDs(thread.Evidence),
 		}
 	case previous.Phase != current.Phase && (current.Phase == model.ThreadOperationalizing ||
-		current.Phase == model.ThreadReflecting || current.Phase == model.ThreadComplete):
+		current.Phase == model.ThreadReflecting):
 		return &candidate{
 			kind: model.AttentionKnow, summary: "The goal advanced to " + string(current.Phase),
 			why:      "The coordination lifecycle crossed a material boundary.",

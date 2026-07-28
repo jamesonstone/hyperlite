@@ -34,6 +34,7 @@ func ReconcileSelected(
 	}
 	updated := make(map[string]ThreadRecord, len(threads))
 	consumed := make(map[string]bool, len(threads))
+	reconciled := make([]model.Thread, 0, len(threads))
 	for index := range threads {
 		thread := &threads[index]
 		record, found := matchingRecord(*thread, records, aliases)
@@ -72,7 +73,10 @@ func ReconcileSelected(
 		thread.LatestMaterialRevision = record.Revision
 		thread.WhyNow = whyNow(*thread)
 		record.Snapshot = snapshotFor(*thread)
-		updated[record.ID] = record
+		if shouldRetainCurrentSnapshot(record.Snapshot, now) {
+			updated[record.ID] = record
+			reconciled = append(reconciled, *thread)
+		}
 	}
 	for _, record := range state.Threads {
 		if _, exists := updated[record.ID]; exists || consumed[record.ID] {
@@ -102,7 +106,7 @@ func ReconcileSelected(
 			thread.LatestMaterialRevision = record.Revision
 			thread.WhyNow = whyNow(thread)
 			record.Snapshot = snapshotFor(thread)
-			threads = append(threads, thread)
+			reconciled = append(reconciled, thread)
 			updated[record.ID] = record
 		}
 	}
@@ -112,7 +116,7 @@ func ReconcileSelected(
 	}
 	sort.Slice(state.Threads, func(i, j int) bool { return state.Threads[i].ID < state.Threads[j].ID })
 	retainCurrentInferences(state)
-	return threads
+	return reconciled
 }
 
 func retainCurrentInferences(state *State) {
@@ -149,6 +153,13 @@ func shouldRetainSnapshot(snapshot model.Thread, selected map[string]struct{}, n
 		}
 	}
 	if !inScope {
+		return false
+	}
+	return snapshot.Active || recentSnapshot(snapshot.UpdatedAt, now)
+}
+
+func shouldRetainCurrentSnapshot(snapshot model.Thread, now time.Time) bool {
+	if snapshot.ID == "" {
 		return false
 	}
 	return snapshot.Active || recentSnapshot(snapshot.UpdatedAt, now)

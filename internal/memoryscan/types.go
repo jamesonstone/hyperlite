@@ -16,25 +16,26 @@ type Candidate struct {
 }
 
 type Document struct {
-	ID             string
-	FeatureID      string
-	Slug           string
-	Title          string
-	Phase          string
-	Selected       bool
-	RepositoryRoot string
-	Path           string
-	Purpose        string
-	Context        string
-	Plan           string
-	Decisions      string
-	Outcome        string
-	References     []Reference
-	IssueURLs      []string
-	IssueNumbers   []int
-	Obligations    []Candidate
-	Implications   []Candidate
-	UpdatedAt      time.Time
+	ID              string
+	FeatureID       string
+	Slug            string
+	WorkflowVersion int
+	Title           string
+	Phase           string
+	Selected        bool
+	RepositoryRoot  string
+	Path            string
+	Purpose         string
+	Context         string
+	Plan            string
+	Decisions       string
+	Outcome         string
+	References      []Reference
+	IssueURLs       []string
+	IssueNumbers    []int
+	Obligations     []Candidate
+	Implications    []Candidate
+	UpdatedAt       time.Time
 }
 
 type Diagnostic struct {

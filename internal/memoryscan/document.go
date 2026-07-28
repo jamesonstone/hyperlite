@@ -9,8 +9,9 @@ import (
 )
 
 type frontmatter struct {
-	Phase   string `yaml:"phase"`
-	Feature struct {
+	Phase           string `yaml:"phase"`
+	WorkflowVersion int    `yaml:"workflow_version"`
+	Feature         struct {
 		ID   string `yaml:"id"`
 		Slug string `yaml:"slug"`
 	} `yaml:"feature"`
@@ -48,19 +49,20 @@ func loadDocument(root, path string, phases map[string]string) (Document, []Diag
 		phase = phases[metadata.Feature.ID]
 	}
 	document := Document{
-		ID:             "spec:" + metadata.Feature.ID,
-		FeatureID:      metadata.Feature.ID,
-		Slug:           metadata.Feature.Slug,
-		Title:          title,
-		Phase:          phase,
-		RepositoryRoot: root,
-		Path:           relative,
-		Purpose:        section(sections, "PURPOSE", "THESIS", "SUMMARY"),
-		Context:        joinSections(sections, "CONTEXT", "CURRENT STATE", "AUTHORITY"),
-		Plan:           section(sections, "ACCEPTED PLAN", "IMPLEMENTATION PLAN"),
-		Decisions:      section(sections, "DECISIONS"),
-		Outcome:        section(sections, "OUTCOME"),
-		UpdatedAt:      info.ModTime(),
+		ID:              "spec:" + metadata.Feature.ID,
+		FeatureID:       metadata.Feature.ID,
+		Slug:            metadata.Feature.Slug,
+		WorkflowVersion: metadata.WorkflowVersion,
+		Title:           title,
+		Phase:           phase,
+		RepositoryRoot:  root,
+		Path:            relative,
+		Purpose:         section(sections, "PURPOSE", "THESIS", "SUMMARY"),
+		Context:         joinSections(sections, "CONTEXT", "CURRENT STATE", "AUTHORITY"),
+		Plan:            section(sections, "ACCEPTED PLAN", "IMPLEMENTATION PLAN"),
+		Decisions:       section(sections, "DECISIONS"),
+		Outcome:         section(sections, "OUTCOME"),
+		UpdatedAt:       info.ModTime(),
 	}
 	document.References = parseReferences(metadata.References)
 	document.IssueURLs = issueURLs(document.References, string(contents))
@@ -70,7 +72,7 @@ func loadDocument(root, path string, phases map[string]string) (Document, []Diag
 	}
 	requirements := section(sections, "REQUIREMENTS")
 	document.Obligations = candidates(requirements+"\n"+document.Plan, obligationWord, "operational")
-	if isDeliveredPhase(document.Phase) {
+	if isDeliveredPhase(document.Phase, document.WorkflowVersion) {
 		for index := range document.Obligations {
 			document.Obligations[index].Satisfied = true
 		}
@@ -82,10 +84,12 @@ func loadDocument(root, path string, phases map[string]string) (Document, []Diag
 	return document, nil
 }
 
-func isDeliveredPhase(phase string) bool {
+func isDeliveredPhase(phase string, workflowVersion int) bool {
 	switch strings.ToLower(strings.TrimSpace(phase)) {
 	case "deliver", "complete", "removed":
 		return true
+	case "reflect", "reflection":
+		return workflowVersion < 2
 	default:
 		return false
 	}

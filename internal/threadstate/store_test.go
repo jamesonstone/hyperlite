@@ -193,3 +193,28 @@ func TestReconcileRetainsMissingActiveThreadOnlyWhileRepositorySelected(t *testi
 		t.Fatalf("unselected repository leaked retained state: values=%#v state=%#v", values, state)
 	}
 }
+
+func TestReconcileTerminalCorrectionDoesNotCreateAttentionOrRetainOldSnapshot(t *testing.T) {
+	now := time.Date(2026, 7, 28, 12, 0, 0, 0, time.UTC)
+	state := Empty()
+	thread := model.Thread{
+		ID: "spec:owner/repo:0001", Aliases: []string{"spec:owner/repo:0001"},
+		Title: "Legacy feature", Goal: "Deliver legacy feature", Rationale: "Needed",
+		Phase: model.ThreadReflecting, Active: true,
+		Repositories: []string{"owner/repo"}, UpdatedAt: now,
+	}
+	ReconcileSelected(&state, []model.Thread{thread}, []string{"owner/repo"}, now)
+
+	thread.Phase = model.ThreadComplete
+	thread.Active = false
+	values := ReconcileSelected(&state, []model.Thread{thread}, []string{"owner/repo"}, now.Add(time.Minute))
+	if len(values) != 1 || len(values[0].Attention) != 0 {
+		t.Fatalf("terminal correction created attention: %#v", values)
+	}
+
+	thread.UpdatedAt = time.Time{}
+	values = ReconcileSelected(&state, []model.Thread{thread}, []string{"owner/repo"}, now.Add(2*time.Minute))
+	if len(values) != 0 || len(state.Threads) != 0 {
+		t.Fatalf("old terminal correction was retained: values=%#v state=%#v", values, state)
+	}
+}
