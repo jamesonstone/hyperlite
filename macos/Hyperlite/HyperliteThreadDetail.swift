@@ -108,21 +108,26 @@ struct HyperliteThreadDetail: View {
     private var evidenceSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Evidence").font(.headline)
-            ForEach(thread.evidence) { evidence in
-                HStack(alignment: .firstTextBaseline) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(evidence.title).font(.subheadline.weight(.semibold))
-                        Text("\(evidence.source) · \(evidence.freshness)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    if let value = evidence.url, let url = URL(string: value) {
-                        Link("Open", destination: url)
-                    } else if let path = evidence.path {
-                        Button("Copy Path") {
-                            NSPasteboard.general.clearContents()
-                            NSPasteboard.general.setString(path, forType: .string)
+            if thread.evidence.isEmpty {
+                Text("No evidence is currently cited for this thread.")
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(thread.evidence) { evidence in
+                    HStack(alignment: .firstTextBaseline) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(evidence.title).font(.subheadline.weight(.semibold))
+                            Text("\(evidence.source) · \(evidence.freshness)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        if let value = evidence.url, let url = URL(string: value) {
+                            Link("Open", destination: url)
+                        } else if let path = evidence.path {
+                            Button("Copy Path") {
+                                NSPasteboard.general.clearContents()
+                                NSPasteboard.general.setString(path, forType: .string)
+                            }
                         }
                     }
                 }

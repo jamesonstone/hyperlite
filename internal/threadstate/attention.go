@@ -83,6 +83,12 @@ func changedCandidate(previous, current MaterialSignature, thread model.Thread) 
 			why:      "The coordination path for this goal is materially different.",
 			evidence: append(relationEvidence(thread), obligationEvidence(thread)...),
 		}
+	case previous.Review != current.Review:
+		return &candidate{
+			kind: model.AttentionKnow, summary: "Material review conclusions changed",
+			why:      "Prior review decisions no longer reflect the latest evidence.",
+			evidence: evidenceIDs(thread.Evidence),
+		}
 	case previous.Goal != current.Goal || previous.Rationale != current.Rationale ||
 		previous.Implications != current.Implications:
 		return &candidate{

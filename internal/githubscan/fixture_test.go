@@ -18,19 +18,26 @@ func (r *fixtureRunner) Run(_ context.Context, _ string, name string, args ...st
 	command := strings.Join(append([]string{name}, args...), " ")
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
-	for prefix, failure := range r.failures {
-		if strings.HasPrefix(command, prefix) {
-			r.calls = append(r.calls, command)
-			return nil, failure
-		}
+	if failure, found := longestPrefixValue(command, r.failures); found {
+		r.calls = append(r.calls, command)
+		return nil, failure
 	}
-	for prefix, response := range r.responses {
-		if strings.HasPrefix(command, prefix) {
-			r.calls = append(r.calls, command)
-			return append([]byte(nil), response...), nil
-		}
+	if response, found := longestPrefixValue(command, r.responses); found {
+		r.calls = append(r.calls, command)
+		return append([]byte(nil), response...), nil
 	}
 	return nil, fmt.Errorf("unexpected command: %s", command)
+}
+
+func longestPrefixValue[T any](command string, values map[string]T) (T, bool) {
+	var match string
+	for prefix := range values {
+		if strings.HasPrefix(command, prefix) && len(prefix) > len(match) {
+			match = prefix
+		}
+	}
+	value, found := values[match]
+	return value, found
 }
 
 func (r *fixtureRunner) count(prefix string) int {

@@ -85,3 +85,20 @@ func TestCandidatesIgnoreHeadingsAndNegativeStatements(t *testing.T) {
 		t.Fatalf("candidates = %#v", values)
 	}
 }
+
+func TestCandidatesHandleCompletedItemsAndIgnoreFencedExamples(t *testing.T) {
+	values := candidates(`
+- [X] Deploy the production worker.
+
+`+"```sh"+`
+deploy --production example
+`+"```"+`
+
+- Provision the infrastructure.
+`, obligationWord, "operational")
+	if len(values) != 2 ||
+		values[0].Summary != "Deploy the production worker." || !values[0].Satisfied ||
+		values[1].Summary != "Provision the infrastructure." || values[1].Satisfied {
+		t.Fatalf("candidates = %#v", values)
+	}
+}

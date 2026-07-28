@@ -9,6 +9,7 @@ import (
 
 var (
 	listItemPrefix  = regexp.MustCompile(`^(?:[-*]\s+|\d+[.)]\s+)`)
+	checklistMarker = regexp.MustCompile(`\[[ xX]\]`)
 	obligationWord  = regexp.MustCompile(`(?i)\b(deploy|deployment|infrastructure|migration|production|provision|activate|rollout|postgres|s3|cloudformation|ecs|certificate|secret|runbook)\b`)
 	implicationWord = regexp.MustCompile(`(?i)\b(public|security|breaking|authority|ownership|owns|must|production|infrastructure|migration|external|operational)\b`)
 )
@@ -95,8 +96,8 @@ func candidates(value string, pattern *regexp.Regexp, category string) []Candida
 			strings.Contains(lower, "not required") || strings.Contains(lower, "without ") {
 			continue
 		}
-		satisfied := strings.Contains(line, "[x]") || strings.Contains(strings.ToLower(line), "completed")
-		line = strings.ReplaceAll(strings.ReplaceAll(line, "[ ]", ""), "[x]", "")
+		satisfied := strings.Contains(lower, "[x]") || strings.Contains(lower, "completed")
+		line = checklistMarker.ReplaceAllString(line, "")
 		line = strings.TrimSpace(line)
 		if len(line) > 300 {
 			line = boundedString(line, 300)
@@ -117,6 +118,7 @@ func candidates(value string, pattern *regexp.Regexp, category string) []Candida
 func candidateStatements(value string) []string {
 	var result []string
 	var current string
+	var fence string
 	flush := func() {
 		if value := strings.TrimSpace(current); value != "" {
 			result = append(result, value)
@@ -125,8 +127,18 @@ func candidateStatements(value string) []string {
 	}
 	for _, raw := range strings.Split(value, "\n") {
 		line := strings.TrimSpace(raw)
-		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, "|") ||
-			strings.HasPrefix(line, "```") {
+		if fence != "" {
+			if strings.HasPrefix(line, fence) {
+				fence = ""
+			}
+			continue
+		}
+		if strings.HasPrefix(line, "```") || strings.HasPrefix(line, "~~~") {
+			flush()
+			fence = line[:3]
+			continue
+		}
+		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, "|") {
 			flush()
 			continue
 		}
