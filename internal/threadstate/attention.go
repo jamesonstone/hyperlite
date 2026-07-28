@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -12,18 +11,11 @@ import (
 	"github.com/jamesonstone/hyperlite/internal/model"
 )
 
-var boundaryAction = regexp.MustCompile(
-	`(?i)\b(change[sd]?|changing|deploy(?:s|ed|ing)?|provision(?:s|ed|ing)?|` +
-		`migrat(?:e|es|ed|ing)|activat(?:e|es|ed|ing)|enabl(?:e|es|ed|ing)|` +
-		`switch(?:es|ed|ing)?|replac(?:e|es|ed|ing)|remov(?:e|es|ed|ing)|` +
-		`delet(?:e|es|ed|ing)|publish(?:es|ed|ing)?|expos(?:e|es|ed|ing)|` +
-		`break(?:s|ing)?|cutover|rollout|rotat(?:e|es|ed|ing))\b`,
-)
-
 const (
 	mergedObligationSummary = "Implementation advanced, but operational obligations remain"
 	boundarySummary         = "A consequential change is approaching a delivery boundary"
 	coordinationSummary     = "Execution order or dependency requires coordination"
+	dependencyChangeSummary = "Dependencies or remaining obligations changed"
 	staleSummary            = "Thread conclusions rely on incomplete or stale evidence"
 )
 
@@ -104,32 +96,31 @@ func changedCandidate(previous, current MaterialSignature, thread model.Thread) 
 	if thread.Phase == model.ThreadComplete {
 		return nil
 	}
-	switch {
-	case previous.Dependencies != current.Dependencies || previous.Obligations != current.Obligations:
-		if !hasOpenObligation(thread) && !hasCoordinationRelation(thread) {
-			return nil
-		}
+	if (previous.Dependencies != current.Dependencies ||
+		previous.Obligations != current.Obligations) &&
+		(hasOpenObligation(thread) || hasCoordinationRelation(thread)) {
 		return &candidate{
-			kind: model.AttentionReconcile, summary: "Dependencies or remaining obligations changed",
+			kind: model.AttentionReconcile, summary: dependencyChangeSummary,
 			why:      "The coordination path for this goal is materially different.",
 			evidence: append(relationEvidence(thread), obligationEvidence(thread)...),
 		}
-	case previous.Review != current.Review:
+	}
+	if previous.Review != current.Review {
 		return &candidate{
 			kind: model.AttentionKnow, summary: "Material review conclusions changed",
 			why:      "Prior review decisions no longer reflect the latest evidence.",
 			evidence: evidenceIDs(thread.Evidence),
 		}
-	case previous.Goal != current.Goal || previous.Rationale != current.Rationale ||
-		(previous.Implications != current.Implications && hasActionableBoundary(thread)):
+	}
+	if previous.Goal != current.Goal || previous.Rationale != current.Rationale ||
+		(previous.Implications != current.Implications && hasActionableBoundary(thread)) {
 		return &candidate{
 			kind: model.AttentionKnow, summary: "The goal's direction or implications changed",
 			why:      "Durable intent or material consequences changed.",
 			evidence: evidenceIDs(thread.Evidence),
 		}
-	default:
-		return nil
 	}
+	return nil
 }
 
 func moment(thread model.Thread, revision string, value candidate, now time.Time) model.AttentionMoment {
@@ -170,39 +161,6 @@ func hasOpenObligation(thread model.Thread) bool {
 	return false
 }
 
-func hasActionableBoundary(thread model.Thread) bool {
-	for _, implication := range thread.Implications {
-		switch implication.Category {
-		case "production", "security", "migration", "infrastructure", "operational":
-			if actionableBoundaryStatement(implication.Summary) {
-				return true
-			}
-		}
-	}
-	for _, obligation := range thread.Obligations {
-		if !obligation.Satisfied && actionableBoundaryStatement(obligation.Summary) {
-			return true
-		}
-	}
-	return false
-}
-
-func actionableBoundaryStatement(value string) bool {
-	lower := strings.ToLower(strings.TrimSpace(value))
-	if strings.HasPrefix(lower, "no ") {
-		return false
-	}
-	for _, negative := range []string{
-		"must not", "never ", "does not", "do not", "will not",
-		"not required", "future work",
-	} {
-		if strings.Contains(lower, negative) {
-			return false
-		}
-	}
-	return boundaryAction.MatchString(value)
-}
-
 func hasCoordinationRelation(thread model.Thread) bool {
 	for _, relation := range thread.Dependencies {
 		if relation.Basis != model.BasisHypothesis &&
@@ -227,21 +185,6 @@ func obligationEvidence(thread model.Thread) []string {
 	var result []string
 	for _, obligation := range thread.Obligations {
 		if !obligation.Satisfied {
-			result = append(result, obligation.EvidenceIDs...)
-		}
-	}
-	return uniqueStrings(result)
-}
-
-func boundaryEvidence(thread model.Thread) []string {
-	var result []string
-	for _, implication := range thread.Implications {
-		if actionableBoundaryStatement(implication.Summary) {
-			result = append(result, implication.EvidenceIDs...)
-		}
-	}
-	for _, obligation := range thread.Obligations {
-		if !obligation.Satisfied && actionableBoundaryStatement(obligation.Summary) {
 			result = append(result, obligation.EvidenceIDs...)
 		}
 	}

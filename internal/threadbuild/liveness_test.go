@@ -164,6 +164,14 @@ func TestOnlyRecentDurableIssueLaneCanEstablishLocalLiveness(t *testing.T) {
 			},
 		},
 		{
+			name: "case distinct branch",
+			lane: gitscan.LocalLane{
+				Branch: "Main", Publication: model.PublicationUnpushed,
+				Worktree: model.Worktree{Path: "/repo", Unstaged: 1, UpdatedAt: now},
+			},
+			active: true,
+		},
+		{
 			name: "stale issue lane",
 			lane: gitscan.LocalLane{
 				Branch: "GH-1", Publication: model.PublicationUnpushed,

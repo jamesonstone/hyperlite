@@ -101,7 +101,7 @@ func hasLiveLocal(
 
 func durableLocal(repository config.Repository, local gitscan.LocalLane) bool {
 	branch := gitscan.IdentityBranch(local)
-	if branch == "" || strings.EqualFold(branch, repository.Base) ||
+	if branch == "" || branch == repository.Base ||
 		local.Publication == model.PublicationBase {
 		return false
 	}

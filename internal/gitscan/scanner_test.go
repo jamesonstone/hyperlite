@@ -61,6 +61,29 @@ func TestLatestLocalChangeUsesMaterialFileTime(t *testing.T) {
 	}
 }
 
+func TestLatestLocalChangeUsesExistingAncestorForNestedDeletion(t *testing.T) {
+	root := t.TempDir()
+	removed := filepath.Join(root, "removed")
+	if err := os.MkdirAll(filepath.Join(removed, "nested"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(removed, "nested", "file.txt"), []byte("old"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.RemoveAll(removed); err != nil {
+		t.Fatal(err)
+	}
+	commitTime := time.Date(2026, 7, 20, 12, 0, 0, 0, time.UTC)
+	changeTime := commitTime.Add(2 * time.Hour)
+	if err := os.Chtimes(root, changeTime, changeTime); err != nil {
+		t.Fatal(err)
+	}
+	actual := latestLocalChange(root, []string{"removed/nested/file.txt"}, commitTime)
+	if !actual.Equal(changeTime) {
+		t.Fatalf("latest = %s, want %s", actual, changeTime)
+	}
+}
+
 func TestPublication(t *testing.T) {
 	tests := []struct {
 		name     string

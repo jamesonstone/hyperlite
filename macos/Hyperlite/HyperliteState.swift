@@ -13,6 +13,7 @@ final class HyperliteState: ObservableObject {
     private var refreshTask: Task<Void, Never>?
     private var pruneTask: Task<Void, Never>?
     private var mutationTasks: [String: Task<Void, Never>] = [:]
+    private var mutationGenerations: [String: Int] = [:]
     private var refreshGeneration = 0
 
     init() { refresh(localOnly: true, continueIfRemoteStale: true) }
@@ -121,25 +122,38 @@ final class HyperliteState: ObservableObject {
 
     func updateNote(threadID: String, note: String) {
         let requestID = "note:\(threadID)"
-        mutationTasks[requestID]?.cancel()
+        let previous = mutationTasks[requestID]
+        let generation = (mutationGenerations[requestID] ?? 0) + 1
+        mutationGenerations[requestID] = generation
+        previous?.cancel()
         mutationTasks[requestID] = Task { [weak self] in
             guard let self else { return }
             do {
+                await previous?.value
+                try Task.checkCancellation()
                 try await waitForRefresh()
                 _ = try await HyperliteProcess.run(
                     arguments: ["thread", "note", threadID, "--stdin"],
                     operation: "save note",
                     standardInput: Data(note.utf8)
                 )
-                mutationTasks[requestID] = nil
+                guard finishMutation(requestID, generation: generation) else { return }
                 refresh(localOnly: true, continueIfRemoteStale: false)
             } catch is CancellationError {
-                mutationTasks[requestID] = nil
+                _ = finishMutation(requestID, generation: generation)
             } catch {
-                mutationTasks[requestID] = nil
-                errorMessage = error.localizedDescription
+                if finishMutation(requestID, generation: generation) {
+                    errorMessage = error.localizedDescription
+                }
             }
         }
+    }
+
+    private func finishMutation(_ requestID: String, generation: Int) -> Bool {
+        guard mutationGenerations[requestID] == generation else { return false }
+        mutationTasks[requestID] = nil
+        mutationGenerations[requestID] = nil
+        return true
     }
 
     private func waitForRefresh() async throws {

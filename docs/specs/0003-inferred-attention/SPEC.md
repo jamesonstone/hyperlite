@@ -336,6 +336,12 @@ automatic project selection.
 - Keyword-only boundary detection promoted fail-closed and “must not touch
   production” safety statements into guard attention. A boundary is material
   only when current evidence describes a prospective consequential action.
+- Current-head review exposed two coordination-integrity edge cases: a
+  non-actionable obligation digest change could mask a simultaneous goal or
+  review change, and rapid replacement note saves could overlap after
+  cooperative task cancellation. Material signature dimensions are evaluated
+  independently, while note writes now serialize superseded tasks and guard
+  cleanup by request generation.
 
 ## VALIDATION
 
@@ -375,6 +381,9 @@ automatic project selection.
   separate issue identities, goals, and evidence. Negative production-safety
   language and an incidental `deployed hardware` adjective produce no
   operational obligation or unread attention.
+- Current-head review regressions cover simultaneous material and non-actionable
+  signature deltas, boundary evidence category integrity, nested deletions,
+  case-sensitive branch identity, and serialized note-save task ownership.
 - A repository-wide null-delimited audit confirms every tracked handwritten
   implementation and test file is at or below 300 lines after responsibility-
   based Go and Swift splits.

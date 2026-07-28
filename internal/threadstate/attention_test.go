@@ -51,6 +51,10 @@ func TestBoundaryAttentionRequiresActionableProspectiveChange(t *testing.T) {
 	if value := currentCandidate(thread); value == nil {
 		t.Fatal("non-disruptive delivery language hid an actionable boundary")
 	}
+	thread.Implications[0].Summary = "Audit history preserves how state changed."
+	if value := currentCandidate(thread); value != nil {
+		t.Fatalf("historical change language created attention: %#v", value)
+	}
 }
 
 func TestSatisfiedObligationChangeDoesNotCreateAttention(t *testing.T) {
@@ -67,6 +71,41 @@ func TestSatisfiedObligationChangeDoesNotCreateAttention(t *testing.T) {
 	)
 	if value != nil {
 		t.Fatalf("satisfied obligation created attention: %#v", value)
+	}
+}
+
+func TestNonActionableDependencyChangeDoesNotMaskGoalChange(t *testing.T) {
+	thread := model.Thread{
+		Phase:    model.ThreadImplementing,
+		Evidence: []model.EvidenceRef{{ID: "spec:1"}},
+	}
+	value := changedCandidate(
+		MaterialSignature{Goal: "before", Dependencies: "before"},
+		MaterialSignature{Goal: "after", Dependencies: "after"},
+		thread,
+	)
+	if value == nil || value.kind != model.AttentionKnow ||
+		value.summary != "The goal's direction or implications changed" {
+		t.Fatalf("goal change was masked: %#v", value)
+	}
+}
+
+func TestBoundaryEvidenceExcludesUnrelatedImplicationCategories(t *testing.T) {
+	thread := model.Thread{
+		Implications: []model.ThreadImplication{
+			{
+				Summary: "Deploy the production worker.", Category: "production",
+				EvidenceIDs: []string{"production"},
+			},
+			{
+				Summary: "Change the documentation.", Category: "documentation",
+				EvidenceIDs: []string{"documentation"},
+			},
+		},
+	}
+	values := boundaryEvidence(thread)
+	if len(values) != 1 || values[0] != "production" {
+		t.Fatalf("boundary evidence = %#v", values)
 	}
 }
 

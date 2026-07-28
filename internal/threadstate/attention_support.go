@@ -18,7 +18,7 @@ func momentSupported(moment model.AttentionMoment, thread model.Thread) bool {
 		return (thread.Phase == model.ThreadReviewing ||
 			thread.Phase == model.ThreadOperationalizing) &&
 			hasActionableBoundary(thread)
-	case "Dependencies or remaining obligations changed", coordinationSummary:
+	case dependencyChangeSummary, coordinationSummary:
 		return hasOpenObligation(thread) || hasCoordinationRelation(thread)
 	case staleSummary:
 		return hasStaleEvidence(thread)

@@ -193,6 +193,7 @@ func (s Scanner) scanWorktree(ctx context.Context, repo config.Repository, recor
 }
 
 func latestLocalChange(root string, paths []string, latest time.Time) time.Time {
+	root = filepath.Clean(root)
 	for _, path := range paths {
 		clean := filepath.Clean(filepath.FromSlash(path))
 		if clean == "." || filepath.IsAbs(clean) || clean == ".." ||
@@ -200,12 +201,18 @@ func latestLocalChange(root string, paths []string, latest time.Time) time.Time 
 			continue
 		}
 		target := filepath.Join(root, clean)
-		info, err := os.Stat(target)
-		if errors.Is(err, os.ErrNotExist) {
-			info, err = os.Stat(filepath.Dir(target))
-		}
-		if err == nil && info.ModTime().After(latest) {
-			latest = info.ModTime()
+		for {
+			info, err := os.Stat(target)
+			if err == nil {
+				if info.ModTime().After(latest) {
+					latest = info.ModTime()
+				}
+				break
+			}
+			if !errors.Is(err, os.ErrNotExist) || target == root {
+				break
+			}
+			target = filepath.Dir(target)
 		}
 	}
 	return latest

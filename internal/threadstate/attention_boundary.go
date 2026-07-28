@@ -1,0 +1,72 @@
+package threadstate
+
+import (
+	"regexp"
+	"strings"
+
+	"github.com/jamesonstone/hyperlite/internal/model"
+)
+
+var boundaryAction = regexp.MustCompile(
+	`(?i)\b(change|changes|changing|deploy(?:s|ed|ing)?|provision(?:s|ed|ing)?|` +
+		`migrat(?:e|es|ed|ing)|activat(?:e|es|ed|ing)|enabl(?:e|es|ed|ing)|` +
+		`switch(?:es|ed|ing)?|replac(?:e|es|ed|ing)|remov(?:e|es|ed|ing)|` +
+		`delet(?:e|es|ed|ing)|publish(?:es|ed|ing)?|expos(?:e|es|ed|ing)|` +
+		`break(?:s|ing)?|cutover|rollout|rotat(?:e|es|ed|ing))\b`,
+)
+
+func hasActionableBoundary(thread model.Thread) bool {
+	for _, implication := range thread.Implications {
+		if boundaryCategory(implication.Category) &&
+			actionableBoundaryStatement(implication.Summary) {
+			return true
+		}
+	}
+	for _, obligation := range thread.Obligations {
+		if !obligation.Satisfied && actionableBoundaryStatement(obligation.Summary) {
+			return true
+		}
+	}
+	return false
+}
+
+func boundaryCategory(category string) bool {
+	switch category {
+	case "production", "security", "migration", "infrastructure", "operational":
+		return true
+	default:
+		return false
+	}
+}
+
+func actionableBoundaryStatement(value string) bool {
+	lower := strings.ToLower(strings.TrimSpace(value))
+	if strings.HasPrefix(lower, "no ") {
+		return false
+	}
+	for _, negative := range []string{
+		"must not", "never ", "does not", "do not", "will not",
+		"not required", "future work",
+	} {
+		if strings.Contains(lower, negative) {
+			return false
+		}
+	}
+	return boundaryAction.MatchString(value)
+}
+
+func boundaryEvidence(thread model.Thread) []string {
+	var result []string
+	for _, implication := range thread.Implications {
+		if boundaryCategory(implication.Category) &&
+			actionableBoundaryStatement(implication.Summary) {
+			result = append(result, implication.EvidenceIDs...)
+		}
+	}
+	for _, obligation := range thread.Obligations {
+		if !obligation.Satisfied && actionableBoundaryStatement(obligation.Summary) {
+			result = append(result, obligation.EvidenceIDs...)
+		}
+	}
+	return uniqueStrings(result)
+}
