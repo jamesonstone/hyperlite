@@ -213,6 +213,9 @@ automatic project selection.
 - A native helper can emit more JSON than an operating-system pipe buffer.
   Standard output and error must be drained concurrently while the helper runs;
   reading only after termination can deadlock an otherwise healthy scan.
+- Superseding a native refresh must cancel its running helper process before
+  launching the replacement. Generation guards prevent stale rendering but do
+  not prevent overlapping GitHub work by an obsolete helper.
 
 ## VALIDATION
 

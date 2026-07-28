@@ -48,6 +48,53 @@ final class HyperliteRunCompletion: @unchecked Sendable {
     }
 }
 
+final class HyperliteProcessCancellation: @unchecked Sendable {
+    private let lock = NSLock()
+    private var cancelled = false
+    private var process: Process?
+    private var completion: HyperliteRunCompletion?
+
+    func run(_ process: Process, completion: HyperliteRunCompletion) throws -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        guard !cancelled else {
+            completion.resume(throwing: CancellationError())
+            return false
+        }
+        self.process = process
+        self.completion = completion
+        do {
+            try process.run()
+            return true
+        } catch {
+            self.process = nil
+            self.completion = nil
+            throw error
+        }
+    }
+
+    func cancel() {
+        lock.lock()
+        cancelled = true
+        let process = process
+        let completion = completion
+        self.process = nil
+        self.completion = nil
+        lock.unlock()
+        if process?.isRunning == true {
+            process?.terminate()
+        }
+        completion?.resume(throwing: CancellationError())
+    }
+
+    func finish() {
+        lock.lock()
+        process = nil
+        completion = nil
+        lock.unlock()
+    }
+}
+
 enum HyperliteError: LocalizedError {
     case helperMissing
     case commandFailed(String, String)
