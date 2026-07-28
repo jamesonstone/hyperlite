@@ -15,6 +15,20 @@ var boundaryAction = regexp.MustCompile(
 		`break(?:s|ing)?|cutover|rollout|rotat(?:e|es|ed|ing))\b`,
 )
 
+var boundaryHistoricalContext = regexp.MustCompile(
+	`(?i)\b(history|historical|previously|formerly|already|completed|past|prior|earlier)\b`,
+)
+
+var boundaryPastAction = regexp.MustCompile(
+	`(?i)\b(changed|deployed|provisioned|migrated|activated|enabled|switched|` +
+		`replaced|removed|deleted|published|exposed|rotated)\b`,
+)
+
+var boundaryProspectiveContext = regexp.MustCompile(
+	`(?i)\b(must|should|will|needs?|requires?|required|pending|planned|next|` +
+		`about\s+to|not\s+yet|prepar(?:e|es|ed|ing))\b`,
+)
+
 func hasActionableBoundary(thread model.Thread) bool {
 	for _, implication := range thread.Implications {
 		if boundaryCategory(implication.Category) &&
@@ -51,6 +65,11 @@ func actionableBoundaryStatement(value string) bool {
 		if strings.Contains(lower, negative) {
 			return false
 		}
+	}
+	if (boundaryHistoricalContext.MatchString(lower) ||
+		boundaryPastAction.MatchString(lower)) &&
+		!boundaryProspectiveContext.MatchString(lower) {
+		return false
 	}
 	return boundaryAction.MatchString(value)
 }

@@ -336,6 +336,9 @@ automatic project selection.
 - Keyword-only boundary detection promoted fail-closed and “must not touch
   production” safety statements into guard attention. A boundary is material
   only when current evidence describes a prospective consequential action.
+- Historical prose can contain present-tense action words such as “changes”
+  without describing a pending boundary. Historical context and completed
+  actions are excluded unless the same statement contains prospective intent.
 - Current-head review exposed two coordination-integrity edge cases: a
   non-actionable obligation digest change could mask a simultaneous goal or
   review change, and rapid replacement note saves could overlap after
@@ -383,7 +386,8 @@ automatic project selection.
   operational obligation or unread attention.
 - Current-head review regressions cover simultaneous material and non-actionable
   signature deltas, boundary evidence category integrity, nested deletions,
-  case-sensitive branch identity, and serialized note-save task ownership.
+  case-sensitive branch identity, historical versus prospective boundary
+  language, and serialized note-save task ownership.
 - A repository-wide null-delimited audit confirms every tracked handwritten
   implementation and test file is at or below 300 lines after responsibility-
   based Go and Swift splits.

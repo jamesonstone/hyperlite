@@ -51,9 +51,17 @@ func TestBoundaryAttentionRequiresActionableProspectiveChange(t *testing.T) {
 	if value := currentCandidate(thread); value == nil {
 		t.Fatal("non-disruptive delivery language hid an actionable boundary")
 	}
-	thread.Implications[0].Summary = "Audit history preserves how state changed."
+	thread.Implications[0].Summary = "Audit history preserves how state changes."
 	if value := currentCandidate(thread); value != nil {
 		t.Fatalf("historical change language created attention: %#v", value)
+	}
+	thread.Implications[0].Summary = "Production credentials were rotated."
+	if value := currentCandidate(thread); value != nil {
+		t.Fatalf("completed boundary change created attention: %#v", value)
+	}
+	thread.Implications[0].Summary = "Production credentials must be rotated."
+	if value := currentCandidate(thread); value == nil {
+		t.Fatal("required boundary change did not create attention")
 	}
 }
 
