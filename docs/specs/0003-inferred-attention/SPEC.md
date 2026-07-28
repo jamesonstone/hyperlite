@@ -337,8 +337,9 @@ automatic project selection.
   production” safety statements into guard attention. A boundary is material
   only when current evidence describes a prospective consequential action.
 - Historical prose can contain present-tense action words such as “changes”
-  without describing a pending boundary. Historical context and completed
-  actions are excluded unless the same statement contains prospective intent.
+  without describing a pending boundary. Classification is clause-aware:
+  completed clauses remain quiet, historical clauses require explicit current
+  intent, and a separate current clause may still establish a boundary.
 - Current-head review exposed two coordination-integrity edge cases: a
   non-actionable obligation digest change could mask a simultaneous goal or
   review change, and rapid replacement note saves could overlap after

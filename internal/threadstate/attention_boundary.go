@@ -16,7 +16,7 @@ var boundaryAction = regexp.MustCompile(
 )
 
 var boundaryHistoricalContext = regexp.MustCompile(
-	`(?i)\b(history|historical|previously|formerly|already|completed|past|prior|earlier)\b`,
+	`(?i)\b(history|historical|previously|formerly|already|past|prior|earlier)\b`,
 )
 
 var boundaryPastAction = regexp.MustCompile(
@@ -25,8 +25,15 @@ var boundaryPastAction = regexp.MustCompile(
 )
 
 var boundaryProspectiveContext = regexp.MustCompile(
-	`(?i)\b(must|should|will|needs?|requires?|required|pending|planned|next|` +
-		`about\s+to|not\s+yet|prepar(?:e|es|ed|ing))\b`,
+	`(?i)\b(must|should|will|needs?|requires?|pending|next|about\s+to|not\s+yet)\b`,
+)
+
+var boundaryCompletedContext = regexp.MustCompile(
+	`(?i)\b(complete|completed|done|finished|delivered|implemented|resolved|closed)\b`,
+)
+
+var boundaryClauses = regexp.MustCompile(
+	`(?i)(?:[.;\n]+|\s+(?:but|while|whereas)\s+)`,
 )
 
 func hasActionableBoundary(thread model.Thread) bool {
@@ -54,7 +61,19 @@ func boundaryCategory(category string) bool {
 }
 
 func actionableBoundaryStatement(value string) bool {
+	for _, clause := range boundaryClauses.Split(value, -1) {
+		if actionableBoundaryClause(clause) {
+			return true
+		}
+	}
+	return false
+}
+
+func actionableBoundaryClause(value string) bool {
 	lower := strings.ToLower(strings.TrimSpace(value))
+	if lower == "" || !boundaryAction.MatchString(lower) {
+		return false
+	}
 	if strings.HasPrefix(lower, "no ") {
 		return false
 	}
@@ -66,12 +85,15 @@ func actionableBoundaryStatement(value string) bool {
 			return false
 		}
 	}
+	if boundaryCompletedContext.MatchString(lower) {
+		return false
+	}
 	if (boundaryHistoricalContext.MatchString(lower) ||
 		boundaryPastAction.MatchString(lower)) &&
 		!boundaryProspectiveContext.MatchString(lower) {
 		return false
 	}
-	return boundaryAction.MatchString(value)
+	return true
 }
 
 func boundaryEvidence(thread model.Thread) []string {

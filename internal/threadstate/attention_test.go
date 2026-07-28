@@ -59,9 +59,22 @@ func TestBoundaryAttentionRequiresActionableProspectiveChange(t *testing.T) {
 	if value := currentCandidate(thread); value != nil {
 		t.Fatalf("completed boundary change created attention: %#v", value)
 	}
+	for _, historical := range []string{
+		"Previously completed required production changes.",
+		"Previously prepared production changes.",
+	} {
+		thread.Implications[0].Summary = historical
+		if value := currentCandidate(thread); value != nil {
+			t.Fatalf("historical boundary %q created attention: %#v", historical, value)
+		}
+	}
 	thread.Implications[0].Summary = "Production credentials must be rotated."
 	if value := currentCandidate(thread); value == nil {
 		t.Fatal("required boundary change did not create attention")
+	}
+	thread.Implications[0].Summary = "Migration work is complete; credentials must be rotated."
+	if value := currentCandidate(thread); value == nil {
+		t.Fatal("separate current boundary clause did not create attention")
 	}
 }
 
