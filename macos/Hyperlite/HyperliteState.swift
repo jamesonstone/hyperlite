@@ -72,22 +72,18 @@ final class HyperliteState: ObservableObject {
         }
     }
 
-    func visibleThreads(maxAgeDays: Int, now: Date = Date()) -> [HyperliteThread] {
+    func visibleThreads() -> [HyperliteThread] {
         guard let scan else { return [] }
-        return HyperlitePresentation.visibleThreads(scan: scan, maxAgeDays: maxAgeDays, now: now)
+        return HyperlitePresentation.visibleThreads(scan: scan)
     }
 
-    func threads(
-        section: HyperliteThreadSection,
-        maxAgeDays: Int,
-        now: Date = Date()
-    ) -> [HyperliteThread] {
+    func threads(section: HyperliteThreadSection) -> [HyperliteThread] {
         guard let scan else { return [] }
-        return HyperlitePresentation.threads(scan: scan, section: section, maxAgeDays: maxAgeDays, now: now)
+        return HyperlitePresentation.threads(scan: scan, section: section)
     }
 
-    func attentionThreadCount(maxAgeDays: Int, now: Date = Date()) -> Int {
-        threads(section: .attention, maxAgeDays: maxAgeDays, now: now).count
+    func attentionThreadCount() -> Int {
+        threads(section: .attention).count
     }
 
     func markSeen(threadID: String) {

@@ -17,6 +17,9 @@
 - In-flight status requires positive evidence of unresolved coordination.
   Missing canonical closure may prevent completion, but terminal-only artifacts
   and dormant intent do not remain active or retain unread attention.
+- The primary attention surface contains active coordination only. Completed
+  and dormant projections may remain in private state and scan output for
+  continuity, but they do not occupy the interface or thread navigation.
 - Exact evidence owns thread membership. Semantic inference may relate
   separate threads, but it may not merge them, establish authoritative
   lifecycle state, suppress a thread, or close a goal.

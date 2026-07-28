@@ -27,7 +27,7 @@ struct HyperliteEmptyState: View {
                 .foregroundStyle(.secondary)
             Text("No threads in flight")
                 .font(.headline)
-            Text("Hyperlite found no active goals or recent completed work in the selected projects.")
+            Text("Hyperlite found no active coordination in the selected projects.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -39,20 +39,9 @@ struct HyperliteEmptyState: View {
 
 struct HyperliteSettingsView: View {
     @AppStorage("hyperlite.hotkey") private var hotkey = defaultHotKey
-    @AppStorage("hyperlite.max-age-days") private var maxAgeDays = 10
 
     var body: some View {
         Form {
-            Section("Display") {
-                Picker("Show completed threads", selection: $maxAgeDays) {
-                    ForEach(HyperlitePresentation.supportedAgeWindows, id: \.self) { days in
-                        Text("Last \(days) days").tag(days)
-                    }
-                }
-                Text("Active threads remain visible regardless of age.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
             Section("Shortcut") {
                 TextField("Hot key", text: $hotkey)
                 Text("Default: \(defaultHotKey). Use modifier names joined with +, for example Command+Shift+H.")

@@ -125,6 +125,9 @@ func whyNow(thread model.Thread) string {
 			return thread.Attention[index].Summary
 		}
 	}
+	if thread.Phase == model.ThreadComplete {
+		return "Complete"
+	}
 	return "In " + string(thread.Phase)
 }
 

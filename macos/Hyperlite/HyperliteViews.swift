@@ -3,11 +3,10 @@ import SwiftUI
 
 struct HyperliteMenuBarLabel: View {
     @ObservedObject var state: HyperliteState
-    @AppStorage("hyperlite.max-age-days") private var maxAgeDays = 10
     @AppStorage("hyperlite.hotkey") private var hotkey = defaultHotKey
 
     var body: some View {
-        let count = state.attentionThreadCount(maxAgeDays: maxAgeDays)
+        let count = state.attentionThreadCount()
         HStack(spacing: 2) {
             HyperliteGhostMark()
                 .frame(width: 15, height: 15)
@@ -37,7 +36,6 @@ struct HyperliteMenu: View {
 
 struct HyperliteWindow: View {
     @ObservedObject var state: HyperliteState
-    @AppStorage("hyperlite.max-age-days") private var maxAgeDays = 10
     @State private var diagnosticsClickRequest = 0
     @State private var pendingPrune: HyperliteDiagnostic?
     @State private var selectedThread: HyperliteThread?
@@ -45,7 +43,7 @@ struct HyperliteWindow: View {
     @State private var revealThreadID: String?
     @State private var highlightClearTask: Task<Void, Never>?
 
-    private var visibleThreads: [HyperliteThread] { state.visibleThreads(maxAgeDays: maxAgeDays) }
+    private var visibleThreads: [HyperliteThread] { state.visibleThreads() }
     private var errors: [HyperliteDiagnostic] { state.scan?.errors ?? [] }
     private var warnings: [HyperliteDiagnostic] { state.scan?.warnings ?? [] }
 
@@ -101,7 +99,7 @@ struct HyperliteWindow: View {
                         ScrollView {
                             LazyVStack(alignment: .leading, spacing: 8) {
                                 ForEach(HyperliteThreadSection.allCases, id: \.rawValue) { section in
-                                    let sectionThreads = state.threads(section: section, maxAgeDays: maxAgeDays)
+                                    let sectionThreads = state.threads(section: section)
                                     if !sectionThreads.isEmpty {
                                         HyperliteSectionHeader(section: section, count: sectionThreads.count)
                                         ForEach(sectionThreads) { thread in

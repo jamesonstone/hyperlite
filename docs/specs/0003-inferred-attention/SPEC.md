@@ -84,13 +84,16 @@ completion.
   refreshes remote state on foreground when stale, and performs semantic
   enrichment after deterministic results render.
 - R13: The main surface separates unseen Attention from all other In Flight
-  threads. The menu count is the number of threads with unseen moments.
+  threads and omits inactive threads entirely. Completed projections remain
+  available to the private state and JSON contract, but do not occupy the
+  attention surface or its navigation. The menu count is the number of active
+  threads with unseen moments.
 - R14: Opening a thread marks moments through the displayed revision as seen
   without hiding the thread. Notes annotate existing inferred threads and never
   create, complete, or authoritatively change one.
 - R15: Threads backed by positive unresolved coordination evidence are never
   hidden by an age filter. An incomplete projection without current liveness is
-  dormant, not in flight; it does not enter the completed recent-work window.
+  dormant, not in flight, and inactive projections are not displayed.
 - R16: Preserve the root JSON scan entrypoint and add bounded CLI operations for
   inference, seen revisions, and stdin-supplied notes.
 - R17: Interpret lifecycle evidence according to its source workflow. A legacy
@@ -135,7 +138,7 @@ automatic project selection.
    requests do not satisfy their operational obligations.
 8. Keep workflow-version semantics through repository-memory parsing, derive
    legacy reflected features as complete, and reconcile terminal projections
-   before applying recent-work retention.
+   before presenting active threads.
 9. Separate liveness from completion, correlate retained terminal pull requests
    with exact local lanes regardless of age, and suppress dormant incomplete
    projections while preserving positively unresolved goals.
@@ -155,6 +158,9 @@ automatic project selection.
 - Reading is the only acknowledgement gesture. Hyperlite has no manual
   attention state, parking, pinning, or completion controls.
 - Optional notes are durable user context, not lifecycle authority.
+- Completed and dormant projections may remain in private persisted state and
+  scan JSON for continuity, but the primary attention surface contains active
+  coordination only.
 - Selected projects remain the product boundary. Cross-repository references
   outside that set are visible only as unresolved external targets.
 - GitHub/spec/Git evidence is the first complete release. Agent and runtime
@@ -164,7 +170,8 @@ automatic project selection.
 
 - AC1: Every material artifact belongs to exactly one inferred thread or is
   explicitly labeled uncorrelated.
-- AC2: Active threads remain visible beyond the recent-work window.
+- AC2: Active threads remain visible regardless of age, while completed and
+  dormant threads are absent from the primary surface and its navigation.
 - AC3: Merging a pull request with an outstanding infrastructure or deployment
   obligation leaves the thread operationalizing.
 - AC4: Routine review repair and Git churn create no attention moment, while a
@@ -255,8 +262,8 @@ automatic project selection.
   phase was `reflect`. Hyperlite had discarded the workflow-version distinction
   and therefore interpreted canonical legacy reflection as indefinite active
   coordination. Terminal projections also need to reach state reconciliation
-  before recent-work filtering, or their prior active snapshots are retained as
-  false missing-evidence uncertainty.
+  before presentation, or their prior active snapshots are retained as false
+  missing-evidence uncertainty.
 - After the legacy correction, the remaining 15 projections were also stale:
   13 had only merged pull requests (ten accompanied by clean worktrees), one
   was an isolated shaping spec older than the configured staleness window, and
@@ -284,7 +291,8 @@ automatic project selection.
   projection from 45 to 15 by removing 31 historical legacy reflected specs.
   Positive-liveness derivation then removed the remaining terminal-only and
   dormant projections, producing zero in-flight threads and zero unread
-  attention while retaining six independently completed threads as recent work.
+  attention while retaining six independently completed projections in scan
+  state without rendering them in the primary application surface.
 - Focused liveness tests cover terminal pull requests without false completion,
   exact correlation of old merged pull requests with clean local lanes,
   configured staleness for isolated shaping specs, operational obligations that
@@ -320,8 +328,8 @@ completion. Active status now requires affirmative unresolved evidence rather
 than the mere absence of canonical closure, so terminal-only and dormant
 projections cannot occupy Attention or In Flight. The native experience renders
 cached content first, groups unseen Attention separately from In Flight work,
-and provides evidence-backed detail, seen acknowledgement, and optional
-non-authoritative notes.
+omits inactive projections, and provides evidence-backed detail, seen
+acknowledgement, and optional non-authoritative notes.
 
 ## REPOSITORY MEMORY
 

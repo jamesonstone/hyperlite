@@ -21,3 +21,11 @@ func TestChangedCandidateDetectsRemovedReviewConclusion(t *testing.T) {
 		t.Fatalf("candidate = %#v", value)
 	}
 }
+
+func TestWhyNowDescribesCompletedProjectionWithoutAmbiguity(t *testing.T) {
+	thread := model.Thread{Phase: model.ThreadComplete}
+
+	if got := whyNow(thread); got != "Complete" {
+		t.Fatalf("whyNow() = %q, want Complete", got)
+	}
+}

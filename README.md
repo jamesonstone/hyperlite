@@ -49,7 +49,8 @@ The native window loads cached state and current local Git evidence first. It
 refreshes remote evidence on foreground activation only when stale, and then
 runs optional local inference. The menu-bar ghost counts threads with unseen
 attention, not artifacts. Active threads remain visible regardless of age;
-only completed threads use the configured recent-work window.
+completed and dormant projections remain available in scan state but do not
+occupy the primary attention surface or its navigation.
 
 Open a thread to see its goal, rationale, progress, dependencies, implications,
 remaining obligations, evidence, and optional note. Opening marks material

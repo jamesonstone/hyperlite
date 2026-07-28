@@ -228,44 +228,32 @@ struct HyperliteDiagnostic: Codable, Equatable, Identifiable {
 enum HyperliteThreadSection: Int, CaseIterable {
     case attention
     case inFlight
-    case recent
 
     var title: String {
         switch self {
         case .attention: "Attention"
         case .inFlight: "In Flight"
-        case .recent: "Recent"
         }
     }
 }
 
 enum HyperlitePresentation {
-    static let supportedAgeWindows = [3, 5, 7, 10, 30]
-
     static func threads(
         scan: HyperliteThreadScan,
-        section: HyperliteThreadSection,
-        maxAgeDays: Int,
-        now: Date = Date()
+        section: HyperliteThreadSection
     ) -> [HyperliteThread] {
-        let recent = recentThreads(scan: scan, maxAgeDays: maxAgeDays, now: now)
+        let active = activeThreads(scan: scan)
         switch section {
         case .attention:
-            return recent.filter(\.hasUnseenAttention)
+            return active.filter(\.hasUnseenAttention)
         case .inFlight:
-            return recent.filter { $0.active && !$0.hasUnseenAttention }
-        case .recent:
-            return recent.filter { !$0.active && !$0.hasUnseenAttention }
+            return active.filter { !$0.hasUnseenAttention }
         }
     }
 
-    static func visibleThreads(
-        scan: HyperliteThreadScan,
-        maxAgeDays: Int,
-        now: Date = Date()
-    ) -> [HyperliteThread] {
+    static func visibleThreads(scan: HyperliteThreadScan) -> [HyperliteThread] {
         HyperliteThreadSection.allCases.flatMap {
-            threads(scan: scan, section: $0, maxAgeDays: maxAgeDays, now: now)
+            threads(scan: scan, section: $0)
         }
     }
 
@@ -278,20 +266,11 @@ enum HyperlitePresentation {
         return "\(seconds / 86_400)d"
     }
 
-    private static func recentThreads(
-        scan: HyperliteThreadScan,
-        maxAgeDays: Int,
-        now: Date
-    ) -> [HyperliteThread] {
-        let days = min(30, max(3, maxAgeDays))
-        let cutoff = now.addingTimeInterval(-Double(days) * 86_400)
-        return scan.threads.filter { thread in
-            thread.active || thread.updatedAt >= cutoff
-        }.sorted {
+    private static func activeThreads(scan: HyperliteThreadScan) -> [HyperliteThread] {
+        scan.threads.filter(\.active).sorted {
             if $0.hasUnseenAttention != $1.hasUnseenAttention {
                 return $0.hasUnseenAttention
             }
-            if $0.active != $1.active { return $0.active }
             if $0.updatedAt != $1.updatedAt { return $0.updatedAt > $1.updatedAt }
             return $0.id < $1.id
         }
