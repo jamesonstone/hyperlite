@@ -2,6 +2,7 @@ package threadstate
 
 import (
 	"bytes"
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -53,10 +54,12 @@ func TestStoreMutateSerializesAcrossProcesses(t *testing.T) {
 	if err := (Store{Path: path}).Write(Empty()); err != nil {
 		t.Fatal(err)
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	commands := make([]*exec.Cmd, 2)
 	outputs := make([]*bytes.Buffer, 2)
 	for index, id := range []string{"issue:owner/repo#1", "issue:owner/repo#2"} {
-		command := exec.Command(os.Args[0], "-test.run=TestStoreMutateProcessHelper")
+		command := exec.CommandContext(ctx, os.Args[0], "-test.run=TestStoreMutateProcessHelper")
 		command.Env = append(os.Environ(),
 			"HYPERLITE_MUTATE_HELPER=1",
 			"HYPERLITE_MUTATE_PATH="+path,

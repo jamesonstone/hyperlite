@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 
 enum HyperliteProcess {
@@ -53,8 +54,10 @@ enum HyperliteProcess {
                 startReader(errors.fileHandleForReading, readers: readers, capture: capture.setErrors)
                 if let standardInput, let input {
                     DispatchQueue.global(qos: .utility).async {
-                        input.fileHandleForWriting.write(standardInput)
-                        try? input.fileHandleForWriting.close()
+                        let handle = input.fileHandleForWriting
+                        defer { try? handle.close() }
+                        guard fcntl(handle.fileDescriptor, F_SETNOSIGPIPE, 1) != -1 else { return }
+                        try? handle.write(contentsOf: standardInput)
                     }
                 }
                 DispatchQueue.global(qos: .utility).asyncAfter(
