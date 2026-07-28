@@ -3,10 +3,6 @@ package workscan
 import (
 	"context"
 	"errors"
-	"fmt"
-	"path/filepath"
-	"sort"
-	"strings"
 	"sync"
 	"time"
 
@@ -138,6 +134,9 @@ func (s Scanner) Infer(ctx context.Context, cfg config.Config) (model.ThreadScan
 		finalizeScan(&result)
 		return result, nil
 	}
+	if s.Now == nil {
+		s.Now = time.Now
+	}
 	now := s.Now().UTC()
 	digests := make(map[string]string, len(pending))
 	for _, thread := range pending {
@@ -149,7 +148,18 @@ func (s Scanner) Infer(ctx context.Context, cfg config.Config) (model.ThreadScan
 	if err := s.Store.Write(state); err != nil {
 		return model.ThreadScan{}, err
 	}
-	return s.ScanLocal(ctx, cfg, false)
+	inferred := make(map[string]model.InferenceThread, len(values))
+	for _, value := range values {
+		inferred[value.ThreadID] = value
+	}
+	for index := range result.Threads {
+		if value, exists := inferred[result.Threads[index].ID]; exists {
+			applyInference(&result.Threads[index], value)
+			result.Threads[index].InferenceStatus = "current"
+		}
+	}
+	finalizeScan(&result)
+	return result, nil
 }
 
 func (s Scanner) scan(ctx context.Context, cfg config.Config, refresh, includeRemote bool) (model.ThreadScan, error) {
@@ -255,45 +265,4 @@ func (s Scanner) scanRepository(
 		index: index, threads: threads, remote: cache,
 		errors: errors, warnings: warnings, repository: repository,
 	}
-}
-
-func (s Scanner) scanRepositoryMemory(
-	repository config.Repository,
-	locals []gitscan.LocalLane,
-) memoryscan.Result {
-	roots := []string{repository.Path}
-	seenRoots := map[string]struct{}{repository.Path: {}}
-	for _, local := range locals {
-		path := strings.TrimSpace(local.Worktree.Path)
-		if path == "" || local.Worktree.Prunable ||
-			(local.Worktree.Detached && !isIssueWorktreePath(path)) {
-			continue
-		}
-		if _, exists := seenRoots[path]; exists {
-			continue
-		}
-		seenRoots[path] = struct{}{}
-		roots = append(roots, path)
-	}
-	byID := make(map[string]memoryscan.Document)
-	var diagnostics []memoryscan.Diagnostic
-	for _, root := range roots {
-		result := s.Memory.Scan(root)
-		diagnostics = append(diagnostics, result.Diagnostics...)
-		for _, document := range result.Documents {
-			byID[document.ID] = document
-		}
-	}
-	documents := make([]memoryscan.Document, 0, len(byID))
-	for _, document := range byID {
-		documents = append(documents, document)
-	}
-	sort.Slice(documents, func(i, j int) bool { return documents[i].ID < documents[j].ID })
-	return memoryscan.Result{Documents: documents, Diagnostics: diagnostics}
-}
-
-func isIssueWorktreePath(path string) bool {
-	var number int
-	_, err := fmt.Sscanf(strings.ToUpper(filepath.Base(filepath.Clean(path))), "GH-%d", &number)
-	return err == nil && number > 0
 }

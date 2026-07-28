@@ -48,23 +48,15 @@ func evidence(pullRequests []model.PullRequest, issues []model.Issue) model.Remo
 	}
 }
 
-func issue(number int, title, state string, now time.Time) model.Issue {
+func issue(repository string, number int, title, state string, now time.Time) model.Issue {
 	return model.Issue{
 		Number: number, Title: title, Body: "Goal body", State: state,
-		URL:       "https://github.com/owner/" + repositoryForIssue(number) + "/issues/" + strconv.Itoa(number),
+		URL:       "https://github.com/owner/" + repository + "/issues/" + strconv.Itoa(number),
 		UpdatedAt: now,
 	}
 }
 
-func repositoryForIssue(number int) string {
-	if number == 20 {
-		return "event-sink"
-	}
-	return "r2"
-}
-
-func openPR(number int, title, branch string, closing model.Issue, now time.Time) model.PullRequest {
-	repository := repositoryForIssue(closing.Number)
+func openPR(repository string, number int, title, branch string, closing model.Issue, now time.Time) model.PullRequest {
 	return model.PullRequest{
 		Number: number, Title: title, Body: "Substantial implementation",
 		URL:         "https://github.com/owner/" + repository + "/pull/" + strconv.Itoa(number),
@@ -140,6 +132,16 @@ func (f fakeMemory) Scan(path string) memoryscan.Result {
 	return f.results[path]
 }
 
+type countingMemory struct {
+	calls  int
+	result memoryscan.Result
+}
+
+func (f *countingMemory) Scan(string) memoryscan.Result {
+	f.calls++
+	return f.result
+}
+
 type fakeStore struct {
 	mu      sync.Mutex
 	state   threadstate.State
@@ -165,4 +167,18 @@ type failingInference struct {
 
 func (f failingInference) Enrich(context.Context, string, []model.Thread) ([]model.InferenceThread, error) {
 	return nil, f.err
+}
+
+type successfulInference struct{}
+
+func (successfulInference) Enrich(
+	_ context.Context,
+	_ string,
+	threads []model.Thread,
+) ([]model.InferenceThread, error) {
+	values := make([]model.InferenceThread, 0, len(threads))
+	for _, thread := range threads {
+		values = append(values, model.InferenceThread{ThreadID: thread.ID})
+	}
+	return values, nil
 }

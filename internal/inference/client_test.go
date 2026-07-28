@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/jamesonstone/hyperlite/internal/model"
 )
@@ -88,6 +89,53 @@ func TestClientRejectsUncitedAndAuthoritativeModelClaims(t *testing.T) {
 				t.Fatalf("error = %v, want %q", err, test.want)
 			}
 		})
+	}
+}
+
+func TestBuildPromptTruncatesEvidenceAtUTF8Boundary(t *testing.T) {
+	thread := inferenceThread()
+	thread.Evidence[0].Excerpt = strings.Repeat("x", 32*1024-1) + "🦞"
+	prompt, err := buildPrompt([]model.Thread{thread})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !utf8.ValidString(prompt) || strings.Contains(prompt, "�") {
+		t.Fatalf("prompt contains invalid UTF-8")
+	}
+}
+
+func TestValidateSortsAllEvidenceIdentifiers(t *testing.T) {
+	thread := inferenceThread()
+	thread.Evidence = append(thread.Evidence, model.EvidenceRef{ID: "issue:r2"})
+	output := model.InferenceThread{
+		ThreadID: thread.ID,
+		Goal: model.InferenceClaim{
+			Text: "Goal", EvidenceIDs: []string{"spec:r2", "issue:r2"},
+		},
+		Implications: []model.ThreadImplication{{
+			Summary: "Impact", Basis: model.BasisExtracted,
+			EvidenceIDs: []string{"spec:r2", "issue:r2"},
+		}},
+		Obligations: []model.ThreadObligation{{
+			Summary: "Deploy", Basis: model.BasisExtracted,
+			EvidenceIDs: []string{"spec:r2", "issue:r2"},
+		}},
+		Relations: []model.InferenceRelation{{
+			Kind: model.RelationAffects, Target: "external",
+			Basis:       model.BasisHypothesis,
+			EvidenceIDs: []string{"spec:r2", "issue:r2"},
+		}},
+	}
+	values, err := validate([]model.Thread{thread}, []model.InferenceThread{output})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantFirst := "issue:r2"
+	if values[0].Goal.EvidenceIDs[0] != wantFirst ||
+		values[0].Implications[0].EvidenceIDs[0] != wantFirst ||
+		values[0].Obligations[0].EvidenceIDs[0] != wantFirst ||
+		values[0].Relations[0].EvidenceIDs[0] != wantFirst {
+		t.Fatalf("evidence IDs were not sorted: %#v", values[0])
 	}
 }
 

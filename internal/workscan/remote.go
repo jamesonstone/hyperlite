@@ -2,9 +2,7 @@ package workscan
 
 import (
 	"context"
-	"fmt"
 	"net/url"
-	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -56,8 +54,8 @@ func anchoredIssueNumbers(
 ) []int {
 	numbers := make(map[int]struct{})
 	for _, local := range locals {
-		for _, branch := range []string{local.Branch, localIdentityBranch(local)} {
-			if number := issueNumberFromBranch(branch); number > 0 {
+		for _, branch := range []string{local.Branch, gitscan.IdentityBranch(local)} {
+			if number := gitscan.IssueNumber(branch); number > 0 {
 				numbers[number] = struct{}{}
 			}
 		}
@@ -84,21 +82,6 @@ func anchoredIssueNumbers(
 	}
 	sort.Ints(result)
 	return result
-}
-
-func localIdentityBranch(local gitscan.LocalLane) string {
-	if local.Worktree.Detached {
-		return strings.TrimSpace(filepath.Base(filepath.Clean(local.Worktree.Path)))
-	}
-	return local.Branch
-}
-
-func issueNumberFromBranch(branch string) int {
-	var number int
-	if _, err := fmt.Sscanf(strings.ToUpper(strings.TrimSpace(branch)), "GH-%d", &number); err != nil {
-		return 0
-	}
-	return number
 }
 
 func boundedRemoteHistory(

@@ -13,7 +13,7 @@ final class HyperliteState: ObservableObject {
     private var refreshTask: Task<Void, Never>?
     private var pruneTask: Task<Void, Never>?
     private var mutationTasks: [String: Task<Void, Never>] = [:]
-    private var requestedSeenRevisions: Set<String> = []
+    private var refreshGeneration = 0
 
     init() { refresh(localOnly: true, continueIfRemoteStale: true) }
 
@@ -23,7 +23,9 @@ final class HyperliteState: ObservableObject {
         mutationTasks.values.forEach { $0.cancel() }
     }
 
-    func refresh() { refresh(localOnly: false, continueIfRemoteStale: false) }
+    func refresh() {
+        refresh(localOnly: false, continueIfRemoteStale: false, supersedeExisting: true)
+    }
 
     func refreshIfStale(now: Date = Date()) {
         guard !isRefreshing else { return }
@@ -55,7 +57,7 @@ final class HyperliteState: ObservableObject {
         pruneTask = Task { [weak self] in
             guard let self else { return }
             do {
-                _ = try await Self.runHyperlite(
+                _ = try await HyperliteProcess.run(
                     arguments: ["prune-worktree", repositoryPath, worktreePath],
                     operation: "prune"
                 )
@@ -88,29 +90,35 @@ final class HyperliteState: ObservableObject {
         threads(section: .attention, maxAgeDays: maxAgeDays, now: now).count
     }
 
-    func markSeen(_ thread: HyperliteThread) {
-        guard thread.hasUnseenAttention, !thread.latestMaterialRevision.isEmpty else { return }
-        let requestID = "\(thread.id)@\(thread.latestMaterialRevision)"
-        guard requestedSeenRevisions.insert(requestID).inserted else { return }
-        mutationTasks[requestID]?.cancel()
+    func markSeen(threadID: String) {
+        let requestID = "seen:\(threadID)"
+        guard mutationTasks[requestID] == nil else { return }
         mutationTasks[requestID] = Task { [weak self] in
             guard let self else { return }
             do {
                 try await waitForRefresh()
-                _ = try await Self.runHyperlite(
+                guard let thread = scan?.threads.first(where: { $0.id == threadID }),
+                      thread.hasUnseenAttention,
+                      !thread.latestMaterialRevision.isEmpty
+                else {
+                    mutationTasks[requestID] = nil
+                    return
+                }
+                _ = try await HyperliteProcess.run(
                     arguments: ["thread", "seen", thread.id, "--revision", thread.latestMaterialRevision],
                     operation: "mark seen"
                 )
-                requestedSeenRevisions.remove(requestID)
                 mutationTasks[requestID] = nil
                 refresh(localOnly: true, continueIfRemoteStale: false)
             } catch is CancellationError {
-                requestedSeenRevisions.remove(requestID)
                 mutationTasks[requestID] = nil
             } catch {
-                requestedSeenRevisions.remove(requestID)
                 mutationTasks[requestID] = nil
-                errorMessage = error.localizedDescription
+                if error.localizedDescription.contains("advanced; refresh before marking it seen") {
+                    refresh(localOnly: true, continueIfRemoteStale: false)
+                } else {
+                    errorMessage = error.localizedDescription
+                }
             }
         }
     }
@@ -122,7 +130,7 @@ final class HyperliteState: ObservableObject {
             guard let self else { return }
             do {
                 try await waitForRefresh()
-                _ = try await Self.runHyperlite(
+                _ = try await HyperliteProcess.run(
                     arguments: ["thread", "note", threadID, "--stdin"],
                     operation: "save note",
                     standardInput: Data(note.utf8)
@@ -139,48 +147,67 @@ final class HyperliteState: ObservableObject {
     }
 
     private func waitForRefresh() async throws {
-        while isRefreshing {
-            try Task.checkCancellation()
-            try await Task.sleep(nanoseconds: 100_000_000)
-        }
+        try Task.checkCancellation()
+        await refreshTask?.value
+        try Task.checkCancellation()
     }
 
-    private func refresh(localOnly: Bool, continueIfRemoteStale: Bool) {
-        guard !isRefreshing else { return }
+    private func refresh(
+        localOnly: Bool,
+        continueIfRemoteStale: Bool,
+        supersedeExisting: Bool = false
+    ) {
+        if isRefreshing {
+            guard supersedeExisting else { return }
+            refreshTask?.cancel()
+        }
+        refreshGeneration += 1
+        let generation = refreshGeneration
         isRefreshing = true
-        refreshTask?.cancel()
         refreshTask = Task { [weak self] in
             guard let self else { return }
+            defer {
+                if refreshGeneration == generation {
+                    isRefreshing = false
+                    refreshTask = nil
+                }
+            }
             do {
-                var decoded = try await scan(localOnly: localOnly)
+                var decoded = try await runScan(localOnly: localOnly)
+                guard refreshGeneration == generation else { return }
                 scan = decoded
                 errorMessage = nil
                 if localOnly, continueIfRemoteStale, remoteIsStale(scan: decoded, now: Date()) {
-                    decoded = try await scan(localOnly: false)
+                    decoded = try await runScan(localOnly: false)
+                    guard refreshGeneration == generation else { return }
                     scan = decoded
                 }
                 if !localOnly || continueIfRemoteStale {
-                    await enrichIfMateriallyChanged(from: decoded)
+                    await enrichIfMateriallyChanged(from: decoded, generation: generation)
                 }
             } catch is CancellationError {
-                isRefreshing = false
                 return
             } catch {
-                errorMessage = error.localizedDescription
+                if refreshGeneration == generation {
+                    errorMessage = error.localizedDescription
+                }
             }
-            isRefreshing = false
         }
     }
 
-    private func scan(localOnly: Bool) async throws -> HyperliteThreadScan {
+    private func runScan(localOnly: Bool) async throws -> HyperliteThreadScan {
         let arguments = localOnly ? ["--json", "--local", "--no-refresh"] : ["--json"]
-        let data = try await Self.runHyperlite(arguments: arguments, operation: "scan")
+        let data = try await HyperliteProcess.run(arguments: arguments, operation: "scan")
         return try Self.decoder.decode(HyperliteThreadScan.self, from: data)
     }
 
-    private func enrichIfMateriallyChanged(from deterministic: HyperliteThreadScan) async {
+    private func enrichIfMateriallyChanged(
+        from deterministic: HyperliteThreadScan,
+        generation: Int
+    ) async {
         do {
-            let data = try await Self.runHyperlite(arguments: ["infer", "--json"], operation: "inference")
+            let data = try await HyperliteProcess.run(arguments: ["infer", "--json"], operation: "inference")
+            guard refreshGeneration == generation else { return }
             let enriched = try Self.decoder.decode(HyperliteThreadScan.self, from: data)
             if coordinationProjection(enriched) != coordinationProjection(deterministic) {
                 scan = enriched
@@ -188,7 +215,9 @@ final class HyperliteState: ObservableObject {
         } catch is CancellationError {
             return
         } catch {
-            errorMessage = error.localizedDescription
+            if refreshGeneration == generation {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
@@ -215,70 +244,16 @@ final class HyperliteState: ObservableObject {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .custom { decoder in
             let value = try decoder.singleValueContainer().decode(String.self)
-            let fractional = ISO8601DateFormatter()
-            fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            if let date = fractional.date(from: value) { return date }
-            let standard = ISO8601DateFormatter()
-            standard.formatOptions = [.withInternetDateTime]
-            if let date = standard.date(from: value) { return date }
+            if let date = try? fractionalDateFormat.parse(value) { return date }
+            if let date = try? standardDateFormat.parse(value) { return date }
             let container = try decoder.singleValueContainer()
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "invalid ISO-8601 date")
         }
         return decoder
     }()
 
-    private static func runHyperlite(
-        arguments: [String],
-        operation: String,
-        standardInput: Data? = nil
-    ) async throws -> Data {
-        let executable = Bundle.main.bundleURL.appendingPathComponent("Contents/MacOS/hyperlite-cli")
-        guard FileManager.default.isExecutableFile(atPath: executable.path) else {
-            throw HyperliteError.helperMissing
-        }
-        return try await withCheckedThrowingContinuation { continuation in
-            let process = Process()
-            let output = Pipe()
-            let errors = Pipe()
-            let input = standardInput == nil ? nil : Pipe()
-            let completion = HyperliteRunCompletion(continuation)
-            let timeout = DispatchWorkItem {
-                guard process.isRunning, let continuation = completion.takeContinuation() else { return }
-                if process.isRunning { process.terminate() }
-                continuation.resume(throwing: HyperliteError.commandTimedOut(operation))
-            }
-            process.executableURL = executable
-            process.arguments = arguments
-            process.standardOutput = output
-            process.standardError = errors
-            if let input { process.standardInput = input }
-            process.terminationHandler = { process in
-                timeout.cancel()
-                let data = output.fileHandleForReading.readDataToEndOfFile()
-                guard process.terminationStatus == 0 else {
-                    let message = String(
-                        data: errors.fileHandleForReading.readDataToEndOfFile(),
-                        encoding: .utf8
-                    )?.trimmingCharacters(in: .whitespacesAndNewlines)
-                    completion.resume(throwing: HyperliteError.commandFailed(
-                        operation,
-                        message ?? "hyperlite exited with status \(process.terminationStatus)"
-                    ))
-                    return
-                }
-                completion.resume(returning: data)
-            }
-            do {
-                try process.run()
-                if let standardInput, let input {
-                    input.fileHandleForWriting.write(standardInput)
-                    try? input.fileHandleForWriting.close()
-                }
-                DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + .seconds(60), execute: timeout)
-            } catch {
-                timeout.cancel()
-                completion.resume(throwing: error)
-            }
-        }
-    }
+    nonisolated private static let fractionalDateFormat = Date.ISO8601FormatStyle(
+        includingFractionalSeconds: true
+    )
+    nonisolated private static let standardDateFormat = Date.ISO8601FormatStyle()
 }

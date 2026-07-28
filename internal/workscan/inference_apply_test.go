@@ -91,3 +91,20 @@ func TestEvidenceMentionsCreateCitedCrossThreadHypothesisOnly(t *testing.T) {
 		t.Fatalf("relations = %#v", relations)
 	}
 }
+
+func TestSortRelationsUsesCompleteDeterministicOrder(t *testing.T) {
+	relations := []model.ThreadRelation{
+		{
+			Kind: model.RelationAffects, Target: "r2", TargetThreadID: "thread:b",
+			Basis: model.BasisHypothesis, EvidenceIDs: []string{"evidence:b"},
+		},
+		{
+			Kind: model.RelationAffects, Target: "r2", TargetThreadID: "thread:a",
+			Basis: model.BasisHypothesis, EvidenceIDs: []string{"evidence:a"},
+		},
+	}
+	sortRelations(relations)
+	if relations[0].TargetThreadID != "thread:a" || relations[1].TargetThreadID != "thread:b" {
+		t.Fatalf("relations = %#v", relations)
+	}
+}

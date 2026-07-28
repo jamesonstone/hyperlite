@@ -25,7 +25,7 @@ func writeTerminal(out io.Writer, result model.ThreadScan, includeCompleted, col
 		return err
 	}
 	for _, thread := range result.Threads {
-		if !includeCompleted && !thread.Active {
+		if !includeCompleted && !thread.Active && !unseenThread(thread) {
 			continue
 		}
 		marker := string(thread.Phase)

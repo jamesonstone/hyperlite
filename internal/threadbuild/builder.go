@@ -87,21 +87,24 @@ func addDocument(repo config.Repository, document memoryscan.Document, builders 
 	if strings.EqualFold(strings.TrimSpace(title), "spec") {
 		title = ""
 	}
-	builder.thread.Title = firstNonEmpty(title, humanize(document.Slug), "Feature "+document.FeatureID)
-	builder.thread.Goal = firstParagraph(document.Purpose)
-	builder.thread.Rationale = firstParagraph(document.Context)
-	builder.thread.Phase = phaseFromDocument(document.Phase)
+	documentTitle := firstNonEmpty(title, humanize(document.Slug), "Feature "+document.FeatureID)
+	builder.thread.Title = firstNonEmpty(builder.thread.Title, documentTitle)
+	builder.thread.Goal = firstNonEmpty(builder.thread.Goal, firstParagraph(document.Purpose))
+	builder.thread.Rationale = firstNonEmpty(builder.thread.Rationale, firstParagraph(document.Context))
+	if builder.thread.Phase == "" {
+		builder.thread.Phase = phaseFromDocument(document.Phase)
+	}
 	evidenceID := specAlias
 	excerpt := joinExcerpt(document.Purpose, document.Context, document.Plan, document.Decisions, document.Outcome)
 	addEvidence(&builder.thread, model.EvidenceRef{
 		ID: evidenceID, Source: "repository_memory", Repository: repo.GitHub,
-		Kind: "spec", Title: builder.thread.Title,
+		Kind: "spec", Title: documentTitle,
 		Path:    evidencePath(document.RepositoryRoot, document.Path),
 		Excerpt: excerpt, UpdatedAt: document.UpdatedAt, Freshness: "current",
 	})
 	addArtifact(&builder.thread, model.ThreadArtifact{
 		ID: evidenceID, Kind: model.ArtifactSpec, Repository: repo.GitHub,
-		Title: builder.thread.Title, State: strings.ToLower(document.Phase),
+		Title: documentTitle, State: strings.ToLower(document.Phase),
 		Path:       evidencePath(document.RepositoryRoot, document.Path),
 		EvidenceID: evidenceID, UpdatedAt: document.UpdatedAt,
 		Freshness: "current",

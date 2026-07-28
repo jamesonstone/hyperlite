@@ -16,7 +16,7 @@ struct HyperliteMenuBarLabel: View {
         }
         .help("Hyperlite — \(count) thread\(count == 1 ? "" : "s") need attention — \(hotkey)")
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Hyperlite, \(count) threads need attention")
+        .accessibilityLabel("Hyperlite, \(count) thread\(count == 1 ? "" : "s") need\(count == 1 ? "s" : "") attention")
     }
 }
 
@@ -147,7 +147,7 @@ struct HyperliteWindow: View {
         .sheet(item: $selectedThread) { thread in
             HyperliteThreadDetail(
                 thread: thread,
-                onSeen: { state.markSeen(thread) },
+                onSeen: { state.markSeen(threadID: thread.id) },
                 onSaveNote: { state.updateNote(threadID: thread.id, note: $0) }
             )
         }

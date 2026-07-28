@@ -87,7 +87,7 @@ enum HyperliteInteractionModel {
             let expanded = expandedProjects.contains(project)
             entries.append(HyperlitePaletteEntry(
                 id: "project:\(project)",
-                title: project.split(separator: "/").last.map(String.init) ?? project,
+                title: projectThreads.first?.projectName ?? "Unknown project",
                 subtitle: "\(projectThreads.count) thread\(projectThreads.count == 1 ? "" : "s")",
                 symbol: expanded ? "chevron.down" : "chevron.right",
                 kind: .project(project)

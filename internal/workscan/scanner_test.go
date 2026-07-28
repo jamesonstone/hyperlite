@@ -19,12 +19,12 @@ func TestScannerGoldenR2EventSinkThreads(t *testing.T) {
 	eventSink := config.Repository{Name: "event-sink", Path: "/repo/event-sink", GitHub: "owner/event-sink", Base: "main", Remote: "origin"}
 	github := fakeGitHub{results: map[string]model.RemoteEvidence{
 		r2.GitHub: evidence(
-			[]model.PullRequest{openPR(11, "R2 implementation", "GH-10", issue(10, "R2 storage", "OPEN", now), now)},
-			[]model.Issue{issue(10, "R2 storage", "OPEN", now)},
+			[]model.PullRequest{openPR("r2", 11, "R2 implementation", "GH-10", issue("r2", 10, "R2 storage", "OPEN", now), now)},
+			[]model.Issue{issue("r2", 10, "R2 storage", "OPEN", now)},
 		),
 		eventSink.GitHub: evidence(
-			[]model.PullRequest{openPR(21, "Event sink implementation", "GH-20", issue(20, "Event sink", "OPEN", now), now)},
-			[]model.Issue{issue(20, "Event sink", "OPEN", now)},
+			[]model.PullRequest{openPR("event-sink", 21, "Event sink implementation", "GH-20", issue("event-sink", 20, "Event sink", "OPEN", now), now)},
+			[]model.Issue{issue("event-sink", 20, "Event sink", "OPEN", now)},
 		),
 	}}
 	memory := fakeMemory{results: map[string]memoryscan.Result{
@@ -79,7 +79,7 @@ func TestScannerGoldenR2EventSinkThreads(t *testing.T) {
 func TestScannerRemoteFailurePreservesCachedOpenPRAsStale(t *testing.T) {
 	now := time.Date(2026, 7, 28, 14, 0, 0, 0, time.UTC)
 	repository := config.Repository{Name: "r2", Path: "/repo/r2", GitHub: "owner/r2", Base: "main", Remote: "origin"}
-	cached := evidence([]model.PullRequest{openPR(11, "R2 implementation", "GH-10", issue(10, "R2", "OPEN", now), now)}, nil)
+	cached := evidence([]model.PullRequest{openPR("r2", 11, "R2 implementation", "GH-10", issue("r2", 10, "R2", "OPEN", now), now)}, nil)
 	state := threadstate.Empty()
 	state.Remote[repository.GitHub] = threadstate.RemoteCache{ObservedAt: now.Add(-2 * time.Hour), Evidence: cached}
 	github := fakeGitHub{results: map[string]model.RemoteEvidence{
@@ -138,19 +138,19 @@ func TestScannerReturnsEmptySelectedBoundary(t *testing.T) {
 
 func TestBoundedRemoteHistoryDoesNotReplayHistoryButKeepsObservedFinalState(t *testing.T) {
 	now := time.Now().UTC()
-	open := openPR(11, "Open", "GH-10", issue(10, "R2", "OPEN", now), now)
+	open := openPR("r2", 11, "Open", "GH-10", issue("r2", 10, "R2", "OPEN", now), now)
 	merged := open
 	merged.State = "MERGED"
 	merged.MergedAt = now
-	historical := openPR(12, "Historical", "GH-12", issue(12, "Old", "CLOSED", now), now)
+	historical := openPR("r2", 12, "Historical", "GH-12", issue("r2", 12, "Old", "CLOSED", now), now)
 	historical.State = "MERGED"
 	historical.MergedAt = now
 	current := evidence([]model.PullRequest{merged, historical}, []model.Issue{
-		issue(10, "R2", "CLOSED", now),
-		issue(12, "Old", "CLOSED", now),
+		issue("r2", 10, "R2", "CLOSED", now),
+		issue("r2", 12, "Old", "CLOSED", now),
 	})
 	previous := threadstate.RemoteCache{ObservedAt: now.Add(-time.Hour), Evidence: evidence(
-		[]model.PullRequest{open}, []model.Issue{issue(10, "R2", "OPEN", now.Add(-time.Hour))},
+		[]model.PullRequest{open}, []model.Issue{issue("r2", 10, "R2", "OPEN", now.Add(-time.Hour))},
 	)}
 	filtered := boundedRemoteHistory(current, previous, true, nil, nil)
 	if len(filtered.PullRequests) != 1 || filtered.PullRequests[0].Number != 11 ||
@@ -183,5 +183,31 @@ func TestInferFallsBackToDeterministicThreadsOnModelFailure(t *testing.T) {
 	}
 	if len(result.Warnings) != 1 || result.Warnings[0].Stage != "local-inference" {
 		t.Fatalf("warnings = %#v", result.Warnings)
+	}
+}
+
+func TestInferUsesExistingScanWithDefaultClock(t *testing.T) {
+	now := time.Now().UTC()
+	repository := config.Repository{Name: "r2", Path: "/repo/r2", GitHub: "owner/r2", Base: "main"}
+	memory := &countingMemory{result: memoryscan.Result{Documents: []memoryscan.Document{{
+		ID: "spec:0001", FeatureID: "0001", Title: "R2", Phase: "implement",
+		Selected: true, Path: "docs/specs/0001-r2/SPEC.md", Purpose: "Store payloads.",
+		UpdatedAt: now,
+	}}}}
+	scanner := testScanner(now, []config.Repository{repository}, fakeGitHub{}, memory, &fakeStore{state: threadstate.Empty()})
+	scanner.Now = nil
+	scanner.Inference = successfulInference{}
+	cfg := testConfig()
+	cfg.Settings.OllamaModel = "local-model"
+
+	result, err := scanner.Infer(context.Background(), cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if memory.calls != 1 ||
+		result.Summary.Threads != 1 ||
+		result.Summary.InFlight != 1 ||
+		result.Threads[0].InferenceStatus != "current" {
+		t.Fatalf("calls=%d result=%#v", memory.calls, result)
 	}
 }

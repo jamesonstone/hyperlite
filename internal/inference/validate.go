@@ -51,6 +51,7 @@ func validate(inputs []model.Thread, outputs []model.InferenceThread) ([]model.I
 			if err := validateBasis(value.Basis); err != nil {
 				return nil, err
 			}
+			sort.Strings(value.EvidenceIDs)
 			value.Confidence = normalizedConfidence(value.Confidence)
 		}
 		for index := range output.Obligations {
@@ -64,6 +65,7 @@ func validate(inputs []model.Thread, outputs []model.InferenceThread) ([]model.I
 			if value.ID == "" {
 				value.ID = inferenceID("obligation", output.ThreadID, value.Summary)
 			}
+			sort.Strings(value.EvidenceIDs)
 			value.Confidence = normalizedConfidence(value.Confidence)
 		}
 		for index := range output.Relations {
@@ -82,6 +84,7 @@ func validate(inputs []model.Thread, outputs []model.InferenceThread) ([]model.I
 			if err := validateEvidence(value.Target, value.EvidenceIDs, allEvidence); err != nil {
 				return nil, fmt.Errorf("thread %s relation: %w", output.ThreadID, err)
 			}
+			sort.Strings(value.EvidenceIDs)
 			value.Confidence = normalizedConfidence(value.Confidence)
 		}
 		output.Confidence = normalizedConfidence(output.Confidence)
@@ -158,7 +161,7 @@ func inferenceID(prefix string, values ...string) string {
 func boundedText(value string) string {
 	value = strings.TrimSpace(value)
 	if len(value) > 80 {
-		return value[:80] + "…"
+		return truncateUTF8Bytes(value, 80) + "…"
 	}
 	return value
 }

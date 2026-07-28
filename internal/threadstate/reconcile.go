@@ -103,15 +103,30 @@ func ReconcileSelected(
 			thread.WhyNow = whyNow(thread)
 			record.Snapshot = snapshotFor(thread)
 			threads = append(threads, thread)
+			updated[record.ID] = record
 		}
-		updated[record.ID] = record
 	}
 	state.Threads = state.Threads[:0]
 	for _, record := range updated {
 		state.Threads = append(state.Threads, record)
 	}
 	sort.Slice(state.Threads, func(i, j int) bool { return state.Threads[i].ID < state.Threads[j].ID })
+	retainCurrentInferences(state)
 	return threads
+}
+
+func retainCurrentInferences(state *State) {
+	current := make(map[string]struct{}, len(state.Threads))
+	for _, record := range state.Threads {
+		current[record.ID] = struct{}{}
+	}
+	filtered := state.Inferences[:0]
+	for _, record := range state.Inferences {
+		if _, exists := current[record.ThreadID]; exists {
+			filtered = append(filtered, record)
+		}
+	}
+	state.Inferences = filtered
 }
 
 func repositoriesIn(threads []model.Thread) []string {

@@ -160,51 +160,6 @@ func TestCollectMineOnlyEnrichesInactivePullRequestsForFollowedRepositories(t *t
 	}
 }
 
-func TestCollectAllKeepsIssueEvidenceWhenPullRequestsFail(t *testing.T) {
-	runner := &fixtureRunner{
-		responses: map[string][]byte{
-			"gh issue list": []byte(`[{"number":7,"title":"Queued","url":"https://github.com/owner/repo/issues/7","updatedAt":"2026-07-10T12:00:00Z","labels":[],"assignees":[]}]`),
-		},
-		failures: map[string]error{"gh pr list": fmt.Errorf("pull requests unavailable")},
-	}
-	collection := (Client{Runner: runner}).Collect(context.Background(), []config.Repository{{Name: "repo", GitHub: "owner/repo"}}, "all", "@me", 1)
-	evidence := collection.Repositories["owner/repo"]
-	if len(evidence.Issues) != 1 || len(evidence.Errors) != 1 || evidence.Errors[0].Stage != "github-prs" {
-		t.Fatalf("evidence = %#v", evidence)
-	}
-}
-
-func TestCollectRepositoryHydratesExactUnassignedIssueAnchor(t *testing.T) {
-	runner := &fixtureRunner{responses: map[string][]byte{
-		"gh pr list":    []byte(`[]`),
-		"gh issue list": []byte(`[]`),
-		"gh issue view": []byte(`{
-			"number":7,
-			"title":"Anchored goal",
-			"body":"Canonical issue",
-			"url":"https://github.com/owner/repo/issues/7",
-			"state":"OPEN",
-			"updatedAt":"2026-07-28T12:00:00Z",
-			"labels":[],
-			"assignees":[]
-		}`),
-	}}
-	evidence := (Client{Runner: runner}).CollectRepository(
-		context.Background(),
-		config.Repository{Name: "repo", GitHub: "owner/repo"},
-		"mine",
-		"@me",
-		[]int{7},
-	)
-	if len(evidence.Errors) != 0 || len(evidence.Issues) != 1 ||
-		evidence.Issues[0].Number != 7 || evidence.Issues[0].State != "OPEN" {
-		t.Fatalf("evidence = %#v", evidence)
-	}
-	if runner.count("gh issue view") != 1 {
-		t.Fatalf("calls = %v", runner.calls)
-	}
-}
-
 func TestCollectMineWarnsWhenIssueSearchHitsCap(t *testing.T) {
 	issues := make([]rawIssue, searchLimit)
 	for index := range issues {

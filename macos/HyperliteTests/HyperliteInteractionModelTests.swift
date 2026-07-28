@@ -98,6 +98,13 @@ struct HyperliteInteractionModelTests {
             unseen: false,
             updatedAt: now.addingTimeInterval(-2 * 86_400)
         )
+        let future = thread(
+            id: "future",
+            repository: "owner/r2",
+            active: false,
+            unseen: false,
+            updatedAt: now.addingTimeInterval(60)
+        )
         let oldComplete = thread(
             id: "old",
             repository: "owner/r2",
@@ -105,9 +112,9 @@ struct HyperliteInteractionModelTests {
             unseen: false,
             updatedAt: now.addingTimeInterval(-40 * 86_400)
         )
-        let scan = scan(threads: [recent, oldComplete, activeOld, attention], now: now)
+        let scan = scan(threads: [recent, future, oldComplete, activeOld, attention], now: now)
         let visible = HyperlitePresentation.visibleThreads(scan: scan, maxAgeDays: 10, now: now)
-        expect(visible.map(\.id) == ["attention", "active-old", "recent"],
+        expect(visible.map(\.id) == ["attention", "active-old", "future", "recent"],
                "attention, active, and recent sections should be ordered")
         expect(HyperlitePresentation.threads(
             scan: scan, section: .inFlight, maxAgeDays: 10, now: now

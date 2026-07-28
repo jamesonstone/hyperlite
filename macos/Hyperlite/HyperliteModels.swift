@@ -286,7 +286,7 @@ enum HyperlitePresentation {
         let days = min(30, max(3, maxAgeDays))
         let cutoff = now.addingTimeInterval(-Double(days) * 86_400)
         return scan.threads.filter { thread in
-            thread.active || (thread.updatedAt >= cutoff && thread.updatedAt <= now)
+            thread.active || thread.updatedAt >= cutoff
         }.sorted {
             if $0.hasUnseenAttention != $1.hasUnseenAttention {
                 return $0.hasUnseenAttention

@@ -33,8 +33,9 @@ func (c Client) collectRepository(
 		if len(pullRequests) == searchLimit {
 			evidence.Warnings = append(evidence.Warnings, model.ScanError{Repository: repository.Name, Stage: "github-prs", Message: "result limit reached; pull requests may be truncated"})
 		}
+		var closingIssues []model.Issue
 		for index := range evidence.PullRequests {
-			evidence.Issues = mergeIssues(evidence.Issues, evidence.PullRequests[index].ClosingIssues)
+			closingIssues = append(closingIssues, evidence.PullRequests[index].ClosingIssues...)
 			if !strings.EqualFold(evidence.PullRequests[index].State, "OPEN") {
 				continue
 			}
@@ -51,6 +52,7 @@ func (c Client) collectRepository(
 				evidence.Warnings = append(evidence.Warnings, model.ScanError{Repository: repository.Name, Stage: "github-feedback", Message: fmt.Sprintf("PR #%d review threads may be truncated", evidence.PullRequests[index].Number)})
 			}
 		}
+		evidence.Issues = mergeIssues(evidence.Issues, closingIssues)
 	}
 	issueArguments := []string{"issue", "list", "--repo", repository.GitHub, "--state", "all", "--limit", strconv.Itoa(searchLimit), "--json", "number,title,body,url,state,updatedAt,closedAt,labels,assignees"}
 	if scope != "all" {

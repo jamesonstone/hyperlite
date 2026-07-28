@@ -2,7 +2,6 @@ package threadbuild
 
 import (
 	"fmt"
-	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -51,6 +50,9 @@ func addPullRequest(repo config.Repository, pullRequest model.PullRequest, stale
 	}
 	id := fmt.Sprintf("pr:%s#%d", repo.GitHub, pullRequest.Number)
 	if builder == nil {
+		if number := gitscan.IssueNumber(pullRequest.HeadRefName); number > 0 {
+			id = issueID(repo.GitHub, number)
+		}
 		builder = ensure(builders, id, repo)
 	}
 	if pullRequest.HeadRefOID != "" {
@@ -111,11 +113,10 @@ func matchPullRequest(repo config.Repository, pullRequest model.PullRequest, bui
 	if builder := builderForAlias(branchAlias(repo.GitHub, pullRequest.HeadRefName), builders, aliases); builder != nil {
 		return builder
 	}
-	if number := branchIssueNumber(pullRequest.HeadRefName); number > 0 {
+	if number := gitscan.IssueNumber(pullRequest.HeadRefName); number > 0 {
 		if builder := builderForAlias(issueID(repo.GitHub, number), builders, aliases); builder != nil {
 			return builder
 		}
-		return ensure(builders, issueID(repo.GitHub, number), repo)
 	}
 	return nil
 }
@@ -124,7 +125,7 @@ func addLocal(repo config.Repository, local gitscan.LocalLane, builders map[stri
 	if !materialLocal(local) {
 		return
 	}
-	branch := localIdentityBranch(local)
+	branch := gitscan.IdentityBranch(local)
 	alias := branchAlias(repo.GitHub, branch)
 	builder := builderForAlias(alias, builders, aliases)
 	if builder == nil && local.Worktree.Detached && local.Worktree.HeadOID != "" {
@@ -132,7 +133,7 @@ func addLocal(repo config.Repository, local gitscan.LocalLane, builders map[stri
 	}
 	if builder == nil {
 		id := alias
-		if number := branchIssueNumber(branch); number > 0 {
+		if number := gitscan.IssueNumber(branch); number > 0 {
 			id = issueID(repo.GitHub, number)
 		}
 		builder = ensure(builders, id, repo)
@@ -163,16 +164,6 @@ func addLocal(repo config.Repository, local gitscan.LocalLane, builders map[stri
 	if local.Worktree.UpdatedAt.IsZero() {
 		builder.thread.UpdatedAt = now
 	}
-}
-
-func localIdentityBranch(local gitscan.LocalLane) string {
-	if local.Worktree.Detached {
-		name := filepath.Base(filepath.Clean(local.Worktree.Path))
-		if branchIssueNumber(name) > 0 {
-			return name
-		}
-	}
-	return local.Branch
 }
 
 func materialLocal(local gitscan.LocalLane) bool {
@@ -253,15 +244,7 @@ func branchAlias(repository, branch string) string {
 	return fmt.Sprintf("branch:%s@%s", repository, branch)
 }
 
-func branchIssueNumber(branch string) int {
-	var number int
-	if _, err := fmt.Sscanf(strings.ToUpper(branch), "GH-%d", &number); err != nil {
-		return 0
-	}
-	return number
-}
-
-func uniqueArtifacts(values []model.ThreadArtifact) []model.ThreadArtifact {
+func sortArtifacts(values []model.ThreadArtifact) []model.ThreadArtifact {
 	sort.Slice(values, func(i, j int) bool {
 		if values[i].Kind != values[j].Kind {
 			return values[i].Kind < values[j].Kind

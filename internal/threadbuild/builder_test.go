@@ -125,6 +125,63 @@ func TestCleanStaleWorktreeDoesNotCreateThread(t *testing.T) {
 	}
 }
 
+func TestOldTerminalIssueBranchPullRequestDoesNotCreateThread(t *testing.T) {
+	now := time.Now().UTC()
+	threads := Build(Input{
+		Repository: config.Repository{Name: "repo", GitHub: "owner/repo"},
+		Remote: model.RemoteEvidence{PullRequests: []model.PullRequest{{
+			Number: 4, Title: "Old experiment", State: "MERGED",
+			HeadRefName: "GH-3", UpdatedAt: now.Add(-31 * 24 * time.Hour),
+		}}},
+		Now: now,
+	})
+	if len(threads) != 0 {
+		t.Fatalf("old terminal pull request created a thread: %#v", threads)
+	}
+}
+
+func TestDerivedPhasePreservesAnyOpenIssue(t *testing.T) {
+	thread := model.Thread{
+		Phase: model.ThreadComplete,
+		Artifacts: []model.ThreadArtifact{
+			{Kind: model.ArtifactPullRequest, State: "merged"},
+			{Kind: model.ArtifactIssue, State: "open"},
+			{Kind: model.ArtifactIssue, State: "closed"},
+		},
+	}
+	if phase := derivedPhase(thread, true, 1); phase != model.ThreadOperationalizing {
+		t.Fatalf("phase = %q, want operationalizing", phase)
+	}
+}
+
+func TestMultipleDocumentsDoNotEraseCanonicalFields(t *testing.T) {
+	now := time.Now().UTC()
+	issueURL := "https://github.com/owner/repo/issues/7"
+	documents := []memoryscan.Document{
+		{
+			ID: "spec:0001", FeatureID: "0001", Title: "Canonical",
+			Purpose: "Canonical goal.", Context: "Canonical rationale.",
+			Phase: "implement", IssueURLs: []string{issueURL}, UpdatedAt: now,
+		},
+		{
+			ID: "spec:0002", FeatureID: "0002", Title: "Follow-up",
+			Phase: "delivery", IssueURLs: []string{issueURL}, UpdatedAt: now,
+		},
+	}
+	threads := Build(Input{
+		Repository: config.Repository{Name: "repo", GitHub: "owner/repo"},
+		Documents:  documents,
+		Now:        now,
+	})
+	if len(threads) != 1 ||
+		threads[0].Title != "Canonical" ||
+		threads[0].Goal != "Canonical goal." ||
+		threads[0].Rationale != "Canonical rationale." ||
+		threads[0].Phase != model.ThreadImplementing {
+		t.Fatalf("thread = %#v", threads)
+	}
+}
+
 func contains(values []string, want string) bool {
 	for _, value := range values {
 		if value == want {

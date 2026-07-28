@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -88,10 +89,10 @@ func (s Store) preserveCorrupt(path string, cause error) (State, string, error) 
 func (s Store) Write(state State) error {
 	stateMutex.Lock()
 	defer stateMutex.Unlock()
-	return s.write(state)
+	return s.withFileLock(func() error { return s.write(state) })
 }
 
-func (s Store) write(state State) error {
+func (s Store) write(state State) (returnErr error) {
 	if err := validate(&state); err != nil {
 		return fmt.Errorf("validate thread state: %w", err)
 	}
@@ -114,7 +115,11 @@ func (s Store) write(state State) error {
 		return fmt.Errorf("create temporary thread state: %w", err)
 	}
 	temporary := file.Name()
-	defer os.Remove(temporary)
+	defer func() {
+		if err := os.Remove(temporary); err != nil && !errors.Is(err, os.ErrNotExist) && returnErr == nil {
+			returnErr = fmt.Errorf("remove temporary thread state %s: %w", temporary, err)
+		}
+	}()
 	if err := file.Chmod(0o600); err != nil {
 		file.Close()
 		return err
@@ -139,14 +144,47 @@ func (s Store) write(state State) error {
 func (s Store) Mutate(mutate func(*State) error) error {
 	stateMutex.Lock()
 	defer stateMutex.Unlock()
-	state, _, err := s.load()
+	return s.withFileLock(func() error {
+		state, _, err := s.load()
+		if err != nil {
+			return err
+		}
+		if err := mutate(&state); err != nil {
+			return err
+		}
+		return s.write(state)
+	})
+}
+
+func (s Store) withFileLock(operation func() error) (returnErr error) {
+	path, err := s.path()
 	if err != nil {
 		return err
 	}
-	if err := mutate(&state); err != nil {
-		return err
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return fmt.Errorf("create thread state directory: %w", err)
 	}
-	return s.write(state)
+	lock, err := os.OpenFile(path+".lock", os.O_CREATE|os.O_RDWR, 0o600)
+	if err != nil {
+		return fmt.Errorf("open thread state lock: %w", err)
+	}
+	if err := lock.Chmod(0o600); err != nil {
+		_ = lock.Close()
+		return fmt.Errorf("secure thread state lock: %w", err)
+	}
+	if err := syscall.Flock(int(lock.Fd()), syscall.LOCK_EX); err != nil {
+		_ = lock.Close()
+		return fmt.Errorf("lock thread state: %w", err)
+	}
+	defer func() {
+		if err := syscall.Flock(int(lock.Fd()), syscall.LOCK_UN); err != nil && returnErr == nil {
+			returnErr = fmt.Errorf("unlock thread state: %w", err)
+		}
+		if err := lock.Close(); err != nil && returnErr == nil {
+			returnErr = fmt.Errorf("close thread state lock: %w", err)
+		}
+	}()
+	return operation()
 }
 
 func (s Store) path() (string, error) {

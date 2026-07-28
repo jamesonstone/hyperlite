@@ -16,6 +16,7 @@ var (
 	githubIssueURL = regexp.MustCompile(`https://github\.com/[^/\s]+/[^/\s]+/issues/\d+`)
 	localIssueRef  = regexp.MustCompile("(?i)\\bissue\\s+`?#(\\d+)`?")
 	branchIssueRef = regexp.MustCompile(`(?i)\bGH-(\d+)\b`)
+	featureID      = regexp.MustCompile(`^\d{4}$`)
 )
 
 func Scan(repositoryPath string) Result {
@@ -138,7 +139,7 @@ func progressPhases(root string) map[string]string {
 			continue
 		}
 		id := strings.Trim(strings.TrimSpace(parts[1]), "`")
-		if matched, _ := regexp.MatchString(`^\d{4}$`, id); !matched {
+		if !featureID.MatchString(id) {
 			continue
 		}
 		for _, candidate := range parts[2:] {
@@ -176,7 +177,7 @@ func (d Document) ReadReferencedDocuments(root string) []Document {
 		}
 		excerpt := strings.TrimSpace(string(contents))
 		if len(excerpt) > maxSectionBytes {
-			excerpt = excerpt[:maxSectionBytes]
+			excerpt = boundedString(excerpt, maxSectionBytes)
 		}
 		result = append(result, Document{
 			ID: "doc:" + filepath.ToSlash(relative), Title: filepath.Base(path),

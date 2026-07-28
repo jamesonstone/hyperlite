@@ -1,7 +1,9 @@
 package threadstate
 
 import (
+	"bytes"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -43,6 +45,58 @@ func TestStoreWrites0600AndPreservesCorruptState(t *testing.T) {
 	}
 	if _, err := os.Stat(path + ".corrupt-20260728T120000Z"); err != nil {
 		t.Fatalf("corrupt backup missing: %v", err)
+	}
+}
+
+func TestStoreMutateSerializesAcrossProcesses(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "threads.json")
+	if err := (Store{Path: path}).Write(Empty()); err != nil {
+		t.Fatal(err)
+	}
+	commands := make([]*exec.Cmd, 2)
+	outputs := make([]*bytes.Buffer, 2)
+	for index, id := range []string{"issue:owner/repo#1", "issue:owner/repo#2"} {
+		command := exec.Command(os.Args[0], "-test.run=TestStoreMutateProcessHelper")
+		command.Env = append(os.Environ(),
+			"HYPERLITE_MUTATE_HELPER=1",
+			"HYPERLITE_MUTATE_PATH="+path,
+			"HYPERLITE_MUTATE_ID="+id,
+		)
+		output := &bytes.Buffer{}
+		command.Stdout = output
+		command.Stderr = output
+		if err := command.Start(); err != nil {
+			t.Fatal(err)
+		}
+		commands[index] = command
+		outputs[index] = output
+	}
+	for index, command := range commands {
+		if err := command.Wait(); err != nil {
+			t.Fatalf("helper failed: %v\n%s", err, outputs[index].Bytes())
+		}
+	}
+	state, warning, err := (Store{Path: path}).Load()
+	if err != nil || warning != "" || len(state.Threads) != 2 {
+		t.Fatalf("state=%#v warning=%q err=%v", state, warning, err)
+	}
+}
+
+func TestStoreMutateProcessHelper(t *testing.T) {
+	if os.Getenv("HYPERLITE_MUTATE_HELPER") != "1" {
+		t.Skip("subprocess helper")
+	}
+	path := os.Getenv("HYPERLITE_MUTATE_PATH")
+	id := os.Getenv("HYPERLITE_MUTATE_ID")
+	err := (Store{Path: path}).Mutate(func(state *State) error {
+		time.Sleep(100 * time.Millisecond)
+		state.Threads = append(state.Threads, ThreadRecord{
+			ID: id, Aliases: []string{}, Moments: []model.AttentionMoment{},
+		})
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -121,6 +175,7 @@ func TestReconcileRetainsMissingActiveThreadOnlyWhileRepositorySelected(t *testi
 		}},
 	}
 	ReconcileSelected(&state, []model.Thread{thread}, []string{"owner/repo"}, now)
+	SetInference(&state, thread.ID, "digest", model.InferenceThread{ThreadID: thread.ID}, now)
 
 	values := ReconcileSelected(&state, nil, []string{"owner/repo"}, now.Add(time.Minute))
 	if len(values) != 1 || !values[0].Active ||
@@ -131,7 +186,7 @@ func TestReconcileRetainsMissingActiveThreadOnlyWhileRepositorySelected(t *testi
 	}
 
 	values = ReconcileSelected(&state, nil, []string{"owner/other"}, now.Add(2*time.Minute))
-	if len(values) != 0 {
-		t.Fatalf("unselected repository leaked retained threads: %#v", values)
+	if len(values) != 0 || len(state.Threads) != 0 || len(state.Inferences) != 0 {
+		t.Fatalf("unselected repository leaked retained state: values=%#v state=%#v", values, state)
 	}
 }

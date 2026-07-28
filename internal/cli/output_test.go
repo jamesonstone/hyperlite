@@ -52,6 +52,25 @@ func TestWriteTerminalAppliesColorWhenEnabled(t *testing.T) {
 	}
 }
 
+func TestWriteTerminalKeepsUnseenCompletedThreadsVisible(t *testing.T) {
+	result := model.ThreadScan{Threads: []model.Thread{
+		{ID: "complete", Title: "Completed", Phase: model.ThreadComplete, Active: false, WhyNow: "Done"},
+		{
+			ID: "attention", Title: "Needs reconciliation", Phase: model.ThreadComplete,
+			Active: false, WhyNow: "Deployment remains",
+			Attention: []model.AttentionMoment{{ID: "moment", Seen: false}},
+		},
+	}}
+	var output strings.Builder
+	if err := writeTerminal(&output, result, false, false); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(output.String(), "Completed") ||
+		!strings.Contains(output.String(), "Needs reconciliation · attention") {
+		t.Fatalf("terminal output = %q", output.String())
+	}
+}
+
 func TestWriteTerminalPropagatesWriterError(t *testing.T) {
 	want := errors.New("write failed")
 	if err := writeTerminal(errorWriter{err: want}, model.ThreadScan{}, false, false); !errors.Is(err, want) {

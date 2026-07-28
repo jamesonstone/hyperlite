@@ -4,6 +4,7 @@ import (
 	"errors"
 	"regexp"
 	"strings"
+	"unicode/utf8"
 )
 
 var (
@@ -39,7 +40,7 @@ func markdownSections(contents []byte) (map[string]string, string) {
 		}
 		value := strings.TrimSpace(strings.Join(lines, "\n"))
 		if len(value) > maxSectionBytes {
-			value = value[:maxSectionBytes]
+			value = boundedString(value, maxSectionBytes)
 		}
 		sections[current] = value
 	}
@@ -98,7 +99,7 @@ func candidates(value string, pattern *regexp.Regexp, category string) []Candida
 		line = strings.ReplaceAll(strings.ReplaceAll(line, "[ ]", ""), "[x]", "")
 		line = strings.TrimSpace(line)
 		if len(line) > 300 {
-			line = line[:300]
+			line = boundedString(line, 300)
 		}
 		key := strings.ToLower(line)
 		if _, exists := seen[key]; exists {
@@ -142,4 +143,17 @@ func candidateStatements(value string) []string {
 	}
 	flush()
 	return result
+}
+
+func boundedString(value string, limit int) string {
+	if limit <= 0 {
+		return ""
+	}
+	if len(value) <= limit {
+		return value
+	}
+	for limit > 0 && !utf8.RuneStart(value[limit]) {
+		limit--
+	}
+	return value[:limit]
 }

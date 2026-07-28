@@ -206,6 +206,13 @@ automatic project selection.
 - Terminal PR or issue state is progress evidence, not canonical closure.
   Without a delivered canonical spec, terminal artifacts advance a thread to
   reflection rather than completing it.
+- The app and CLI mutate the same state file from separate processes. Atomic
+  replacement protects file integrity but not a read-modify-write transaction,
+  so all writers share an advisory lock and mutation holds it from load through
+  replacement.
+- A native helper can emit more JSON than an operating-system pipe buffer.
+  Standard output and error must be drained concurrently while the helper runs;
+  reading only after termination can deadlock an otherwise healthy scan.
 
 ## VALIDATION
 
@@ -215,7 +222,12 @@ automatic project selection.
 - Focused tests cover exact correlation, stable ID promotion and aliases,
   lifecycle closure, material-delta classification, cached remote failure,
   atomic state persistence and corrupt-state recovery, cited Ollama contracts,
-  malformed-model fallback, seen revisions, notes, and degraded inference.
+  malformed-model fallback, seen revisions, notes, cross-process mutation
+  serialization, idempotent summaries, bounded exact-anchor hydration, and
+  degraded inference.
+- A repository-wide null-delimited audit confirms every tracked handwritten
+  implementation and test file is at or below 300 lines after responsibility-
+  based Go and Swift splits.
 - A read-only live scan of selected R2 and Event Sink repositories recovered
   separate active goal threads for issues #21 and #26, their substantial open
   pull requests, cited cross-thread hypotheses, referenced infrastructure and

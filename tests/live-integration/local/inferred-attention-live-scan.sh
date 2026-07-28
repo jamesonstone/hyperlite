@@ -7,7 +7,7 @@ if [[ "$#" -ne 2 ]]; then
   exit 2
 fi
 
-for dependency in git gh jq; do
+for dependency in git gh jq uuidgen; do
   if ! command -v "$dependency" >/dev/null 2>&1; then
     printf 'required command is unavailable: %s\n' "$dependency" >&2
     exit 2

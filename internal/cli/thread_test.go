@@ -43,7 +43,7 @@ func TestThreadCommandsRequireExactRevisionAndStdin(t *testing.T) {
 		t.Fatalf("wrong revision error = %v", err)
 	}
 	seen = App{Out: &output}.threadSeenCommand()
-	seen.SetArgs([]string{"issue:owner/repo#7", "--revision", "revision-1"})
+	seen.SetArgs([]string{"issue:owner/repo#7", "--revision", " revision-1 "})
 	if err := seen.Execute(); err != nil {
 		t.Fatal(err)
 	}

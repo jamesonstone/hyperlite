@@ -34,6 +34,9 @@ func finalizeScan(result *model.ThreadScan) {
 	sortDiagnostics(result.Errors)
 	sortDiagnostics(result.Warnings)
 	result.Summary.Threads = len(result.Threads)
+	result.Summary.Attention = 0
+	result.Summary.InFlight = 0
+	result.Summary.Completed = 0
 	for _, thread := range result.Threads {
 		if unseen(thread) {
 			result.Summary.Attention++

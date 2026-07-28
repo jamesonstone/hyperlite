@@ -49,12 +49,7 @@ func applyInference(thread *model.Thread, inference model.InferenceThread) {
 	if inference.Confidence > 0 {
 		thread.Confidence = inference.Confidence
 	}
-	sort.Slice(thread.Dependencies, func(i, j int) bool {
-		if thread.Dependencies[i].Kind != thread.Dependencies[j].Kind {
-			return thread.Dependencies[i].Kind < thread.Dependencies[j].Kind
-		}
-		return thread.Dependencies[i].Target < thread.Dependencies[j].Target
-	})
+	sortRelations(thread.Dependencies)
 }
 
 func resolveRelations(threads []model.Thread) {
@@ -112,13 +107,30 @@ func addEvidenceMentionHypotheses(threads []model.Thread) {
 				Basis: model.BasisHypothesis, Confidence: 0.45, EvidenceIDs: evidenceIDs,
 			})
 		}
-		sort.Slice(source.Dependencies, func(i, j int) bool {
-			if source.Dependencies[i].Kind != source.Dependencies[j].Kind {
-				return source.Dependencies[i].Kind < source.Dependencies[j].Kind
-			}
-			return source.Dependencies[i].Target < source.Dependencies[j].Target
-		})
+		sortRelations(source.Dependencies)
 	}
+}
+
+func sortRelations(values []model.ThreadRelation) {
+	sort.Slice(values, func(i, j int) bool {
+		left, right := values[i], values[j]
+		if left.Kind != right.Kind {
+			return left.Kind < right.Kind
+		}
+		if left.Target != right.Target {
+			return left.Target < right.Target
+		}
+		if left.TargetThreadID != right.TargetThreadID {
+			return left.TargetThreadID < right.TargetThreadID
+		}
+		if left.Basis != right.Basis {
+			return left.Basis < right.Basis
+		}
+		if left.Confidence != right.Confidence {
+			return left.Confidence < right.Confidence
+		}
+		return strings.Join(left.EvidenceIDs, "\x1f") < strings.Join(right.EvidenceIDs, "\x1f")
+	})
 }
 
 func threadTargetScore(thread model.Thread) int {

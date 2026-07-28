@@ -13,7 +13,7 @@ import (
 func finalize(thread *model.Thread, hasSpec bool, issueNumber int, now time.Time) {
 	thread.Aliases = unique(thread.Aliases)
 	thread.Repositories = unique(thread.Repositories)
-	thread.Artifacts = uniqueArtifacts(thread.Artifacts)
+	thread.Artifacts = sortArtifacts(thread.Artifacts)
 	sort.Slice(thread.Evidence, func(i, j int) bool { return thread.Evidence[i].ID < thread.Evidence[j].ID })
 	sort.Slice(thread.Obligations, func(i, j int) bool { return thread.Obligations[i].ID < thread.Obligations[j].ID })
 	sort.Slice(thread.Implications, func(i, j int) bool {
@@ -79,7 +79,7 @@ func derivedPhase(thread model.Thread, hasSpec bool, issueNumber int) model.Thre
 		case model.ArtifactWorktree, model.ArtifactBranch:
 			hasLocal = true
 		case model.ArtifactIssue:
-			openIssue = strings.EqualFold(artifact.State, "open")
+			openIssue = openIssue || strings.EqualFold(artifact.State, "open")
 		}
 	}
 	if hasOpenPR {

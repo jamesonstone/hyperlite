@@ -82,7 +82,7 @@ struct HyperliteCommandPalette: View {
 
     private func entryRow(_ entry: HyperlitePaletteEntry, selected: Bool) -> some View {
         Button {
-            if let index = entries.firstIndex(of: entry) { selection = index }
+            if let index = entries.firstIndex(where: { $0.id == entry.id }) { selection = index }
             activate(entry)
         } label: {
             HStack(spacing: 10) {
@@ -115,7 +115,7 @@ struct HyperliteCommandPalette: View {
 
     private func handleKey(_ event: NSEvent) -> Bool {
         let disallowedModifiers: NSEvent.ModifierFlags = [.command, .control, .option]
-        if !event.modifierFlags.intersection(disallowedModifiers).isEmpty { return false }
+        if !event.modifierFlags.isDisjoint(with: disallowedModifiers) { return false }
         switch event.keyCode {
         case 53: onDismiss()
         case 125: moveSelection(by: 1)

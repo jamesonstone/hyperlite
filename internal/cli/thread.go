@@ -28,16 +28,17 @@ func (a App) threadSeenCommand() *cobra.Command {
 		Short: "Mark attention through an exact thread revision as seen",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
-			if strings.TrimSpace(revision) == "" {
+			normalizedRevision := strings.TrimSpace(revision)
+			if normalizedRevision == "" {
 				return usageError{fmt.Errorf("--revision is required")}
 			}
 			err := (threadstate.Store{}).Mutate(func(state *threadstate.State) error {
-				return threadstate.MarkSeen(state, args[0], revision)
+				return threadstate.MarkSeen(state, args[0], normalizedRevision)
 			})
 			if err != nil {
 				return err
 			}
-			_, err = fmt.Fprintf(a.Out, "marked thread %s seen through %s\n", args[0], revision)
+			_, err = fmt.Fprintf(a.Out, "marked thread %s seen through %s\n", args[0], normalizedRevision)
 			return err
 		},
 	}

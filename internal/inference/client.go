@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/jamesonstone/hyperlite/internal/model"
 )
@@ -71,13 +72,16 @@ func (c Client) Enrich(ctx context.Context, modelName string, threads []model.Th
 	if err != nil {
 		return nil, fmt.Errorf("call local Ollama: %w", err)
 	}
-	defer response.Body.Close()
 	contents, err := io.ReadAll(io.LimitReader(response.Body, 2*1024*1024))
+	closeErr := response.Body.Close()
 	if err != nil {
 		return nil, fmt.Errorf("read Ollama response: %w", err)
 	}
+	if closeErr != nil {
+		return nil, fmt.Errorf("close Ollama response: %w", closeErr)
+	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return nil, fmt.Errorf("Ollama returned %s: %s", response.Status, strings.TrimSpace(string(contents)))
+		return nil, fmt.Errorf("ollama returned %s: %s", response.Status, strings.TrimSpace(string(contents)))
 	}
 	var envelope ollamaResponse
 	if err := json.Unmarshal(contents, &envelope); err != nil {
@@ -105,7 +109,7 @@ func buildPrompt(threads []model.Thread) (string, error) {
 				break
 			}
 			if len(evidence.Excerpt) > remaining {
-				evidence.Excerpt = evidence.Excerpt[:remaining]
+				evidence.Excerpt = truncateUTF8Bytes(evidence.Excerpt, remaining)
 			}
 			remaining -= len(evidence.Excerpt)
 			value.Evidence = append(value.Evidence, evidence)
@@ -134,6 +138,19 @@ security, production safety, migration, or another durable boundary; routine
 code repair is not significant. Do not infer completion from a PR, branch, CI,
 or agent lifecycle. Use empty values rather than inventing evidence.`
 	return instructions + "\n\nEvidence:\n" + string(evidenceJSON), nil
+}
+
+func truncateUTF8Bytes(value string, limit int) string {
+	if limit <= 0 {
+		return ""
+	}
+	if len(value) <= limit {
+		return value
+	}
+	for limit > 0 && !utf8.RuneStart(value[limit]) {
+		limit--
+	}
+	return value[:limit]
 }
 
 func (c Client) endpoint() string {

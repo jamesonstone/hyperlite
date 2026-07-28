@@ -124,7 +124,7 @@ type Issue struct {
 	Labels        []string  `json:"labels"`
 	Assignees     []string  `json:"assignees"`
 	UpdatedAt     time.Time `json:"updated_at"`
-	ClosedAt      time.Time `json:"closed_at,omitempty"`
+	ClosedAt      time.Time `json:"closed_at,omitzero"`
 }
 
 type Progress struct {
@@ -167,8 +167,8 @@ type PullRequest struct {
 	State          string       `json:"state"`
 	IsDraft        bool         `json:"is_draft"`
 	UpdatedAt      time.Time    `json:"updated_at"`
-	MergedAt       time.Time    `json:"merged_at,omitempty"`
-	ClosedAt       time.Time    `json:"closed_at,omitempty"`
+	MergedAt       time.Time    `json:"merged_at,omitzero"`
+	ClosedAt       time.Time    `json:"closed_at,omitzero"`
 	ReviewDecision string       `json:"review_decision,omitempty"`
 	MergeState     string       `json:"merge_state_status,omitempty"`
 	Mergeable      string       `json:"mergeable,omitempty"`

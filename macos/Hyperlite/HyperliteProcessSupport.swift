@@ -1,6 +1,30 @@
 import Foundation
 
-final class HyperliteRunCompletion {
+final class HyperliteProcessOutput: @unchecked Sendable {
+    private let lock = NSLock()
+    private var output = Data()
+    private var errors = Data()
+
+    func setOutput(_ data: Data) {
+        lock.lock()
+        output = data
+        lock.unlock()
+    }
+
+    func setErrors(_ data: Data) {
+        lock.lock()
+        errors = data
+        lock.unlock()
+    }
+
+    func values() -> (output: Data, errors: Data) {
+        lock.lock()
+        defer { lock.unlock() }
+        return (output, errors)
+    }
+}
+
+final class HyperliteRunCompletion: @unchecked Sendable {
     private let lock = NSLock()
     private var continuation: CheckedContinuation<Data, Error>?
 
