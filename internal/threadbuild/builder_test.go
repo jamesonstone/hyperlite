@@ -39,7 +39,9 @@ func TestExactCorrelationAndMergedOperationalClosure(t *testing.T) {
 		t.Fatalf("threads = %#v", threads)
 	}
 	thread := threads[0]
-	if thread.ID != "issue:owner/r2#10" || thread.Phase != model.ThreadOperationalizing {
+	if thread.ID != "issue:owner/r2#10" ||
+		thread.Phase != model.ThreadOperationalizing ||
+		!thread.Active {
 		t.Fatalf("thread = %#v", thread)
 	}
 	if len(thread.Obligations) != 1 || thread.Obligations[0].Satisfied {

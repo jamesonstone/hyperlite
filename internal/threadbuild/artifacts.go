@@ -59,10 +59,12 @@ func addPullRequest(repo config.Repository, pullRequest model.PullRequest, stale
 		builder.headOIDs = append(builder.headOIDs, pullRequest.HeadRefOID)
 	}
 	addAliases(builder, aliases, builder.thread.ID, id, pullRequest.URL, branchAlias(repo.GitHub, pullRequest.HeadRefName))
-	if builder.thread.Title == "" {
+	if builder.thread.Title == "" ||
+		builder.thread.Title == pullRequest.HeadRefName {
 		builder.thread.Title = pullRequest.Title
 	}
-	if builder.thread.Goal == "" {
+	if builder.thread.Goal == "" ||
+		builder.thread.Goal == "Continue material work on "+pullRequest.HeadRefName {
 		builder.thread.Goal = firstParagraph(pullRequest.Body)
 	}
 	freshness := freshness(stale)
@@ -145,6 +147,7 @@ func addLocal(repo config.Repository, local gitscan.LocalLane, builders map[stri
 	if builder.thread.Goal == "" {
 		builder.thread.Goal = "Continue material work on " + branch
 	}
+	builder.locals = append(builder.locals, local)
 	evidenceID := fmt.Sprintf("git:%s@%s", repo.GitHub, branch)
 	summary := fmt.Sprintf(
 		"%d staged, %d unstaged, %d untracked, %d conflicted; %d commit(s) ahead of base",

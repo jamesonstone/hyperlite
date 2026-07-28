@@ -23,6 +23,7 @@ type Input struct {
 	Remote      model.RemoteEvidence
 	Documents   []memoryscan.Document
 	RemoteStale bool
+	StaleAfter  time.Duration
 	Now         time.Time
 }
 
@@ -31,11 +32,15 @@ type accumulator struct {
 	issueNumber int
 	hasSpec     bool
 	headOIDs    []string
+	locals      []gitscan.LocalLane
 }
 
 func Build(input Input) []model.Thread {
 	if input.Now.IsZero() {
 		input.Now = time.Now().UTC()
+	}
+	if input.StaleAfter <= 0 {
+		input.StaleAfter = 24 * time.Hour
 	}
 	builders := make(map[string]*accumulator)
 	aliases := make(map[string]string)
@@ -45,15 +50,18 @@ func Build(input Input) []model.Thread {
 	for _, issue := range input.Remote.Issues {
 		addIssue(input.Repository, issue, input.RemoteStale, builders, aliases, input.Now)
 	}
-	for _, pullRequest := range input.Remote.PullRequests {
-		addPullRequest(input.Repository, pullRequest, input.RemoteStale, builders, aliases, input.Now)
-	}
 	for _, local := range input.Locals {
 		addLocal(input.Repository, local, builders, aliases, input.Now)
 	}
+	for _, pullRequest := range input.Remote.PullRequests {
+		addPullRequest(input.Repository, pullRequest, input.RemoteStale, builders, aliases, input.Now)
+	}
 	threads := make([]model.Thread, 0, len(builders))
 	for _, builder := range builders {
-		finalize(&builder.thread, builder.hasSpec, builder.issueNumber, input.Now)
+		finalize(
+			&builder.thread, builder.hasSpec, builder.issueNumber,
+			builder.locals, builder.headOIDs, input.StaleAfter, input.Now,
+		)
 		threads = append(threads, builder.thread)
 	}
 	sort.Slice(threads, func(i, j int) bool {

@@ -68,6 +68,12 @@ func ReconcileSelected(
 		if len(record.Moments) > 20 {
 			record.Moments = append([]model.AttentionMoment{}, record.Moments[len(record.Moments)-20:]...)
 		}
+		if !thread.Active {
+			for index := range record.Moments {
+				record.Moments[index].Seen = true
+			}
+			record.SeenRevision = record.Revision
+		}
 		thread.Note = record.Note
 		thread.Attention = append([]model.AttentionMoment{}, record.Moments...)
 		thread.LatestMaterialRevision = record.Revision
@@ -155,14 +161,16 @@ func shouldRetainSnapshot(snapshot model.Thread, selected map[string]struct{}, n
 	if !inScope {
 		return false
 	}
-	return snapshot.Active || recentSnapshot(snapshot.UpdatedAt, now)
+	return snapshot.Active ||
+		(snapshot.Phase == model.ThreadComplete && recentSnapshot(snapshot.UpdatedAt, now))
 }
 
 func shouldRetainCurrentSnapshot(snapshot model.Thread, now time.Time) bool {
 	if snapshot.ID == "" {
 		return false
 	}
-	return snapshot.Active || recentSnapshot(snapshot.UpdatedAt, now)
+	return snapshot.Active ||
+		(snapshot.Phase == model.ThreadComplete && recentSnapshot(snapshot.UpdatedAt, now))
 }
 
 func recentSnapshot(updatedAt, now time.Time) bool {

@@ -259,7 +259,8 @@ func (s Scanner) scanRepository(
 	}
 	threads := threadbuild.Build(threadbuild.Input{
 		Repository: repository, Locals: local.Lanes, Remote: remote,
-		Documents: documents.Documents, RemoteStale: remoteStale, Now: now,
+		Documents: documents.Documents, RemoteStale: remoteStale,
+		StaleAfter: cfg.Settings.StaleAfter, Now: now,
 	})
 	return repositoryResult{
 		index: index, threads: threads, remote: cache,

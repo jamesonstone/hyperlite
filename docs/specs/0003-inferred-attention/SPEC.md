@@ -88,8 +88,9 @@ completion.
 - R14: Opening a thread marks moments through the displayed revision as seen
   without hiding the thread. Notes annotate existing inferred threads and never
   create, complete, or authoritatively change one.
-- R15: Active threads are never hidden by an age filter. The existing recent
-  work window applies only to completed threads.
+- R15: Threads backed by positive unresolved coordination evidence are never
+  hidden by an age filter. An incomplete projection without current liveness is
+  dormant, not in flight; it does not enter the completed recent-work window.
 - R16: Preserve the root JSON scan entrypoint and add bounded CLI operations for
   inference, seen revisions, and stdin-supplied notes.
 - R17: Interpret lifecycle evidence according to its source workflow. A legacy
@@ -97,6 +98,13 @@ completion.
   living spec at `reflect` remains active until its later delivery or completion
   phase. Correcting an already-observed lifecycle classification must not replay
   a synthetic attention moment.
+- R18: Derive in-flight status from positive evidence of unresolved
+  coordination, not from the inability to prove canonical completion. Open
+  issues or pull requests, material unpublished local changes, current
+  repository-memory work, and outstanding post-implementation obligations can
+  establish liveness. A terminal-only pull request, a clean published worktree,
+  or a stale isolated shaping document cannot. When a projection becomes
+  inactive, retire its unread moments without requiring user acknowledgement.
 
 Non-goals: user-authored task tracking, manual lifecycle management, hosted
 model calls, continuous polling, notifications, agent transcript ingestion,
@@ -128,6 +136,9 @@ automatic project selection.
 8. Keep workflow-version semantics through repository-memory parsing, derive
    legacy reflected features as complete, and reconcile terminal projections
    before applying recent-work retention.
+9. Separate liveness from completion, correlate retained terminal pull requests
+   with exact local lanes regardless of age, and suppress dormant incomplete
+   projections while preserving positively unresolved goals.
 
 ## DECISIONS
 
@@ -135,8 +146,9 @@ automatic project selection.
 - Exact evidence owns artifact membership. Local model output is bounded
   synthesis and must remain explainable through evidence identifiers.
 - Artifact completion must not be mistaken for goal completion.
-- Active-thread retention follows unresolved coordination state, not artifact
-  age.
+- Active-thread retention follows positive unresolved coordination evidence,
+  not artifact age. Lack of canonical closure can prevent completion without
+  making a dormant projection currently in flight.
 - A phase label is not globally authoritative without its workflow version.
   Legacy staged `reflect` means implementation and reflection are complete,
   while V2/V3 `reflect` is an active living-spec phase.
@@ -171,6 +183,10 @@ automatic project selection.
 - AC11: Historical legacy reflected specs do not count as in-flight threads,
   versioned reflected specs remain active, and correcting this classification
   creates no unread attention.
+- AC12: Merged-only pull requests, clean published worktrees, and stale isolated
+  shaping specs create neither in-flight rows nor unread attention. They do not
+  become canonically complete unless closure evidence independently supports
+  that conclusion.
 
 ## VALIDATION MAP
 
@@ -182,6 +198,8 @@ automatic project selection.
 - AC10: `make fmt-check vet test test-race build macos-test macos-build`.
 - AC11: repository-memory phase contract tests, lifecycle derivation tests, and
   state reconciliation coverage for an observed active-to-terminal correction.
+- AC12: positive-liveness tests for merged pull requests, exact old-PR/local-lane
+  correlation, stale spec-only projections, and inactive moment retirement.
 
 ## DISCOVERIES
 
@@ -239,6 +257,12 @@ automatic project selection.
   coordination. Terminal projections also need to reach state reconciliation
   before recent-work filtering, or their prior active snapshots are retained as
   false missing-evidence uncertainty.
+- After the legacy correction, the remaining 15 projections were also stale:
+  13 had only merged pull requests (ten accompanied by clean worktrees), one
+  was an isolated shaping spec older than the configured staleness window, and
+  one was a clean published worktree whose merged pull request had aged out of
+  the terminal-history window. The common defect was treating missing canonical
+  completion as affirmative evidence of present liveness.
 
 ## VALIDATION
 
@@ -256,10 +280,16 @@ automatic project selection.
   remain active. State reconciliation coverage proves that correcting an
   observed legacy thread does not create unread attention or retain a false
   missing-evidence snapshot.
-- A local-only scan against a copied live state reduced the active projection
-  from 45 to 15 by removing 31 historical legacy reflected specs. The remaining
-  projection contains 13 recent merged threads awaiting canonical closure, one
-  shaping spec, and one implementation worktree.
+- A local-only scan against copied live state first reduced the active
+  projection from 45 to 15 by removing 31 historical legacy reflected specs.
+  Positive-liveness derivation then removed the remaining terminal-only and
+  dormant projections, producing zero in-flight threads and zero unread
+  attention while retaining six independently completed threads as recent work.
+- Focused liveness tests cover terminal pull requests without false completion,
+  exact correlation of old merged pull requests with clean local lanes,
+  configured staleness for isolated shaping specs, operational obligations that
+  remain active, and retirement of unread moments when a projection becomes
+  dormant.
 - A repository-wide null-delimited audit confirms every tracked handwritten
   implementation and test file is at or below 300 lines after responsibility-
   based Go and Swift splits.
@@ -274,6 +304,10 @@ automatic project selection.
   seconds, within the two-second primary-content target.
 - The packaged CLI and application are universal `arm64`/`x86_64` binaries and
   the application bundle passes strict code-signature verification.
+- `kit check 0003-inferred-attention` passes. `kit check --project` remains
+  blocked by six pre-existing V3 support-document drift findings outside this
+  change; no managed instruction or worktree guidance was broadened into this
+  lifecycle correction.
 
 ## OUTCOME
 
@@ -282,9 +316,12 @@ goal threads. It preserves active coordination state regardless of age,
 distinguishes material attention from ordinary progress, retains stale remote
 evidence safely, and can enrich deterministic results through the configured
 local Ollama model without granting inference authority over membership or
-completion. The native experience renders cached content first, groups unseen
-Attention separately from In Flight work, and provides evidence-backed detail,
-seen acknowledgement, and optional non-authoritative notes.
+completion. Active status now requires affirmative unresolved evidence rather
+than the mere absence of canonical closure, so terminal-only and dormant
+projections cannot occupy Attention or In Flight. The native experience renders
+cached content first, groups unseen Attention separately from In Flight work,
+and provides evidence-backed detail, seen acknowledgement, and optional
+non-authoritative notes.
 
 ## REPOSITORY MEMORY
 

@@ -7,10 +7,19 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jamesonstone/hyperlite/internal/gitscan"
 	"github.com/jamesonstone/hyperlite/internal/model"
 )
 
-func finalize(thread *model.Thread, hasSpec bool, issueNumber int, now time.Time) {
+func finalize(
+	thread *model.Thread,
+	hasSpec bool,
+	issueNumber int,
+	locals []gitscan.LocalLane,
+	pullRequestHeadOIDs []string,
+	staleAfter time.Duration,
+	now time.Time,
+) {
 	thread.Aliases = unique(thread.Aliases)
 	thread.Repositories = unique(thread.Repositories)
 	thread.Artifacts = sortArtifacts(thread.Artifacts)
@@ -38,7 +47,9 @@ func finalize(thread *model.Thread, hasSpec bool, issueNumber int, now time.Time
 		thread.Rationale = "No durable rationale was found in the available evidence."
 	}
 	thread.Phase = derivedPhase(*thread, hasSpec, issueNumber)
-	thread.Active = thread.Phase != model.ThreadComplete
+	thread.Active = activeFromEvidence(
+		*thread, hasSpec, locals, pullRequestHeadOIDs, staleAfter, now,
+	)
 	if !thread.Active {
 		thread.UpdatedAt = latestTerminalArtifact(*thread)
 	}

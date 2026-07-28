@@ -218,3 +218,31 @@ func TestReconcileTerminalCorrectionDoesNotCreateAttentionOrRetainOldSnapshot(t 
 		t.Fatalf("old terminal correction was retained: values=%#v state=%#v", values, state)
 	}
 }
+
+func TestReconcileDormantProjectionRetiresUnreadAttention(t *testing.T) {
+	now := time.Date(2026, 7, 28, 12, 0, 0, 0, time.UTC)
+	state := Empty()
+	thread := model.Thread{
+		ID: "issue:owner/repo#1", Aliases: []string{"issue:owner/repo#1"},
+		Title: "Delivered", Goal: "Deliver feature", Rationale: "Needed",
+		Phase: model.ThreadReflecting, Active: true,
+		Repositories: []string{"owner/repo"}, UpdatedAt: now,
+		Implications: []model.ThreadImplication{{
+			Summary: "Choose the durable boundary", Category: "review_decision",
+			Basis: model.BasisExtracted, EvidenceIDs: []string{"review:1"},
+		}},
+		Evidence: []model.EvidenceRef{{ID: "review:1", Freshness: "current"}},
+	}
+	values := ReconcileSelected(&state, []model.Thread{thread}, []string{"owner/repo"}, now)
+	if len(values) != 1 || len(values[0].Attention) != 1 {
+		t.Fatalf("active values = %#v", values)
+	}
+
+	thread.Active = false
+	values = ReconcileSelected(
+		&state, []model.Thread{thread}, []string{"owner/repo"}, now.Add(time.Minute),
+	)
+	if len(values) != 0 || len(state.Threads) != 0 {
+		t.Fatalf("dormant attention remained visible: values=%#v state=%#v", values, state)
+	}
+}

@@ -14,6 +14,9 @@
 - Artifact completion is not goal completion. A thread may complete only when
   canonical evidence establishes delivery or reflection, anchored issues and
   pull requests are resolved, and no explicit or extracted obligation remains.
+- In-flight status requires positive evidence of unresolved coordination.
+  Missing canonical closure may prevent completion, but terminal-only artifacts
+  and dormant intent do not remain active or retain unread attention.
 - Exact evidence owns thread membership. Semantic inference may relate
   separate threads, but it may not merge them, establish authoritative
   lifecycle state, suppress a thread, or close a goal.
