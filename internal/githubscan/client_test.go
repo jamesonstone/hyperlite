@@ -175,6 +175,37 @@ func TestCollectAllKeepsIssueEvidenceWhenPullRequestsFail(t *testing.T) {
 	}
 }
 
+func TestCollectRepositoryHydratesExactUnassignedIssueAnchor(t *testing.T) {
+	runner := &fixtureRunner{responses: map[string][]byte{
+		"gh pr list":    []byte(`[]`),
+		"gh issue list": []byte(`[]`),
+		"gh issue view": []byte(`{
+			"number":7,
+			"title":"Anchored goal",
+			"body":"Canonical issue",
+			"url":"https://github.com/owner/repo/issues/7",
+			"state":"OPEN",
+			"updatedAt":"2026-07-28T12:00:00Z",
+			"labels":[],
+			"assignees":[]
+		}`),
+	}}
+	evidence := (Client{Runner: runner}).CollectRepository(
+		context.Background(),
+		config.Repository{Name: "repo", GitHub: "owner/repo"},
+		"mine",
+		"@me",
+		[]int{7},
+	)
+	if len(evidence.Errors) != 0 || len(evidence.Issues) != 1 ||
+		evidence.Issues[0].Number != 7 || evidence.Issues[0].State != "OPEN" {
+		t.Fatalf("evidence = %#v", evidence)
+	}
+	if runner.count("gh issue view") != 1 {
+		t.Fatalf("calls = %v", runner.calls)
+	}
+}
+
 func TestCollectMineWarnsWhenIssueSearchHitsCap(t *testing.T) {
 	issues := make([]rawIssue, searchLimit)
 	for index := range issues {

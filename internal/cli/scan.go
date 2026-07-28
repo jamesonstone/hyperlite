@@ -76,7 +76,7 @@ func (a App) runScan(ctx context.Context, configPath string, options scanOptions
 
 func (a App) writeScan(ctx context.Context, cfg config.Config, options scanOptions, color bool) error {
 	var (
-		result model.WorkScan
+		result model.ThreadScan
 		err    error
 	)
 	if options.localOnly {

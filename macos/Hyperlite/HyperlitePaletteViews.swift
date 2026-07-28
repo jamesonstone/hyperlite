@@ -3,7 +3,7 @@ import SwiftUI
 
 struct HyperliteCommandPalette: View {
     let mode: HyperlitePaletteMode
-    let items: [HyperliteWorkItem]
+    let threads: [HyperliteThread]
     let errors: [HyperliteDiagnostic]
     let warnings: [HyperliteDiagnostic]
     let onAction: (HyperlitePaletteAction) -> Void
@@ -15,23 +15,16 @@ struct HyperliteCommandPalette: View {
     private var entries: [HyperlitePaletteEntry] {
         switch mode {
         case .commands:
-            HyperliteInteractionModel.commandEntries(
-                items: items,
-                errors: errors,
-                warnings: warnings
-            )
+            HyperliteInteractionModel.commandEntries(threads: threads, errors: errors, warnings: warnings)
         case .projects:
-            HyperliteInteractionModel.projectEntries(
-                items: items,
-                expandedProjects: expandedProjects
-            )
+            HyperliteInteractionModel.projectEntries(threads: threads, expandedProjects: expandedProjects)
         }
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Label(mode == .commands ? "Commands" : "Projects",
+                Label(mode == .commands ? "Commands and Threads" : "Projects and Threads",
                       systemImage: mode == .commands ? "command" : "folder")
                     .font(.headline)
                 Spacer()
@@ -89,9 +82,7 @@ struct HyperliteCommandPalette: View {
 
     private func entryRow(_ entry: HyperlitePaletteEntry, selected: Bool) -> some View {
         Button {
-            if let index = entries.firstIndex(of: entry) {
-                selection = index
-            }
+            if let index = entries.firstIndex(of: entry) { selection = index }
             activate(entry)
         } label: {
             HStack(spacing: 10) {
@@ -124,20 +115,13 @@ struct HyperliteCommandPalette: View {
 
     private func handleKey(_ event: NSEvent) -> Bool {
         let disallowedModifiers: NSEvent.ModifierFlags = [.command, .control, .option]
-        if !event.modifierFlags.intersection(disallowedModifiers).isEmpty {
-            return false
-        }
+        if !event.modifierFlags.intersection(disallowedModifiers).isEmpty { return false }
         switch event.keyCode {
-        case 53:
-            onDismiss()
-        case 125:
-            moveSelection(by: 1)
-        case 126:
-            moveSelection(by: -1)
-        case 49:
-            activateSpace()
-        case 36, 76:
-            activateSelectedEntry()
+        case 53: onDismiss()
+        case 125: moveSelection(by: 1)
+        case 126: moveSelection(by: -1)
+        case 49: activateSpace()
+        case 36, 76: activateSelectedEntry()
         default:
             switch event.charactersIgnoringModifiers?.lowercased() {
             case "j": moveSelection(by: 1)
@@ -149,18 +133,13 @@ struct HyperliteCommandPalette: View {
     }
 
     private func moveSelection(by delta: Int) {
-        selection = HyperliteInteractionModel.movedSelection(
-            selection,
-            by: delta,
-            count: entries.count
-        )
+        selection = HyperliteInteractionModel.movedSelection(selection, by: delta, count: entries.count)
     }
 
     private func activateSpace() {
         guard entries.indices.contains(selection),
-              case let .project(repositoryPath) = entries[selection].kind
-        else { return }
-        toggleProject(repositoryPath)
+              case let .project(project) = entries[selection].kind else { return }
+        toggleProject(project)
     }
 
     private func activateSelectedEntry() {
@@ -170,18 +149,16 @@ struct HyperliteCommandPalette: View {
 
     private func activate(_ entry: HyperlitePaletteEntry) {
         switch entry.kind {
-        case let .project(repositoryPath):
-            toggleProject(repositoryPath)
-        case let .action(action):
-            onAction(action)
+        case let .project(project): toggleProject(project)
+        case let .action(action): onAction(action)
         }
     }
 
-    private func toggleProject(_ repositoryPath: String) {
-        if expandedProjects.contains(repositoryPath) {
-            expandedProjects.remove(repositoryPath)
+    private func toggleProject(_ project: String) {
+        if expandedProjects.contains(project) {
+            expandedProjects.remove(project)
         } else {
-            expandedProjects.insert(repositoryPath)
+            expandedProjects.insert(project)
         }
     }
 

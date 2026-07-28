@@ -45,3 +45,6 @@ go.work.sum
 .kit/temp/
 .kit/*.tmp
 .kit/*.lock
+
+# Immutable local validation evidence
+tmp/

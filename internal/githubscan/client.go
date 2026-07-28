@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -15,8 +16,9 @@ import (
 )
 
 const (
-	githubTimeout = 20 * time.Second
-	searchLimit   = 1000
+	githubTimeout    = 20 * time.Second
+	searchLimit      = 1000
+	anchorIssueLimit = 50
 )
 
 type Client struct {
@@ -48,6 +50,18 @@ func (c Client) ListOpen(ctx context.Context, repository, author string) ([]mode
 		return nil, err
 	}
 	return parsePullRequests(output)
+}
+
+// CollectRepository returns complete selected-project evidence. Closed and
+// merged artifacts are included so a disappearing open item cannot be mistaken
+// for completed coordination work.
+func (c Client) CollectRepository(
+	ctx context.Context,
+	repository config.Repository,
+	scope, author string,
+	anchorIssueNumbers []int,
+) model.RemoteEvidence {
+	return c.collectRepository(ctx, repository, scope, author, anchorIssueNumbers)
 }
 
 func (c Client) collectMine(ctx context.Context, configured map[string]config.Repository, author string, maxParallel int, collection *model.RemoteCollection) {
@@ -165,7 +179,7 @@ func (c Client) collectAll(ctx context.Context, repositories []config.Repository
 			defer waitGroup.Done()
 			semaphore <- struct{}{}
 			defer func() { <-semaphore }()
-			evidence := c.collectRepository(ctx, repository, "all", "")
+			evidence := c.collectRepository(ctx, repository, "all", "", nil)
 			mutex.Lock()
 			collection.Repositories[repository.GitHub] = evidence
 			mutex.Unlock()
@@ -174,9 +188,14 @@ func (c Client) collectAll(ctx context.Context, repositories []config.Repository
 	waitGroup.Wait()
 }
 
-func (c Client) collectRepository(ctx context.Context, repository config.Repository, scope, author string) model.RemoteEvidence {
+func (c Client) collectRepository(
+	ctx context.Context,
+	repository config.Repository,
+	scope, author string,
+	anchorIssueNumbers []int,
+) model.RemoteEvidence {
 	evidence := emptyEvidence()
-	prArguments := []string{"pr", "list", "--repo", repository.GitHub, "--state", "open", "--limit", strconv.Itoa(searchLimit), "--json", pullRequestFields}
+	prArguments := []string{"pr", "list", "--repo", repository.GitHub, "--state", "all", "--limit", strconv.Itoa(searchLimit), "--json", pullRequestFields}
 	if scope != "all" {
 		prArguments = append(prArguments, "--author", author)
 	}
@@ -191,6 +210,10 @@ func (c Client) collectRepository(ctx context.Context, repository config.Reposit
 			evidence.Warnings = append(evidence.Warnings, model.ScanError{Repository: repository.Name, Stage: "github-prs", Message: "result limit reached; pull requests may be truncated"})
 		}
 		for index := range evidence.PullRequests {
+			evidence.Issues = mergeIssues(evidence.Issues, evidence.PullRequests[index].ClosingIssues)
+			if !strings.EqualFold(evidence.PullRequests[index].State, "OPEN") {
+				continue
+			}
 			threads, count, truncated, threadErr := c.reviewThreadDetails(ctx, repository.GitHub, evidence.PullRequests[index].Number)
 			if threadErr != nil {
 				evidence.PullRequests[index].ReviewDecision = "UNKNOWN"
@@ -205,7 +228,7 @@ func (c Client) collectRepository(ctx context.Context, repository config.Reposit
 			}
 		}
 	}
-	issueArguments := []string{"issue", "list", "--repo", repository.GitHub, "--state", "open", "--limit", strconv.Itoa(searchLimit), "--json", "number,title,body,url,updatedAt,labels,assignees"}
+	issueArguments := []string{"issue", "list", "--repo", repository.GitHub, "--state", "all", "--limit", strconv.Itoa(searchLimit), "--json", "number,title,body,url,state,updatedAt,closedAt,labels,assignees"}
 	if scope != "all" {
 		issueArguments = append(issueArguments, "--assignee", author)
 	}
@@ -215,12 +238,68 @@ func (c Client) collectRepository(ctx context.Context, repository config.Reposit
 	} else if issues, parseErr := parseIssues(issueOutput); parseErr != nil {
 		evidence.Errors = append(evidence.Errors, model.ScanError{Repository: repository.Name, Stage: "github-issues", Message: parseErr.Error()})
 	} else {
-		evidence.Issues = issues
+		evidence.Issues = mergeIssues(evidence.Issues, issues)
 		if len(issues) == searchLimit {
 			evidence.Warnings = append(evidence.Warnings, model.ScanError{Repository: repository.Name, Stage: "github-issues", Message: "result limit reached; issues may be truncated"})
 		}
 	}
+	if len(anchorIssueNumbers) > anchorIssueLimit {
+		evidence.Warnings = append(evidence.Warnings, model.ScanError{
+			Repository: repository.Name, Stage: "github-issues",
+			Message: fmt.Sprintf("exact issue hydration limited to %d anchors", anchorIssueLimit),
+		})
+		anchorIssueNumbers = anchorIssueNumbers[:anchorIssueLimit]
+	}
+	knownIssues := make(map[int]struct{}, len(evidence.Issues))
+	for _, issue := range evidence.Issues {
+		knownIssues[issue.Number] = struct{}{}
+	}
+	for _, number := range anchorIssueNumbers {
+		if _, exists := knownIssues[number]; exists {
+			continue
+		}
+		output, viewErr := c.run(
+			ctx, "gh", "issue", "view", strconv.Itoa(number), "--repo", repository.GitHub,
+			"--json", "number,title,body,url,state,updatedAt,closedAt,labels,assignees",
+		)
+		if viewErr != nil {
+			evidence.Errors = append(evidence.Errors, model.ScanError{
+				Repository: repository.Name, Stage: "github-issue",
+				Message: fmt.Sprintf("issue #%d: %v", number, viewErr),
+			})
+			continue
+		}
+		var raw rawIssue
+		if decodeErr := json.Unmarshal(output, &raw); decodeErr != nil {
+			evidence.Errors = append(evidence.Errors, model.ScanError{
+				Repository: repository.Name, Stage: "github-issue",
+				Message: fmt.Sprintf("issue #%d: decode: %v", number, decodeErr),
+			})
+			continue
+		}
+		evidence.Issues = mergeIssues(evidence.Issues, []model.Issue{normalizeIssue(raw)})
+		knownIssues[number] = struct{}{}
+	}
+	sort.Slice(evidence.Issues, func(i, j int) bool {
+		return evidence.Issues[i].Number < evidence.Issues[j].Number
+	})
 	return evidence
+}
+
+func mergeIssues(existing, additions []model.Issue) []model.Issue {
+	byNumber := make(map[int]model.Issue, len(existing)+len(additions))
+	for _, issue := range existing {
+		byNumber[issue.Number] = issue
+	}
+	for _, issue := range additions {
+		byNumber[issue.Number] = issue
+	}
+	result := make([]model.Issue, 0, len(byNumber))
+	for _, issue := range byNumber {
+		result = append(result, issue)
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].Number < result[j].Number })
+	return result
 }
 
 func (c Client) pullRequestDetail(ctx context.Context, repository string, number int) (*model.PullRequest, []model.ScanError, []model.ScanError) {

@@ -15,20 +15,24 @@ const (
 	terminalYellow = "\x1b[33m"
 )
 
-func writeTerminal(out io.Writer, result model.WorkScan, includeIdle, color bool) error {
+func writeTerminal(out io.Writer, result model.ThreadScan, includeCompleted, color bool) error {
 	title := terminalText("Hyperlite", terminalCyan, color)
-	if _, err := fmt.Fprintf(out, "%s · %d project%s · %d active item%s\n", title, result.Summary.Projects, pluralSuffix(result.Summary.Projects), result.Summary.WorkItems, pluralSuffix(result.Summary.WorkItems)); err != nil {
+	if _, err := fmt.Fprintf(
+		out, "%s · %d project%s · %d thread%s · %d attention\n",
+		title, result.Summary.Projects, pluralSuffix(result.Summary.Projects),
+		result.Summary.Threads, pluralSuffix(result.Summary.Threads), result.Summary.Attention,
+	); err != nil {
 		return err
 	}
-	for _, item := range result.Items {
-		if !includeIdle && item.State == model.WorkIdle {
+	for _, thread := range result.Threads {
+		if !includeCompleted && !thread.Active {
 			continue
 		}
-		status := string(item.State)
-		if item.PullRequest != nil {
-			status = fmt.Sprintf("PR #%d", item.PullRequest.Number)
+		marker := string(thread.Phase)
+		if unseenThread(thread) {
+			marker = "attention"
 		}
-		if _, err := fmt.Fprintf(out, "- %s · %s · %s\n", item.Repository, status, item.RepositoryPath); err != nil {
+		if _, err := fmt.Fprintf(out, "- %s · %s · %s\n", thread.Title, marker, thread.WhyNow); err != nil {
 			return err
 		}
 	}
@@ -43,6 +47,15 @@ func writeTerminal(out io.Writer, result model.WorkScan, includeIdle, color bool
 		}
 	}
 	return nil
+}
+
+func unseenThread(thread model.Thread) bool {
+	for _, moment := range thread.Attention {
+		if !moment.Seen {
+			return true
+		}
+	}
+	return false
 }
 
 func writeTerminalDiagnostic(out io.Writer, label, style string, diagnostic model.ScanError, color bool) error {

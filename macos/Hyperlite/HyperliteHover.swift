@@ -60,15 +60,15 @@ extension View {
     }
 }
 
-struct HyperliteItemHoverCard: View {
-    let item: HyperliteWorkItem
+struct HyperliteThreadHoverCard: View {
+    let thread: HyperliteThread
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text(HyperliteInteractionModel.hoverTitle(for: item))
+            Text(HyperliteInteractionModel.hoverTitle(for: thread))
                 .font(.subheadline.weight(.semibold))
                 .lineLimit(2)
-            Text(HyperliteInteractionModel.hoverSummary(for: item))
+            Text(HyperliteInteractionModel.hoverSummary(for: thread))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(4)

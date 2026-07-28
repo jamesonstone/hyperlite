@@ -20,6 +20,10 @@ final class HyperliteApplicationDelegate: NSObject, NSApplicationDelegate, NSWin
         }
     }
 
+    func applicationDidBecomeActive(_ notification: Notification) {
+        HyperliteState.shared.refreshIfStale()
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         hotKey?.stop()
     }

@@ -2,11 +2,23 @@
 
 ## PRINCIPLES
 
-<!-- TODO: define core principles that guide all decisions -->
+- Hyperlite infers coordination state from the evidence a selected project
+  already produces. It must not require users to create goals, link artifacts,
+  assign lifecycle state, order work, or record completion in Hyperlite.
+- Human attention is reserved for material coordination changes, consequential
+  boundaries, and uncertainty. Ordinary artifact motion remains visible
+  progress without becoming an attention event.
 
 ## CONSTRAINTS
 
-<!-- TODO: define invariant rules that must never be violated -->
+- Artifact completion is not goal completion. A thread may complete only when
+  canonical evidence establishes delivery or reflection, anchored issues and
+  pull requests are resolved, and no explicit or extracted obligation remains.
+- Exact evidence owns thread membership. Semantic inference may relate
+  separate threads, but it may not merge them, establish authoritative
+  lifecycle state, suppress a thread, or close a goal.
+- Notes and seen state are optional presentation metadata. They never create,
+  order, advance, or complete project work.
 
 ### Kit-Managed Baseline Rules
 
@@ -47,8 +59,24 @@
 
 ## NON-GOALS
 
-<!-- TODO: define what this project explicitly will not do -->
+- Hyperlite is not a second task tracker. It does not require manual goal,
+  relationship, ordering, lifecycle, or completion bookkeeping.
+- Hyperlite does not use agent lifecycle events, transcripts, continuous
+  background polling, or notifications as project authority.
+- Hyperlite does not select hosted models, mutate deployments, or treat
+  indirect cloud observations as proof of operational completion.
 
 ## DEFINITIONS
 
-<!-- TODO: define key terms used throughout the project -->
+- **Thread**: an inferred, evidence-backed projection of one project goal and
+  its complete coordination lifecycle.
+- **Artifact**: a source-backed issue, specification, plan, pull request,
+  review, branch, worktree, or infrastructure document observed by Hyperlite.
+- **Obligation**: a required outcome that must be satisfied before a thread can
+  be considered complete.
+- **Attention moment**: a material change that requires a person to decide,
+  know, guard, reconcile, or inspect uncertainty.
+- **Exact evidence**: an identifier or explicit link that can authoritatively
+  establish artifact membership or lifecycle state.
+- **Hypothesis**: a cited semantic relationship that may warn or explain but
+  cannot merge, close, suppress, or otherwise authoritatively change a thread.

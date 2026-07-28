@@ -120,9 +120,11 @@ type Issue struct {
 	Body          string    `json:"body"`
 	BodyTruncated bool      `json:"body_truncated"`
 	URL           string    `json:"url"`
+	State         string    `json:"state"`
 	Labels        []string  `json:"labels"`
 	Assignees     []string  `json:"assignees"`
 	UpdatedAt     time.Time `json:"updated_at"`
+	ClosedAt      time.Time `json:"closed_at,omitempty"`
 }
 
 type Progress struct {
@@ -162,8 +164,11 @@ type PullRequest struct {
 	HeadRefName    string       `json:"head_ref_name"`
 	HeadRefOID     string       `json:"head_ref_oid"`
 	BaseRefName    string       `json:"base_ref_name"`
+	State          string       `json:"state"`
 	IsDraft        bool         `json:"is_draft"`
 	UpdatedAt      time.Time    `json:"updated_at"`
+	MergedAt       time.Time    `json:"merged_at,omitempty"`
+	ClosedAt       time.Time    `json:"closed_at,omitempty"`
 	ReviewDecision string       `json:"review_decision,omitempty"`
 	MergeState     string       `json:"merge_state_status,omitempty"`
 	Mergeable      string       `json:"mergeable,omitempty"`

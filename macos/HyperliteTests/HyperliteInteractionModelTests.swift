@@ -3,12 +3,66 @@ import Foundation
 @main
 struct HyperliteInteractionModelTests {
     static func main() throws {
+        try testSchemaV2Decoding()
         try testStructuredDiagnosticDecoding()
+        testSectionOrderingAndAge()
         testCommandEntries()
         testProjectEntries()
         testSelectionClamping()
         testHoverSummaryLimit()
         print("Hyperlite interaction model tests passed")
+    }
+
+    private static func testSchemaV2Decoding() throws {
+        let data = Data("""
+        {
+          "schema_version": 2,
+          "generated_at": "2026-07-28T12:00:00Z",
+          "remote_observed_at": "2026-07-28T11:59:00Z",
+          "remote_refresh_interval_seconds": 300,
+          "summary": {
+            "projects": 1, "threads": 1, "attention": 1,
+            "in_flight": 1, "completed": 0, "errors": 0, "warnings": 0
+          },
+          "threads": [{
+            "id": "issue:owner/r2#7",
+            "aliases": ["branch:owner/r2@GH-7"],
+            "title": "R2 delivery",
+            "goal": "Deliver object storage",
+            "rationale": "Separate durable blobs from events.",
+            "phase": "operationalizing",
+            "active": true,
+            "repositories": ["owner/r2"],
+            "artifacts": [],
+            "dependencies": [],
+            "implications": [],
+            "obligations": [],
+            "evidence": [],
+            "attention": [{
+              "id": "moment:1", "kind": "reconcile", "summary": "Deployment remains",
+              "why": "The merged PR does not deploy infrastructure.", "revision": "abc",
+              "evidence_ids": [], "created_at": "2026-07-28T12:00:00Z", "seen": false
+            }],
+            "latest_material_revision": "abc",
+            "why_now": "Deployment remains",
+            "confidence": 0.9,
+            "inference_status": "unavailable",
+            "note": "Coordinate the bucket first.",
+            "updated_at": "2026-07-28T12:00:00Z"
+          }],
+          "errors": [],
+          "warnings": []
+        }
+        """.utf8)
+        let decoder = decoder()
+        let scan = try decoder.decode(HyperliteThreadScan.self, from: data)
+        expect(scan.schemaVersion == 2, "schema v2 should decode")
+        expect(scan.remoteRefreshIntervalSeconds == 300, "refresh interval should decode")
+        expect(scan.threads[0].phase == .operationalizing, "lifecycle phase should decode")
+        expect(scan.threads[0].hasUnseenAttention, "unseen revision should count as attention")
+        expect(scan.threads[0].latestMaterialRevision == "abc", "seen revision anchor should decode")
+        expect(scan.threads[0].note == "Coordinate the bucket first.", "optional notes should decode")
+        expect(scan.threads[0].inferenceStatus == "unavailable", "degraded inference should decode")
     }
 
     private static func testStructuredDiagnosticDecoding() throws {
@@ -27,40 +81,72 @@ struct HyperliteInteractionModelTests {
         expect(diagnostic.repositoryPath == "/repo/kit", "repository path should decode")
     }
 
+    private static func testSectionOrderingAndAge() {
+        let now = Date()
+        let attention = thread(id: "attention", repository: "owner/r2", active: true, unseen: true, updatedAt: now)
+        let activeOld = thread(
+            id: "active-old",
+            repository: "owner/event-sink",
+            active: true,
+            unseen: false,
+            updatedAt: now.addingTimeInterval(-100 * 86_400)
+        )
+        let recent = thread(
+            id: "recent",
+            repository: "owner/r2",
+            active: false,
+            unseen: false,
+            updatedAt: now.addingTimeInterval(-2 * 86_400)
+        )
+        let oldComplete = thread(
+            id: "old",
+            repository: "owner/r2",
+            active: false,
+            unseen: false,
+            updatedAt: now.addingTimeInterval(-40 * 86_400)
+        )
+        let scan = scan(threads: [recent, oldComplete, activeOld, attention], now: now)
+        let visible = HyperlitePresentation.visibleThreads(scan: scan, maxAgeDays: 10, now: now)
+        expect(visible.map(\.id) == ["attention", "active-old", "recent"],
+               "attention, active, and recent sections should be ordered")
+        expect(HyperlitePresentation.threads(
+            scan: scan, section: .inFlight, maxAgeDays: 10, now: now
+        ).map(\.id) == ["active-old"], "active threads must not age out")
+        expect(HyperlitePresentation.threads(
+            scan: scan, section: .attention, maxAgeDays: 10, now: now
+        ).count == 1, "menu count should count threads, not moments or artifacts")
+    }
+
     private static func testCommandEntries() {
-        let diagnostic = prunableDiagnostic()
         let entries = HyperliteInteractionModel.commandEntries(
-            items: [item(repository: "kit", path: "/repo/kit", branch: "GH-5")],
+            threads: [thread(id: "one", repository: "owner/kit")],
             errors: [],
-            warnings: [diagnostic]
+            warnings: [prunableDiagnostic()]
         )
         expect(entries.map(\.id).contains("action:refresh"), "commands should include refresh")
         expect(entries.map(\.id).contains("action:settings"), "commands should include settings")
         expect(entries.map(\.id).contains("action:diagnostics"), "commands should include diagnostics")
         expect(entries.contains { $0.id.hasPrefix("prune:") }, "commands should include prune")
-        expect(entries.contains { $0.id.hasPrefix("item:") }, "commands should include work items")
+        expect(entries.contains { $0.id.hasPrefix("thread:") }, "commands should include threads")
     }
 
     private static func testProjectEntries() {
-        let items = [
-            item(repository: "kit", path: "/repo/kit", branch: "GH-5"),
-            item(repository: "kit", path: "/repo/kit", branch: "GH-3"),
-            item(repository: "flx", path: "/repo/flx", branch: "GH-1"),
+        let threads = [
+            thread(id: "one", repository: "owner/kit"),
+            thread(id: "two", repository: "owner/kit"),
+            thread(id: "three", repository: "owner/flx"),
         ]
-        let collapsed = HyperliteInteractionModel.projectEntries(
-            items: items,
-            expandedProjects: []
-        )
+        let collapsed = HyperliteInteractionModel.projectEntries(threads: threads, expandedProjects: [])
         expect(collapsed.count == 2, "collapsed projects should show only headers")
-        expect(collapsed.map(\.title) == ["kit", "flx"], "project order should follow source items")
+        expect(collapsed.map(\.title) == ["kit", "flx"], "project order should follow source threads")
 
         let expanded = HyperliteInteractionModel.projectEntries(
-            items: items,
-            expandedProjects: ["/repo/kit"]
+            threads: threads,
+            expandedProjects: ["owner/kit"]
         )
-        expect(expanded.count == 4, "expanded project should expose only its own items")
-        expect(expanded[0].id == "project:/repo/kit", "kit header should remain selected")
-        expect(expanded[3].id == "project:/repo/flx", "flx should remain collapsed")
+        expect(expanded.count == 4, "expanded project should expose only its own threads")
+        expect(expanded[0].id == "project:owner/kit", "kit header should remain selected")
+        expect(expanded[3].id == "project:owner/flx", "flx should remain collapsed")
     }
 
     private static func testSelectionClamping() {
@@ -75,35 +161,77 @@ struct HyperliteInteractionModelTests {
     }
 
     private static func testHoverSummaryLimit() {
-        let longPath = "/" + String(repeating: "nested/", count: 70)
-        let summary = HyperliteInteractionModel.hoverSummary(
-            for: item(repository: "kit", path: longPath, branch: "GH-5")
+        let value = thread(
+            id: "long",
+            repository: "owner/kit",
+            whyNow: String(repeating: "coordination boundary ", count: 30)
         )
+        let summary = HyperliteInteractionModel.hoverSummary(for: value)
         expect(summary.count <= 300, "hover summary should never exceed 300 characters")
         expect(summary.hasSuffix("…"), "truncated summary should show an ellipsis")
     }
 
-    private static func item(repository: String, path: String, branch: String) -> HyperliteWorkItem {
-        HyperliteWorkItem(
-            repository: repository,
-            github: "owner/\(repository)",
-            repositoryPath: path,
-            branch: branch,
-            base: "main",
-            state: "branch",
-            publication: "published",
-            nextAction: "continue_work",
-            updatedAt: Date(),
-            worktree: HyperliteWorktree(
-                path: path,
-                staged: 0,
-                unstaged: 0,
-                untracked: 0,
-                conflicted: 0,
-                ahead: 0,
-                aheadBase: 1
+    private static func scan(threads: [HyperliteThread], now: Date) -> HyperliteThreadScan {
+        HyperliteThreadScan(
+            schemaVersion: 2,
+            generatedAt: now,
+            remoteObservedAt: now,
+            remoteRefreshIntervalSeconds: 300,
+            summary: HyperliteThreadSummary(
+                projects: 2,
+                threads: threads.count,
+                attention: threads.filter(\.hasUnseenAttention).count,
+                inFlight: threads.filter(\.active).count,
+                completed: threads.filter { !$0.active }.count,
+                errors: 0,
+                warnings: 0
             ),
-            pullRequest: nil
+            threads: threads,
+            errors: [],
+            warnings: []
+        )
+    }
+
+    private static func thread(
+        id: String,
+        repository: String,
+        active: Bool = true,
+        unseen: Bool = false,
+        updatedAt: Date = Date(),
+        whyNow: String = "In implementing"
+    ) -> HyperliteThread {
+        HyperliteThread(
+            id: id,
+            aliases: [],
+            title: id,
+            goal: "Goal for \(id)",
+            rationale: "Rationale for \(id)",
+            phase: active ? .implementing : .complete,
+            active: active,
+            repositories: [repository],
+            artifacts: [],
+            dependencies: [],
+            implications: [],
+            obligations: [],
+            evidence: [],
+            attention: unseen ? [
+                HyperliteAttentionMoment(
+                    id: "\(id)@revision",
+                    kind: "know",
+                    summary: whyNow,
+                    why: "A material change occurred.",
+                    revision: "revision",
+                    evidenceIDs: [],
+                    createdAt: updatedAt,
+                    seen: false
+                ),
+            ] : [],
+            latestMaterialRevision: "revision",
+            whyNow: whyNow,
+            confidence: 0.8,
+            inferenceStatus: "not_configured",
+            note: nil,
+            updatedAt: updatedAt
         )
     }
 
@@ -118,10 +246,13 @@ struct HyperliteInteractionModelTests {
         )
     }
 
-    private static func expect(
-        _ condition: @autoclosure () -> Bool,
-        _ message: String
-    ) {
+    private static func decoder() -> JSONDecoder {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return decoder
+    }
+
+    private static func expect(_ condition: @autoclosure () -> Bool, _ message: String) {
         guard condition() else {
             FileHandle.standardError.write(Data("FAIL: \(message)\n".utf8))
             exit(1)

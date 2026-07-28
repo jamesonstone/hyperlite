@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	pullRequestFields  = "number,title,body,url,headRefName,headRefOid,baseRefName,isDraft,updatedAt,reviewDecision,statusCheckRollup,mergeStateStatus,mergeable,comments,reviews,closingIssuesReferences"
+	pullRequestFields  = "number,title,body,url,headRefName,headRefOid,baseRefName,state,isDraft,updatedAt,mergedAt,closedAt,reviewDecision,statusCheckRollup,mergeStateStatus,mergeable,comments,reviews,closingIssuesReferences"
 	maxGitHubBodyBytes = 64 * 1024
 )
 
@@ -33,7 +33,9 @@ type rawIssue struct {
 	Title      string        `json:"title"`
 	Body       string        `json:"body"`
 	URL        string        `json:"url"`
+	State      string        `json:"state"`
 	UpdatedAt  time.Time     `json:"updatedAt"`
+	ClosedAt   time.Time     `json:"closedAt"`
 	Labels     []rawLabel    `json:"labels"`
 	Assignees  []rawActor    `json:"assignees"`
 	Repository rawRepository `json:"repository"`
@@ -53,8 +55,11 @@ type rawPullRequest struct {
 	HeadRefName             string            `json:"headRefName"`
 	HeadRefOID              string            `json:"headRefOid"`
 	BaseRefName             string            `json:"baseRefName"`
+	State                   string            `json:"state"`
 	IsDraft                 bool              `json:"isDraft"`
 	UpdatedAt               time.Time         `json:"updatedAt"`
+	MergedAt                time.Time         `json:"mergedAt"`
+	ClosedAt                time.Time         `json:"closedAt"`
 	ReviewDecision          string            `json:"reviewDecision"`
 	StatusCheckRollup       []map[string]any  `json:"statusCheckRollup"`
 	MergeStateStatus        string            `json:"mergeStateStatus"`
@@ -117,8 +122,9 @@ func normalizePullRequest(pullRequest rawPullRequest) model.PullRequest {
 		Number: pullRequest.Number, Title: pullRequest.Title, URL: pullRequest.URL,
 		Body: body, BodyTruncated: bodyTruncated,
 		HeadRefName: pullRequest.HeadRefName, HeadRefOID: pullRequest.HeadRefOID,
-		BaseRefName: pullRequest.BaseRefName, IsDraft: pullRequest.IsDraft,
-		UpdatedAt: pullRequest.UpdatedAt, ReviewDecision: pullRequest.ReviewDecision,
+		BaseRefName: pullRequest.BaseRefName, State: pullRequest.State, IsDraft: pullRequest.IsDraft,
+		UpdatedAt: pullRequest.UpdatedAt, MergedAt: pullRequest.MergedAt,
+		ClosedAt: pullRequest.ClosedAt, ReviewDecision: pullRequest.ReviewDecision,
 		MergeState: pullRequest.MergeStateStatus, Mergeable: pullRequest.Mergeable,
 		CI: ci, Checks: checks, Feedback: feedback, ClosingIssues: issues,
 	}
@@ -167,7 +173,8 @@ func normalizeIssue(issue rawIssue) model.Issue {
 	body, bodyTruncated := truncateGitHubBody(issue.Body)
 	return model.Issue{
 		Number: issue.Number, Title: issue.Title, Body: body, BodyTruncated: bodyTruncated,
-		URL: issue.URL, Labels: labels, Assignees: assignees, UpdatedAt: issue.UpdatedAt,
+		URL: issue.URL, State: issue.State, Labels: labels, Assignees: assignees,
+		UpdatedAt: issue.UpdatedAt, ClosedAt: issue.ClosedAt,
 	}
 }
 

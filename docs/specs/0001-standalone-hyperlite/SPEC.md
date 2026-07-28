@@ -82,6 +82,14 @@ Git history mutation, or automatic configuration overwrite.
   the number of attention work items; the compact launch affordance remains.
 - The scanner remains read-only. It uses local Git facts and `gh` only to list
   open pull requests, preserving the small, inspectable status model.
+- On 2026-07-28, feature `0003-inferred-attention` superseded the flat
+  work-item model and universal age filter. Hyperlite now reconstructs
+  evidence-backed goal threads, keeps active threads visible regardless of
+  age, and applies the recent-work window only to completed threads.
+- Source observation remains read-only with respect to selected repositories
+  and GitHub. Feature `0003-inferred-attention` added Hyperlite-owned local
+  state for cached evidence, inference results, aliases, seen revisions, and
+  optional notes; that state is presentation memory, not project authority.
 
 ## DISCOVERIES
 
