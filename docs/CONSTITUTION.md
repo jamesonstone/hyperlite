@@ -17,6 +17,12 @@
 - In-flight status requires positive evidence of unresolved coordination.
   Missing canonical closure may prevent completion, but terminal-only artifacts
   and dormant intent do not remain active or retain unread attention.
+- Issues and local Git state are corroborating evidence, not perpetual
+  activity. Old issues, default-branch dirt, temporary automation worktrees,
+  and unrelated historical specs do not establish an in-flight goal.
+- An attention moment must remain supported by current evidence. Negative
+  safety statements and incidental boundary keywords are context, not
+  consequential actions; invalidated unread moments retire automatically.
 - The primary attention surface contains active coordination only. Completed
   and dormant projections may remain in private state and scan output for
   continuity, but they do not occupy the interface or thread navigation.

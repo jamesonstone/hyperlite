@@ -1,15 +1,18 @@
 package threadbuild
 
 import (
+	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/jamesonstone/hyperlite/internal/config"
 	"github.com/jamesonstone/hyperlite/internal/gitscan"
 	"github.com/jamesonstone/hyperlite/internal/model"
 )
 
 func activeFromEvidence(
 	thread model.Thread,
+	repository config.Repository,
 	hasSpec bool,
 	locals []gitscan.LocalLane,
 	pullRequestHeadOIDs []string,
@@ -19,31 +22,31 @@ func activeFromEvidence(
 	if thread.Phase == model.ThreadComplete {
 		return false
 	}
-	if hasOpenArtifact(thread) {
+	if hasOpenPullRequest(thread) {
 		return true
 	}
 	merged := hasMergedPullRequest(thread)
-	if hasLiveLocal(locals, pullRequestHeadOIDs, merged, staleAfter, now) {
+	if hasLiveLocal(repository, locals, pullRequestHeadOIDs, merged, staleAfter, now) {
 		return true
 	}
-	if thread.Phase == model.ThreadOperationalizing && hasOpenObligations(thread) {
+	if merged && hasOpenObligations(thread) {
 		return true
 	}
-	return hasSpec && recent(thread.UpdatedAt, now, staleAfter)
+	if hasRecentOpenIssue(thread, staleAfter, now) {
+		return true
+	}
+	if hasTerminalArtifact(thread) {
+		return false
+	}
+	return hasSpec && hasRecentSpec(thread, staleAfter, now)
 }
 
-func hasOpenArtifact(thread model.Thread) bool {
+func hasOpenPullRequest(thread model.Thread) bool {
 	for _, artifact := range thread.Artifacts {
 		state := strings.ToLower(artifact.State)
-		switch artifact.Kind {
-		case model.ArtifactIssue:
-			if state == "open" {
-				return true
-			}
-		case model.ArtifactPullRequest:
-			if state == "open" || state == "draft" {
-				return true
-			}
+		if artifact.Kind == model.ArtifactPullRequest &&
+			(state == "open" || state == "draft") {
+			return true
 		}
 	}
 	return false
@@ -60,6 +63,7 @@ func hasMergedPullRequest(thread model.Thread) bool {
 }
 
 func hasLiveLocal(
+	repository config.Repository,
 	locals []gitscan.LocalLane,
 	pullRequestHeadOIDs []string,
 	merged bool,
@@ -68,6 +72,10 @@ func hasLiveLocal(
 ) bool {
 	for _, local := range locals {
 		worktree := local.Worktree
+		if !durableLocal(repository, local) ||
+			!recent(worktree.UpdatedAt, now, staleAfter) {
+			continue
+		}
 		if worktree.Conflicted > 0 ||
 			worktree.Staged+worktree.Unstaged+worktree.Untracked > 0 ||
 			worktree.Ahead > 0 ||
@@ -79,15 +87,61 @@ func hasLiveLocal(
 			if len(pullRequestHeadOIDs) > 0 &&
 				worktree.HeadOID != "" &&
 				!containsString(pullRequestHeadOIDs, worktree.HeadOID) {
-				return recent(worktree.UpdatedAt, now, staleAfter)
+				return true
 			}
 			continue
 		}
 		if local.Publication == model.PublicationNoUpstream ||
 			local.Publication == model.PublicationUnknown {
-			if recent(worktree.UpdatedAt, now, staleAfter) {
-				return true
-			}
+			return true
+		}
+	}
+	return false
+}
+
+func durableLocal(repository config.Repository, local gitscan.LocalLane) bool {
+	branch := gitscan.IdentityBranch(local)
+	if branch == "" || strings.EqualFold(branch, repository.Base) ||
+		local.Publication == model.PublicationBase {
+		return false
+	}
+	path := filepath.Clean(local.Worktree.Path)
+	if path == filepath.Clean(repository.Path) {
+		return true
+	}
+	return strings.EqualFold(filepath.Base(path), branch)
+}
+
+func hasRecentOpenIssue(thread model.Thread, staleAfter time.Duration, now time.Time) bool {
+	for _, artifact := range thread.Artifacts {
+		if artifact.Kind == model.ArtifactIssue &&
+			strings.EqualFold(artifact.State, "open") &&
+			recent(artifact.UpdatedAt, now, staleAfter) {
+			return true
+		}
+	}
+	return false
+}
+
+func hasTerminalArtifact(thread model.Thread) bool {
+	for _, artifact := range thread.Artifacts {
+		if artifact.Kind == model.ArtifactPullRequest &&
+			strings.EqualFold(artifact.State, "merged") {
+			return true
+		}
+		if artifact.Kind == model.ArtifactIssue &&
+			strings.EqualFold(artifact.State, "closed") {
+			return true
+		}
+	}
+	return false
+}
+
+func hasRecentSpec(thread model.Thread, staleAfter time.Duration, now time.Time) bool {
+	for _, artifact := range thread.Artifacts {
+		if artifact.Kind == model.ArtifactSpec &&
+			recent(artifact.UpdatedAt, now, staleAfter) {
+			return true
 		}
 	}
 	return false

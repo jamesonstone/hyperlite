@@ -103,6 +103,29 @@ deploy --production example
 	}
 }
 
+func TestCandidatesIgnoreOperationalNounsWithoutRequiredAction(t *testing.T) {
+	values := candidates(`
+- Preserve the static web deployment pattern.
+- Run the secret checks before delivery.
+- The production service must remain fail closed.
+- Make defaults safe for the deployed hardware.
+`, obligationWord, "operational")
+	if len(values) != 0 {
+		t.Fatalf("descriptive statements became obligations: %#v", values)
+	}
+}
+
+func TestCandidatesRecognizeRequiredPassiveOperationalAction(t *testing.T) {
+	values := candidates(
+		"Production infrastructure must be deployed before activation.",
+		obligationWord,
+		"operational",
+	)
+	if len(values) != 1 {
+		t.Fatalf("required passive action was missed: %#v", values)
+	}
+}
+
 func TestReflectionCompletionFollowsWorkflowVersion(t *testing.T) {
 	root := t.TempDir()
 	for _, test := range []struct {

@@ -257,6 +257,10 @@ enum HyperlitePresentation {
         }
     }
 
+    static func rowSummary(for thread: HyperliteThread) -> String? {
+        thread.hasUnseenAttention ? thread.whyNow : nil
+    }
+
     static func ageLabel(for date: Date?, now: Date = Date()) -> String {
         guard let date else { return "age unknown" }
         let seconds = max(0, Int(now.timeIntervalSince(date)))

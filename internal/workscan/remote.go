@@ -102,8 +102,14 @@ func boundedRemoteHistory(
 		}
 	}
 	localBranches := make(map[string]struct{}, len(locals))
+	localIssueNumbers := make(map[int]struct{}, len(locals))
 	for _, local := range locals {
-		localBranches[local.Branch] = struct{}{}
+		for _, branch := range []string{local.Branch, gitscan.IdentityBranch(local)} {
+			localBranches[branch] = struct{}{}
+			if number := gitscan.IssueNumber(branch); number > 0 {
+				localIssueNumbers[number] = struct{}{}
+			}
+		}
 	}
 	anchoredIssueURLs := make(map[string]struct{})
 	for _, document := range documents {
@@ -133,7 +139,8 @@ func boundedRemoteHistory(
 	for _, issue := range current.Issues {
 		_, observed := observedIssues[issue.Number]
 		_, anchored := anchoredIssueURLs[issue.URL]
-		if strings.EqualFold(issue.State, "OPEN") || observed || anchored {
+		_, local := localIssueNumbers[issue.Number]
+		if strings.EqualFold(issue.State, "OPEN") || observed || anchored || local {
 			issues = append(issues, issue)
 		}
 	}

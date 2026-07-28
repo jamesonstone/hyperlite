@@ -243,7 +243,9 @@ func (s Scanner) scanRepository(
 	now time.Time,
 ) repositoryResult {
 	local := s.Git.Scan(ctx, repository, refresh, cfg.Settings.RemoteRefreshInterval)
-	documents := s.scanRepositoryMemory(repository, local.Lanes)
+	documents := s.scanRepositoryMemory(
+		repository, local.Lanes, cfg.Settings.StaleAfter, now,
+	)
 	remote, remoteStale, cache := s.remoteEvidence(
 		ctx, cfg, repository, local.Lanes, documents.Documents, includeRemote, state, now,
 	)

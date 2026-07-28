@@ -6,6 +6,7 @@ struct HyperliteInteractionModelTests {
         try testSchemaV2Decoding()
         try testStructuredDiagnosticDecoding()
         testActiveSectionOrdering()
+        testRowSummaryOnlyShowsAttention()
         testCommandEntries()
         testProjectEntries()
         testSelectionClamping()
@@ -128,6 +129,18 @@ struct HyperliteInteractionModelTests {
         expect(entries.map(\.id).contains("action:diagnostics"), "commands should include diagnostics")
         expect(entries.contains { $0.id.hasPrefix("prune:") }, "commands should include prune")
         expect(entries.contains { $0.id.hasPrefix("thread:") }, "commands should include threads")
+    }
+
+    private static func testRowSummaryOnlyShowsAttention() {
+        let ordinary = thread(id: "ordinary", repository: "owner/kit")
+        let attention = thread(
+            id: "attention", repository: "owner/kit", unseen: true,
+            whyNow: "A decision is required"
+        )
+        expect(HyperlitePresentation.rowSummary(for: ordinary) == nil,
+               "ordinary in-flight rows should stay quiet")
+        expect(HyperlitePresentation.rowSummary(for: attention) == "A decision is required",
+               "attention rows should explain why they need attention")
     }
 
     private static func testProjectEntries() {

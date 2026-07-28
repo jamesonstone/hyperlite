@@ -7,12 +7,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jamesonstone/hyperlite/internal/config"
 	"github.com/jamesonstone/hyperlite/internal/gitscan"
 	"github.com/jamesonstone/hyperlite/internal/model"
 )
 
 func finalize(
 	thread *model.Thread,
+	repository config.Repository,
 	hasSpec bool,
 	issueNumber int,
 	locals []gitscan.LocalLane,
@@ -48,7 +50,7 @@ func finalize(
 	}
 	thread.Phase = derivedPhase(*thread, hasSpec, issueNumber)
 	thread.Active = activeFromEvidence(
-		*thread, hasSpec, locals, pullRequestHeadOIDs, staleAfter, now,
+		*thread, repository, hasSpec, locals, pullRequestHeadOIDs, staleAfter, now,
 	)
 	if !thread.Active {
 		thread.UpdatedAt = latestTerminalArtifact(*thread)

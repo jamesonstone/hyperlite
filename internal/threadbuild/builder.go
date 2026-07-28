@@ -44,8 +44,15 @@ func Build(input Input) []model.Thread {
 	}
 	builders := make(map[string]*accumulator)
 	aliases := make(map[string]string)
+	featureCounts := make(map[string]int)
 	for _, document := range input.Documents {
-		addDocument(input.Repository, document, builders, aliases)
+		featureCounts[document.FeatureID]++
+	}
+	for _, document := range input.Documents {
+		addDocument(
+			input.Repository, document, featureCounts[document.FeatureID] == 1,
+			builders, aliases,
+		)
 	}
 	for _, issue := range input.Remote.Issues {
 		addIssue(input.Repository, issue, input.RemoteStale, builders, aliases, input.Now)
@@ -59,7 +66,7 @@ func Build(input Input) []model.Thread {
 	threads := make([]model.Thread, 0, len(builders))
 	for _, builder := range builders {
 		finalize(
-			&builder.thread, builder.hasSpec, builder.issueNumber,
+			&builder.thread, input.Repository, builder.hasSpec, builder.issueNumber,
 			builder.locals, builder.headOIDs, input.StaleAfter, input.Now,
 		)
 		threads = append(threads, builder.thread)
@@ -76,9 +83,16 @@ func Build(input Input) []model.Thread {
 	return threads
 }
 
-func addDocument(repo config.Repository, document memoryscan.Document, builders map[string]*accumulator, aliases map[string]string) {
+func addDocument(
+	repo config.Repository,
+	document memoryscan.Document,
+	allowLegacyAlias bool,
+	builders map[string]*accumulator,
+	aliases map[string]string,
+) {
 	issueNumber := matchingIssueNumber(repo.GitHub, document.IssueURLs, document.IssueNumbers)
-	id := fmt.Sprintf("spec:%s:%s", repo.GitHub, document.FeatureID)
+	specAlias := documentAlias(repo.GitHub, document)
+	id := specAlias
 	if issueNumber > 0 {
 		id = issueID(repo.GitHub, issueNumber)
 	}
@@ -87,8 +101,12 @@ func addDocument(repo config.Repository, document memoryscan.Document, builders 
 	if issueNumber > 0 {
 		builder.issueNumber = issueNumber
 	}
-	specAlias := fmt.Sprintf("spec:%s:%s", repo.GitHub, document.FeatureID)
-	addAliases(builder, aliases, id, append([]string{specAlias}, document.IssueURLs...)...)
+	documentAliases := []string{specAlias}
+	legacyAlias := fmt.Sprintf("spec:%s:%s", repo.GitHub, document.FeatureID)
+	if allowLegacyAlias && legacyAlias != specAlias {
+		documentAliases = append(documentAliases, legacyAlias)
+	}
+	addAliases(builder, aliases, id, append(documentAliases, document.IssueURLs...)...)
 	title := document.Title
 	if strings.EqualFold(strings.TrimSpace(title), "spec") {
 		title = ""
@@ -157,6 +175,17 @@ func addDocument(repo config.Repository, document memoryscan.Document, builders 
 			UpdatedAt:  referenced.UpdatedAt, Freshness: "current",
 		})
 	}
+}
+
+func documentAlias(repository string, document memoryscan.Document) string {
+	identity := strings.TrimSpace(document.Slug)
+	if identity == "" {
+		identity = filepath.Base(filepath.Dir(document.Path))
+	}
+	if identity == "" || identity == "." || identity == document.FeatureID {
+		return fmt.Sprintf("spec:%s:%s", repository, document.FeatureID)
+	}
+	return fmt.Sprintf("spec:%s:%s-%s", repository, document.FeatureID, identity)
 }
 
 func evidencePath(root, path string) string {

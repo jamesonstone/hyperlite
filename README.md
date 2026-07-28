@@ -34,6 +34,10 @@ or scan a source path directly with `hyperlite scan /path/to/projects`.
 Hyperlite treats issues, active specs, pull requests, review threads, material
 worktrees, and referenced operational documents as evidence for inferred goal
 threads. Exact issue, branch, PR, spec, and link identifiers own membership.
+Open pull requests are strong in-flight evidence. Issues and local Git state
+must be recent and corroborated by a selected checkout or exact durable issue
+lane; old issues, default-branch dirt, temporary automation worktrees, and
+unrelated historical specs do not become active threads.
 The configured local Ollama model may synthesize cited rationale,
 implications, obligations, and relationships, but it cannot merge threads or
 establish completion.
@@ -42,8 +46,10 @@ Attention is a material change in coordination: a decision, durable direction
 change, dependency, operational obligation, consequential delivery boundary,
 architectural review challenge, closure gap, or evidence conflict. Commits,
 dirty counts, CI churn, routine review repairs, and agent lifecycle activity
-remain artifact progress. A merged PR advances a goal; it does not complete a
-goal that still has delivery, deployment, infrastructure, or reflection work.
+remain artifact progress. Boundary attention requires an actionable
+consequential change, not a negative safety statement or incidental keyword.
+A merged PR advances a goal; it does not complete a goal that still has
+delivery, deployment, infrastructure, or reflection work.
 
 The native window loads cached state and current local Git evidence first. It
 refreshes remote evidence on foreground activation only when stale, and then

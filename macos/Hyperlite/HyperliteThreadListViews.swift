@@ -86,10 +86,12 @@ struct HyperliteThreadRow: View {
                     }
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
-                    Text(thread.whyNow)
-                        .font(.subheadline)
-                        .foregroundStyle(thread.hasUnseenAttention ? .primary : .secondary)
-                        .lineLimit(2)
+                    if let summary = HyperlitePresentation.rowSummary(for: thread) {
+                        Text(summary)
+                            .font(.subheadline)
+                            .foregroundStyle(.primary)
+                            .lineLimit(2)
+                    }
                 }
             }
             .padding(.vertical, 7)

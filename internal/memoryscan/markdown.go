@@ -10,7 +10,13 @@ import (
 var (
 	listItemPrefix  = regexp.MustCompile(`^(?:[-*]\s+|\d+[.)]\s+)`)
 	checklistMarker = regexp.MustCompile(`\[[ xX]\]`)
-	obligationWord  = regexp.MustCompile(`(?i)\b(deploy|deployment|infrastructure|migration|production|provision|activate|rollout|postgres|s3|cloudformation|ecs|certificate|secret|runbook)\b`)
+	obligationWord  = regexp.MustCompile(
+		`(?i)(?:^(?:\[[ xX]\]\s*)?(?:[a-z]+-\d+:\s*)?` +
+			`(?:deploy|provision|migrate|activate|rollout|cutover|backfill|rotate)\b)|` +
+			`(?:\b(?:must|needs? to|required to)\s+(?:be\s+)?` +
+			`(?:deploy(?:ed)?|provision(?:ed)?|migrat(?:e|ed)|activat(?:e|ed)|` +
+			`roll(?:out|ed out)|cut(?:over)?|backfill(?:ed)?|rotat(?:e|ed))\b)`,
+	)
 	implicationWord = regexp.MustCompile(`(?i)\b(public|security|breaking|authority|ownership|owns|must|production|infrastructure|migration|external|operational)\b`)
 )
 

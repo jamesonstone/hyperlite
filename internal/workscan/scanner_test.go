@@ -159,6 +159,21 @@ func TestBoundedRemoteHistoryDoesNotReplayHistoryButKeepsObservedFinalState(t *t
 	}
 }
 
+func TestBoundedRemoteHistoryKeepsFinalStateForLocalIssueLane(t *testing.T) {
+	now := time.Now().UTC()
+	current := evidence(nil, []model.Issue{
+		issue("flowcore", 38, "Weekly maintenance", "CLOSED", now),
+	})
+	locals := []gitscan.LocalLane{localLane(
+		"GH-38", model.PublicationPublished,
+		model.Worktree{Path: "/private/tmp/flowcore", UpdatedAt: now},
+	)}
+	filtered := boundedRemoteHistory(current, threadstate.RemoteCache{}, false, locals, nil)
+	if len(filtered.Issues) != 1 || filtered.Issues[0].Number != 38 {
+		t.Fatalf("closed local issue state was discarded: %#v", filtered)
+	}
+}
+
 func TestInferFallsBackToDeterministicThreadsOnModelFailure(t *testing.T) {
 	now := time.Date(2026, 7, 28, 14, 0, 0, 0, time.UTC)
 	repository := config.Repository{Name: "r2", Path: "/repo/r2", GitHub: "owner/r2", Base: "main"}

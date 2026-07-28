@@ -103,11 +103,33 @@ completion.
   a synthetic attention moment.
 - R18: Derive in-flight status from positive evidence of unresolved
   coordination, not from the inability to prove canonical completion. Open
-  issues or pull requests, material unpublished local changes, current
-  repository-memory work, and outstanding post-implementation obligations can
-  establish liveness. A terminal-only pull request, a clean published worktree,
-  or a stale isolated shaping document cannot. When a projection becomes
-  inactive, retire its unread moments without requiring user acknowledgement.
+  pull requests, recently updated issue discussions, recent material changes in
+  durable issue lanes, current repository-memory work, and outstanding
+  post-implementation obligations can establish liveness. An old open issue,
+  dirty default branch, temporary automation worktree, terminal-only pull
+  request, clean published worktree, or stale isolated shaping document cannot.
+  When a projection becomes inactive, retire its unread moments without
+  requiring user acknowledgement.
+- R19: Treat Git and GitHub evidence in tiers. An open pull request is strong
+  execution evidence. An issue or worktree is corroborating evidence: an issue
+  ages out without another live artifact, and local changes count only when
+  recent and owned by the selected checkout or an exact durable issue lane.
+  Closed issues and merged pull requests cannot be revived by generic
+  requirements from an older specification.
+- R20: Preserve concurrent specifications that reuse the same numeric feature
+  ID in separate worktrees. Correlate each through its slug, path, and exact
+  issue anchor; never let one worktree's copy overwrite an unrelated current
+  goal.
+- R21: Attention requires a currently supported coordination claim. Boundary
+  attention requires a prospective action such as a deployment, migration,
+  activation, or contract change; negative safety statements and keyword
+  mentions are context only. Dependency or obligation changes require an
+  authoritative dependency or an unsatisfied obligation. When stronger
+  evidence invalidates an unread inferred moment, retire that moment.
+- R22: Keep the main list quiet. Attention rows show the concise material
+  explanation; ordinary In Flight rows show identity, project, phase, and age
+  without repeating a generic `In <phase>` sentence. Full progress and evidence
+  remain in thread detail.
 
 Non-goals: user-authored task tracking, manual lifecycle management, hosted
 model calls, continuous polling, notifications, agent transcript ingestion,
@@ -142,6 +164,12 @@ automatic project selection.
 9. Separate liveness from completion, correlate retained terminal pull requests
    with exact local lanes regardless of age, and suppress dormant incomplete
    projections while preserving positively unresolved goals.
+10. Rank evidence for liveness, restrict repository-memory scans to current
+    durable lanes, preserve concurrent same-number specifications, and retain
+    closed issue state for exact local anchors.
+11. Require actionable boundary semantics for attention, retire moments that
+    the current projection no longer supports, and remove redundant progress
+    text from ordinary In Flight rows.
 
 ## DECISIONS
 
@@ -152,6 +180,13 @@ automatic project selection.
 - Active-thread retention follows positive unresolved coordination evidence,
   not artifact age. Lack of canonical closure can prevent completion without
   making a dormant projection currently in flight.
+- Open issues and dirty worktrees are not project activity by themselves.
+  Recency and corroboration determine whether they represent current
+  coordination; temporary automation lanes and default-branch dirt never
+  become goal threads.
+- Numeric feature IDs are repository-memory identifiers, not globally unique
+  lane identities. Concurrent worktrees may legitimately reuse the same next
+  number until one delivery reaches the canonical branch.
 - A phase label is not globally authoritative without its workflow version.
   Legacy staged `reflect` means implementation and reflection are complete,
   while V2/V3 `reflect` is an active living-spec phase.
@@ -194,6 +229,17 @@ automatic project selection.
   shaping specs create neither in-flight rows nor unread attention. They do not
   become canonically complete unless closure evidence independently supports
   that conclusion.
+- AC13: A stale open issue, temporary dirty issue worktree, and dirty default
+  branch create no in-flight rows, while a current open pull request and recent
+  durable implementation lanes remain visible.
+- AC14: Concurrent same-number specs for different issue lanes both survive
+  repository-memory collection and retain their distinct goals and relations.
+- AC15: Negative production-safety language and newly observed satisfied
+  obligations create no attention. An actionable production boundary,
+  authoritative execution dependency, or unsatisfied post-merge obligation
+  does.
+- AC16: Previously emitted unread guard or reconcile moments are retired when
+  the current evidence no longer supports the underlying claim.
 
 ## VALIDATION MAP
 
@@ -207,6 +253,10 @@ automatic project selection.
   state reconciliation coverage for an observed active-to-terminal correction.
 - AC12: positive-liveness tests for merged pull requests, exact old-PR/local-lane
   correlation, stale spec-only projections, and inactive moment retirement.
+- AC13-AC14: evidence-tier, exact-lane, local-anchor retention, memory-root, and
+  concurrent-spec collision tests.
+- AC15-AC16: actionable-boundary, material-delta, and unsupported-moment
+  retirement tests plus Swift compact-row coverage.
 
 ## DISCOVERIES
 
@@ -270,6 +320,22 @@ automatic project selection.
   one was a clean published worktree whose merged pull request had aged out of
   the terminal-history window. The common defect was treating missing canonical
   completion as affirmative evidence of present liveness.
+- Expanding the selected-project set exposed a second liveness failure: an old
+  open weekly-maintenance issue, temporary dirty weekly-health worktrees, and a
+  dirty default branch all appeared as current goals. These are weak
+  information radiators; none proves present coordination without recency and a
+  durable lane or stronger artifact.
+- Local issue anchors were hydrated from GitHub but closed issues were then
+  removed by remote-history filtering. The missing terminal fact allowed a
+  temporary `GH-38` worktree to look like uncorrelated current implementation.
+- LabCore issues #101 and #102 were developed concurrently from the same base
+  and both legitimately allocated feature ID `0018` with different slugs and
+  exact issue anchors. Repository-memory collection deduplicated only by
+  feature number, causing the later scanned spec to erase the other active
+  goal's rationale, relationships, and implications.
+- Keyword-only boundary detection promoted fail-closed and “must not touch
+  production” safety statements into guard attention. A boundary is material
+  only when current evidence describes a prospective consequential action.
 
 ## VALIDATION
 
@@ -298,6 +364,17 @@ automatic project selection.
   configured staleness for isolated shaping specs, operational obligations that
   remain active, and retirement of unread moments when a projection becomes
   dormant.
+- A seven-project live scan reproduced the noisy projection at 18 total
+  threads, seven in flight, and one false attention moment. Evidence-tier,
+  exact-lane, and repository-memory corrections reduced the primary projection
+  to three current threads: LabCore issues #101 and #102 and LabCore UI issue
+  #49. The dirty default branch, temporary weekly-maintenance worktrees, old
+  open maintenance issue, and unrelated historical LabCore and Kit specs no
+  longer establish liveness.
+- The same live scan confirms concurrent LabCore feature ID `0018` specs retain
+  separate issue identities, goals, and evidence. Negative production-safety
+  language and an incidental `deployed hardware` adjective produce no
+  operational obligation or unread attention.
 - A repository-wide null-delimited audit confirms every tracked handwritten
   implementation and test file is at or below 300 lines after responsibility-
   based Go and Swift splits.
@@ -329,7 +406,11 @@ than the mere absence of canonical closure, so terminal-only and dormant
 projections cannot occupy Attention or In Flight. The native experience renders
 cached content first, groups unseen Attention separately from In Flight work,
 omits inactive projections, and provides evidence-backed detail, seen
-acknowledgement, and optional non-authoritative notes.
+acknowledgement, and optional non-authoritative notes. Evidence is ranked so
+that open pull requests and recent exact lanes establish current work while
+stale issues, experimental local state, and unrelated worktree memory do not;
+ordinary in-flight rows remain compact and reserve explanatory copy for
+material attention.
 
 ## REPOSITORY MEMORY
 

@@ -65,6 +65,10 @@ func ReconcileSelected(
 				record.UpdatedAt = now
 			}
 		}
+		retireUnsupportedMoments(record.Moments, *thread)
+		if !hasUnseenMoment(record.Moments) {
+			record.SeenRevision = record.Revision
+		}
 		if len(record.Moments) > 20 {
 			record.Moments = append([]model.AttentionMoment{}, record.Moments[len(record.Moments)-20:]...)
 		}
@@ -123,6 +127,15 @@ func ReconcileSelected(
 	sort.Slice(state.Threads, func(i, j int) bool { return state.Threads[i].ID < state.Threads[j].ID })
 	retainCurrentInferences(state)
 	return reconciled
+}
+
+func hasUnseenMoment(moments []model.AttentionMoment) bool {
+	for _, moment := range moments {
+		if !moment.Seen {
+			return true
+		}
+	}
+	return false
 }
 
 func retainCurrentInferences(state *State) {

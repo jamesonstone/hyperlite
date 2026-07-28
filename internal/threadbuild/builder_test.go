@@ -213,6 +213,54 @@ func TestReflectionPhaseFollowsWorkflowVersion(t *testing.T) {
 	}
 }
 
+func TestConcurrentSameNumberSpecsRemainDistinct(t *testing.T) {
+	now := time.Now().UTC()
+	documents := []memoryscan.Document{
+		{
+			ID: "spec:0018", FeatureID: "0018", Slug: "accessioning-feedback",
+			Title: "Accessioning feedback", Purpose: "Deliver accessioning feedback.",
+			Phase: "implement", Path: "docs/specs/0018-accessioning-feedback/SPEC.md",
+			IssueURLs: []string{"https://github.com/owner/repo/issues/101"}, UpdatedAt: now,
+		},
+		{
+			ID: "spec:0018", FeatureID: "0018", Slug: "test-coverage",
+			Title: "High-level test coverage", Purpose: "Improve high-level coverage.",
+			Phase: "deliver", Path: "docs/specs/0018-test-coverage/SPEC.md",
+			IssueURLs: []string{"https://github.com/owner/repo/issues/102"}, UpdatedAt: now,
+		},
+	}
+	threads := Build(Input{
+		Repository: config.Repository{Name: "repo", GitHub: "owner/repo"},
+		Documents:  documents,
+		Remote: model.RemoteEvidence{Issues: []model.Issue{
+			{Number: 101, State: "OPEN", URL: documents[0].IssueURLs[0], UpdatedAt: now},
+			{Number: 102, State: "OPEN", URL: documents[1].IssueURLs[0], UpdatedAt: now},
+		}},
+		Now: now,
+	})
+	if len(threads) != 2 {
+		t.Fatalf("same-number specs collided: %#v", threads)
+	}
+	first := threadsByID(threads)
+	if first["issue:owner/repo#101"].Goal != "Deliver accessioning feedback." ||
+		first["issue:owner/repo#102"].Goal != "Improve high-level coverage." {
+		t.Fatalf("spec goals were overwritten: %#v", threads)
+	}
+	for _, thread := range threads {
+		if contains(thread.Aliases, "spec:owner/repo:0018") {
+			t.Fatalf("ambiguous legacy alias leaked into %#v", thread.Aliases)
+		}
+	}
+}
+
+func threadsByID(threads []model.Thread) map[string]model.Thread {
+	result := make(map[string]model.Thread, len(threads))
+	for _, thread := range threads {
+		result[thread.ID] = thread
+	}
+	return result
+}
+
 func contains(values []string, want string) bool {
 	for _, value := range values {
 		if value == want {

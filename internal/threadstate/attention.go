@@ -4,11 +4,27 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/jamesonstone/hyperlite/internal/model"
+)
+
+var boundaryAction = regexp.MustCompile(
+	`(?i)\b(change[sd]?|changing|deploy(?:s|ed|ing)?|provision(?:s|ed|ing)?|` +
+		`migrat(?:e|es|ed|ing)|activat(?:e|es|ed|ing)|enabl(?:e|es|ed|ing)|` +
+		`switch(?:es|ed|ing)?|replac(?:e|es|ed|ing)|remov(?:e|es|ed|ing)|` +
+		`delet(?:e|es|ed|ing)|publish(?:es|ed|ing)?|expos(?:e|es|ed|ing)|` +
+		`break(?:s|ing)?|cutover|rollout|rotat(?:e|es|ed|ing))\b`,
+)
+
+const (
+	mergedObligationSummary = "Implementation advanced, but operational obligations remain"
+	boundarySummary         = "A consequential change is approaching a delivery boundary"
+	coordinationSummary     = "Execution order or dependency requires coordination"
+	staleSummary            = "Thread conclusions rely on incomplete or stale evidence"
 )
 
 func signatureFor(thread model.Thread) MaterialSignature {
@@ -50,21 +66,30 @@ func currentCandidate(thread model.Thread) *candidate {
 	}
 	if hasMergedArtifact(thread) && hasOpenObligation(thread) {
 		return &candidate{
-			kind: model.AttentionReconcile, summary: "Implementation advanced, but operational obligations remain",
+			kind: model.AttentionReconcile, summary: mergedObligationSummary,
 			why:      "Artifact completion does not complete the larger goal.",
 			evidence: obligationEvidence(thread),
 		}
 	}
-	if thread.Phase == model.ThreadReviewing && hasBoundaryImplication(thread) {
+	if (thread.Phase == model.ThreadReviewing ||
+		thread.Phase == model.ThreadOperationalizing) &&
+		hasActionableBoundary(thread) {
 		return &candidate{
-			kind: model.AttentionGuard, summary: "A consequential change is approaching a delivery boundary",
+			kind: model.AttentionGuard, summary: boundarySummary,
 			why:      "Production, security, migration, or infrastructure implications should be understood before merge.",
-			evidence: implicationEvidence(thread),
+			evidence: boundaryEvidence(thread),
+		}
+	}
+	if hasCoordinationRelation(thread) {
+		return &candidate{
+			kind: model.AttentionReconcile, summary: coordinationSummary,
+			why:      "An authoritative dependency or execution order affects how this goal can proceed.",
+			evidence: relationEvidence(thread),
 		}
 	}
 	if hasStaleEvidence(thread) {
 		return &candidate{
-			kind: model.AttentionUncertain, summary: "Thread conclusions rely on incomplete or stale evidence",
+			kind: model.AttentionUncertain, summary: staleSummary,
 			why:      "Hyperlite cannot safely infer the current coordination state.",
 			evidence: evidenceIDs(thread.Evidence),
 		}
@@ -81,6 +106,9 @@ func changedCandidate(previous, current MaterialSignature, thread model.Thread) 
 	}
 	switch {
 	case previous.Dependencies != current.Dependencies || previous.Obligations != current.Obligations:
+		if !hasOpenObligation(thread) && !hasCoordinationRelation(thread) {
+			return nil
+		}
 		return &candidate{
 			kind: model.AttentionReconcile, summary: "Dependencies or remaining obligations changed",
 			why:      "The coordination path for this goal is materially different.",
@@ -93,17 +121,10 @@ func changedCandidate(previous, current MaterialSignature, thread model.Thread) 
 			evidence: evidenceIDs(thread.Evidence),
 		}
 	case previous.Goal != current.Goal || previous.Rationale != current.Rationale ||
-		previous.Implications != current.Implications:
+		(previous.Implications != current.Implications && hasActionableBoundary(thread)):
 		return &candidate{
 			kind: model.AttentionKnow, summary: "The goal's direction or implications changed",
 			why:      "Durable intent or material consequences changed.",
-			evidence: evidenceIDs(thread.Evidence),
-		}
-	case previous.Phase != current.Phase && (current.Phase == model.ThreadOperationalizing ||
-		current.Phase == model.ThreadReflecting):
-		return &candidate{
-			kind: model.AttentionKnow, summary: "The goal advanced to " + string(current.Phase),
-			why:      "The coordination lifecycle crossed a material boundary.",
 			evidence: evidenceIDs(thread.Evidence),
 		}
 	default:
@@ -149,10 +170,44 @@ func hasOpenObligation(thread model.Thread) bool {
 	return false
 }
 
-func hasBoundaryImplication(thread model.Thread) bool {
+func hasActionableBoundary(thread model.Thread) bool {
 	for _, implication := range thread.Implications {
 		switch implication.Category {
 		case "production", "security", "migration", "infrastructure", "operational":
+			if actionableBoundaryStatement(implication.Summary) {
+				return true
+			}
+		}
+	}
+	for _, obligation := range thread.Obligations {
+		if !obligation.Satisfied && actionableBoundaryStatement(obligation.Summary) {
+			return true
+		}
+	}
+	return false
+}
+
+func actionableBoundaryStatement(value string) bool {
+	lower := strings.ToLower(strings.TrimSpace(value))
+	if strings.HasPrefix(lower, "no ") {
+		return false
+	}
+	for _, negative := range []string{
+		"must not", "never ", "does not", "do not", "will not",
+		"not required", "future work",
+	} {
+		if strings.Contains(lower, negative) {
+			return false
+		}
+	}
+	return boundaryAction.MatchString(value)
+}
+
+func hasCoordinationRelation(thread model.Thread) bool {
+	for _, relation := range thread.Dependencies {
+		if relation.Basis != model.BasisHypothesis &&
+			(relation.Kind == model.RelationDependsOn ||
+				relation.Kind == model.RelationMustPrecede) {
 			return true
 		}
 	}
@@ -178,10 +233,17 @@ func obligationEvidence(thread model.Thread) []string {
 	return uniqueStrings(result)
 }
 
-func implicationEvidence(thread model.Thread) []string {
+func boundaryEvidence(thread model.Thread) []string {
 	var result []string
 	for _, implication := range thread.Implications {
-		result = append(result, implication.EvidenceIDs...)
+		if actionableBoundaryStatement(implication.Summary) {
+			result = append(result, implication.EvidenceIDs...)
+		}
+	}
+	for _, obligation := range thread.Obligations {
+		if !obligation.Satisfied && actionableBoundaryStatement(obligation.Summary) {
+			result = append(result, obligation.EvidenceIDs...)
+		}
 	}
 	return uniqueStrings(result)
 }
