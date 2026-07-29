@@ -1,0 +1,30 @@
+import Foundation
+
+enum HyperlitePresentation {
+    static func attentionThreads(scan: HyperliteThreadScan) -> [HyperliteThread] {
+        activeThreads(scan: scan).filter(\.hasUnseenAttention)
+    }
+
+    static func activeThreads(scan: HyperliteThreadScan) -> [HyperliteThread] {
+        scan.threads.filter(\.active).sorted {
+            if $0.hasUnseenAttention != $1.hasUnseenAttention {
+                return $0.hasUnseenAttention
+            }
+            if $0.updatedAt != $1.updatedAt { return $0.updatedAt > $1.updatedAt }
+            return $0.id < $1.id
+        }
+    }
+
+    static func rowSummary(for thread: HyperliteThread) -> String? {
+        thread.hasUnseenAttention ? thread.whyNow : nil
+    }
+
+    static func ageLabel(for date: Date?, now: Date = Date()) -> String {
+        guard let date else { return "age unknown" }
+        let seconds = max(0, Int(now.timeIntervalSince(date)))
+        if seconds < 60 { return "now" }
+        if seconds < 3_600 { return "\(seconds / 60)m" }
+        if seconds < 86_400 { return "\(seconds / 3_600)h" }
+        return "\(seconds / 86_400)d"
+    }
+}

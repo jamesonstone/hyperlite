@@ -145,9 +145,6 @@ func (s Scanner) Infer(ctx context.Context, cfg config.Config) (model.ThreadScan
 	for _, value := range values {
 		threadstate.SetInference(&state, value.ThreadID, digests[value.ThreadID], value, now)
 	}
-	if err := s.Store.Write(state); err != nil {
-		return model.ThreadScan{}, err
-	}
 	inferred := make(map[string]model.InferenceThread, len(values))
 	for _, value := range values {
 		inferred[value.ThreadID] = value
@@ -157,6 +154,11 @@ func (s Scanner) Infer(ctx context.Context, cfg config.Config) (model.ThreadScan
 			applyInference(&result.Threads[index], value)
 			result.Threads[index].InferenceStatus = "current"
 		}
+	}
+	resolveRelations(result.Threads)
+	result.Threads = threadstate.Reconcile(&state, result.Threads, now)
+	if err := s.Store.Write(state); err != nil {
+		return model.ThreadScan{}, err
 	}
 	finalizeScan(&result)
 	return result, nil

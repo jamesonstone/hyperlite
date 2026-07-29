@@ -112,7 +112,10 @@ type AttentionMoment struct {
 	ID          string        `json:"id"`
 	Kind        AttentionKind `json:"kind"`
 	Summary     string        `json:"summary"`
+	Action      string        `json:"action"`
 	Why         string        `json:"why"`
+	Consequence string        `json:"consequence"`
+	ValidWhile  string        `json:"valid_while"`
 	Revision    string        `json:"revision"`
 	EvidenceIDs []string      `json:"evidence_ids"`
 	CreatedAt   time.Time     `json:"created_at"`

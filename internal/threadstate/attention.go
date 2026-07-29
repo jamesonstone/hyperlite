@@ -40,27 +40,53 @@ func reviewSignature(thread model.Thread) string {
 }
 
 type candidate struct {
-	kind     model.AttentionKind
-	summary  string
-	why      string
-	evidence []string
+	kind        model.AttentionKind
+	fingerprint string
+	summary     string
+	action      string
+	why         string
+	consequence string
+	validWhile  string
+	evidence    []string
 }
 
 func currentCandidate(thread model.Thread) *candidate {
+	if !thread.Active {
+		return nil
+	}
+	if highConsequenceUncertainty(thread) {
+		return &candidate{
+			kind: model.AttentionUncertain, summary: staleSummary,
+			fingerprint: staleSummary,
+			action:      "Verify the stale evidence before authorizing the consequential boundary.",
+			why:         "Hyperlite cannot safely infer the current coordination state.",
+			consequence: "A consequential action may rely on an unsupported coordination conclusion.",
+			validWhile:  "The thread remains current and consequential while authoritative evidence is stale.",
+			evidence:    evidenceIDs(thread.Evidence),
+		}
+	}
 	for _, implication := range thread.Implications {
 		if implication.Category == "review_decision" {
 			return &candidate{
 				kind: model.AttentionDecide, summary: implication.Summary,
-				why:      "Review evidence challenges a material direction or boundary.",
-				evidence: implication.EvidenceIDs,
+				fingerprint: digest(implication),
+				action:      "Decide whether to accept or redirect the challenged direction.",
+				why:         "Review evidence challenges a material direction or boundary.",
+				consequence: "Implementation may continue against an unsettled project boundary.",
+				validWhile:  "The cited review decision remains unresolved and the thread remains current.",
+				evidence:    implication.EvidenceIDs,
 			}
 		}
 	}
-	if hasMergedArtifact(thread) && hasOpenObligation(thread) {
+	if hasOperationalObligation(thread) {
 		return &candidate{
 			kind: model.AttentionReconcile, summary: mergedObligationSummary,
-			why:      "Artifact completion does not complete the larger goal.",
-			evidence: obligationEvidence(thread),
+			fingerprint: openObligationFingerprint(thread),
+			action:      "Confirm ownership and completion order for the remaining operational obligation.",
+			why:         "Artifact completion does not complete the larger goal.",
+			consequence: "The implementation may be treated as delivered before the larger outcome is operational.",
+			validWhile:  "A merged implementation artifact and an unsatisfied operational obligation remain current.",
+			evidence:    obligationEvidence(thread),
 		}
 	}
 	if (thread.Phase == model.ThreadReviewing ||
@@ -68,28 +94,32 @@ func currentCandidate(thread model.Thread) *candidate {
 		hasActionableBoundary(thread) {
 		return &candidate{
 			kind: model.AttentionGuard, summary: boundarySummary,
-			why:      "Production, security, migration, or infrastructure implications should be understood before merge.",
-			evidence: boundaryEvidence(thread),
+			fingerprint: boundaryFingerprint(thread),
+			action:      "Review and authorize the consequential boundary before merge or activation.",
+			why:         "Production, security, migration, or infrastructure implications should be understood before merge.",
+			consequence: "A consequential change may proceed without informed coordination.",
+			validWhile:  "The thread remains current, near delivery, and the cited boundary action is still prospective.",
+			evidence:    boundaryEvidence(thread),
 		}
 	}
-	if hasCoordinationRelation(thread) {
+	if hasActionableCoordination(thread) {
 		return &candidate{
 			kind: model.AttentionReconcile, summary: coordinationSummary,
-			why:      "An authoritative dependency or execution order affects how this goal can proceed.",
-			evidence: relationEvidence(thread),
-		}
-	}
-	if hasStaleEvidence(thread) {
-		return &candidate{
-			kind: model.AttentionUncertain, summary: staleSummary,
-			why:      "Hyperlite cannot safely infer the current coordination state.",
-			evidence: evidenceIDs(thread.Evidence),
+			fingerprint: coordinationFingerprint(thread),
+			action:      "Reconcile execution order with the authoritative dependency.",
+			why:         "An authoritative dependency or execution order affects how this goal can proceed.",
+			consequence: "Parallel work may proceed in an invalid or unsafe order.",
+			validWhile:  "The thread remains current and the authoritative dependency still affects execution.",
+			evidence:    relationEvidence(thread),
 		}
 	}
 	return nil
 }
 
 func changedCandidate(previous, current MaterialSignature, thread model.Thread) *candidate {
+	if !thread.Active {
+		return nil
+	}
 	if candidate := currentCandidate(thread); candidate != nil {
 		return candidate
 	}
@@ -98,26 +128,15 @@ func changedCandidate(previous, current MaterialSignature, thread model.Thread) 
 	}
 	if (previous.Dependencies != current.Dependencies ||
 		previous.Obligations != current.Obligations) &&
-		(hasOpenObligation(thread) || hasCoordinationRelation(thread)) {
+		(hasOperationalObligation(thread) || hasActionableCoordination(thread)) {
 		return &candidate{
 			kind: model.AttentionReconcile, summary: dependencyChangeSummary,
-			why:      "The coordination path for this goal is materially different.",
-			evidence: append(relationEvidence(thread), obligationEvidence(thread)...),
-		}
-	}
-	if previous.Review != current.Review {
-		return &candidate{
-			kind: model.AttentionKnow, summary: "Material review conclusions changed",
-			why:      "Prior review decisions no longer reflect the latest evidence.",
-			evidence: evidenceIDs(thread.Evidence),
-		}
-	}
-	if previous.Goal != current.Goal || previous.Rationale != current.Rationale ||
-		(previous.Implications != current.Implications && hasActionableBoundary(thread)) {
-		return &candidate{
-			kind: model.AttentionKnow, summary: "The goal's direction or implications changed",
-			why:      "Durable intent or material consequences changed.",
-			evidence: evidenceIDs(thread.Evidence),
+			fingerprint: current.Dependencies + "\x1f" + current.Obligations,
+			action:      "Reconcile the changed execution path before work proceeds.",
+			why:         "The coordination path for this goal is materially different.",
+			consequence: "Parallel work may continue with obsolete dependencies or ordering.",
+			validWhile:  "This is the latest material revision and its coordination requirement remains current.",
+			evidence:    append(relationEvidence(thread), obligationEvidence(thread)...),
 		}
 	}
 	return nil
@@ -126,8 +145,10 @@ func changedCandidate(previous, current MaterialSignature, thread model.Thread) 
 func moment(thread model.Thread, revision string, value candidate, now time.Time) model.AttentionMoment {
 	return model.AttentionMoment{
 		ID: thread.ID + "@" + revision, Kind: value.kind, Summary: value.summary,
-		Why: value.why, Revision: revision, EvidenceIDs: uniqueStrings(value.evidence),
-		CreatedAt: now, Seen: false,
+		Action: value.action, Why: value.why, Consequence: value.consequence,
+		ValidWhile: value.validWhile, Revision: revision,
+		EvidenceIDs: uniqueStrings(value.evidence),
+		CreatedAt:   now, Seen: false,
 	}
 }
 
@@ -170,6 +191,34 @@ func hasCoordinationRelation(thread model.Thread) bool {
 		}
 	}
 	return false
+}
+
+func hasActionableCoordination(thread model.Thread) bool {
+	if !hasCoordinationRelation(thread) {
+		return false
+	}
+	switch thread.Phase {
+	case model.ThreadPlanned, model.ThreadImplementing,
+		model.ThreadReviewing, model.ThreadOperationalizing:
+		return true
+	default:
+		return false
+	}
+}
+
+func hasOperationalObligation(thread model.Thread) bool {
+	return hasMergedArtifact(thread) && hasOpenObligation(thread)
+}
+
+func highConsequenceUncertainty(thread model.Thread) bool {
+	if !hasStaleEvidence(thread) {
+		return false
+	}
+	return hasOperationalObligation(thread) ||
+		reviewSignature(thread) != "" ||
+		((thread.Phase == model.ThreadReviewing ||
+			thread.Phase == model.ThreadOperationalizing) &&
+			(hasActionableBoundary(thread) || hasActionableCoordination(thread)))
 }
 
 func hasStaleEvidence(thread model.Thread) bool {

@@ -131,6 +131,51 @@ func TestOpenIssueRequiresRecentCoordinationEvidence(t *testing.T) {
 	}
 }
 
+func TestOpenPullRequestRequiresRecentMovementOrDecision(t *testing.T) {
+	now := time.Date(2026, 7, 28, 12, 0, 0, 0, time.UTC)
+	thread := model.Thread{
+		Phase: model.ThreadReviewing,
+		Artifacts: []model.ThreadArtifact{{
+			Kind: model.ArtifactPullRequest, State: "open",
+			UpdatedAt: now.Add(-25 * time.Hour),
+		}},
+	}
+	repository := config.Repository{GitHub: "owner/repo"}
+	if activeFromEvidence(
+		thread, repository, false, nil, nil, 24*time.Hour, now,
+	) {
+		t.Fatal("untouched open pull request remained in flight")
+	}
+	thread.Implications = []model.ThreadImplication{{
+		Summary: "Ownership must be decided.", Category: "review_decision",
+	}}
+	if !activeFromEvidence(
+		thread, repository, false, nil, nil, 24*time.Hour, now,
+	) {
+		t.Fatal("unresolved material decision did not preserve liveness")
+	}
+}
+
+func TestPostMergeObligationDoesNotExpireWithArtifactRecency(t *testing.T) {
+	now := time.Date(2026, 7, 28, 12, 0, 0, 0, time.UTC)
+	thread := model.Thread{
+		Phase: model.ThreadOperationalizing,
+		Artifacts: []model.ThreadArtifact{{
+			Kind: model.ArtifactPullRequest, State: "merged",
+			UpdatedAt: now.Add(-30 * 24 * time.Hour),
+		}},
+		Obligations: []model.ThreadObligation{{
+			Summary: "Deploy the required infrastructure.",
+		}},
+	}
+	if !activeFromEvidence(
+		thread, config.Repository{GitHub: "owner/repo"},
+		false, nil, nil, 24*time.Hour, now,
+	) {
+		t.Fatal("post-merge operational obligation expired with PR recency")
+	}
+}
+
 func TestOnlyRecentDurableIssueLaneCanEstablishLocalLiveness(t *testing.T) {
 	now := time.Date(2026, 7, 28, 12, 0, 0, 0, time.UTC)
 	repository := config.Repository{

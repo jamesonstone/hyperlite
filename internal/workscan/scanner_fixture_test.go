@@ -182,3 +182,23 @@ func (successfulInference) Enrich(
 	}
 	return values, nil
 }
+
+type reviewDecisionInference struct{}
+
+func (reviewDecisionInference) Enrich(
+	_ context.Context,
+	_ string,
+	threads []model.Thread,
+) ([]model.InferenceThread, error) {
+	values := make([]model.InferenceThread, 0, len(threads))
+	for _, thread := range threads {
+		values = append(values, model.InferenceThread{
+			ThreadID: thread.ID, ReviewSignificant: true, Confidence: 0.9,
+			ReviewSummary: model.InferenceClaim{
+				Text:        "Ownership must be decided before the contract changes.",
+				EvidenceIDs: []string{"spec:0001"},
+			},
+		})
+	}
+	return values, nil
+}

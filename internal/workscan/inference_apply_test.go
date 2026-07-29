@@ -67,6 +67,24 @@ func TestReviewSignificanceControlsAttention(t *testing.T) {
 	}
 }
 
+func TestMaterialReviewRevivesDormantOpenPullRequest(t *testing.T) {
+	thread := model.Thread{
+		ID: "issue:owner/repo#2", Phase: model.ThreadReviewing,
+		Artifacts: []model.ThreadArtifact{{
+			Kind: model.ArtifactPullRequest, State: "open",
+		}},
+	}
+	applyInference(&thread, model.InferenceThread{
+		ThreadID: thread.ID, ReviewSignificant: true,
+		ReviewSummary: model.InferenceClaim{
+			Text: "Ownership must be decided before the contract changes.",
+		},
+	})
+	if !thread.Active {
+		t.Fatal("material review decision did not revive the current working set")
+	}
+}
+
 func TestEvidenceMentionsCreateCitedCrossThreadHypothesisOnly(t *testing.T) {
 	threads := []model.Thread{
 		{

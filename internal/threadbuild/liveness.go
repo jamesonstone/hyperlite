@@ -22,7 +22,8 @@ func activeFromEvidence(
 	if thread.Phase == model.ThreadComplete {
 		return false
 	}
-	if hasOpenPullRequest(thread) {
+	if hasRecentOpenPullRequest(thread, staleAfter, now) ||
+		(hasOpenPullRequest(thread) && hasUnresolvedDecision(thread)) {
 		return true
 	}
 	merged := hasMergedPullRequest(thread)
@@ -52,10 +53,35 @@ func hasOpenPullRequest(thread model.Thread) bool {
 	return false
 }
 
+func hasRecentOpenPullRequest(
+	thread model.Thread,
+	staleAfter time.Duration,
+	now time.Time,
+) bool {
+	for _, artifact := range thread.Artifacts {
+		state := strings.ToLower(artifact.State)
+		if artifact.Kind == model.ArtifactPullRequest &&
+			(state == "open" || state == "draft") &&
+			recent(artifact.UpdatedAt, now, staleAfter) {
+			return true
+		}
+	}
+	return false
+}
+
 func hasMergedPullRequest(thread model.Thread) bool {
 	for _, artifact := range thread.Artifacts {
 		if artifact.Kind == model.ArtifactPullRequest &&
 			strings.EqualFold(artifact.State, "merged") {
+			return true
+		}
+	}
+	return false
+}
+
+func hasUnresolvedDecision(thread model.Thread) bool {
+	for _, implication := range thread.Implications {
+		if implication.Category == "review_decision" {
 			return true
 		}
 	}

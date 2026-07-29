@@ -5,7 +5,7 @@ struct HyperliteInteractionModelTests {
     static func main() throws {
         try testSchemaV2Decoding()
         try testStructuredDiagnosticDecoding()
-        testActiveSectionOrdering()
+        testAttentionOnlyPrimaryProjection()
         testRowSummaryOnlyShowsAttention()
         testCommandEntries()
         testProjectEntries()
@@ -41,7 +41,10 @@ struct HyperliteInteractionModelTests {
             "evidence": [],
             "attention": [{
               "id": "moment:1", "kind": "reconcile", "summary": "Deployment remains",
+              "action": "Confirm deployment ownership.",
               "why": "The merged PR does not deploy infrastructure.", "revision": "abc",
+              "consequence": "The service may ship without infrastructure.",
+              "valid_while": "The deployment obligation remains open.",
               "evidence_ids": [], "created_at": "2026-07-28T12:00:00Z", "seen": false
             }],
             "latest_material_revision": "abc",
@@ -61,6 +64,10 @@ struct HyperliteInteractionModelTests {
         expect(scan.remoteRefreshIntervalSeconds == 300, "refresh interval should decode")
         expect(scan.threads[0].phase == .operationalizing, "lifecycle phase should decode")
         expect(scan.threads[0].hasUnseenAttention, "unseen revision should count as attention")
+        expect(scan.threads[0].attention[0].action == "Confirm deployment ownership.",
+               "expected cognitive action should decode")
+        expect(scan.threads[0].attention[0].validWhile == "The deployment obligation remains open.",
+               "attention validity should decode")
         expect(scan.threads[0].latestMaterialRevision == "abc", "seen revision anchor should decode")
         expect(scan.threads[0].note == "Coordinate the bucket first.", "optional notes should decode")
         expect(scan.threads[0].inferenceStatus == "unavailable", "degraded inference should decode")
@@ -82,7 +89,7 @@ struct HyperliteInteractionModelTests {
         expect(diagnostic.repositoryPath == "/repo/kit", "repository path should decode")
     }
 
-    private static func testActiveSectionOrdering() {
+    private static func testAttentionOnlyPrimaryProjection() {
         let now = Date()
         let attention = thread(id: "attention", repository: "owner/r2", active: true, unseen: true, updatedAt: now)
         let activeOld = thread(
@@ -107,15 +114,10 @@ struct HyperliteInteractionModelTests {
             updatedAt: now.addingTimeInterval(60)
         )
         let scan = scan(threads: [complete, inactiveAttention, activeOld, attention], now: now)
-        let visible = HyperlitePresentation.visibleThreads(scan: scan)
-        expect(visible.map(\.id) == ["attention", "active-old"],
-               "only active threads should be visible and attention should come first")
-        expect(HyperlitePresentation.threads(
-            scan: scan, section: .inFlight
-        ).map(\.id) == ["active-old"], "active threads must not age out")
-        expect(HyperlitePresentation.threads(
-            scan: scan, section: .attention
-        ).map(\.id) == ["attention"], "inactive unread moments must not appear as attention")
+        expect(HyperlitePresentation.attentionThreads(scan: scan).map(\.id) == ["attention"],
+               "the primary projection should contain current attention only")
+        expect(HyperlitePresentation.activeThreads(scan: scan).map(\.id) == ["attention", "active-old"],
+               "the working set should remain available outside the primary list")
     }
 
     private static func testCommandEntries() {
@@ -233,7 +235,10 @@ struct HyperliteInteractionModelTests {
                     id: "\(id)@revision",
                     kind: "know",
                     summary: whyNow,
+                    action: "Update the working mental model.",
                     why: "A material change occurred.",
+                    consequence: "Later decisions may use stale context.",
+                    validWhile: "This is the latest material revision.",
                     revision: "revision",
                     evidenceIDs: [],
                     createdAt: updatedAt,

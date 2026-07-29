@@ -38,17 +38,15 @@ struct HyperliteWindow: View {
     @ObservedObject var state: HyperliteState
     @State private var pendingPrune: HyperliteDiagnostic?
     @State private var selectedThread: HyperliteThread?
-    @State private var highlightedThreadID: String?
-    @State private var revealThreadID: String?
-    @State private var highlightClearTask: Task<Void, Never>?
 
-    private var visibleThreads: [HyperliteThread] { state.visibleThreads() }
+    private var activeThreads: [HyperliteThread] { state.activeThreads() }
+    private var attentionThreads: [HyperliteThread] { state.attentionThreads() }
     private var warnings: [HyperliteDiagnostic] { state.scan?.warnings ?? [] }
 
     var body: some View {
-        let threads = visibleThreads
+        let attention = attentionThreads
+        let active = activeThreads
         let currentWarnings = warnings
-        let activeCount = threads.filter(\.active).count
         return ZStack {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .firstTextBaseline) {
@@ -57,7 +55,18 @@ struct HyperliteWindow: View {
                         HStack(spacing: 4) {
                             HyperliteGhostMark()
                                 .frame(width: 12, height: 12)
-                            Text("\(activeCount) thread\(activeCount == 1 ? "" : "s") in flight")
+                            Text(attention.isEmpty
+                                ? "Nothing needs attention"
+                                : "\(attention.count) thread\(attention.count == 1 ? "" : "s") need attention")
+                            if !active.isEmpty {
+                                Text("·")
+                                Button("\(active.count) active") {
+                                    state.showPalette(.projects)
+                                }
+                                .buttonStyle(.plain)
+                                .underline()
+                                .help("Browse the current working set in Command-P")
+                            }
                         }
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(.secondary)
@@ -80,34 +89,22 @@ struct HyperliteWindow: View {
                 if state.scan == nil {
                     ProgressView("Reconstructing local threads…")
                         .controlSize(.small)
-                } else if threads.isEmpty {
-                    HyperliteEmptyState()
+                } else if attention.isEmpty {
+                    HyperliteEmptyState(activeCount: active.count)
                 } else {
-                    ScrollViewReader { proxy in
-                        ScrollView {
-                            LazyVStack(alignment: .leading, spacing: 8) {
-                                ForEach(HyperliteThreadSection.allCases, id: \.rawValue) { section in
-                                    let sectionThreads = state.threads(section: section)
-                                    if !sectionThreads.isEmpty {
-                                        HyperliteSectionHeader(section: section, count: sectionThreads.count)
-                                        ForEach(sectionThreads) { thread in
-                                            HyperliteThreadRow(
-                                                thread: thread,
-                                                highlighted: thread.id == highlightedThreadID,
-                                                onOpen: { selectedThread = thread }
-                                            )
-                                            .id(thread.id)
-                                            if thread.id != sectionThreads.last?.id { Divider() }
-                                        }
-                                    }
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 8) {
+                            HyperliteSectionHeader(count: attention.count)
+                            ForEach(attention) { thread in
+                                HyperliteThreadRow(
+                                    thread: thread,
+                                    highlighted: false,
+                                    onOpen: { selectedThread = thread }
+                                )
+                                if thread.id != attention.last?.id {
+                                    Divider()
                                 }
                             }
-                        }
-                        .onChange(of: revealThreadID) { threadID in
-                            guard let threadID else { return }
-                            proxy.scrollTo(threadID, anchor: .center)
-                            scheduleHighlightClear(for: threadID)
-                            revealThreadID = nil
                         }
                     }
                 }
@@ -120,7 +117,7 @@ struct HyperliteWindow: View {
                     .onTapGesture { state.dismissPalette() }
                 HyperliteCommandPalette(
                     mode: mode,
-                    threads: threads,
+                    threads: active,
                     warnings: currentWarnings,
                     onAction: handlePaletteAction,
                     onDismiss: state.dismissPalette
@@ -149,12 +146,6 @@ struct HyperliteWindow: View {
         } message: {
             Text("Git will prune all stale worktree records for \(pendingPrune?.repository ?? "this repository") after re-verifying the selected path.")
         }
-        .onDisappear {
-            highlightClearTask?.cancel()
-            highlightClearTask = nil
-            highlightedThreadID = nil
-            revealThreadID = nil
-        }
     }
 
     private var pruneConfirmationPresented: Binding<Bool> {
@@ -174,19 +165,7 @@ struct HyperliteWindow: View {
         case let .prune(diagnostic):
             pendingPrune = diagnostic
         case let .reveal(threadID):
-            highlightClearTask?.cancel()
-            highlightClearTask = nil
-            highlightedThreadID = threadID
-            revealThreadID = threadID
-        }
-    }
-
-    private func scheduleHighlightClear(for threadID: String) {
-        highlightClearTask?.cancel()
-        highlightClearTask = Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 1_200_000_000)
-            guard !Task.isCancelled, highlightedThreadID == threadID else { return }
-            highlightedThreadID = nil
+            selectedThread = state.activeThreads().first { $0.id == threadID }
         }
     }
 }

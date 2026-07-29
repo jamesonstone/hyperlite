@@ -45,11 +45,25 @@ func applyInference(thread *model.Thread, inference model.InferenceThread) {
 			Confidence:  inference.Confidence,
 			EvidenceIDs: append([]string{}, inference.ReviewSummary.EvidenceIDs...),
 		})
+		if thread.Phase != model.ThreadComplete && hasOpenPullRequestArtifact(*thread) {
+			thread.Active = true
+		}
 	}
 	if inference.Confidence > 0 {
 		thread.Confidence = inference.Confidence
 	}
 	sortRelations(thread.Dependencies)
+}
+
+func hasOpenPullRequestArtifact(thread model.Thread) bool {
+	for _, artifact := range thread.Artifacts {
+		state := strings.ToLower(artifact.State)
+		if artifact.Kind == model.ArtifactPullRequest &&
+			(state == "open" || state == "draft") {
+			return true
+		}
+	}
+	return false
 }
 
 func resolveRelations(threads []model.Thread) {

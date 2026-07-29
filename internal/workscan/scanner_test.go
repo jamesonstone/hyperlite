@@ -76,7 +76,7 @@ func TestScannerGoldenR2EventSinkThreads(t *testing.T) {
 	}
 }
 
-func TestScannerRemoteFailurePreservesCachedOpenPRAsStale(t *testing.T) {
+func TestScannerRemoteFailurePreservesCacheWithoutManufacturingAttention(t *testing.T) {
 	now := time.Date(2026, 7, 28, 14, 0, 0, 0, time.UTC)
 	repository := config.Repository{Name: "r2", Path: "/repo/r2", GitHub: "owner/r2", Base: "main", Remote: "origin"}
 	cached := evidence([]model.PullRequest{openPR("r2", 11, "R2 implementation", "GH-10", issue("r2", 10, "R2", "OPEN", now), now)}, nil)
@@ -96,8 +96,8 @@ func TestScannerRemoteFailurePreservesCachedOpenPRAsStale(t *testing.T) {
 		thread.Artifacts[0].Freshness != "stale" {
 		t.Fatalf("cached artifact = %#v", thread.Artifacts)
 	}
-	if result.Summary.Attention != 1 || thread.Attention[0].Kind != model.AttentionUncertain {
-		t.Fatalf("stale attention = %#v", thread.Attention)
+	if result.Summary.Attention != 0 || len(thread.Attention) != 0 {
+		t.Fatalf("ordinary stale evidence created attention: %#v", thread.Attention)
 	}
 	if len(result.Errors) != 1 || result.Errors[0].Message != "offline" {
 		t.Fatalf("errors = %#v", result.Errors)
@@ -224,5 +224,35 @@ func TestInferUsesExistingScanWithDefaultClock(t *testing.T) {
 		result.Summary.InFlight != 1 ||
 		result.Threads[0].InferenceStatus != "current" {
 		t.Fatalf("calls=%d result=%#v", memory.calls, result)
+	}
+}
+
+func TestInferReconcilesFreshDecisionAttention(t *testing.T) {
+	now := time.Date(2026, 7, 28, 14, 0, 0, 0, time.UTC)
+	repository := config.Repository{Name: "r2", Path: "/repo/r2", GitHub: "owner/r2", Base: "main"}
+	memory := fakeMemory{results: map[string]memoryscan.Result{
+		repository.Path: {Documents: []memoryscan.Document{{
+			ID: "spec:0001", FeatureID: "0001", Title: "R2", Phase: "implement",
+			Selected: true, Path: "docs/specs/0001-r2/SPEC.md", Purpose: "Store payloads.",
+			UpdatedAt: now,
+		}}},
+	}}
+	scanner := testScanner(now, []config.Repository{repository}, fakeGitHub{}, memory, &fakeStore{state: threadstate.Empty()})
+	scanner.Inference = reviewDecisionInference{}
+	cfg := testConfig()
+	cfg.Settings.OllamaModel = "local-model"
+
+	result, err := scanner.Infer(context.Background(), cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Summary.Attention != 1 || len(result.Threads) != 1 ||
+		len(result.Threads[0].Attention) != 1 {
+		t.Fatalf("fresh inference attention = %#v", result)
+	}
+	moment := result.Threads[0].Attention[0]
+	if moment.Kind != model.AttentionDecide || moment.Action == "" ||
+		moment.Consequence == "" || moment.ValidWhile == "" {
+		t.Fatalf("decision contract = %#v", moment)
 	}
 }

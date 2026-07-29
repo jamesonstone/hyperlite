@@ -2,14 +2,13 @@ import AppKit
 import SwiftUI
 
 struct HyperliteSectionHeader: View {
-    let section: HyperliteThreadSection
     let count: Int
 
     var body: some View {
         HStack {
-            Text(section.title)
+            Text("Attention")
                 .font(.caption.weight(.bold))
-                .foregroundStyle(section == .attention ? Color.orange : Color.secondary)
+                .foregroundStyle(Color.orange)
             Text("\(count)")
                 .font(.caption2.monospacedDigit().weight(.bold))
                 .foregroundStyle(.secondary)
@@ -20,20 +19,29 @@ struct HyperliteSectionHeader: View {
 }
 
 struct HyperliteEmptyState: View {
+    let activeCount: Int
+
     var body: some View {
         VStack(spacing: 8) {
-            Image(systemName: "sparkles")
+            Image(systemName: "checkmark.circle")
                 .font(.system(size: 28))
-                .foregroundStyle(.secondary)
-            Text("No threads in flight")
+                .foregroundStyle(.cyan)
+            Text("Nothing needs your attention")
                 .font(.headline)
-            Text("Hyperlite found no active coordination in the selected projects.")
+            Text(message)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 48)
+    }
+
+    private var message: String {
+        guard activeCount > 0 else {
+            return "No current coordination requires intervention."
+        }
+        return "\(activeCount) active thread\(activeCount == 1 ? "" : "s") remain available in Command-P."
     }
 }
 

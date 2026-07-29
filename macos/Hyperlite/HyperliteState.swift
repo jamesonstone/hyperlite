@@ -73,18 +73,18 @@ final class HyperliteState: ObservableObject {
         }
     }
 
-    func visibleThreads() -> [HyperliteThread] {
+    func activeThreads() -> [HyperliteThread] {
         guard let scan else { return [] }
-        return HyperlitePresentation.visibleThreads(scan: scan)
+        return HyperlitePresentation.activeThreads(scan: scan)
     }
 
-    func threads(section: HyperliteThreadSection) -> [HyperliteThread] {
+    func attentionThreads() -> [HyperliteThread] {
         guard let scan else { return [] }
-        return HyperlitePresentation.threads(scan: scan, section: section)
+        return HyperlitePresentation.attentionThreads(scan: scan)
     }
 
     func attentionThreadCount() -> Int {
-        threads(section: .attention).count
+        attentionThreads().count
     }
 
     func markSeen(threadID: String) {

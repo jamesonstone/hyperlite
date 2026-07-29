@@ -161,7 +161,7 @@ func TestReconcileIgnoresRoutineArtifactChurn(t *testing.T) {
 	}
 }
 
-func TestReconcileRetainsMissingActiveThreadOnlyWhileRepositorySelected(t *testing.T) {
+func TestReconcileDemotesMissingThreadButRetainsPrivateState(t *testing.T) {
 	now := time.Date(2026, 7, 28, 12, 0, 0, 0, time.UTC)
 	state := Empty()
 	thread := model.Thread{
@@ -181,11 +181,12 @@ func TestReconcileRetainsMissingActiveThreadOnlyWhileRepositorySelected(t *testi
 	SetInference(&state, thread.ID, "digest", model.InferenceThread{ThreadID: thread.ID}, now)
 
 	values := ReconcileSelected(&state, nil, []string{"owner/repo"}, now.Add(time.Minute))
-	if len(values) != 1 || !values[0].Active ||
-		values[0].Artifacts[0].Freshness != "stale" ||
-		len(values[0].Attention) != 1 ||
-		values[0].Attention[0].Kind != model.AttentionUncertain {
-		t.Fatalf("retained thread = %#v", values)
+	if len(values) != 0 || len(state.Threads) != 1 ||
+		!state.Threads[0].Missing || state.Threads[0].Snapshot.Active {
+		t.Fatalf("missing thread projection = %#v state=%#v", values, state)
+	}
+	if len(state.Inferences) != 1 {
+		t.Fatalf("missing thread lost cached inference: %#v", state.Inferences)
 	}
 
 	values = ReconcileSelected(&state, nil, []string{"owner/other"}, now.Add(2*time.Minute))

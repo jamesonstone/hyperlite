@@ -5,9 +5,11 @@
 - Hyperlite infers coordination state from the evidence a selected project
   already produces. It must not require users to create goals, link artifacts,
   assign lifecycle state, order work, or record completion in Hyperlite.
-- Human attention is reserved for material coordination changes, consequential
-  boundaries, and uncertainty. Ordinary artifact motion remains visible
-  progress without becoming an attention event.
+- Durable thread memory, the current working set, and human attention are
+  separate projections. Attention is reserved for supported decisions,
+  consequential boundaries, authoritative coordination needs, post-merge
+  operational obligations, and consequential uncertainty; ordinary artifact
+  motion remains progress without becoming an attention event.
 
 ## CONSTRAINTS
 
@@ -20,12 +22,17 @@
 - Issues and local Git state are corroborating evidence, not perpetual
   activity. Old issues, default-branch dirt, temporary automation worktrees,
   and unrelated historical specs do not establish an in-flight goal.
-- An attention moment must remain supported by current evidence. Negative
-  safety statements and incidental boundary keywords are context, not
-  consequential actions; invalidated unread moments retire automatically.
-- The primary attention surface contains active coordination only. Completed
+- An attention moment states the expected cognitive action, why it matters now,
+  the consequence of inaction, and the condition that keeps it valid. Negative
+  safety statements, incidental boundary keywords, ordinary metadata
+  enrichment, and missing evidence alone are context, not attention;
+  invalidated unread moments retire automatically. Acknowledgement survives
+  unrelated evidence revisions while the underlying coordination situation is
+  unchanged.
+- The primary attention surface contains only current unseen attention. The
+  current working set remains available through compact navigation; completed
   and dormant projections may remain in private state and scan output for
-  continuity, but they do not occupy the interface or thread navigation.
+  continuity but do not occupy the interface.
 - Exact evidence owns thread membership. Semantic inference may relate
   separate threads, but it may not merge them, establish authoritative
   lifecycle state, suppress a thread, or close a goal.
@@ -86,8 +93,9 @@
   review, branch, worktree, or infrastructure document observed by Hyperlite.
 - **Obligation**: a required outcome that must be satisfied before a thread can
   be considered complete.
-- **Attention moment**: a material change that requires a person to decide,
-  know, guard, reconcile, or inspect uncertainty.
+- **Attention moment**: a temporary, evidence-supported relationship between a
+  current situation and a useful human cognitive action, including deciding,
+  guarding, reconciling, or inspecting consequential uncertainty.
 - **Exact evidence**: an identifier or explicit link that can authoritatively
   establish artifact membership or lifecycle state.
 - **Hypothesis**: a cited semantic relationship that may warn or explain but

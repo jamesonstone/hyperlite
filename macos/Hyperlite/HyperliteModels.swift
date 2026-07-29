@@ -189,14 +189,18 @@ struct HyperliteAttentionMoment: Codable, Equatable, Identifiable {
     let id: String
     let kind: String
     let summary: String
+    let action: String?
     let why: String
+    let consequence: String?
+    let validWhile: String?
     let revision: String
     let evidenceIDs: [String]
     let createdAt: Date
     let seen: Bool
 
     enum CodingKeys: String, CodingKey {
-        case id, kind, summary, why, revision, seen
+        case id, kind, summary, action, why, consequence, revision, seen
+        case validWhile = "valid_while"
         case evidenceIDs = "evidence_ids"
         case createdAt = "created_at"
     }
@@ -222,61 +226,5 @@ struct HyperliteDiagnostic: Codable, Equatable, Identifiable {
         case repository, stage, message, code
         case repositoryPath = "repository_path"
         case worktreePath = "worktree_path"
-    }
-}
-
-enum HyperliteThreadSection: Int, CaseIterable {
-    case attention
-    case inFlight
-
-    var title: String {
-        switch self {
-        case .attention: "Attention"
-        case .inFlight: "In Flight"
-        }
-    }
-}
-
-enum HyperlitePresentation {
-    static func threads(
-        scan: HyperliteThreadScan,
-        section: HyperliteThreadSection
-    ) -> [HyperliteThread] {
-        let active = activeThreads(scan: scan)
-        switch section {
-        case .attention:
-            return active.filter(\.hasUnseenAttention)
-        case .inFlight:
-            return active.filter { !$0.hasUnseenAttention }
-        }
-    }
-
-    static func visibleThreads(scan: HyperliteThreadScan) -> [HyperliteThread] {
-        HyperliteThreadSection.allCases.flatMap {
-            threads(scan: scan, section: $0)
-        }
-    }
-
-    static func rowSummary(for thread: HyperliteThread) -> String? {
-        thread.hasUnseenAttention ? thread.whyNow : nil
-    }
-
-    static func ageLabel(for date: Date?, now: Date = Date()) -> String {
-        guard let date else { return "age unknown" }
-        let seconds = max(0, Int(now.timeIntervalSince(date)))
-        if seconds < 60 { return "now" }
-        if seconds < 3_600 { return "\(seconds / 60)m" }
-        if seconds < 86_400 { return "\(seconds / 3_600)h" }
-        return "\(seconds / 86_400)d"
-    }
-
-    private static func activeThreads(scan: HyperliteThreadScan) -> [HyperliteThread] {
-        scan.threads.filter(\.active).sorted {
-            if $0.hasUnseenAttention != $1.hasUnseenAttention {
-                return $0.hasUnseenAttention
-            }
-            if $0.updatedAt != $1.updatedAt { return $0.updatedAt > $1.updatedAt }
-            return $0.id < $1.id
-        }
     }
 }

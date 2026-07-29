@@ -31,7 +31,15 @@ struct HyperliteThreadDetail: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     detailSection("Goal", thread.goal)
-                    detailSection("Why now", thread.whyNow)
+                    if let attention = currentAttention {
+                        detailSection("Needs your attention", attention.summary)
+                        optionalDetailSection("What to do", attention.action)
+                        detailSection("Why now", attention.why)
+                        optionalDetailSection("If ignored", attention.consequence)
+                        optionalDetailSection("Valid while", attention.validWhile)
+                    } else {
+                        detailSection("Current context", thread.whyNow)
+                    }
                     detailSection("Rationale", thread.rationale)
                     detailSection("Progress", progressSummary)
                     if !thread.dependencies.isEmpty {
@@ -83,11 +91,22 @@ struct HyperliteThreadDetail: View {
         return artifactSummary.isEmpty ? "No active artifact evidence." : artifactSummary
     }
 
+    private var currentAttention: HyperliteAttentionMoment? {
+        thread.attention.last { !$0.seen }
+    }
+
     @ViewBuilder
     private func detailSection(_ title: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title).font(.headline)
             Text(value).textSelection(.enabled)
+        }
+    }
+
+    @ViewBuilder
+    private func optionalDetailSection(_ title: String, _ value: String?) -> some View {
+        if let value, !value.isEmpty {
+            detailSection(title, value)
         }
     }
 

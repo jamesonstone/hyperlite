@@ -51,21 +51,23 @@ func ReconcileSelected(
 			}
 		} else {
 			oldID := record.ID
+			previousCandidate := currentCandidate(record.Snapshot)
 			consumed[oldID] = true
 			record.ID = thread.ID
 			record.Aliases = mergeStrings(record.Aliases, thread.Aliases, []string{oldID})
 			wasMissing := record.Missing
 			record.Missing = false
 			if record.Revision != revision {
-				if candidate := changedCandidate(record.Signature, signature, *thread); (!wasMissing || record.Signature != signature) && candidate != nil {
-					record.Moments = append(record.Moments, moment(*thread, revision, *candidate, now))
+				if candidate := changedCandidate(record.Signature, signature, *thread); (!wasMissing || record.Signature != signature) &&
+					candidate != nil && !sameAttentionSituation(previousCandidate, candidate) {
+					record.Moments = appendAttentionMoment(record.Moments, *thread, revision, *candidate, now)
 				}
 				record.Revision = revision
 				record.Signature = signature
 				record.UpdatedAt = now
 			}
 		}
-		retireUnsupportedMoments(record.Moments, *thread)
+		retireUnsupportedMoments(record.Moments, *thread, record.Revision)
 		if !hasUnseenMoment(record.Moments) {
 			record.SeenRevision = record.Revision
 		}
@@ -92,22 +94,17 @@ func ReconcileSelected(
 		if _, exists := updated[record.ID]; exists || consumed[record.ID] {
 			continue
 		}
-		if shouldRetainSnapshot(record.Snapshot, selected, now) {
+		if shouldRetainRecord(record, selected, now) {
 			thread := staleSnapshot(record.Snapshot)
 			if thread.Active && !record.Missing {
 				record.Missing = true
-				record.Revision = digest(struct {
-					Signature MaterialSignature `json:"signature"`
-					Missing   bool              `json:"missing"`
-				}{record.Signature, true})
-				record.Moments = append(record.Moments, moment(thread, record.Revision, candidate{
-					kind:     model.AttentionUncertain,
-					summary:  "Previously active evidence disappeared before canonical closure",
-					why:      "Artifact disappearance cannot establish goal completion.",
-					evidence: evidenceIDs(thread.Evidence),
-				}, now))
 				record.UpdatedAt = now
 			}
+			thread.Active = false
+			for index := range record.Moments {
+				record.Moments[index].Seen = true
+			}
+			record.SeenRevision = record.Revision
 			if len(record.Moments) > 20 {
 				record.Moments = append([]model.AttentionMoment{}, record.Moments[len(record.Moments)-20:]...)
 			}
@@ -116,7 +113,9 @@ func ReconcileSelected(
 			thread.LatestMaterialRevision = record.Revision
 			thread.WhyNow = whyNow(thread)
 			record.Snapshot = snapshotFor(thread)
-			reconciled = append(reconciled, thread)
+			if thread.Phase == model.ThreadComplete {
+				reconciled = append(reconciled, thread)
+			}
 			updated[record.ID] = record
 		}
 	}
@@ -160,7 +159,12 @@ func repositoriesIn(threads []model.Thread) []string {
 	return uniqueStrings(repositories)
 }
 
-func shouldRetainSnapshot(snapshot model.Thread, selected map[string]struct{}, now time.Time) bool {
+func shouldRetainRecord(
+	record ThreadRecord,
+	selected map[string]struct{},
+	now time.Time,
+) bool {
+	snapshot := record.Snapshot
 	if snapshot.ID == "" {
 		return false
 	}
@@ -175,7 +179,8 @@ func shouldRetainSnapshot(snapshot model.Thread, selected map[string]struct{}, n
 		return false
 	}
 	return snapshot.Active ||
-		(snapshot.Phase == model.ThreadComplete && recentSnapshot(snapshot.UpdatedAt, now))
+		(snapshot.Phase == model.ThreadComplete && recentSnapshot(snapshot.UpdatedAt, now)) ||
+		(record.Missing && recentSnapshot(record.UpdatedAt, now))
 }
 
 func shouldRetainCurrentSnapshot(snapshot model.Thread, now time.Time) bool {

@@ -6,8 +6,9 @@ import (
 	"github.com/jamesonstone/hyperlite/internal/model"
 )
 
-func TestChangedCandidateDetectsRemovedReviewConclusion(t *testing.T) {
+func TestChangedCandidateIgnoresResolvedReviewConclusion(t *testing.T) {
 	thread := model.Thread{
+		Active:   true,
 		Evidence: []model.EvidenceRef{{ID: "review:1"}},
 	}
 	value := changedCandidate(
@@ -15,10 +16,8 @@ func TestChangedCandidateDetectsRemovedReviewConclusion(t *testing.T) {
 		MaterialSignature{},
 		thread,
 	)
-	if value == nil ||
-		value.kind != model.AttentionKnow ||
-		value.summary != "Material review conclusions changed" {
-		t.Fatalf("candidate = %#v", value)
+	if value != nil {
+		t.Fatalf("resolved review conclusion created attention: %#v", value)
 	}
 }
 
@@ -32,7 +31,7 @@ func TestWhyNowDescribesCompletedProjectionWithoutAmbiguity(t *testing.T) {
 
 func TestBoundaryAttentionRequiresActionableProspectiveChange(t *testing.T) {
 	thread := model.Thread{
-		Phase: model.ThreadReviewing,
+		Phase: model.ThreadReviewing, Active: true,
 		Implications: []model.ThreadImplication{{
 			Summary:  "Never point the fail-closed check at production.",
 			Category: "production",
@@ -80,7 +79,7 @@ func TestBoundaryAttentionRequiresActionableProspectiveChange(t *testing.T) {
 
 func TestSatisfiedObligationChangeDoesNotCreateAttention(t *testing.T) {
 	thread := model.Thread{
-		Phase: model.ThreadImplementing,
+		Phase: model.ThreadImplementing, Active: true,
 		Obligations: []model.ThreadObligation{{
 			Summary: "Deploy production.", Satisfied: true,
 		}},
@@ -95,9 +94,10 @@ func TestSatisfiedObligationChangeDoesNotCreateAttention(t *testing.T) {
 	}
 }
 
-func TestNonActionableDependencyChangeDoesNotMaskGoalChange(t *testing.T) {
+func TestMetadataEnrichmentDoesNotCreateAttention(t *testing.T) {
 	thread := model.Thread{
 		Phase:    model.ThreadImplementing,
+		Active:   true,
 		Evidence: []model.EvidenceRef{{ID: "spec:1"}},
 	}
 	value := changedCandidate(
@@ -105,9 +105,8 @@ func TestNonActionableDependencyChangeDoesNotMaskGoalChange(t *testing.T) {
 		MaterialSignature{Goal: "after", Dependencies: "after"},
 		thread,
 	)
-	if value == nil || value.kind != model.AttentionKnow ||
-		value.summary != "The goal's direction or implications changed" {
-		t.Fatalf("goal change was masked: %#v", value)
+	if value != nil {
+		t.Fatalf("metadata enrichment created attention: %#v", value)
 	}
 }
 
@@ -132,7 +131,7 @@ func TestBoundaryEvidenceExcludesUnrelatedImplicationCategories(t *testing.T) {
 
 func TestOnlyAuthoritativeCoordinationRelationsCreateAttention(t *testing.T) {
 	thread := model.Thread{
-		Phase: model.ThreadImplementing,
+		Phase: model.ThreadImplementing, Active: true,
 		Dependencies: []model.ThreadRelation{{
 			Kind: model.RelationDependsOn, Basis: model.BasisHypothesis,
 		}},
@@ -145,5 +144,24 @@ func TestOnlyAuthoritativeCoordinationRelationsCreateAttention(t *testing.T) {
 	if value == nil || value.kind != model.AttentionReconcile ||
 		value.summary != coordinationSummary {
 		t.Fatalf("authoritative dependency candidate = %#v", value)
+	}
+}
+
+func TestStaleEvidenceNeedsAConsequentialCurrentClaim(t *testing.T) {
+	thread := model.Thread{
+		Phase: model.ThreadReviewing, Active: true,
+		Evidence: []model.EvidenceRef{{
+			ID: "cached", Freshness: "stale",
+		}},
+	}
+	if value := currentCandidate(thread); value != nil {
+		t.Fatalf("ordinary stale evidence created attention: %#v", value)
+	}
+	thread.Implications = []model.ThreadImplication{{
+		Summary: "Deploy the production worker.", Category: "production",
+	}}
+	value := currentCandidate(thread)
+	if value == nil || value.kind != model.AttentionUncertain {
+		t.Fatalf("consequential stale evidence = %#v", value)
 	}
 }
