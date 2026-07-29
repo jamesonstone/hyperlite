@@ -11,6 +11,7 @@ struct HyperliteInteractionModelTests {
         testProjectEntries()
         testSelectionClamping()
         testHoverSummaryLimit()
+        try HyperliteProjectIndexTests.run()
         try await HyperliteNotepadTests.run()
         print("Hyperlite interaction model tests passed")
     }
@@ -205,6 +206,7 @@ struct HyperliteInteractionModelTests {
                 errors: 0,
                 warnings: 0
             ),
+            projectIndex: [],
             threads: threads,
             errors: [],
             warnings: []

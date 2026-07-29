@@ -85,10 +85,10 @@ completion.
   enrichment after deterministic results render.
 - R13: The main surface separates active threads with unseen valid Attention
   from the rest of the current working set. Attention receives the urgent
-  treatment; ordinary active threads remain visible as calm informational
-  components and in Command-K/Command-P. Completed and dormant projections
-  remain available to private state and the JSON contract but do not occupy
-  the active surface or its navigation. The menu count is the number of active
+  treatment; ordinary active threads remain available in Command-K/Command-P
+  and thread detail without occupying the attention surface. Completed and
+  dormant projections remain available to private state and the JSON contract
+  but do not occupy active navigation. The menu count is the number of active
   threads with unseen moments.
 - R14: Opening a thread marks moments through the displayed revision as seen
   and removes it from the urgent Attention list while retaining a still-current
@@ -132,12 +132,12 @@ completion.
   mentions are context only. Dependency or obligation changes require an
   authoritative dependency or an unsatisfied obligation. When stronger
   evidence invalidates an unread inferred moment, retire that moment.
-- R22: Keep the main surface quiet through visual hierarchy rather than
-  omission. Attention rows show the concise material explanation. Ordinary
-  working-set threads appear in a bottom-anchored plain-text ledger without
-  containers, alert color, alert iconography, goal excerpts, or “why now”
-  language. Full progress and evidence remain in thread detail and the
-  palettes.
+- R22: Keep the main surface quiet through visual hierarchy. Attention rows
+  show the concise material explanation. The bottom reference layer is a
+  plain-text spatial index of configured projects and their local paths, not a
+  second rendering of inferred threads. It uses no containers, alert color,
+  alert iconography, goal excerpts, or “why now” language. Full thread progress
+  and evidence remain in thread detail and the palettes.
 - R23: Do not render a generic scan-diagnostics control in the native header or
   Command-K. Preserve structured diagnostics in CLI/JSON and expose only
   actionable verified stale-worktree prune commands through Command-K.
@@ -158,7 +158,7 @@ completion.
   consequential decision or delivery boundary cannot be evaluated safely.
 - R28: Keep the native header anchored to the top of the window. Treat an empty
   Attention queue as successful without filling the vacated attention area.
-  Anchor the non-attention working set near the bottom as a distinct,
+  Anchor the configured-project spatial index near the bottom as a distinct,
   low-density reference layer. The header reports the complete active-thread
   count without implying that those threads need attention.
 - R29: Place one always-available global notepad directly below the native
@@ -169,6 +169,13 @@ completion.
   `~/.local/share/hyperlite/notepad.md`, using bounded user-only atomic writes.
   The notepad is optional operator memory: its content never enters evidence,
   inference, thread membership, lifecycle, or attention.
+- R30: Project configured paths into a stable bottom map in configuration
+  order. Every configured project appears even when it has no active inferred
+  thread. Always show its configured checkout; add a non-prunable registered
+  Git worktree only when an active thread cites that exact path. Order lanes by
+  path without making extra Git or GitHub calls. Lane presence, branch age,
+  cleanliness, and publication state do not independently establish activity
+  or attention; this projection exists only for orientation and spatial memory.
 
 Non-goals: user-authored task tracking, manual lifecycle management, hosted
 model calls, continuous polling, notifications, agent transcript ingestion,
@@ -192,10 +199,10 @@ or model-assisted note mutation.
    evidence first, then perform stale foreground refresh and semantic
    enrichment as separate bounded operations.
 6. Replace the native flat list with a compact Attention surface, a quiet
-   bottom-anchored working-set ledger, thread detail, optional notes, evidence
-   actions, and seen-revision persistence. Retain palettes, actionable pruning,
-   and direct artifact activation while keeping generic scan diagnostics out
-   of the native attention surface.
+   bottom-anchored configured-project map, thread detail, optional notes,
+   evidence actions, and seen-revision persistence. Retain palettes, actionable
+   pruning, and direct artifact activation while keeping generic scan
+   diagnostics out of the native attention surface.
 7. Validate the model with focused unit and integration fixtures, including
    distinct related R2 and Event Sink threads whose implementation pull
    requests do not satisfy their operational obligations.
@@ -217,13 +224,18 @@ or model-assisted note mutation.
 13. Treat open pull requests as strong but not perpetual working-set evidence:
     ordinary open or merged artifacts age dormant without current movement,
     while a still-supported material decision can preserve current relevance.
-14. Render unseen valid attention as the primary native list, render remaining
-    active threads as a plain-text reference ledger, retain palette and detail
-    navigation, and preserve empty space when no attention exists.
+14. Render unseen valid attention as the primary native list, keep active
+    threads available through palette and detail navigation, render configured
+    projects and local paths as the plain-text reference layer, and preserve
+    empty space when no attention exists.
 15. Add a plain-text global notepad beneath the fixed header, backed by one
     Go-owned local Markdown document and a three-second latest-edit debounce;
     keep Swift as the responsive draft owner and exclude the document from all
     inferred coordination paths.
+16. Derive a configured-project spatial index from the local Git results
+    already collected during a scan. Keep project and lane ordering stable,
+    preserve configured paths when repository inspection degrades, and include
+    only exact active-thread worktrees after excluding prunable metadata.
 
 ## DECISIONS
 
@@ -271,15 +283,18 @@ or model-assisted note mutation.
   when no situation currently benefits from user judgment. Empty space is part
   of that distinction; ordinary activity must not rush into the vacated
   attention area.
+- The bottom project map is configuration and filesystem orientation, not
+  inferred work state. Stable placement and path identity are more important
+  there than recency, phase, or semantic importance.
 
 ## ACCEPTANCE CRITERIA
 
 - AC1: Every material artifact belongs to exactly one inferred thread or is
   explicitly labeled uncorrelated.
 - AC2: Threads with positive unresolved evidence remain visible and navigable
-  regardless of age. Ordinary current threads are visually distinct from
-  Attention, while completed and dormant threads remain absent from the active
-  surface.
+  regardless of age. Ordinary current threads remain available through active
+  navigation without being styled as Attention, while completed and dormant
+  threads remain absent from the active surface.
 - AC3: Merging a pull request with an outstanding infrastructure or deployment
   obligation leaves the thread operationalizing.
 - AC4: Routine review repair and Git churn create no attention moment, while a
@@ -326,14 +341,20 @@ or model-assisted note mutation.
 - AC20: Every emitted moment includes a non-empty expected action, consequence,
   and validity statement in addition to its explanation and evidence.
 - AC21: The native surface keeps its header anchored to the top, presents only
-  unseen valid attention with urgent styling, and presents remaining active
-  threads in a bottom-anchored plain-text ledger. When no attention exists it
-  preserves substantial empty space without hiding the current working set.
+  unseen valid attention with urgent styling, and presents a bottom-anchored
+  plain-text map of configured projects and local lanes. When no attention
+  exists it preserves substantial empty space without hiding the configured
+  project map or active-thread navigation.
 - AC22: A borderless global notepad appears immediately below the header,
   remains responsive without per-keystroke processes or writes, saves only the
   latest edit after three idle seconds, flushes on application or window
   deactivation, survives relaunch, rejects content above 256 KiB, and remains
   absent from thread and attention projections.
+- AC23: The project map contains every configured project in stable
+  configuration order, always includes its configured checkout, adds real
+  registered worktree paths only when cited by active threads, excludes
+  prunable metadata, and remains unchanged by attention classification.
+  Building it performs no additional Git or GitHub commands.
 
 ## VALIDATION MAP
 
@@ -359,6 +380,9 @@ or model-assisted note mutation.
   packaged native hierarchy inspection.
 - AC22: Go path, permission, bound, atomic-write, and CLI tests; executable
   Swift load/debounce/flush tests; packaged editor interaction and relaunch
+  inspection.
+- AC23: deterministic project-index projection tests, schema decoding and path
+  presentation tests, command-count regression, and packaged native visual
   inspection.
 
 ## DISCOVERIES
@@ -476,6 +500,12 @@ or model-assisted note mutation.
   in-memory editor draft, and a three-second latest-edit debounce. Hyperlite
   needs those persistence and responsiveness properties, but not Beacon's
   tabs, styled Markdown, agent protocol, assistant, or note-derived context.
+- A live project-index prototype that included every registered worktree
+  immediately reproduced the stale-evidence problem: Kit and Docs retained
+  dozens of historical and detached automation checkouts. The configured
+  checkout is the stable spatial anchor; subordinate paths remain useful only
+  when an active thread cites that exact worktree. Reusing the already-collected
+  local scan preserves this distinction without another Git or GitHub call.
 
 ## VALIDATION
 
@@ -568,6 +598,19 @@ or model-assisted note mutation.
   Markdown file, survived application relaunch, and was then cleared through
   the quit-time flush. Note observation is scoped to the notepad component, so
   keystrokes do not invalidate the thread or attention view hierarchy.
+- Project-index tests prove that configured order and missing configured paths
+  survive degraded discovery, primary checkouts remain present, prunable and
+  dormant lanes stay absent, only exact active worktree artifacts add
+  subordinate paths, and a complete scan still invokes Git and GitHub exactly
+  once per repository.
+- A read-only local scan of the sixteen configured projects produced sixteen
+  stable project anchors and eight exact active worktree paths while excluding
+  the dozens of retained historical and automation registrations. It completed
+  in under four seconds without remote access.
+- Packaged-app accessibility and visual inspection confirms a bottom-anchored
+  two-column plain-text project map with `Projects 16`, full path accessibility
+  labels, home-relative visible paths, no cards, and no alert, phase, age, goal,
+  or attention styling.
 - `kit check 0003-inferred-attention` passes. `kit check --project` remains
   blocked by six pre-existing V3 support-document drift findings outside this
   change; no managed instruction or worktree guidance was broadened into this
@@ -586,14 +629,16 @@ routine artifact motion remain quiet.
 
 The native experience renders cached content first and anchors its header to
 the top of the window. It places unseen valid Attention in the urgent list and
-shows the remaining working set in a bottom-anchored plain-text ledger. The
-header reports the full active count without treating it as an attention count,
-and an empty Attention queue preserves open space rather than pulling ordinary
-work into the urgent region. Thread detail explains the expected action, why it
-matters now, the consequence of inaction, and the condition that keeps the
-claim valid. Seen state acknowledges a moment; reconciliation independently
-retracts unsupported moments. Diagnostic data stays in CLI/JSON and only
-actionable verified pruning enters Command-K.
+keeps ordinary active threads in palette and detail navigation. The bottom
+reference layer is now a stable map of every configured project and its
+current exact local worktree paths, not another lifecycle or attention
+projection. The header reports the full active count without treating it as an
+attention count, and an empty Attention queue preserves open space rather than
+pulling ordinary work into the urgent region. Thread detail explains the
+expected action, why it matters now, the consequence of inaction, and the
+condition that keeps the claim valid. Seen state acknowledges a moment;
+reconciliation independently retracts unsupported moments. Diagnostic data
+stays in CLI/JSON and only actionable verified pruning enters Command-K.
 
 The same surface now includes one quiet global notepad immediately below the
 header. Its native editor keeps keystrokes in memory, performs no styling or

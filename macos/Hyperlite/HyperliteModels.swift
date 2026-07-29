@@ -6,12 +6,14 @@ struct HyperliteThreadScan: Codable, Equatable {
     let remoteObservedAt: Date?
     let remoteRefreshIntervalSeconds: Int?
     let summary: HyperliteThreadSummary
+    let projectIndex: [HyperliteProjectLocation]?
     let threads: [HyperliteThread]
     let errors: [HyperliteDiagnostic]
     let warnings: [HyperliteDiagnostic]
 
     enum CodingKeys: String, CodingKey {
         case summary, threads, errors, warnings
+        case projectIndex = "project_index"
         case schemaVersion = "schema_version"
         case generatedAt = "generated_at"
         case remoteObservedAt = "remote_observed_at"

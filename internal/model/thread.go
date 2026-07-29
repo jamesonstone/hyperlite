@@ -156,14 +156,15 @@ type ThreadScanSummary struct {
 }
 
 type ThreadScan struct {
-	SchemaVersion                int               `json:"schema_version"`
-	GeneratedAt                  time.Time         `json:"generated_at"`
-	RemoteObservedAt             *time.Time        `json:"remote_observed_at,omitempty"`
-	RemoteRefreshIntervalSeconds int64             `json:"remote_refresh_interval_seconds"`
-	Summary                      ThreadScanSummary `json:"summary"`
-	Threads                      []Thread          `json:"threads"`
-	Errors                       []ScanError       `json:"errors"`
-	Warnings                     []ScanError       `json:"warnings"`
+	SchemaVersion                int                 `json:"schema_version"`
+	GeneratedAt                  time.Time           `json:"generated_at"`
+	RemoteObservedAt             *time.Time          `json:"remote_observed_at,omitempty"`
+	RemoteRefreshIntervalSeconds int64               `json:"remote_refresh_interval_seconds"`
+	Summary                      ThreadScanSummary   `json:"summary"`
+	ProjectIndex                 []ProjectIndexEntry `json:"project_index"`
+	Threads                      []Thread            `json:"threads"`
+	Errors                       []ScanError         `json:"errors"`
+	Warnings                     []ScanError         `json:"warnings"`
 }
 
 type InferenceClaim struct {

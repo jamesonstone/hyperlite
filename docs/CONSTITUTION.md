@@ -33,6 +33,10 @@
   current working set remains available through compact navigation; completed
   and dormant projections may remain in private state and scan output for
   continuity but do not occupy the interface.
+- The configured-project map is a stable spatial reference, not a work-state
+  or attention projection. Every configured project remains present; only
+  exact local paths supported by current threads supplement its configured
+  checkout, and none receives attention styling.
 - Exact evidence owns thread membership. Semantic inference may relate
   separate threads, but it may not merge them, establish authoritative
   lifecycle state, suppress a thread, or close a goal.

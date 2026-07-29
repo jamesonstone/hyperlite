@@ -73,6 +73,7 @@ func New(runner command.Runner) Scanner {
 type repositoryResult struct {
 	index      int
 	threads    []model.Thread
+	project    model.ProjectIndexEntry
 	remote     *threadstate.RemoteCache
 	errors     []model.ScanError
 	warnings   []model.ScanError
@@ -181,10 +182,11 @@ func (s Scanner) scan(ctx context.Context, cfg config.Config, refresh, includeRe
 	result := model.ThreadScan{
 		SchemaVersion: model.ThreadScanSchemaVersion, GeneratedAt: now,
 		RemoteRefreshIntervalSeconds: int64(cfg.Settings.RemoteRefreshInterval / time.Second),
+		ProjectIndex:                 buildProjectIndex(cfg, nil, nil),
 		Threads:                      []model.Thread{}, Errors: []model.ScanError{},
 		Warnings: discoveryWarnings(discovered.Warnings),
 	}
-	result.Summary.Projects = len(repositories)
+	result.Summary.Projects = len(result.ProjectIndex)
 	if stateWarning != "" {
 		result.Warnings = append(result.Warnings, model.ScanError{Stage: "thread-state", Message: stateWarning})
 	}
@@ -226,6 +228,8 @@ func (s Scanner) scan(ctx context.Context, cfg config.Config, refresh, includeRe
 		selectedGitHub = append(selectedGitHub, repository.GitHub)
 	}
 	result.Threads = threadstate.ReconcileSelected(&state, result.Threads, selectedGitHub, now)
+	result.ProjectIndex = buildProjectIndex(cfg, ordered, result.Threads)
+	result.Summary.Projects = len(result.ProjectIndex)
 	if err := s.Store.Write(state); err != nil {
 		return model.ThreadScan{}, err
 	}
@@ -267,7 +271,8 @@ func (s Scanner) scanRepository(
 		StaleAfter: cfg.Settings.StaleAfter, Now: now,
 	})
 	return repositoryResult{
-		index: index, threads: threads, remote: cache,
+		index: index, threads: threads, project: projectIndexEntry(repository, local.Lanes),
+		remote: cache,
 		errors: errors, warnings: warnings, repository: repository,
 	}
 }

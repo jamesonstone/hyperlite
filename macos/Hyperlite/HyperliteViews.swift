@@ -42,16 +42,13 @@ struct HyperliteWindow: View {
 
     private var activeThreads: [HyperliteThread] { state.activeThreads() }
     private var attentionThreads: [HyperliteThread] { state.attentionThreads() }
-    private var informationalThreads: [HyperliteThread] {
-        guard let scan = state.scan else { return [] }
-        return HyperlitePresentation.informationalThreads(scan: scan)
-    }
+    private var projectIndex: [HyperliteProjectLocation] { state.scan?.projectIndex ?? [] }
     private var warnings: [HyperliteDiagnostic] { state.scan?.warnings ?? [] }
 
     var body: some View {
         let attention = attentionThreads
         let active = activeThreads
-        let informational = informationalThreads
+        let projects = projectIndex
         let currentWarnings = warnings
         return ZStack(alignment: .topLeading) {
             VStack(alignment: .leading, spacing: 14) {
@@ -109,12 +106,8 @@ struct HyperliteWindow: View {
                         .frame(maxHeight: .infinity, alignment: .top)
                     }
 
-                    if !informational.isEmpty {
-                        HyperliteActivityLedger(
-                            threads: informational,
-                            title: attention.isEmpty ? "Current work" : "Other active work",
-                            onOpen: { selectedThread = $0 }
-                        )
+                    if !projects.isEmpty {
+                        HyperliteProjectMap(projects: projects)
                     }
                 }
             }

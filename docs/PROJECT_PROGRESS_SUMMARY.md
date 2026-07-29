@@ -63,15 +63,18 @@ changes that warrant human attention.
 - **APPROACH**: Correlate exact evidence into stable threads, derive lifecycle
   and closure conservatively, add cited bounded local-model synthesis, persist
   fail-soft presentation state, render material Attention urgently, and keep
-  the remaining current working set visible as quiet informational activity.
-  Keep a separate local notepad beneath the header for optional operator
-  context without interpreting its contents as project state.
+  ordinary active threads available through compact navigation. Use a stable
+  bottom project map for configured checkouts and exact current local lanes.
+  Keep a separate local notepad beneath the header for optional operator context
+  without interpreting its contents as project state.
 - **OPEN ITEMS**: Implementation and local validation are complete on issue
   #7 and branch `GH-7`; ready pull-request review and merge remain.
 - **POINTERS**: `docs/specs/0003-inferred-attention/SPEC.md`
 
 ## LAST UPDATED
 
+- 2026-07-29: Replaced the inferred current-work ledger with a stable,
+  bottom-anchored map of configured projects and exact current local lanes.
 - 2026-07-29: Added a local, debounced global notepad beneath the fixed header
   without allowing its contents to affect inferred threads or attention.
 - 2026-07-29: Anchored the native header and separated urgent Attention from
