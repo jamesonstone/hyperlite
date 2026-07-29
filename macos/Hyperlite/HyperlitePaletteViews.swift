@@ -3,8 +3,7 @@ import SwiftUI
 
 struct HyperliteCommandPalette: View {
     let mode: HyperlitePaletteMode
-    let items: [HyperliteWorkItem]
-    let errors: [HyperliteDiagnostic]
+    let threads: [HyperliteThread]
     let warnings: [HyperliteDiagnostic]
     let onAction: (HyperlitePaletteAction) -> Void
     let onDismiss: () -> Void
@@ -15,28 +14,21 @@ struct HyperliteCommandPalette: View {
     private var entries: [HyperlitePaletteEntry] {
         switch mode {
         case .commands:
-            HyperliteInteractionModel.commandEntries(
-                items: items,
-                errors: errors,
-                warnings: warnings
-            )
+            HyperliteInteractionModel.commandEntries(threads: threads, warnings: warnings)
         case .projects:
-            HyperliteInteractionModel.projectEntries(
-                items: items,
-                expandedProjects: expandedProjects
-            )
+            HyperliteInteractionModel.projectEntries(threads: threads, expandedProjects: expandedProjects)
         }
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Label(mode == .commands ? "Commands" : "Projects",
+                Label(mode == .commands ? "Commands and Threads" : "Projects and Threads",
                       systemImage: mode == .commands ? "command" : "folder")
-                    .font(.headline)
+                    .font(HyperliteTypography.semibold(13))
                 Spacer()
                 Text(mode == .commands ? "⌘K" : "⌘P")
-                    .font(.caption.monospaced())
+                    .font(HyperliteTypography.regular(11))
                     .foregroundStyle(.secondary)
             }
             .padding(12)
@@ -50,7 +42,7 @@ struct HyperliteCommandPalette: View {
                 Spacer()
                 Text("Esc close")
             }
-            .font(.caption2)
+            .font(HyperliteTypography.regular(10))
             .foregroundStyle(.secondary)
             .padding(10)
         }
@@ -89,22 +81,24 @@ struct HyperliteCommandPalette: View {
 
     private func entryRow(_ entry: HyperlitePaletteEntry, selected: Bool) -> some View {
         Button {
-            if let index = entries.firstIndex(of: entry) {
-                selection = index
-            }
+            if let index = entries.firstIndex(where: { $0.id == entry.id }) { selection = index }
             activate(entry)
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: entry.symbol)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(HyperliteTypography.semibold(13))
                     .frame(width: 18)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(entry.title)
-                        .font(.subheadline.weight(isProject(entry) ? .bold : .semibold))
+                        .font(
+                            isProject(entry)
+                                ? HyperliteTypography.bold(12)
+                                : HyperliteTypography.semibold(12)
+                        )
                         .lineLimit(1)
                     if !entry.subtitle.isEmpty {
                         Text(entry.subtitle)
-                            .font(.caption)
+                            .font(HyperliteTypography.regular(11))
                             .foregroundStyle(.secondary)
                             .lineLimit(2)
                     }
@@ -124,20 +118,13 @@ struct HyperliteCommandPalette: View {
 
     private func handleKey(_ event: NSEvent) -> Bool {
         let disallowedModifiers: NSEvent.ModifierFlags = [.command, .control, .option]
-        if !event.modifierFlags.intersection(disallowedModifiers).isEmpty {
-            return false
-        }
+        if !event.modifierFlags.isDisjoint(with: disallowedModifiers) { return false }
         switch event.keyCode {
-        case 53:
-            onDismiss()
-        case 125:
-            moveSelection(by: 1)
-        case 126:
-            moveSelection(by: -1)
-        case 49:
-            activateSpace()
-        case 36, 76:
-            activateSelectedEntry()
+        case 53: onDismiss()
+        case 125: moveSelection(by: 1)
+        case 126: moveSelection(by: -1)
+        case 49: activateSpace()
+        case 36, 76: activateSelectedEntry()
         default:
             switch event.charactersIgnoringModifiers?.lowercased() {
             case "j": moveSelection(by: 1)
@@ -149,18 +136,13 @@ struct HyperliteCommandPalette: View {
     }
 
     private func moveSelection(by delta: Int) {
-        selection = HyperliteInteractionModel.movedSelection(
-            selection,
-            by: delta,
-            count: entries.count
-        )
+        selection = HyperliteInteractionModel.movedSelection(selection, by: delta, count: entries.count)
     }
 
     private func activateSpace() {
         guard entries.indices.contains(selection),
-              case let .project(repositoryPath) = entries[selection].kind
-        else { return }
-        toggleProject(repositoryPath)
+              case let .project(project) = entries[selection].kind else { return }
+        toggleProject(project)
     }
 
     private func activateSelectedEntry() {
@@ -170,18 +152,16 @@ struct HyperliteCommandPalette: View {
 
     private func activate(_ entry: HyperlitePaletteEntry) {
         switch entry.kind {
-        case let .project(repositoryPath):
-            toggleProject(repositoryPath)
-        case let .action(action):
-            onAction(action)
+        case let .project(project): toggleProject(project)
+        case let .action(action): onAction(action)
         }
     }
 
-    private func toggleProject(_ repositoryPath: String) {
-        if expandedProjects.contains(repositoryPath) {
-            expandedProjects.remove(repositoryPath)
+    private func toggleProject(_ project: String) {
+        if expandedProjects.contains(project) {
+            expandedProjects.remove(project)
         } else {
-            expandedProjects.insert(repositoryPath)
+            expandedProjects.insert(project)
         }
     }
 

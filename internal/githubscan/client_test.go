@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 	"unicode/utf8"
@@ -161,20 +160,6 @@ func TestCollectMineOnlyEnrichesInactivePullRequestsForFollowedRepositories(t *t
 	}
 }
 
-func TestCollectAllKeepsIssueEvidenceWhenPullRequestsFail(t *testing.T) {
-	runner := &fixtureRunner{
-		responses: map[string][]byte{
-			"gh issue list": []byte(`[{"number":7,"title":"Queued","url":"https://github.com/owner/repo/issues/7","updatedAt":"2026-07-10T12:00:00Z","labels":[],"assignees":[]}]`),
-		},
-		failures: map[string]error{"gh pr list": fmt.Errorf("pull requests unavailable")},
-	}
-	collection := (Client{Runner: runner}).Collect(context.Background(), []config.Repository{{Name: "repo", GitHub: "owner/repo"}}, "all", "@me", 1)
-	evidence := collection.Repositories["owner/repo"]
-	if len(evidence.Issues) != 1 || len(evidence.Errors) != 1 || evidence.Errors[0].Stage != "github-prs" {
-		t.Fatalf("evidence = %#v", evidence)
-	}
-}
-
 func TestCollectMineWarnsWhenIssueSearchHitsCap(t *testing.T) {
 	issues := make([]rawIssue, searchLimit)
 	for index := range issues {
@@ -195,44 +180,6 @@ func TestCollectMineWarnsWhenIssueSearchHitsCap(t *testing.T) {
 	if len(collection.Errors) != 0 || len(collection.Warnings) != 1 || collection.Warnings[0].Stage != "github-search-issues" || !strings.Contains(collection.Warnings[0].Message, "truncated") {
 		t.Fatalf("diagnostics = %#v", collection)
 	}
-}
-
-type fixtureRunner struct {
-	mutex     sync.Mutex
-	responses map[string][]byte
-	failures  map[string]error
-	calls     []string
-}
-
-func (r *fixtureRunner) Run(_ context.Context, _ string, name string, args ...string) ([]byte, error) {
-	command := strings.Join(append([]string{name}, args...), " ")
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-	for prefix, failure := range r.failures {
-		if strings.HasPrefix(command, prefix) {
-			r.calls = append(r.calls, command)
-			return nil, failure
-		}
-	}
-	for prefix, response := range r.responses {
-		if strings.HasPrefix(command, prefix) {
-			r.calls = append(r.calls, command)
-			return append([]byte(nil), response...), nil
-		}
-	}
-	return nil, fmt.Errorf("unexpected command: %s", command)
-}
-
-func (r *fixtureRunner) count(prefix string) int {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-	count := 0
-	for _, call := range r.calls {
-		if strings.HasPrefix(call, prefix) {
-			count++
-		}
-	}
-	return count
 }
 
 func TestParsePullRequests(t *testing.T) {

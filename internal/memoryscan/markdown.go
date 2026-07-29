@@ -1,0 +1,177 @@
+package memoryscan
+
+import (
+	"errors"
+	"regexp"
+	"strings"
+	"unicode/utf8"
+)
+
+var (
+	listItemPrefix  = regexp.MustCompile(`^(?:[-*]\s+|\d+[.)]\s+)`)
+	checklistMarker = regexp.MustCompile(`\[[ xX]\]`)
+	obligationWord  = regexp.MustCompile(
+		`(?i)(?:^(?:\[[ xX]\]\s*)?(?:[a-z]+-\d+:\s*)?` +
+			`(?:deploy|provision|migrate|activate|rollout|cutover|backfill|rotate)\b)|` +
+			`(?:\b(?:must|needs? to|required to)\s+(?:be\s+)?` +
+			`(?:deploy(?:ed)?|provision(?:ed)?|migrat(?:e|ed)|activat(?:e|ed)|` +
+			`roll(?:out|ed out)|cut(?:over)?|backfill(?:ed)?|rotat(?:e|ed))\b)`,
+	)
+	implicationWord = regexp.MustCompile(`(?i)\b(public|security|breaking|authority|ownership|owns|must|production|infrastructure|migration|external|operational)\b`)
+)
+
+func splitFrontmatter(contents []byte) ([]byte, []byte, error) {
+	text := string(contents)
+	if !strings.HasPrefix(text, "---\n") {
+		return nil, contents, nil
+	}
+	end := strings.Index(text[4:], "\n---")
+	if end < 0 {
+		return nil, nil, errors.New("unterminated front matter")
+	}
+	end += 4
+	bodyStart := end + len("\n---")
+	for bodyStart < len(text) && (text[bodyStart] == '\r' || text[bodyStart] == '\n') {
+		bodyStart++
+	}
+	return []byte(text[4:end]), []byte(text[bodyStart:]), nil
+}
+
+func markdownSections(contents []byte) (map[string]string, string) {
+	sections := make(map[string]string)
+	var title, current string
+	var lines []string
+	flush := func() {
+		if current == "" {
+			return
+		}
+		value := strings.TrimSpace(strings.Join(lines, "\n"))
+		if len(value) > maxSectionBytes {
+			value = boundedString(value, maxSectionBytes)
+		}
+		sections[current] = value
+	}
+	for _, line := range strings.Split(string(contents), "\n") {
+		if strings.HasPrefix(line, "# ") && title == "" {
+			title = strings.TrimSpace(strings.TrimPrefix(line, "# "))
+			continue
+		}
+		if strings.HasPrefix(line, "## ") {
+			flush()
+			current = strings.ToUpper(strings.TrimSpace(strings.TrimPrefix(line, "## ")))
+			lines = nil
+			continue
+		}
+		if current != "" {
+			lines = append(lines, line)
+		}
+	}
+	flush()
+	return sections, title
+}
+
+func section(sections map[string]string, names ...string) string {
+	for _, name := range names {
+		if value := strings.TrimSpace(sections[name]); value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func joinSections(sections map[string]string, names ...string) string {
+	var values []string
+	for _, name := range names {
+		if value := strings.TrimSpace(sections[name]); value != "" {
+			values = append(values, value)
+		}
+	}
+	return strings.Join(values, "\n\n")
+}
+
+func candidates(value string, pattern *regexp.Regexp, category string) []Candidate {
+	var result []Candidate
+	seen := make(map[string]struct{})
+	for _, line := range candidateStatements(value) {
+		line = strings.TrimSpace(line)
+		if line == "" || !pattern.MatchString(line) {
+			continue
+		}
+		lower := strings.ToLower(line)
+		if strings.HasPrefix(lower, "no ") || strings.Contains(lower, " no ") ||
+			strings.Contains(lower, "not required") || strings.Contains(lower, "without ") {
+			continue
+		}
+		satisfied := strings.Contains(lower, "[x]") || strings.Contains(lower, "completed")
+		line = checklistMarker.ReplaceAllString(line, "")
+		line = strings.TrimSpace(line)
+		if len(line) > 300 {
+			line = boundedString(line, 300)
+		}
+		key := strings.ToLower(line)
+		if _, exists := seen[key]; exists {
+			continue
+		}
+		seen[key] = struct{}{}
+		result = append(result, Candidate{Summary: line, Satisfied: satisfied, Category: category})
+		if len(result) == 12 {
+			break
+		}
+	}
+	return result
+}
+
+func candidateStatements(value string) []string {
+	var result []string
+	var current string
+	var fence string
+	flush := func() {
+		if value := strings.TrimSpace(current); value != "" {
+			result = append(result, value)
+		}
+		current = ""
+	}
+	for _, raw := range strings.Split(value, "\n") {
+		line := strings.TrimSpace(raw)
+		if fence != "" {
+			if strings.HasPrefix(line, fence) {
+				fence = ""
+			}
+			continue
+		}
+		if strings.HasPrefix(line, "```") || strings.HasPrefix(line, "~~~") {
+			flush()
+			fence = line[:3]
+			continue
+		}
+		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, "|") {
+			flush()
+			continue
+		}
+		if listItemPrefix.MatchString(line) {
+			flush()
+			current = listItemPrefix.ReplaceAllString(line, "")
+			continue
+		}
+		if current == "" {
+			current = line
+		} else {
+			current += " " + line
+		}
+	}
+	flush()
+	return result
+}
+
+func boundedString(value string, limit int) string {
+	if limit <= 0 {
+		return ""
+	}
+	if len(value) <= limit {
+		return value
+	}
+	for limit > 0 && !utf8.RuneStart(value[limit]) {
+		limit--
+	}
+	return value[:limit]
+}

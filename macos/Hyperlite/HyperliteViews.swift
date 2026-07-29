@@ -3,20 +3,19 @@ import SwiftUI
 
 struct HyperliteMenuBarLabel: View {
     @ObservedObject var state: HyperliteState
-    @AppStorage("hyperlite.max-age-days") private var maxAgeDays = 10
     @AppStorage("hyperlite.hotkey") private var hotkey = defaultHotKey
 
     var body: some View {
-        let count = state.items(maxAgeDays: maxAgeDays).count
+        let count = state.attentionThreadCount()
         HStack(spacing: 2) {
             HyperliteGhostMark()
                 .frame(width: 15, height: 15)
             Text(count > 99 ? "99+" : "\(count)")
-                .font(.system(size: 10, weight: .bold, design: .rounded).monospacedDigit())
+                .font(HyperliteTypography.bold(10).monospacedDigit())
         }
-        .help("Hyperlite — \(count) item\(count == 1 ? "" : "s") require attention — \(hotkey)")
+        .help("Hyperlite — \(count) thread\(count == 1 ? "" : "s") need attention — \(hotkey)")
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Hyperlite, \(count) items require attention")
+        .accessibilityLabel("Hyperlite, \(count) thread\(count == 1 ? "" : "s") need\(count == 1 ? "s" : "") attention")
     }
 }
 
@@ -37,87 +36,84 @@ struct HyperliteMenu: View {
 
 struct HyperliteWindow: View {
     @ObservedObject var state: HyperliteState
-    @AppStorage("hyperlite.max-age-days") private var maxAgeDays = 10
-    @State private var diagnosticsClickRequest = 0
+    let notepad: HyperliteNotepadState
     @State private var pendingPrune: HyperliteDiagnostic?
-    @State private var highlightedItemID: String?
-    @State private var revealItemID: String?
-    @State private var highlightClearTask: Task<Void, Never>?
+    @State private var selectedThread: HyperliteThread?
 
-    private var visibleItems: [HyperliteWorkItem] { state.items(maxAgeDays: maxAgeDays) }
-    private var errors: [HyperliteDiagnostic] { state.scan?.errors ?? [] }
+    private var activeThreads: [HyperliteThread] { state.activeThreads() }
+    private var attentionThreads: [HyperliteThread] { state.attentionThreads() }
+    private var projectIndex: [HyperliteProjectLocation] { state.scan?.projectIndex ?? [] }
     private var warnings: [HyperliteDiagnostic] { state.scan?.warnings ?? [] }
 
     var body: some View {
-        let items = visibleItems
-        let currentErrors = errors
+        let attention = attentionThreads
+        let active = activeThreads
+        let projects = projectIndex
         let currentWarnings = warnings
-        let activeProjectCount = Set(items.map(\.repositoryPath)).count
-        return ZStack {
+        return ZStack(alignment: .topLeading) {
             VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .firstTextBaseline) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Hyperlite").font(.system(size: 22, weight: .bold, design: .rounded))
-                        HStack(spacing: 4) {
-                            HyperliteGhostMark()
-                                .frame(width: 12, height: 12)
-                            Text("\(activeProjectCount) active project\(activeProjectCount == 1 ? "" : "s")")
-                        }
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.secondary)
+                HStack(alignment: .center, spacing: 10) {
+                    Text("Hyperlite")
+                        .font(HyperliteTypography.bold(22))
+                        .fixedSize(horizontal: true, vertical: false)
+                    HStack(spacing: 6) {
+                        HyperliteGhostMark()
+                            .frame(width: 11, height: 11)
+                        Text("\(active.count) active thread\(active.count == 1 ? "" : "s")")
+                        HyperliteAttentionStatus(count: attention.count)
                     }
-                    Spacer()
+                    .font(HyperliteTypography.medium(11))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                    Spacer(minLength: 8)
                     Button { state.refresh() } label: { Image(systemName: "arrow.clockwise") }
                         .buttonStyle(.bordered)
                         .disabled(state.isRefreshing || state.isPruning)
-                        .help("Refresh Git and pull request status")
-                    if !currentErrors.isEmpty || !currentWarnings.isEmpty {
-                        HyperliteDiagnosticsButton(
-                            errors: currentErrors,
-                            warnings: currentWarnings,
-                            isPruning: state.isPruning,
-                            clickRequest: diagnosticsClickRequest,
-                            onPruneRequest: { pendingPrune = $0 }
-                        )
-                    }
+                        .help("Refresh evidence and inferred threads")
                     Button(action: openHyperliteSettings) { Image(systemName: "gearshape.fill") }
                         .buttonStyle(.bordered)
                         .help("Hyperlite settings")
                 }
 
+                HyperliteNotepadView(state: notepad)
+
                 if let errorMessage = state.errorMessage {
                     Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
-                        .font(.subheadline)
+                        .font(HyperliteTypography.regular(12))
                         .foregroundStyle(.red)
                 }
                 if state.scan == nil {
-                    ProgressView("Checking local work…")
+                    ProgressView("Reconstructing local threads…")
                         .controlSize(.small)
-                } else if items.isEmpty {
-                    HyperliteEmptyState()
                 } else {
-                    ScrollViewReader { proxy in
+                    if attention.isEmpty {
+                        Spacer(minLength: 28)
+                    } else {
                         ScrollView {
-                            LazyVStack(alignment: .leading, spacing: 7) {
-                                ForEach(items) { item in
-                                    HyperliteRow(
-                                        item: item,
-                                        highlighted: item.id == highlightedItemID
+                            LazyVStack(alignment: .leading, spacing: 8) {
+                                HyperliteSectionHeader(count: attention.count)
+                                ForEach(attention) { thread in
+                                    HyperliteThreadRow(
+                                        thread: thread,
+                                        highlighted: false,
+                                        onOpen: { selectedThread = thread }
                                     )
-                                    .id(item.id)
-                                    if item.id != items.last?.id { Divider() }
+                                    if thread.id != attention.last?.id {
+                                        Divider()
+                                    }
                                 }
                             }
                         }
-                        .onChange(of: revealItemID) { itemID in
-                            guard let itemID else { return }
-                            proxy.scrollTo(itemID, anchor: .center)
-                            scheduleHighlightClear(for: itemID)
-                            revealItemID = nil
-                        }
+                        .frame(maxHeight: .infinity, alignment: .top)
+                    }
+
+                    if !projects.isEmpty {
+                        HyperliteProjectMap(projects: projects)
                     }
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .padding(20)
 
             if let mode = state.paletteMode {
@@ -126,8 +122,7 @@ struct HyperliteWindow: View {
                     .onTapGesture { state.dismissPalette() }
                 HyperliteCommandPalette(
                     mode: mode,
-                    items: items,
-                    errors: currentErrors,
+                    threads: active,
                     warnings: currentWarnings,
                     onAction: handlePaletteAction,
                     onDismiss: state.dismissPalette
@@ -135,7 +130,14 @@ struct HyperliteWindow: View {
                 .id(mode)
             }
         }
-        .frame(minWidth: 440, minHeight: 560)
+        .frame(minWidth: 480, minHeight: 580)
+        .sheet(item: $selectedThread) { thread in
+            HyperliteThreadDetail(
+                thread: thread,
+                onSeen: { state.markSeen(threadID: thread.id) },
+                onSaveNote: { state.updateNote(threadID: thread.id, note: $0) }
+            )
+        }
         .confirmationDialog(
             "Prune stale worktree metadata?",
             isPresented: pruneConfirmationPresented,
@@ -148,12 +150,6 @@ struct HyperliteWindow: View {
             Button("Cancel", role: .cancel) { pendingPrune = nil }
         } message: {
             Text("Git will prune all stale worktree records for \(pendingPrune?.repository ?? "this repository") after re-verifying the selected path.")
-        }
-        .onDisappear {
-            highlightClearTask?.cancel()
-            highlightClearTask = nil
-            highlightedItemID = nil
-            revealItemID = nil
         }
     }
 
@@ -171,139 +167,10 @@ struct HyperliteWindow: View {
             state.refresh()
         case .settings:
             openHyperliteSettings()
-        case .diagnostics:
-            diagnosticsClickRequest += 1
         case let .prune(diagnostic):
             pendingPrune = diagnostic
-        case let .reveal(itemID):
-            highlightClearTask?.cancel()
-            highlightClearTask = nil
-            highlightedItemID = itemID
-            revealItemID = itemID
-        }
-    }
-
-    private func scheduleHighlightClear(for itemID: String) {
-        highlightClearTask?.cancel()
-        highlightClearTask = Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 1_200_000_000)
-            guard !Task.isCancelled, highlightedItemID == itemID else { return }
-            highlightedItemID = nil
-        }
-    }
-}
-
-private struct HyperliteEmptyState: View {
-    var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 28))
-                .foregroundStyle(.secondary)
-            Text("Nothing needs attention")
-                .font(.headline)
-            Text("No recent worktrees, main-branch changes, or pull requests.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 48)
-    }
-}
-
-struct HyperliteSettingsView: View {
-    @AppStorage("hyperlite.hotkey") private var hotkey = defaultHotKey
-    @AppStorage("hyperlite.max-age-days") private var maxAgeDays = 10
-
-    var body: some View {
-        Form {
-            Section("Display") {
-                Picker("Show recent work", selection: $maxAgeDays) {
-                    ForEach(HyperlitePresentation.supportedAgeWindows, id: \.self) { days in
-                        Text("Last \(days) days").tag(days)
-                    }
-                }
-            }
-            Section("Shortcut") {
-                TextField("Hot key", text: $hotkey)
-                Text("Default: \(defaultHotKey). Use modifier names joined with +, for example Command+Shift+H.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Section {
-                Button("Quit Hyperlite") { NSApp.terminate(nil) }
-            }
-        }
-        .formStyle(.grouped)
-        .frame(width: 400)
-        .padding()
-    }
-}
-
-private struct HyperliteRow: View {
-    let item: HyperliteWorkItem
-    let highlighted: Bool
-
-    var body: some View {
-        Button(action: activate) {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: item.statuses.first?.symbol ?? "circle.fill")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(color(for: item.statuses.first))
-                    .frame(width: 22)
-                    .padding(.top, 2)
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text(item.repository).font(.system(size: 16, weight: .bold))
-                        Spacer(minLength: 8)
-                        Text(HyperlitePresentation.ageLabel(for: item.updatedAt))
-                            .font(.caption.monospacedDigit().weight(.semibold))
-                            .foregroundStyle(.secondary)
-                    }
-                    Text(item.title).font(.subheadline.weight(.medium)).lineLimit(1)
-                    HStack(spacing: 7) {
-                        ForEach(item.statuses, id: \.self) { status in
-                            Label(status.label, systemImage: status.symbol)
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(color(for: status))
-                        }
-                    }
-                }
-            }
-            .padding(.vertical, 7)
-            .padding(.horizontal, 6)
-            .contentShape(Rectangle())
-            .background(
-                highlighted ? Color.accentColor.opacity(0.16) : Color.clear,
-                in: RoundedRectangle(cornerRadius: 8)
-            )
-        }
-        .buttonStyle(.plain)
-        .help(description)
-        .hyperliteHoverPopover { HyperliteItemHoverCard(item: item) }
-    }
-
-    private var description: String {
-        let status = item.statuses.map(\.label).joined(separator: ", ")
-        if item.pullRequest != nil { return "\(status). Click to open the pull request in your browser." }
-        return "\(status). Click to copy \(item.clickPath)."
-    }
-
-    private func activate() {
-        if let urlString = item.pullRequest?.url, let url = URL(string: urlString) {
-            NSWorkspace.shared.open(url)
-            return
-        }
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(item.clickPath, forType: .string)
-    }
-
-    private func color(for status: HyperliteStatus?) -> Color {
-        switch status {
-        case .pullRequest: .pink
-        case .worktree: .cyan
-        case .unstaged: .red
-        case nil: .secondary
+        case let .reveal(threadID):
+            selectedThread = state.activeThreads().first { $0.id == threadID }
         }
     }
 }

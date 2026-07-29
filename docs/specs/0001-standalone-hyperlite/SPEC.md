@@ -46,11 +46,10 @@ small direct scanner, a native window, and its own command-line entrypoint.
 - Keep the native surface lightweight: initial local scan avoids network work;
   explicit refresh and the Control+Shift+H global hotkey refresh using normal
   scanner execution.
-- Retain a visible window, a whimsical rocket-and-count menu-bar label,
-  settings for the recent-work window and hotkey text, hover descriptions, and
-  click actions that open pull requests or copy local paths.
-- Keep all status presentation to 3, 5, 7, 10, or 30 days, with 10 days as
-  the default and 30 days as the hard maximum.
+- Retain a visible window, a compact count in the menu bar, hotkey settings,
+  hover descriptions, and direct evidence actions.
+- Present active coordination regardless of age and omit completed or dormant
+  projections from the primary interface.
 - Provide `make hyper`, which stops a prior Hyperlite process before opening
   the freshly built application.
 
@@ -82,6 +81,15 @@ Git history mutation, or automatic configuration overwrite.
   the number of attention work items; the compact launch affordance remains.
 - The scanner remains read-only. It uses local Git facts and `gh` only to list
   open pull requests, preserving the small, inspectable status model.
+- On 2026-07-28, feature `0003-inferred-attention` superseded the flat
+  work-item model and universal age filter. Hyperlite now reconstructs
+  evidence-backed goal threads, keeps active threads visible regardless of
+  age, and omits inactive projections from the primary attention surface while
+  retaining them in private state and scan output for continuity.
+- Source observation remains read-only with respect to selected repositories
+  and GitHub. Feature `0003-inferred-attention` added Hyperlite-owned local
+  state for cached evidence, inference results, aliases, seen revisions, and
+  optional notes; that state is presentation memory, not project authority.
 
 ## DISCOVERIES
 
@@ -112,8 +120,8 @@ Git history mutation, or automatic configuration overwrite.
 
 Hyperlite now lives in its own Go module and native app bundle. It owns the
 `hyperlite` command, one-time config migration, direct scanner primitives, a
-windowed rocket/count menu experience, recent-work filtering, hover details,
-and click actions. It neither imports nor starts Beacon.
+windowed attention-thread experience, compact menu count, hover details, and
+evidence actions. It neither imports nor starts Beacon.
 
 ## REPOSITORY MEMORY
 

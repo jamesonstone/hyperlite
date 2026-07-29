@@ -47,7 +47,9 @@ func parseWorktrees(output []byte) []worktreeRecord {
 
 func parseStatus(output []byte) (statusRecord, error) {
 	var status statusRecord
-	for _, item := range bytes.Split(output, []byte{0}) {
+	items := bytes.Split(output, []byte{0})
+	for index := 0; index < len(items); index++ {
+		item := items[index]
 		if len(item) == 0 {
 			continue
 		}
@@ -71,8 +73,8 @@ func parseStatus(output []byte) (statusRecord, error) {
 			continue
 		}
 		switch line[0] {
-		case '1', '2':
-			fields := strings.Fields(line)
+		case '1':
+			fields := strings.SplitN(line, " ", 9)
 			if len(fields) < 2 || len(fields[1]) != 2 {
 				return statusRecord{}, fmt.Errorf("invalid porcelain status record: %q", line)
 			}
@@ -83,10 +85,36 @@ func parseStatus(output []byte) (statusRecord, error) {
 			if xy[1] != '.' {
 				status.Unstaged++
 			}
+			if len(fields) == 9 {
+				status.Paths = append(status.Paths, fields[8])
+			}
+		case '2':
+			fields := strings.SplitN(line, " ", 10)
+			if len(fields) < 2 || len(fields[1]) != 2 {
+				return statusRecord{}, fmt.Errorf("invalid porcelain status record: %q", line)
+			}
+			xy := fields[1]
+			if xy[0] != '.' {
+				status.Staged++
+			}
+			if xy[1] != '.' {
+				status.Unstaged++
+			}
+			if len(fields) == 10 {
+				status.Paths = append(status.Paths, fields[9])
+			}
+			if index+1 < len(items) {
+				index++
+			}
 		case 'u':
 			status.Conflicted++
+			fields := strings.SplitN(line, " ", 11)
+			if len(fields) == 11 {
+				status.Paths = append(status.Paths, fields[10])
+			}
 		case '?':
 			status.Untracked++
+			status.Paths = append(status.Paths, strings.TrimPrefix(line, "? "))
 		}
 	}
 	return status, nil

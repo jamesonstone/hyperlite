@@ -3,6 +3,7 @@ package gitscan
 import (
 	"context"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -58,6 +59,7 @@ type statusRecord struct {
 	Unstaged   int
 	Untracked  int
 	Conflicted int
+	Paths      []string
 }
 
 func (s Scanner) Scan(ctx context.Context, repo config.Repository, refresh bool, interval time.Duration) Result {
@@ -185,8 +187,35 @@ func (s Scanner) scanWorktree(ctx context.Context, repo config.Repository, recor
 	} else if updatedAt, parseErr := time.Parse(time.RFC3339, strings.TrimSpace(string(dateOutput))); parseErr == nil {
 		lane.Worktree.UpdatedAt = updatedAt
 	}
+	lane.Worktree.UpdatedAt = latestLocalChange(record.Path, status.Paths, lane.Worktree.UpdatedAt)
 	lane.Publication = publication(repo.Base, lane.Branch, record.Detached, lane.Worktree)
 	return lane, scanErrors, nil
+}
+
+func latestLocalChange(root string, paths []string, latest time.Time) time.Time {
+	root = filepath.Clean(root)
+	for _, path := range paths {
+		clean := filepath.Clean(filepath.FromSlash(path))
+		if clean == "." || filepath.IsAbs(clean) || clean == ".." ||
+			strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
+			continue
+		}
+		target := filepath.Join(root, clean)
+		for {
+			info, err := os.Stat(target)
+			if err == nil {
+				if info.ModTime().After(latest) {
+					latest = info.ModTime()
+				}
+				break
+			}
+			if !errors.Is(err, os.ErrNotExist) || target == root {
+				break
+			}
+			target = filepath.Dir(target)
+		}
+	}
+	return latest
 }
 
 func (s Scanner) run(ctx context.Context, timeout time.Duration, dir, name string, args ...string) ([]byte, error) {

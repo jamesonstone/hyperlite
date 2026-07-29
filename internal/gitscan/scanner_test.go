@@ -2,7 +2,10 @@ package gitscan
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/jamesonstone/hyperlite/internal/config"
 	"github.com/jamesonstone/hyperlite/internal/model"
@@ -30,6 +33,54 @@ func TestParseStatus(t *testing.T) {
 	}
 	if status.Staged != 2 || status.Unstaged != 2 || status.Untracked != 1 || status.Conflicted != 1 {
 		t.Fatalf("file counts = %#v", status)
+	}
+	expectedPaths := []string{"staged.txt", "modified.txt", "renamed.txt", "conflict.txt", "untracked.txt"}
+	if len(status.Paths) != len(expectedPaths) {
+		t.Fatalf("paths = %#v", status.Paths)
+	}
+	for index, expected := range expectedPaths {
+		if status.Paths[index] != expected {
+			t.Fatalf("paths[%d] = %q, want %q", index, status.Paths[index], expected)
+		}
+	}
+}
+
+func TestLatestLocalChangeUsesMaterialFileTime(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, "changed.txt")
+	if err := os.WriteFile(path, []byte("changed"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	commitTime := time.Date(2026, 7, 20, 12, 0, 0, 0, time.UTC)
+	changeTime := commitTime.Add(2 * time.Hour)
+	if err := os.Chtimes(path, changeTime, changeTime); err != nil {
+		t.Fatal(err)
+	}
+	if actual := latestLocalChange(root, []string{"changed.txt"}, commitTime); !actual.Equal(changeTime) {
+		t.Fatalf("latest = %s, want %s", actual, changeTime)
+	}
+}
+
+func TestLatestLocalChangeUsesExistingAncestorForNestedDeletion(t *testing.T) {
+	root := t.TempDir()
+	removed := filepath.Join(root, "removed")
+	if err := os.MkdirAll(filepath.Join(removed, "nested"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(removed, "nested", "file.txt"), []byte("old"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.RemoveAll(removed); err != nil {
+		t.Fatal(err)
+	}
+	commitTime := time.Date(2026, 7, 20, 12, 0, 0, 0, time.UTC)
+	changeTime := commitTime.Add(2 * time.Hour)
+	if err := os.Chtimes(root, changeTime, changeTime); err != nil {
+		t.Fatal(err)
+	}
+	actual := latestLocalChange(root, []string{"removed/nested/file.txt"}, commitTime)
+	if !actual.Equal(changeTime) {
+		t.Fatalf("latest = %s, want %s", actual, changeTime)
 	}
 }
 

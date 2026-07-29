@@ -23,7 +23,8 @@ struct HyperliteApp: App {
 
     var body: some Scene {
         WindowGroup("Hyperlite", id: "hyperlite") {
-            HyperliteWindow(state: state)
+            HyperliteWindow(state: state, notepad: HyperliteNotepadState.shared)
+                .font(HyperliteTypography.regular(13))
                 .background(HyperliteSettingsActionInstaller())
         }
         .defaultSize(width: 480, height: 650)
@@ -39,13 +40,16 @@ struct HyperliteApp: App {
 
         MenuBarExtra {
             HyperliteMenu(state: state)
+                .font(HyperliteTypography.regular(13))
         } label: {
             HyperliteMenuBarLabel(state: state)
+                .font(HyperliteTypography.regular(13))
         }
         .menuBarExtraStyle(.menu)
 
         Settings {
             HyperliteSettingsView()
+                .font(HyperliteTypography.regular(13))
         }
     }
 }

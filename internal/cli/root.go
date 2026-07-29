@@ -35,8 +35,9 @@ type App struct {
 }
 
 type workSnapshotScanner interface {
-	Scan(context.Context, config.Config, bool, bool) (model.WorkScan, error)
-	ScanLocal(context.Context, config.Config, bool) (model.WorkScan, error)
+	Scan(context.Context, config.Config, bool, bool) (model.ThreadScan, error)
+	ScanLocal(context.Context, config.Config, bool) (model.ThreadScan, error)
+	Infer(context.Context, config.Config) (model.ThreadScan, error)
 }
 
 type huhPrompter struct {
@@ -66,6 +67,7 @@ func (a App) Root() *cobra.Command {
 		Args:          noArgs,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			if cmd.Name() == "version" || cmd.Name() == "prune-worktree" ||
+				strings.HasPrefix(cmd.CommandPath(), "hyperlite notepad") ||
 				(cmd.Name() == "scan" && len(args) > 0) {
 				return nil
 			}
@@ -82,6 +84,9 @@ func (a App) Root() *cobra.Command {
 	root.SetFlagErrorFunc(func(_ *cobra.Command, err error) error { return usageError{err} })
 	root.AddCommand(
 		a.scanCommand(&configPath),
+		a.inferCommand(&configPath),
+		a.notepadCommand(),
+		a.threadCommand(),
 		a.configuredProjectsCommand(&configPath),
 		a.pruneWorktreeCommand(),
 		versionCommand(a.Out),

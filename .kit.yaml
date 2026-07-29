@@ -126,6 +126,15 @@ registry:
           installed_hash: sha256:2b1249c851cb5d0a20272a9c1fcded6fd2e20a7d4919881a741e1e91bc5a7aae
           state: managed
         - kind: ruleset
+          slug: testing-and-environment-validation
+          path: docs/references/rules/testing-and-environment-validation.md
+          source_repo: jamesonstone/kit
+          source_branch: main
+          source_commit: a1c236ff6fc1ddf4fba750153fb6c75e673c7556
+          source_path: docs/references/rules/testing-and-environment-validation.md
+          installed_hash: sha256:5925adfeb52f636fd0d625743d0c55be3bef39a7825cbf77c20c08b7deae5b1c
+          state: managed
+        - kind: ruleset
           slug: work-lane-gating
           path: docs/references/rules/work-lane-gating.md
           source_repo: jamesonstone/kit

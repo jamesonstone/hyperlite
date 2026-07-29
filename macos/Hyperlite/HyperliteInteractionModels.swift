@@ -10,7 +10,6 @@ enum HyperlitePaletteMode: String, Hashable, Identifiable {
 enum HyperlitePaletteAction: Equatable {
     case refresh
     case settings
-    case diagnostics
     case prune(HyperliteDiagnostic)
     case reveal(String)
 }
@@ -30,24 +29,13 @@ struct HyperlitePaletteEntry: Equatable, Identifiable {
 
 enum HyperliteInteractionModel {
     static func commandEntries(
-        items: [HyperliteWorkItem],
-        errors: [HyperliteDiagnostic],
+        threads: [HyperliteThread],
         warnings: [HyperliteDiagnostic]
     ) -> [HyperlitePaletteEntry] {
         var entries = [
-            actionEntry("action:refresh", "Refresh", "Refresh Git and pull request status", "arrow.clockwise", .refresh),
+            actionEntry("action:refresh", "Refresh", "Refresh local and GitHub evidence", "arrow.clockwise", .refresh),
             actionEntry("action:settings", "Settings", "Open Hyperlite settings", "gearshape.fill", .settings),
         ]
-        let diagnostics = errors + warnings
-        if !diagnostics.isEmpty {
-            entries.append(actionEntry(
-                "action:diagnostics",
-                "Diagnostics",
-                diagnosticCountSummary(errors: errors.count, warnings: warnings.count),
-                errors.isEmpty ? "exclamationmark.triangle.fill" : "xmark.octagon.fill",
-                .diagnostics
-            ))
-        }
         for diagnostic in warnings where diagnostic.isPrunableWorktree {
             entries.append(actionEntry(
                 "prune:\(diagnostic.id)",
@@ -57,50 +45,49 @@ enum HyperliteInteractionModel {
                 .prune(diagnostic)
             ))
         }
-        entries.append(contentsOf: items.map { item in
+        entries.append(contentsOf: threads.map { thread in
             actionEntry(
-                "item:\(item.id)",
-                hoverTitle(for: item),
-                hoverSummary(for: item),
-                item.statuses.first?.symbol ?? "circle.fill",
-                .reveal(item.id)
+                "thread:\(thread.id)",
+                hoverTitle(for: thread),
+                hoverSummary(for: thread),
+                thread.phase.symbol,
+                .reveal(thread.id)
             )
         })
         return entries
     }
 
     static func projectEntries(
-        items: [HyperliteWorkItem],
+        threads: [HyperliteThread],
         expandedProjects: Set<String>
     ) -> [HyperlitePaletteEntry] {
-        var orderedProjects: [String] = []
-        var groupedItems: [String: [HyperliteWorkItem]] = [:]
-        for item in items {
-            if groupedItems[item.repositoryPath] == nil {
-                orderedProjects.append(item.repositoryPath)
-            }
-            groupedItems[item.repositoryPath, default: []].append(item)
+        var order: [String] = []
+        var grouped: [String: [HyperliteThread]] = [:]
+        for thread in threads {
+            let project = thread.repositories.first ?? "unknown"
+            if grouped[project] == nil { order.append(project) }
+            grouped[project, default: []].append(thread)
         }
 
         var entries: [HyperlitePaletteEntry] = []
-        for repositoryPath in orderedProjects {
-            guard let projectItems = groupedItems[repositoryPath], let first = projectItems.first else { continue }
-            let expanded = expandedProjects.contains(repositoryPath)
+        for project in order {
+            guard let projectThreads = grouped[project] else { continue }
+            let expanded = expandedProjects.contains(project)
             entries.append(HyperlitePaletteEntry(
-                id: "project:\(repositoryPath)",
-                title: first.repository,
-                subtitle: "\(projectItems.count) item\(projectItems.count == 1 ? "" : "s")",
+                id: "project:\(project)",
+                title: projectThreads.first?.projectName ?? "Unknown project",
+                subtitle: "\(projectThreads.count) thread\(projectThreads.count == 1 ? "" : "s")",
                 symbol: expanded ? "chevron.down" : "chevron.right",
-                kind: .project(repositoryPath)
+                kind: .project(project)
             ))
             if expanded {
-                entries.append(contentsOf: projectItems.map { item in
+                entries.append(contentsOf: projectThreads.map { thread in
                     HyperlitePaletteEntry(
-                        id: "item:\(item.id)",
-                        title: item.title,
-                        subtitle: hoverSummary(for: item),
-                        symbol: item.statuses.first?.symbol ?? "circle.fill",
-                        kind: .action(.reveal(item.id))
+                        id: "thread:\(thread.id)",
+                        title: thread.title,
+                        subtitle: hoverSummary(for: thread),
+                        symbol: thread.phase.symbol,
+                        kind: .action(.reveal(thread.id))
                     )
                 })
             }
@@ -113,43 +100,22 @@ enum HyperliteInteractionModel {
         return min(max(selection + delta, 0), count - 1)
     }
 
-    static func hoverTitle(for item: HyperliteWorkItem) -> String {
-        truncated("\(item.repository) · \(item.title)", limit: 120)
+    static func hoverTitle(for thread: HyperliteThread) -> String {
+        truncated("\(thread.projectName) · \(thread.title)", limit: 120)
     }
 
-    static func hoverSummary(for item: HyperliteWorkItem) -> String {
-        let status = item.statuses.map(\.label).joined(separator: ", ")
-        let action: String
-        if item.pullRequest != nil {
-            action = "Open the pull request from the main list."
-        } else {
-            action = "Copy \(item.clickPath) from the main list."
-        }
-        return truncated("\(status). \(action)", limit: 300)
+    static func hoverSummary(for thread: HyperliteThread) -> String {
+        truncated("\(thread.phase.label). \(thread.whyNow)", limit: 300)
     }
 
     static func compactDiagnostic(_ diagnostic: HyperliteDiagnostic) -> String {
-        truncated(
-            "\(diagnostic.repository) (\(diagnostic.stage)): \(diagnostic.message)",
-            limit: 300
-        )
+        truncated("\(diagnostic.repository) (\(diagnostic.stage)): \(diagnostic.message)", limit: 300)
     }
 
     static func truncated(_ value: String, limit: Int) -> String {
         guard limit > 0, value.count > limit else { return limit > 0 ? value : "" }
         if limit == 1 { return "…" }
         return String(value.prefix(limit - 1)) + "…"
-    }
-
-    static func diagnosticCountSummary(errors: Int, warnings: Int) -> String {
-        var parts: [String] = []
-        if errors > 0 {
-            parts.append("\(errors) error\(errors == 1 ? "" : "s")")
-        }
-        if warnings > 0 {
-            parts.append("\(warnings) warning\(warnings == 1 ? "" : "s")")
-        }
-        return parts.joined(separator: " and ")
     }
 
     private static func actionEntry(
@@ -159,12 +125,6 @@ enum HyperliteInteractionModel {
         _ symbol: String,
         _ action: HyperlitePaletteAction
     ) -> HyperlitePaletteEntry {
-        HyperlitePaletteEntry(
-            id: id,
-            title: title,
-            subtitle: subtitle,
-            symbol: symbol,
-            kind: .action(action)
-        )
+        HyperlitePaletteEntry(id: id, title: title, subtitle: subtitle, symbol: symbol, kind: .action(action))
     }
 }

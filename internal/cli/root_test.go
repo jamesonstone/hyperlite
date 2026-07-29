@@ -47,7 +47,7 @@ func TestResolveColor(t *testing.T) {
 
 func TestRunScanPassesResolvedColorToTerminalOutput(t *testing.T) {
 	source := t.TempDir()
-	result := model.WorkScan{Errors: []model.ScanError{{Repository: "owner/repo", Stage: "fetch", Message: "network unavailable"}}}
+	result := model.ThreadScan{Errors: []model.ScanError{{Repository: "owner/repo", Stage: "fetch", Message: "network unavailable"}}}
 	t.Run("always enables color", func(t *testing.T) {
 		var output strings.Builder
 		app := App{
@@ -81,14 +81,18 @@ func TestRunScanPassesResolvedColorToTerminalOutput(t *testing.T) {
 }
 
 type testWorkSnapshotScanner struct {
-	result model.WorkScan
+	result model.ThreadScan
 	err    error
 }
 
-func (s testWorkSnapshotScanner) Scan(_ context.Context, _ config.Config, _, _ bool) (model.WorkScan, error) {
+func (s testWorkSnapshotScanner) Scan(_ context.Context, _ config.Config, _, _ bool) (model.ThreadScan, error) {
 	return s.result, s.err
 }
 
-func (s testWorkSnapshotScanner) ScanLocal(_ context.Context, _ config.Config, _ bool) (model.WorkScan, error) {
+func (s testWorkSnapshotScanner) ScanLocal(_ context.Context, _ config.Config, _ bool) (model.ThreadScan, error) {
+	return s.result, s.err
+}
+
+func (s testWorkSnapshotScanner) Infer(_ context.Context, _ config.Config) (model.ThreadScan, error) {
 	return s.result, s.err
 }

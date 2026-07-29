@@ -1,0 +1,194 @@
+package threadstate
+
+import (
+	"testing"
+
+	"github.com/jamesonstone/hyperlite/internal/model"
+)
+
+func TestChangedCandidateIgnoresResolvedReviewConclusion(t *testing.T) {
+	thread := model.Thread{
+		Active:   true,
+		Evidence: []model.EvidenceRef{{ID: "review:1"}},
+	}
+	value := changedCandidate(
+		MaterialSignature{Review: "Architecture ownership must be decided"},
+		MaterialSignature{},
+		thread,
+	)
+	if value != nil {
+		t.Fatalf("resolved review conclusion created attention: %#v", value)
+	}
+}
+
+func TestWhyNowDescribesCompletedProjectionWithoutAmbiguity(t *testing.T) {
+	thread := model.Thread{Phase: model.ThreadComplete}
+
+	if got := whyNow(thread); got != "Complete" {
+		t.Fatalf("whyNow() = %q, want Complete", got)
+	}
+}
+
+func TestBoundaryAttentionRequiresActionableProspectiveChange(t *testing.T) {
+	thread := model.Thread{
+		Phase: model.ThreadReviewing, Active: true,
+		Implications: []model.ThreadImplication{{
+			Summary:  "Never point the fail-closed check at production.",
+			Category: "production",
+		}},
+	}
+	if value := currentCandidate(thread); value != nil {
+		t.Fatalf("negative safety statement created attention: %#v", value)
+	}
+	thread.Implications[0].Summary = "Production object storage ownership changes."
+	value := currentCandidate(thread)
+	if value == nil || value.kind != model.AttentionGuard ||
+		value.summary != boundarySummary {
+		t.Fatalf("actionable boundary candidate = %#v", value)
+	}
+	thread.Implications[0].Summary = "Deploy production with no downtime."
+	if value := currentCandidate(thread); value == nil {
+		t.Fatal("non-disruptive delivery language hid an actionable boundary")
+	}
+	thread.Implications[0].Summary = "Audit history preserves how state changes."
+	if value := currentCandidate(thread); value != nil {
+		t.Fatalf("historical change language created attention: %#v", value)
+	}
+	thread.Implications[0].Summary = "Production credentials were rotated."
+	if value := currentCandidate(thread); value != nil {
+		t.Fatalf("completed boundary change created attention: %#v", value)
+	}
+	for _, historical := range []string{
+		"Previously completed required production changes.",
+		"Previously prepared production changes.",
+	} {
+		thread.Implications[0].Summary = historical
+		if value := currentCandidate(thread); value != nil {
+			t.Fatalf("historical boundary %q created attention: %#v", historical, value)
+		}
+	}
+	thread.Implications[0].Summary = "Production credentials must be rotated."
+	if value := currentCandidate(thread); value == nil {
+		t.Fatal("required boundary change did not create attention")
+	}
+	thread.Implications[0].Summary = "Migration work is complete; credentials must be rotated."
+	if value := currentCandidate(thread); value == nil {
+		t.Fatal("separate current boundary clause did not create attention")
+	}
+}
+
+func TestSatisfiedObligationChangeDoesNotCreateAttention(t *testing.T) {
+	thread := model.Thread{
+		Phase: model.ThreadImplementing, Active: true,
+		Obligations: []model.ThreadObligation{{
+			Summary: "Deploy production.", Satisfied: true,
+		}},
+	}
+	value := changedCandidate(
+		MaterialSignature{Obligations: "before"},
+		MaterialSignature{Obligations: "after"},
+		thread,
+	)
+	if value != nil {
+		t.Fatalf("satisfied obligation created attention: %#v", value)
+	}
+}
+
+func TestMetadataEnrichmentDoesNotCreateAttention(t *testing.T) {
+	thread := model.Thread{
+		Phase:    model.ThreadImplementing,
+		Active:   true,
+		Evidence: []model.EvidenceRef{{ID: "spec:1"}},
+	}
+	value := changedCandidate(
+		MaterialSignature{Goal: "before", Dependencies: "before"},
+		MaterialSignature{Goal: "after", Dependencies: "after"},
+		thread,
+	)
+	if value != nil {
+		t.Fatalf("metadata enrichment created attention: %#v", value)
+	}
+}
+
+func TestBoundaryEvidenceExcludesUnrelatedImplicationCategories(t *testing.T) {
+	thread := model.Thread{
+		Implications: []model.ThreadImplication{
+			{
+				Summary: "Deploy the production worker.", Category: "production",
+				EvidenceIDs: []string{"production"},
+			},
+			{
+				Summary: "Change the documentation.", Category: "documentation",
+				EvidenceIDs: []string{"documentation"},
+			},
+		},
+	}
+	values := boundaryEvidence(thread)
+	if len(values) != 1 || values[0] != "production" {
+		t.Fatalf("boundary evidence = %#v", values)
+	}
+}
+
+func TestOnlyAuthoritativeCoordinationRelationsCreateAttention(t *testing.T) {
+	thread := model.Thread{
+		Phase: model.ThreadImplementing, Active: true,
+		Dependencies: []model.ThreadRelation{{
+			Kind: model.RelationDependsOn, Basis: model.BasisHypothesis,
+		}},
+	}
+	if value := currentCandidate(thread); value != nil {
+		t.Fatalf("hypothesis created attention: %#v", value)
+	}
+	thread.Dependencies[0].Basis = model.BasisExplicit
+	value := currentCandidate(thread)
+	if value == nil || value.kind != model.AttentionReconcile ||
+		value.summary != coordinationSummary {
+		t.Fatalf("authoritative dependency candidate = %#v", value)
+	}
+}
+
+func TestStaleEvidenceNeedsAConsequentialCurrentClaim(t *testing.T) {
+	thread := model.Thread{
+		Phase: model.ThreadReviewing, Active: true,
+		Evidence: []model.EvidenceRef{{
+			ID: "cached", Freshness: "stale",
+		}},
+	}
+	if value := currentCandidate(thread); value != nil {
+		t.Fatalf("ordinary stale evidence created attention: %#v", value)
+	}
+	thread.Implications = []model.ThreadImplication{{
+		Summary: "Deploy the production worker.", Category: "production",
+	}}
+	value := currentCandidate(thread)
+	if value == nil || value.kind != model.AttentionUncertain {
+		t.Fatalf("consequential stale evidence = %#v", value)
+	}
+}
+
+func TestUncertaintyFingerprintTracksOnlyStaleEvidence(t *testing.T) {
+	thread := model.Thread{
+		Phase: model.ThreadReviewing, Active: true,
+		Implications: []model.ThreadImplication{{
+			Summary: "Deploy the production worker.", Category: "production",
+		}},
+		Evidence: []model.EvidenceRef{
+			{ID: "stale-1", Freshness: "stale"},
+			{ID: "current", Freshness: "current"},
+		},
+	}
+	first := currentCandidate(thread)
+	if first == nil || len(first.evidence) != 1 || first.evidence[0] != "stale-1" {
+		t.Fatalf("initial uncertainty = %#v", first)
+	}
+
+	thread.Evidence[1].Title = "Hydrated current evidence"
+	if current := currentCandidate(thread); !sameAttentionSituation(first, current) {
+		t.Fatal("current evidence enrichment changed the stale-evidence situation")
+	}
+
+	thread.Evidence[0] = model.EvidenceRef{ID: "stale-2", Freshness: "stale"}
+	if current := currentCandidate(thread); sameAttentionSituation(first, current) {
+		t.Fatal("different stale evidence reused the acknowledged situation")
+	}
+}

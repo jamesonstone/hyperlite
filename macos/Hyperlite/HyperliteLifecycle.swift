@@ -6,6 +6,7 @@ import Foundation
 final class HyperliteApplicationDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var hotKey: HyperliteHotKeyController?
     private weak var window: NSWindow?
+    private var terminationPending = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         hotKey = HyperliteHotKeyController { [weak self] in
@@ -20,6 +21,28 @@ final class HyperliteApplicationDelegate: NSObject, NSApplicationDelegate, NSWin
         }
     }
 
+    func applicationDidBecomeActive(_ notification: Notification) {
+        HyperliteState.shared.refreshIfStale()
+    }
+
+    func applicationDidResignActive(_ notification: Notification) {
+        Task { await HyperliteNotepadState.shared.flush() }
+    }
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard HyperliteNotepadState.shared.isDirty || HyperliteNotepadState.shared.isSaving else {
+            return .terminateNow
+        }
+        guard !terminationPending else { return .terminateLater }
+        terminationPending = true
+        Task { [weak self] in
+            let saved = await HyperliteNotepadState.shared.flush()
+            self?.terminationPending = false
+            sender.reply(toApplicationShouldTerminate: saved)
+        }
+        return .terminateLater
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         hotKey?.stop()
     }
@@ -27,6 +50,7 @@ final class HyperliteApplicationDelegate: NSObject, NSApplicationDelegate, NSWin
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
     func windowShouldClose(_ sender: NSWindow) -> Bool {
+        Task { await HyperliteNotepadState.shared.flush() }
         sender.orderOut(nil)
         return false
     }
