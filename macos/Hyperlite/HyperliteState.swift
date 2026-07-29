@@ -6,36 +6,53 @@ final class HyperliteState: ObservableObject {
     static let shared = HyperliteState()
 
     @Published private(set) var scan: HyperliteThreadScan?
-    @Published private(set) var isRefreshing = false
+    @Published private(set) var pullRequestScan: HyperliteProjectPullRequestScan?
+    @Published private(set) var isRefreshingThreads = false
+    @Published private(set) var isRefreshingPullRequests = false
     @Published private(set) var isPruning = false
     @Published private(set) var errorMessage: String?
     @Published private(set) var paletteMode: HyperlitePaletteMode?
     private var refreshTask: Task<Void, Never>?
+    private var pullRequestRefreshTask: Task<Void, Never>?
     private var pruneTask: Task<Void, Never>?
     private var mutationTasks: [String: Task<Void, Never>] = [:]
     private var mutationGenerations: [String: Int] = [:]
     private var refreshGeneration = 0
+    private var pullRequestRefreshGeneration = 0
 
-    init() { refresh(localOnly: true, continueIfRemoteStale: true) }
+    var isRefreshing: Bool { isRefreshingThreads || isRefreshingPullRequests }
+
+    init() {
+        refresh(localOnly: true, continueIfRemoteStale: true)
+        refreshPullRequests(mode: .local, continueIfStale: true)
+    }
 
     deinit {
         refreshTask?.cancel()
+        pullRequestRefreshTask?.cancel()
         pruneTask?.cancel()
         mutationTasks.values.forEach { $0.cancel() }
     }
 
     func refresh() {
         refresh(localOnly: false, continueIfRemoteStale: false, supersedeExisting: true)
+        refreshPullRequests(mode: .force, continueIfStale: false, supersedeExisting: true)
     }
 
     func refreshIfStale(now: Date = Date()) {
-        guard !isRefreshing else { return }
-        guard let scan else {
+        if !isRefreshingThreads, let scan {
+            if remoteIsStale(scan: scan, now: now) {
+                refresh(localOnly: false, continueIfRemoteStale: false)
+            }
+        } else if !isRefreshingThreads {
             refresh(localOnly: true, continueIfRemoteStale: true)
-            return
         }
-        if remoteIsStale(scan: scan, now: now) {
-            refresh()
+        if !isRefreshingPullRequests, let pullRequestScan {
+            if HyperlitePullRequestPresentation.isStale(scan: pullRequestScan, now: now) {
+                refreshPullRequests(mode: .stale, continueIfStale: false)
+            }
+        } else if !isRefreshingPullRequests {
+            refreshPullRequests(mode: .local, continueIfStale: true)
         }
     }
 
@@ -162,23 +179,62 @@ final class HyperliteState: ObservableObject {
         try Task.checkCancellation()
     }
 
+    private func refreshPullRequests(
+        mode: HyperlitePullRequestRefreshMode,
+        continueIfStale: Bool,
+        supersedeExisting: Bool = false
+    ) {
+        if isRefreshingPullRequests {
+            guard supersedeExisting else { return }
+            pullRequestRefreshTask?.cancel()
+        }
+        pullRequestRefreshGeneration += 1
+        let generation = pullRequestRefreshGeneration
+        isRefreshingPullRequests = true
+        pullRequestRefreshTask = Task { [weak self] in
+            guard let self else { return }
+            defer {
+                if pullRequestRefreshGeneration == generation {
+                    isRefreshingPullRequests = false
+                    pullRequestRefreshTask = nil
+                }
+            }
+            do {
+                try await HyperlitePullRequestRefresh.run(
+                    mode: mode,
+                    continueIfStale: continueIfStale,
+                    waitForEvidence: self.waitForRefresh
+                ) { decoded in
+                    guard self.pullRequestRefreshGeneration == generation else { return }
+                    self.pullRequestScan = decoded
+                }
+            } catch is CancellationError {
+                return
+            } catch {
+                if pullRequestRefreshGeneration == generation {
+                    errorMessage = error.localizedDescription
+                }
+            }
+        }
+    }
+
     private func refresh(
         localOnly: Bool,
         continueIfRemoteStale: Bool,
         supersedeExisting: Bool = false
     ) {
-        if isRefreshing {
+        if isRefreshingThreads {
             guard supersedeExisting else { return }
             refreshTask?.cancel()
         }
         refreshGeneration += 1
         let generation = refreshGeneration
-        isRefreshing = true
+        isRefreshingThreads = true
         refreshTask = Task { [weak self] in
             guard let self else { return }
             defer {
                 if refreshGeneration == generation {
-                    isRefreshing = false
+                    isRefreshingThreads = false
                     refreshTask = nil
                 }
             }
@@ -208,7 +264,7 @@ final class HyperliteState: ObservableObject {
     private func runScan(localOnly: Bool) async throws -> HyperliteThreadScan {
         let arguments = localOnly ? ["--json", "--local", "--no-refresh"] : ["--json"]
         let data = try await HyperliteProcess.run(arguments: arguments, operation: "scan")
-        return try Self.decoder.decode(HyperliteThreadScan.self, from: data)
+        return try HyperliteJSON.decoder.decode(HyperliteThreadScan.self, from: data)
     }
 
     private func enrichIfMateriallyChanged(
@@ -218,8 +274,10 @@ final class HyperliteState: ObservableObject {
         do {
             let data = try await HyperliteProcess.run(arguments: ["infer", "--json"], operation: "inference")
             guard refreshGeneration == generation else { return }
-            let enriched = try Self.decoder.decode(HyperliteThreadScan.self, from: data)
-            if coordinationProjection(enriched) != coordinationProjection(deterministic) {
+            let enriched = try HyperliteJSON.decoder.decode(HyperliteThreadScan.self, from: data)
+            if HyperlitePresentation.coordinationProjection(enriched) !=
+                HyperlitePresentation.coordinationProjection(deterministic)
+            {
                 scan = enriched
             }
         } catch is CancellationError {
@@ -237,33 +295,4 @@ final class HyperliteState: ObservableObject {
         return now.timeIntervalSince(observedAt) >= Double(interval)
     }
 
-    private func coordinationProjection(_ scan: HyperliteThreadScan) -> String {
-        scan.threads.map { thread in
-            let dependencies = thread.dependencies.map { "\($0.kind):\($0.targetThreadID ?? $0.target)" }.joined(separator: ",")
-            let implications = thread.implications.map(\.summary).joined(separator: ",")
-            let obligations = thread.remainingObligations.map(\.summary).joined(separator: ",")
-            return [
-                thread.id, thread.latestMaterialRevision, thread.phase.rawValue,
-                thread.goal, thread.rationale, dependencies, implications, obligations,
-                thread.whyNow, thread.inferenceStatus,
-            ].joined(separator: "\u{1F}")
-        }.joined(separator: "\u{1E}")
-    }
-
-    private static let decoder: JSONDecoder = {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .custom { decoder in
-            let value = try decoder.singleValueContainer().decode(String.self)
-            if let date = try? fractionalDateFormat.parse(value) { return date }
-            if let date = try? standardDateFormat.parse(value) { return date }
-            let container = try decoder.singleValueContainer()
-            throw DecodingError.dataCorruptedError(in: container, debugDescription: "invalid ISO-8601 date")
-        }
-        return decoder
-    }()
-
-    nonisolated private static let fractionalDateFormat = Date.ISO8601FormatStyle(
-        includingFractionalSeconds: true
-    )
-    nonisolated private static let standardDateFormat = Date.ISO8601FormatStyle()
 }

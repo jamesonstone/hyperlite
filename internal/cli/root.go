@@ -11,6 +11,7 @@ import (
 	"github.com/jamesonstone/hyperlite/internal/command"
 	"github.com/jamesonstone/hyperlite/internal/config"
 	"github.com/jamesonstone/hyperlite/internal/model"
+	"github.com/jamesonstone/hyperlite/internal/prindex"
 	"github.com/jamesonstone/hyperlite/internal/workscan"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
@@ -30,6 +31,7 @@ type App struct {
 	InputIsTTY                      func() bool
 	OutputIsTTY                     func() bool
 	workScannerSource               workSnapshotScanner
+	pullRequestScannerSource        projectPullRequestScanner
 	configuredProjectPrompterSource configuredProjectPrompter
 	worktreePrunerSource            staleWorktreePruner
 }
@@ -38,6 +40,14 @@ type workSnapshotScanner interface {
 	Scan(context.Context, config.Config, bool, bool) (model.ThreadScan, error)
 	ScanLocal(context.Context, config.Config, bool) (model.ThreadScan, error)
 	Infer(context.Context, config.Config) (model.ThreadScan, error)
+}
+
+type projectPullRequestScanner interface {
+	Scan(
+		context.Context,
+		config.Config,
+		prindex.RefreshMode,
+	) (model.ProjectPullRequestScan, error)
 }
 
 type huhPrompter struct {
@@ -87,6 +97,7 @@ func (a App) Root() *cobra.Command {
 		a.inferCommand(&configPath),
 		a.notepadCommand(),
 		a.threadCommand(),
+		a.pullRequestsCommand(&configPath),
 		a.configuredProjectsCommand(&configPath),
 		a.pruneWorktreeCommand(),
 		versionCommand(a.Out),
@@ -111,6 +122,13 @@ func (a App) workScanner() workSnapshotScanner {
 		return a.workScannerSource
 	}
 	return workscan.New(a.Runner)
+}
+
+func (a App) pullRequestScanner() projectPullRequestScanner {
+	if a.pullRequestScannerSource != nil {
+		return a.pullRequestScannerSource
+	}
+	return prindex.New(a.Runner)
 }
 
 func (a App) resolveColor(mode string) (bool, error) {

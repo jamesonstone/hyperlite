@@ -7,6 +7,7 @@
 | 0001 | standalone-hyperlite | `docs/specs/0001-standalone-hyperlite` | deliver | no | 2026-07-26 | Extract Hyperlite into an independent Go CLI and native macOS application with direct, bounded project scanning. |
 | 0002 | command-palettes | `docs/specs/0002-command-palettes` | deliver | no | 2026-07-27 | Add keyboard navigation, safe worktree pruning, concise hover context, and native ghost branding. |
 | 0003 | inferred-attention | `docs/specs/0003-inferred-attention` | deliver | no | 2026-07-28 | Reconstruct evidence-backed goal threads and surface only material coordination changes without user bookkeeping. |
+| 0004 | open-pull-requests | `docs/specs/0004-open-pull-requests` | deliver | no | 2026-07-29 | Track every open pull request across configured projects through a separate rate-safe informational projection. |
 
 ## PROJECT INTENT
 
@@ -69,12 +70,29 @@ changes that warrant human attention.
   context without interpreting its contents as project state. Present all
   application-owned text in JetBrainsMono Nerd Font and keep the product name,
   active count, attention state, refresh, and settings on one header row.
-- **OPEN ITEMS**: Implementation and local validation are complete on issue
-  #7 and branch `GH-7`; ready pull-request review and merge remain.
+- **OPEN ITEMS**: Implementation merged through issue #7 and PR #8; no
+  implementation items remain.
 - **POINTERS**: `docs/specs/0003-inferred-attention/SPEC.md`
+
+### open-pull-requests
+
+- **STATUS**: deliver
+- **PAUSED**: no
+- **INTENT**: Keep one current, quiet index of every open pull request across
+  configured projects without turning artifact presence into attention.
+- **APPROACH**: Resolve configured GitHub repositories locally, retrieve
+  all-author open pull requests in bounded GraphQL batches, keep an independent
+  private cache with a five-minute success and failure floor, and render
+  current, cached, and unavailable states above the configured-project map.
+- **OPEN ITEMS**: Implementation and local validation are complete on issue #9
+  and branch `GH-9`; ready pull-request review and merge remain.
+- **POINTERS**: `docs/specs/0004-open-pull-requests/SPEC.md`
 
 ## LAST UPDATED
 
+- 2026-07-29: Added the rate-safe configured-project Open PRs projection above
+  the stable Projects map.
+- 2026-07-29: Recorded inferred-attention delivery through merged PR #8.
 - 2026-07-29: Unified native typography on JetBrainsMono Nerd Font with a safe
   monospaced fallback and flattened the complete header into one line.
 - 2026-07-29: Replaced the inferred current-work ledger with a stable,

@@ -42,12 +42,14 @@ struct HyperliteWindow: View {
 
     private var activeThreads: [HyperliteThread] { state.activeThreads() }
     private var attentionThreads: [HyperliteThread] { state.attentionThreads() }
+    private var pullRequestScan: HyperliteProjectPullRequestScan? { state.pullRequestScan }
     private var projectIndex: [HyperliteProjectLocation] { state.scan?.projectIndex ?? [] }
     private var warnings: [HyperliteDiagnostic] { state.scan?.warnings ?? [] }
 
     var body: some View {
         let attention = attentionThreads
         let active = activeThreads
+        let pullRequests = pullRequestScan
         let projects = projectIndex
         let currentWarnings = warnings
         return ZStack(alignment: .topLeading) {
@@ -108,6 +110,9 @@ struct HyperliteWindow: View {
                         .frame(maxHeight: .infinity, alignment: .top)
                     }
 
+                    if let pullRequests {
+                        HyperlitePullRequestPanel(scan: pullRequests)
+                    }
                     if !projects.isEmpty {
                         HyperliteProjectMap(projects: projects)
                     }

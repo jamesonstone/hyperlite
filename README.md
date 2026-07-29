@@ -64,11 +64,20 @@ The native window loads cached state and current local Git evidence first. It
 refreshes remote evidence on foreground activation only when stale, and then
 runs optional local inference. The menu-bar ghost counts threads with unseen
 attention, not artifacts. The fixed header reports the complete active-thread
-count, unseen Attention receives the urgent treatment, and the remaining
-working set appears in a quiet bottom-anchored text ledger. Empty attention
-space remains empty instead of being filled by ordinary work. Completed and
-dormant projections stay out of the active surface. Command+K/Command+P retain
-keyboard access to the same current working set.
+count, unseen Attention receives the urgent treatment, and the bottom reference
+layer keeps a quiet all-author Open PRs index directly above the configured
+Projects map. The pull-request index is informational only: it never establishes
+thread activity or attention. Empty attention space remains empty instead of
+being filled by ordinary work. Completed and dormant projections stay out of
+the active surface. Command+K/Command+P retain keyboard access to the same
+current working set.
+
+Open PRs load from a separate private cache, refresh stale configured
+repositories on startup or foreground activation no more often than every five
+minutes, and use bounded GraphQL batches instead of one `gh` process per
+repository. The existing Refresh action forces the index current. Failed checks
+retain visibly cached rows; a project with no usable GitHub identity or cache is
+shown as unavailable.
 
 The global notepad directly beneath the header is a local scratch surface, not
 another source of project truth. Typing stays in memory, the latest edit saves
@@ -89,6 +98,9 @@ The JSON and local-inference interfaces are:
 ```sh
 hyperlite --json
 hyperlite infer --json
+hyperlite pull-requests --json
+hyperlite pull-requests --json --local
+hyperlite pull-requests --json --force
 hyperlite notepad
 hyperlite notepad set --stdin
 hyperlite notepad path
@@ -100,6 +112,10 @@ Thread state is stored atomically with user-only permissions at
 `$XDG_STATE_HOME/hyperlite/threads.json`, or
 `~/.local/state/hyperlite/threads.json` by default. Notes and seen state are
 presentation metadata; neither can create or complete a thread.
+
+The project pull-request cache is stored independently with user-only
+permissions at `$XDG_STATE_HOME/hyperlite/pull-requests.json`, or
+`~/.local/state/hyperlite/pull-requests.json` by default.
 
 The global notepad is stored separately with the same atomic, user-only
 boundary at `$XDG_DATA_HOME/hyperlite/notepad.md`, or

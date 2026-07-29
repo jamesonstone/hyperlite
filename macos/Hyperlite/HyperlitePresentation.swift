@@ -31,4 +31,19 @@ enum HyperlitePresentation {
         if seconds < 86_400 { return "\(seconds / 3_600)h" }
         return "\(seconds / 86_400)d"
     }
+
+    static func coordinationProjection(_ scan: HyperliteThreadScan) -> String {
+        scan.threads.map { thread in
+            let dependencies = thread.dependencies.map {
+                "\($0.kind):\($0.targetThreadID ?? $0.target)"
+            }.joined(separator: ",")
+            let implications = thread.implications.map(\.summary).joined(separator: ",")
+            let obligations = thread.remainingObligations.map(\.summary).joined(separator: ",")
+            return [
+                thread.id, thread.latestMaterialRevision, thread.phase.rawValue,
+                thread.goal, thread.rationale, dependencies, implications, obligations,
+                thread.whyNow, thread.inferenceStatus,
+            ].joined(separator: "\u{1F}")
+        }.joined(separator: "\u{1E}")
+    }
 }
