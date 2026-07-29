@@ -73,6 +73,12 @@ struct HyperlitePullRequestRow: Equatable, Identifiable {
     let updatedAt: Date
 }
 
+enum HyperlitePullRequestRowLayout {
+    static let repositoryColumnWidth: CGFloat = 190
+    static let repositoryLayoutPriority = 1.0
+    static let titleLayoutPriority = -1.0
+}
+
 enum HyperlitePullRequestPresentation {
     static func rows(scan: HyperliteProjectPullRequestScan) -> [HyperlitePullRequestRow] {
         scan.projects.flatMap { project in

@@ -25,6 +25,14 @@ references:
     read_policy: must
     used_for: layout and project-lane follow-up scope
     status: active
+  - id: issue-13
+    name: Prioritize project names in Open PR rows
+    type: github-issue
+    target: https://github.com/jamesonstone/hyperlite/issues/13
+    relation: implements
+    read_policy: must
+    used_for: repository-column layout priority
+    status: active
 ---
 
 # Configured Project Pull Requests
@@ -57,7 +65,10 @@ thread scanner cadence or starting continuous background work.
 - R2: Include every currently open pull request in each configured GitHub
   repository, including drafts and pull requests from every author.
 - R3: Show repository, pull-request number, title, draft or ready state, and
-  age; selecting a row opens its GitHub URL.
+  age; selecting a row opens its GitHub URL. Reserve a wide aligned column for
+  repository identity, keep number, state, and age compact, and make the pull
+  request title yield horizontal space first. Only unusually long repository
+  identities truncate within their reserved column.
 - R4: Render cached results immediately at launch, then refresh stale results
   in the background.
 - R5: Treat five minutes as the minimum automatic refresh interval. Startup and
@@ -99,6 +110,8 @@ background indexing, pull-request actions, or configuration schema changes.
 6. Let Open PRs consume the flexible native content area and project registered
    worktrees through exact open-PR head branches, independent of hidden
    inferred-attention presentation.
+7. Widen the aligned repository column for current and availability rows, and
+   give the pull-request title lower horizontal layout priority.
 
 ## DECISIONS
 
@@ -119,13 +132,18 @@ background indexing, pull-request actions, or configuration schema changes.
   when both are enabled so one user action does not launch concurrent GitHub
   request bursts. While attention presentation is disabled, native attention
   enrichment does not run.
+- Repository identity is the row's primary orientation label. It receives a
+  stable wide column so rows remain aligned; pull-request titles retain their
+  full accessible value but truncate visually before that identity column.
 
 ## ACCEPTANCE CRITERIA
 
 - AC1: The native window shows Open PRs immediately below the notepad, lets its
   scroll region fill the available space, and keeps Projects anchored below it.
 - AC2: Draft and ready pull requests from all authors decode and render with
-  their project, number, title, state, age, and URL.
+  their repository, number, title, state, age, and URL. Common repository names
+  remain readable in a widened aligned column, while long pull-request titles
+  truncate before the repository column yields.
 - AC3: A cache younger than five minutes causes no GitHub process; stale or
   missing repositories are queried in batches; explicit refresh queries every
   resolved repository.
@@ -164,6 +182,11 @@ background indexing, pull-request actions, or configuration schema changes.
   another process's update from the rendered projection even when persistence
   is correct. The cache transaction returns the exact timestamped snapshot it
   wrote under the lock.
+- A 78-point repository column exposes mostly the organization prefix for
+  configured repositories and makes otherwise distinct projects look
+  identical. A 190-point aligned column fits common repository identities at
+  the supported narrow window width while leaving the title as the flexible,
+  first-truncated field.
 
 ## VALIDATION
 
@@ -179,10 +202,12 @@ background indexing, pull-request actions, or configuration schema changes.
   updates, repeated-cursor and page-limit guards, and CLI mode selection.
 - Native executable model tests cover schema decoding, recent-first ordering,
   draft and ready labels, cached and unavailable states, URL preservation, and
-  the five-minute floor. Project-lane tests prove exact case-sensitive head
-  branch filtering, primary-checkout retention, cached fallback, and removal
-  after a successful empty refresh. Swift type-checking passed with only the
-  two existing macOS 14 `onChange` deprecation warnings in
+  the five-minute floor. Row-layout coverage fixes a minimum 180-point
+  repository allocation and proves repository identity has higher horizontal
+  priority than the PR title. Project-lane tests prove exact case-sensitive
+  head branch filtering, primary-checkout retention, cached fallback, and
+  removal after a successful empty refresh. Swift type-checking passed with
+  only the two existing macOS 14 `onChange` deprecation warnings in
   `HyperlitePaletteViews.swift`.
 - One isolated-cache live validation queried all 16 configured projects in one
   GraphQL batch and returned 18 open pull requests, 0 unavailable projects, 0
@@ -194,6 +219,12 @@ background indexing, pull-request actions, or configuration schema changes.
   ready states, age labels, and subdued visual hierarchy. The Projects map
   retained every configured checkout and showed only subordinate branches
   represented in the open-PR snapshot.
+- A second isolated packaged-app inspection at the supported narrow/default
+  window width confirmed that common repository identities such as
+  `lsmc-bio/lsmc-vivarium` remain fully visible, long identities retain a
+  distinguishing repository prefix, and long PR titles truncate to protect
+  the aligned repository, number, state, and age columns. Accessibility labels
+  retain the complete repository and title.
 
 ## OUTCOME
 
@@ -211,6 +242,9 @@ The panel now owns all flexible space between the plain-text notepad and the
 Projects map. Its exact head-branch projection controls subordinate worktree
 visibility: a successful refresh that no longer reports a merged or closed PR
 removes that lane from Projects without deleting or pruning any checkout.
+Open PR rows reserve a 190-point aligned repository column and let the title
+yield horizontal space first, so project identity remains useful even when a
+pull-request title is unusually long.
 
 ## REPOSITORY MEMORY
 

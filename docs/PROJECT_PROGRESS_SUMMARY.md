@@ -83,13 +83,16 @@ changes that warrant human attention.
   private cache with a five-minute success and failure floor, let the panel own
   the flexible native content region, and use exact PR head branches to hide
   merged or closed worktree lanes after a successful refresh.
-- **OPEN ITEMS**: The initial projection merged through issue #9 and PR #10.
-  The focused native layout and merged-lane follow-up is complete locally on
-  issue #11 and branch `GH-11`; ready pull-request review and merge remain.
+- **OPEN ITEMS**: The initial projection merged through issue #9 and PR #10;
+  the focused native layout and merged-lane follow-up merged through issue #11
+  and PR #12. Repository-column prioritization is complete locally on issue
+  #13; ready pull-request review and merge remain.
 - **POINTERS**: `docs/specs/0004-open-pull-requests/SPEC.md`
 
 ## LAST UPDATED
 
+- 2026-07-29: Prioritized readable repository names over long pull-request
+  titles in the aligned Open PRs row layout.
 - 2026-07-29: Focused the native surface on plain-text notes and Open PRs,
   temporarily hid inferred-attention presentation, and made successful PR
   refreshes remove merged or closed worktree lanes from Projects.

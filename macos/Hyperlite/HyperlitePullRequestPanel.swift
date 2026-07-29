@@ -66,10 +66,14 @@ private struct HyperlitePullRequestPanelRow: View {
         Button(action: openPullRequest) {
             HStack(alignment: .firstTextBaseline, spacing: 7) {
                 Text(row.repository)
-                    .frame(width: 78, alignment: .leading)
+                    .frame(
+                        width: HyperlitePullRequestRowLayout.repositoryColumnWidth,
+                        alignment: .leading
+                    )
                     .foregroundStyle(.tertiary)
                     .lineLimit(1)
                     .truncationMode(.tail)
+                    .layoutPriority(HyperlitePullRequestRowLayout.repositoryLayoutPriority)
                 Text("#\(row.number)")
                     .frame(width: 42, alignment: .leading)
                     .foregroundStyle(.secondary)
@@ -80,6 +84,7 @@ private struct HyperlitePullRequestPanelRow: View {
                     .foregroundStyle(row.status == .current ? .secondary : .tertiary)
                     .lineLimit(1)
                     .truncationMode(.tail)
+                    .layoutPriority(HyperlitePullRequestRowLayout.titleLayoutPriority)
                 Spacer(minLength: 6)
                 Text(HyperlitePresentation.ageLabel(for: row.updatedAt))
                     .foregroundStyle(.tertiary)
@@ -109,14 +114,19 @@ private struct HyperlitePullRequestAvailabilityRow: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 7) {
             Text(project.repository ?? project.name)
-                .frame(width: 78, alignment: .leading)
+                .frame(
+                    width: HyperlitePullRequestRowLayout.repositoryColumnWidth,
+                    alignment: .leading
+                )
                 .lineLimit(1)
                 .truncationMode(.tail)
+                .layoutPriority(HyperlitePullRequestRowLayout.repositoryLayoutPriority)
             Text(project.status == .cached ? "cached" : "unavailable")
                 .frame(width: 91, alignment: .leading)
             Text(project.message ?? "GitHub data is unavailable")
                 .lineLimit(1)
                 .truncationMode(.tail)
+                .layoutPriority(HyperlitePullRequestRowLayout.titleLayoutPriority)
             Spacer(minLength: 0)
         }
         .font(HyperliteTypography.regular(10))
