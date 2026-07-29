@@ -17,6 +17,14 @@ references:
     read_policy: must
     used_for: product scope and acceptance criteria
     status: active
+  - id: issue-11
+    name: Focus native workspace on pull requests and notes
+    type: github-issue
+    target: https://github.com/jamesonstone/hyperlite/issues/11
+    relation: implements
+    read_policy: must
+    used_for: layout and project-lane follow-up scope
+    status: active
 ---
 
 # Configured Project Pull Requests
@@ -44,8 +52,8 @@ thread scanner cadence or starting continuous background work.
 
 ## REQUIREMENTS
 
-- R1: Render a visually subdued Open PRs panel immediately above the configured
-  Projects map.
+- R1: Render a visually subdued Open PRs panel immediately below the notepad,
+  filling the flexible space down to the configured Projects map.
 - R2: Include every currently open pull request in each configured GitHub
   repository, including drafts and pull requests from every author.
 - R3: Show repository, pull-request number, title, draft or ready state, and
@@ -67,6 +75,10 @@ thread scanner cadence or starting continuous background work.
   deterministic recent-first ordering for pull-request rows.
 - R10: Keep configured repositories and GitHub read-only. Do not add polling,
   notifications, repository mutation, or pull-request mutation.
+- R11: Include each pull request's head branch in the lightweight projection.
+  Use that exact case-sensitive branch to show only matching registered
+  worktrees in Projects. After a successful refresh observes a PR as merged or
+  closed, remove its worktree row without deleting or pruning the checkout.
 
 Non-goals: CI or review-detail hydration, authored-only filtering, turning open
 pull requests into inferred threads or attention moments, continuous timers,
@@ -84,6 +96,9 @@ background indexing, pull-request actions, or configuration schema changes.
    partial-failure fallback, schema decoding, ordering, labels, and URLs.
 5. Run the complete Go and native macOS validation gates and curate repository
    memory to the delivered behavior.
+6. Let Open PRs consume the flexible native content area and project registered
+   worktrees through exact open-PR head branches, independent of hidden
+   inferred-attention presentation.
 
 ## DECISIONS
 
@@ -97,11 +112,18 @@ background indexing, pull-request actions, or configuration schema changes.
   issue, check, and review evidence.
 - Cache ownership is separate from thread state to avoid lost updates between
   independently running helper commands.
+- The native Projects map treats current or retained cached open-PR branches as
+  worktree visibility authority. It never removes a checkout; it only stops
+  rendering a subordinate lane after a successful PR refresh drops the branch.
+- Pull-request refresh remains serialized behind the heavier evidence refresh
+  when both are enabled so one user action does not launch concurrent GitHub
+  request bursts. While attention presentation is disabled, native attention
+  enrichment does not run.
 
 ## ACCEPTANCE CRITERIA
 
-- AC1: The native window shows Open PRs immediately above Projects and remains
-  visually subordinate to Attention.
+- AC1: The native window shows Open PRs immediately below the notepad, lets its
+  scroll region fill the available space, and keeps Projects anchored below it.
 - AC2: Draft and ready pull requests from all authors decode and render with
   their project, number, title, state, age, and URL.
 - AC3: A cache younger than five minutes causes no GitHub process; stale or
@@ -110,6 +132,9 @@ background indexing, pull-request actions, or configuration schema changes.
 - AC4: Partial query failure preserves cached rows with a cached state, while a
   project with neither a usable GitHub identity nor cache is unavailable.
 - AC5: No configured-project or GitHub mutation occurs.
+- AC6: Exact registered worktree branches remain visible only while their
+  project reports a corresponding open PR; a successful refresh after merge
+  removes the row without deleting local data.
 
 ## VALIDATION MAP
 
@@ -119,6 +144,7 @@ background indexing, pull-request actions, or configuration schema changes.
 | AC3 | Go service and client tests with fake clock and command runner |
 | AC4 | Go partial-failure/cache tests and Swift availability decoding tests |
 | AC5 | Adapter command assertions and implementation self-review |
+| AC6 | Head-branch transport tests and Swift project-lane projection tests |
 
 ## DISCOVERIES
 
@@ -131,44 +157,64 @@ background indexing, pull-request actions, or configuration schema changes.
 - The configured 16-project set fits in one bounded GraphQL batch. Pagination
   remains repository-specific and runs only when a repository reports another
   page.
+- Pagination needs both a repeated-cursor guard and a hard page ceiling. A
+  malformed or changing GitHub connection must fail into cached state instead
+  of consuming an unbounded request budget.
+- Returning a cache value loaded before a separate locked mutation can discard
+  another process's update from the rendered projection even when persistence
+  is correct. The cache transaction returns the exact timestamped snapshot it
+  wrote under the lock.
 
 ## VALIDATION
 
 - `make fmt-check vet test test-race build macos-test macos-build` passed.
-- `kit check 0004-open-pull-requests` passed. `kit check --project`
-  remains blocked by the same six unrelated Kit instruction-drift findings on
-  `main`; none is in this feature's changed paths.
+- `kit check 0003-inferred-attention` and
+  `kit check 0004-open-pull-requests` passed. `kit check --project` remains
+  blocked by the same six unrelated V3 support-document drift findings already
+  present on `main`; none is in this feature's changed paths.
 - Focused Go tests cover bounded batching, multi-page retrieval, partial
   GraphQL errors, query-error redaction, five-minute success and failure
   throttling, force refresh, cached fallback, unavailable repositories,
-  private atomic storage, corruption preservation, and CLI mode selection.
+  private atomic storage, corruption preservation, transactional concurrent
+  updates, repeated-cursor and page-limit guards, and CLI mode selection.
 - Native executable model tests cover schema decoding, recent-first ordering,
   draft and ready labels, cached and unavailable states, URL preservation, and
-  the five-minute floor. Swift type-checking passed with only the two existing
-  macOS 14 `onChange` deprecation warnings in
+  the five-minute floor. Project-lane tests prove exact case-sensitive head
+  branch filtering, primary-checkout retention, cached fallback, and removal
+  after a successful empty refresh. Swift type-checking passed with only the
+  two existing macOS 14 `onChange` deprecation warnings in
   `HyperlitePaletteViews.swift`.
 - One isolated-cache live validation queried all 16 configured projects in one
-  GraphQL batch and returned 13 open pull requests, 0 unavailable projects, 0
+  GraphQL batch and returned 18 open pull requests, 0 unavailable projects, 0
   errors, and 0 warnings.
 - The universal signed app was built and launched. The native accessibility
-  tree and screenshot confirmed the 13-row scrollable Open PRs panel directly
-  above Projects, URL-backed buttons, draft and ready states, age labels, and
-  subdued visual hierarchy.
+  tree and screenshot confirmed that Open PRs begins immediately below the
+  notepad and fills the flexible region down to the bottom-anchored Projects
+  map. It exposed 18 URL-backed rows with full repository identity, draft and
+  ready states, age labels, and subdued visual hierarchy. The Projects map
+  retained every configured checkout and showed only subordinate branches
+  represented in the open-PR snapshot.
 
 ## OUTCOME
 
 Hyperlite now renders a separate informational Open PRs index for every
 configured project. It loads a private cache first, refreshes stale repositories
-in bounded GraphQL batches after the heavier evidence refresh completes,
+in bounded GraphQL batches after the local project scan completes,
 throttles successful and failed automatic checks for five minutes, and lets the
 existing Refresh action force a current snapshot. Partial failures retain and
 label cached rows; missing repository identity or missing cache remains visibly
-unavailable. Open pull requests do not change thread liveness, lifecycle, or
-attention.
+unavailable. Repeated pagination cursors and excessive pages fail safely into
+that cache boundary. Open pull requests do not change thread liveness,
+lifecycle, or attention.
+
+The panel now owns all flexible space between the plain-text notepad and the
+Projects map. Its exact head-branch projection controls subordinate worktree
+visibility: a successful refresh that no longer reports a merged or closed PR
+removes that lane from Projects without deleting or pruning any checkout.
 
 ## REPOSITORY MEMORY
 
-Decision: created.
+Decision: updated.
 
 Rationale: refresh authority, cache ownership, batching, failure semantics, and
 the separation from attention are durable product decisions that code and tests

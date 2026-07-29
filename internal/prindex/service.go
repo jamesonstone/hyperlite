@@ -86,14 +86,13 @@ func (s Scanner) Scan(
 				}
 			}
 		}
-		if err := s.Store.Update(func(current *cacheState) {
+		cache, err = s.Store.Update(func(current *cacheState) {
 			updateProjectMappings(current, sources, resolved)
 			applyQueryResults(current, repositories, queryResults, now)
-		}); err != nil {
+		})
+		if err != nil {
 			return model.ProjectPullRequestScan{}, err
 		}
-		updateProjectMappings(&cache, sources, resolved)
-		applyQueryResults(&cache, repositories, queryResults, now)
 	}
 
 	result := model.ProjectPullRequestScan{
@@ -171,6 +170,9 @@ func repositoriesToRefresh(
 			continue
 		}
 		entry, cached := cache.Repositories[key]
+		if cached && entry.CheckedAt.IsZero() && cacheEntryNeedsHeadRefs(entry) {
+			cached = false
+		}
 		lastCheck := entry.CheckedAt
 		if lastCheck.IsZero() {
 			lastCheck = entry.ObservedAt
@@ -183,6 +185,15 @@ func repositoriesToRefresh(
 		result = append(result, repository)
 	}
 	return result
+}
+
+func cacheEntryNeedsHeadRefs(entry cacheEntry) bool {
+	for _, pullRequest := range entry.PullRequests {
+		if pullRequest.HeadRefName == "" {
+			return true
+		}
+	}
+	return false
 }
 
 func updateProjectMappings(

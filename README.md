@@ -60,38 +60,40 @@ situation can demand attention again.
 A merged PR advances a goal; it does not complete a goal that still has
 delivery, deployment, infrastructure, or reflection work.
 
-The native window loads cached state and current local Git evidence first. It
-refreshes remote evidence on foreground activation only when stale, and then
-runs optional local inference. The menu-bar ghost counts threads with unseen
-attention, not artifacts. The fixed header reports the complete active-thread
-count, unseen Attention receives the urgent treatment, and the bottom reference
-layer keeps a quiet all-author Open PRs index directly above the configured
-Projects map. The pull-request index is informational only: it never establishes
-thread activity or attention. Empty attention space remains empty instead of
-being filled by ordinary work. Completed and dormant projections stay out of
-the active surface. Command+K/Command+P retain keyboard access to the same
-current working set.
+The current native presentation focuses on notes and open pull requests.
+Inferred attention remains available through CLI/JSON but is hidden behind a
+single native feature flag: the window, menu bar, and palettes show no thread
+or attention counts or entries, and the app skips remote attention enrichment.
+The fixed header contains only the product name, Refresh, and Settings. Open
+PRs fills the flexible space between the notepad and the bottom-anchored
+Projects map. The pull-request index is informational only: it never
+establishes thread activity or attention.
 
 Open PRs load from a separate private cache, refresh stale configured
 repositories on startup or foreground activation no more often than every five
 minutes, and use bounded GraphQL batches instead of one `gh` process per
 repository. The existing Refresh action forces the index current. Failed checks
 retain visibly cached rows; a project with no usable GitHub identity or cache is
-shown as unavailable.
+shown as unavailable. Pagination fails safely on a repeated cursor or bounded
+page limit instead of risking an unbounded GitHub query loop.
+
+Projects always shows every configured checkout. Registered subordinate
+worktrees appear only when their exact case-sensitive branch is the head branch
+of a current or retained cached open pull request for that project. After a
+successful refresh observes that pull request as merged or closed, its worktree
+row disappears; Hyperlite never deletes or prunes the local checkout.
 
 The global notepad directly beneath the header is a local scratch surface, not
 another source of project truth. Typing stays in memory, the latest edit saves
 after three idle seconds, and pending text flushes when the window or
-application yields. Its content never enters thread inference or attention.
+application yields. It is regular UTF-8 text rendered in the proportional
+system font, with no Markdown presentation. Its content never enters thread
+inference or attention.
 
-Open a thread to see its goal, rationale, progress, dependencies, implications,
-remaining obligations, evidence, expected action, consequence, validity, and
-optional note. Opening marks material moments through the displayed revision as
-seen, removing them from Attention while retaining the thread in the working
-set when current evidence still supports it.
-Command+K navigates commands and threads; Command+P navigates projects and
-their threads. Verified stale-worktree pruning appears in Command+K when
-applicable; scan diagnostics remain available through CLI output and JSON.
+Command+K navigates current commands. Verified stale-worktree pruning appears
+there when applicable; scan diagnostics remain available through CLI output and
+JSON. Thread and project navigation can be re-enabled with the native attention
+presentation later.
 
 The JSON and local-inference interfaces are:
 
@@ -118,8 +120,10 @@ permissions at `$XDG_STATE_HOME/hyperlite/pull-requests.json`, or
 `~/.local/state/hyperlite/pull-requests.json` by default.
 
 The global notepad is stored separately with the same atomic, user-only
-boundary at `$XDG_DATA_HOME/hyperlite/notepad.md`, or
-`~/.local/share/hyperlite/notepad.md` by default. It is limited to 256 KiB.
+boundary at `$XDG_DATA_HOME/hyperlite/notepad.txt`, or
+`~/.local/share/hyperlite/notepad.txt` by default. On first use, Hyperlite
+adopts the prior default `notepad.md` file without changing its content. The
+document is limited to 256 KiB.
 
 ## Development
 

@@ -34,7 +34,7 @@ struct HyperliteNotepadView: View {
                 )
                 if state.text.isEmpty {
                     Text("Write anything — local only")
-                        .font(HyperliteTypography.regular(13))
+                        .font(.system(size: 13))
                         .foregroundStyle(.tertiary)
                         .padding(.horizontal, 7)
                         .padding(.vertical, 6)
@@ -68,7 +68,7 @@ private struct HyperlitePlainTextEditor: NSViewRepresentable {
 
         textView.delegate = context.coordinator
         textView.string = text
-        textView.font = HyperliteTypography.appKitFont(13)
+        textView.font = HyperliteTypography.plainTextAppKitFont(13)
         textView.textColor = .labelColor
         textView.backgroundColor = .clear
         textView.drawsBackground = false

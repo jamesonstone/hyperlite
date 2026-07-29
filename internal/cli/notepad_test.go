@@ -8,7 +8,7 @@ import (
 )
 
 func TestNotepadCommandsRoundTripVerbatimContent(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "notepad.md")
+	path := filepath.Join(t.TempDir(), "notepad.txt")
 	t.Setenv("HYPERLITE_NOTEPAD_PATH", path)
 	var output bytes.Buffer
 	content := "# Context\n\nDeploy after migration.\n"
@@ -34,7 +34,7 @@ func TestNotepadCommandsRoundTripVerbatimContent(t *testing.T) {
 }
 
 func TestNotepadCommandDefaultsToShowAndReportsPath(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "notepad.md")
+	path := filepath.Join(t.TempDir(), "notepad.txt")
 	t.Setenv("HYPERLITE_NOTEPAD_PATH", path)
 	var output bytes.Buffer
 
@@ -56,7 +56,7 @@ func TestNotepadCommandDefaultsToShowAndReportsPath(t *testing.T) {
 }
 
 func TestRootNotepadDoesNotRequireProjectConfiguration(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "notepad.md")
+	path := filepath.Join(t.TempDir(), "notepad.txt")
 	t.Setenv("HYPERLITE_NOTEPAD_PATH", path)
 	t.Setenv("HYPERLITE_CONFIG", filepath.Join(t.TempDir(), "invalid.yaml"))
 	var output bytes.Buffer

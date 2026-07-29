@@ -4,6 +4,7 @@ enum HyperliteProjectIndexTests {
     static func run() throws {
         try testSchemaDecoding()
         testPathPresentation()
+        testOpenPullRequestLaneProjection()
     }
 
     private static func testSchemaDecoding() throws {
@@ -69,6 +70,62 @@ enum HyperliteProjectIndexTests {
             ) == "~/worktrees/hyperlite/GH-7",
             "home paths should be compact without losing location"
         )
+    }
+
+    private static func testOpenPullRequestLaneProjection() {
+        let primary = HyperliteProjectLane(
+            id: "/repo/hyperlite", branch: "main", path: "/repo/hyperlite",
+            primary: true, detached: false
+        )
+        let open = HyperliteProjectLane(
+            id: "/worktrees/hyperlite/GH-9", branch: "GH-9",
+            path: "/worktrees/hyperlite/GH-9", primary: false, detached: false
+        )
+        let merged = HyperliteProjectLane(
+            id: "/worktrees/hyperlite/GH-7", branch: "GH-7",
+            path: "/worktrees/hyperlite/GH-7", primary: false, detached: false
+        )
+        let project = HyperliteProjectLocation(
+            id: "/repo/hyperlite", name: "hyperlite", path: "/repo/hyperlite",
+            repository: "owner/hyperlite", lanes: [primary, merged, open]
+        )
+        let pullRequest = HyperliteProjectPullRequest(
+            id: "owner/hyperlite#10", number: 10, title: "Open",
+            url: "https://github.com/owner/hyperlite/pull/10",
+            headRefName: "GH-9", isDraft: false, updatedAt: Date()
+        )
+        let scan = HyperliteProjectPullRequestScan(
+            schemaVersion: 1, generatedAt: Date(), checkedAt: Date(),
+            observedAt: Date(), refreshIntervalSeconds: 300,
+            projects: [HyperliteProjectPullRequests(
+                id: project.id, name: project.name, path: project.path,
+                repository: project.repository, status: .current, message: nil,
+                checkedAt: Date(), observedAt: Date(), pullRequests: [pullRequest]
+            )],
+            errors: [], warnings: []
+        )
+
+        let visible = HyperliteProjectIndexPresentation.visibleProjects(
+            [project], pullRequests: scan
+        )
+        expect(visible[0].lanes.map(\.branch) == ["main", "GH-9"],
+               "only an exact open-PR branch should remain visible")
+
+        let mergedScan = HyperliteProjectPullRequestScan(
+            schemaVersion: 1, generatedAt: Date(), checkedAt: Date(),
+            observedAt: Date(), refreshIntervalSeconds: 300,
+            projects: [HyperliteProjectPullRequests(
+                id: project.id, name: project.name, path: project.path,
+                repository: project.repository, status: .current, message: nil,
+                checkedAt: Date(), observedAt: Date(), pullRequests: []
+            )],
+            errors: [], warnings: []
+        )
+        let afterMerge = HyperliteProjectIndexPresentation.visibleProjects(
+            [project], pullRequests: mergedScan
+        )
+        expect(afterMerge[0].lanes.map(\.branch) == ["main"],
+               "a successful merged-PR refresh should remove its worktree row")
     }
 
     private static func require<T>(_ value: T?, _ message: String) throws -> T {

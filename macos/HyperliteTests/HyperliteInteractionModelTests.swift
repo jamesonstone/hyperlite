@@ -6,6 +6,7 @@ struct HyperliteInteractionModelTests {
         try testSchemaV2Decoding()
         try testStructuredDiagnosticDecoding()
         testAttentionAndInformationalProjections()
+        expect(!HyperliteFeatureFlags.inferredAttentionPresentation, "attention presentation hidden")
         testRowSummaryOnlyShowsAttention()
         testCommandEntries()
         testProjectEntries()

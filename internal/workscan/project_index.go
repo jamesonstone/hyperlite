@@ -13,25 +13,17 @@ import (
 func buildProjectIndex(
 	cfg config.Config,
 	results []repositoryResult,
-	threads []model.Thread,
 ) []model.ProjectIndexEntry {
-	activePaths := activeWorktreePaths(threads)
 	byPath := make(map[string]model.ProjectIndexEntry, len(results))
 	for _, result := range results {
-		entry := filteredProjectEntry(
-			result.project,
-			activePaths[result.project.Repository],
-		)
+		entry := result.project
 		byPath[filepath.Clean(entry.Path)] = entry
 	}
 
 	if len(cfg.Projects) == 0 {
 		entries := make([]model.ProjectIndexEntry, 0, len(results))
 		for _, result := range results {
-			entries = append(entries, filteredProjectEntry(
-				result.project,
-				activePaths[result.project.Repository],
-			))
+			entries = append(entries, result.project)
 		}
 		return entries
 	}
@@ -46,46 +38,6 @@ func buildProjectIndex(
 		entries = append(entries, fallbackProjectEntry(path))
 	}
 	return entries
-}
-
-func activeWorktreePaths(threads []model.Thread) map[string]map[string]struct{} {
-	paths := make(map[string]map[string]struct{})
-	for _, thread := range threads {
-		if !thread.Active {
-			continue
-		}
-		for _, artifact := range thread.Artifacts {
-			if artifact.Kind != model.ArtifactWorktree ||
-				strings.TrimSpace(artifact.Path) == "" {
-				continue
-			}
-			for _, repository := range thread.Repositories {
-				if paths[repository] == nil {
-					paths[repository] = make(map[string]struct{})
-				}
-				paths[repository][filepath.Clean(artifact.Path)] = struct{}{}
-			}
-		}
-	}
-	return paths
-}
-
-func filteredProjectEntry(
-	entry model.ProjectIndexEntry,
-	activePaths map[string]struct{},
-) model.ProjectIndexEntry {
-	lanes := make([]model.ProjectLane, 0, len(entry.Lanes))
-	for _, lane := range entry.Lanes {
-		if lane.Primary {
-			lanes = append(lanes, lane)
-			continue
-		}
-		if _, active := activePaths[filepath.Clean(lane.Path)]; active {
-			lanes = append(lanes, lane)
-		}
-	}
-	entry.Lanes = lanes
-	return entry
 }
 
 func projectIndexEntry(

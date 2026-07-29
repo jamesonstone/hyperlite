@@ -2,7 +2,6 @@ package prindex
 
 import (
 	"context"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -24,6 +23,7 @@ func TestScannerHonorsFiveMinuteFloorAndForceRefresh(t *testing.T) {
 				ObservedAt: now.Add(-4 * time.Minute),
 				PullRequests: []model.ProjectPullRequest{{
 					ID: "owner/one#1", Number: 1, Title: "Cached",
+					HeadRefName: "GH-1",
 				}},
 			},
 		},
@@ -267,32 +267,21 @@ func (f *fakePullRequestClient) ListOpen(
 }
 
 type memoryCacheStore struct {
-	state   cacheState
-	warning string
+	state        cacheState
+	warning      string
+	beforeUpdate func(*cacheState)
 }
 
 func (s *memoryCacheStore) Load() (cacheState, string, error) {
 	return cloneCache(s.state), s.warning, nil
 }
 
-func (s *memoryCacheStore) Update(mutate func(*cacheState)) error {
+func (s *memoryCacheStore) Update(mutate func(*cacheState)) (cacheState, error) {
 	state := cloneCache(s.state)
+	if s.beforeUpdate != nil {
+		s.beforeUpdate(&state)
+	}
 	mutate(&state)
 	s.state = state
-	return nil
-}
-
-func cloneCache(source cacheState) cacheState {
-	cloned := emptyCache()
-	cloned.UpdatedAt = source.UpdatedAt
-	for path, repository := range source.Projects {
-		cloned.Projects[filepath.Clean(path)] = repository
-	}
-	for key, entry := range source.Repositories {
-		entry.PullRequests = append(
-			[]model.ProjectPullRequest(nil), entry.PullRequests...,
-		)
-		cloned.Repositories[key] = entry
-	}
-	return cloned
+	return cloneCache(state), nil
 }

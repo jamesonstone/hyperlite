@@ -15,9 +15,10 @@ import (
 )
 
 const (
-	githubTimeout  = 20 * time.Second
-	queryBatchSize = 25
-	queryPageSize  = 100
+	githubTimeout      = 20 * time.Second
+	queryBatchSize     = 25
+	queryPageSize      = 100
+	maxRepositoryPages = 20
 )
 
 type RepositoryResult struct {
@@ -32,14 +33,16 @@ type GitHubClient struct {
 type pageRequest struct {
 	repository config.Repository
 	cursor     string
+	page       int
 }
 
 type rawPullRequest struct {
-	Number    int       `json:"number"`
-	Title     string    `json:"title"`
-	URL       string    `json:"url"`
-	IsDraft   bool      `json:"isDraft"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	Number      int       `json:"number"`
+	Title       string    `json:"title"`
+	URL         string    `json:"url"`
+	HeadRefName string    `json:"headRefName"`
+	IsDraft     bool      `json:"isDraft"`
+	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
 type rawRepository struct {
@@ -82,11 +85,12 @@ func (c GitHubClient) collectBatch(
 ) {
 	pending := make([]pageRequest, 0, len(repositories))
 	for _, repository := range repositories {
-		pending = append(pending, pageRequest{repository: repository})
+		pending = append(pending, pageRequest{repository: repository, page: 1})
 		results[repositoryKey(repository.GitHub)] = RepositoryResult{
 			PullRequests: []model.ProjectPullRequest{},
 		}
 	}
+	seenCursors := make(map[string]map[string]struct{}, len(repositories))
 	for len(pending) > 0 {
 		query, aliases := buildQuery(pending)
 		output, err := c.run(ctx, query)
@@ -127,17 +131,37 @@ func (c GitHubClient) collectBatch(
 				result.PullRequests = append(result.PullRequests, model.ProjectPullRequest{
 					ID:     fmt.Sprintf("%s#%d", request.repository.GitHub, pullRequest.Number),
 					Number: pullRequest.Number, Title: pullRequest.Title,
-					URL: pullRequest.URL, IsDraft: pullRequest.IsDraft,
+					URL: pullRequest.URL, HeadRefName: pullRequest.HeadRefName,
+					IsDraft:   pullRequest.IsDraft,
 					UpdatedAt: pullRequest.UpdatedAt.UTC(),
 				})
 			}
 			results[key] = result
 			if raw.PullRequests.PageInfo.HasNextPage {
-				if raw.PullRequests.PageInfo.EndCursor == "" {
+				cursor := raw.PullRequests.PageInfo.EndCursor
+				if cursor == "" {
 					setResultError(results, request.repository.GitHub, "GitHub pagination cursor is missing")
 					continue
 				}
-				request.cursor = raw.PullRequests.PageInfo.EndCursor
+				key := repositoryKey(request.repository.GitHub)
+				if seenCursors[key] == nil {
+					seenCursors[key] = make(map[string]struct{})
+				}
+				if _, repeated := seenCursors[key][cursor]; repeated {
+					setResultError(results, request.repository.GitHub, "GitHub pagination cursor repeated")
+					continue
+				}
+				if request.page >= maxRepositoryPages {
+					setResultError(
+						results,
+						request.repository.GitHub,
+						fmt.Sprintf("GitHub pagination exceeded %d pages", maxRepositoryPages),
+					)
+					continue
+				}
+				seenCursors[key][cursor] = struct{}{}
+				request.cursor = cursor
+				request.page++
 				next = append(next, request)
 			}
 		}

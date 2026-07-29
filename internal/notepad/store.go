@@ -14,6 +14,11 @@ import (
 
 const MaxBytes = 256 * 1024
 
+const (
+	notepadFileName       = "notepad.txt"
+	legacyNotepadFileName = "notepad.md"
+)
+
 type Document struct {
 	Content   string    `json:"content"`
 	Path      string    `json:"path"`
@@ -42,7 +47,7 @@ func ResolvePath() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("resolve notepad data directory: %w", err)
 	}
-	return filepath.Join(filepath.Clean(absolute), "hyperlite", "notepad.md"), nil
+	return filepath.Join(filepath.Clean(absolute), "hyperlite", notepadFileName), nil
 }
 
 func (s Store) Load() (Document, error) {
@@ -51,6 +56,13 @@ func (s Store) Load() (Document, error) {
 	path, err := s.path()
 	if err != nil {
 		return Document{}, err
+	}
+	if legacy := s.legacyPath(path); legacy != "" {
+		if err := withFileLock(path, func() error {
+			return migrateLegacyDocument(legacy, path)
+		}); err != nil {
+			return Document{}, err
+		}
 	}
 	return load(path)
 }
@@ -118,7 +130,7 @@ func write(path, content string) (document Document, returnErr error) {
 	if err := os.Chmod(directory, 0o700); err != nil {
 		return Document{}, fmt.Errorf("secure notepad directory: %w", err)
 	}
-	file, err := os.CreateTemp(directory, ".hyperlite-notepad-*.md")
+	file, err := os.CreateTemp(directory, ".hyperlite-notepad-*.txt")
 	if err != nil {
 		return Document{}, fmt.Errorf("create temporary notepad: %w", err)
 	}
@@ -147,18 +159,42 @@ func write(path, content string) (document Document, returnErr error) {
 	if err := os.Rename(temporary, path); err != nil {
 		return Document{}, fmt.Errorf("replace notepad %s: %w", path, err)
 	}
-	directoryHandle, err := os.Open(directory)
-	if err != nil {
-		return Document{}, fmt.Errorf("open notepad directory for sync: %w", err)
-	}
-	if err := directoryHandle.Sync(); err != nil {
-		_ = directoryHandle.Close()
-		return Document{}, fmt.Errorf("sync notepad directory: %w", err)
-	}
-	if err := directoryHandle.Close(); err != nil {
-		return Document{}, fmt.Errorf("close notepad directory: %w", err)
+	if err := syncDirectory(directory); err != nil {
+		return Document{}, err
 	}
 	return load(path)
+}
+
+func migrateLegacyDocument(legacy, current string) error {
+	if _, err := os.Lstat(current); err == nil {
+		return nil
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("inspect notepad %s: %w", current, err)
+	}
+	if _, err := load(legacy); errors.Is(err, os.ErrNotExist) {
+		return nil
+	} else if err != nil {
+		return fmt.Errorf("migrate legacy notepad: %w", err)
+	}
+	if err := os.Rename(legacy, current); err != nil {
+		return fmt.Errorf("migrate legacy notepad %s to %s: %w", legacy, current, err)
+	}
+	return syncDirectory(filepath.Dir(current))
+}
+
+func syncDirectory(directory string) error {
+	handle, err := os.Open(directory)
+	if err != nil {
+		return fmt.Errorf("open notepad directory for sync: %w", err)
+	}
+	if err := handle.Sync(); err != nil {
+		_ = handle.Close()
+		return fmt.Errorf("sync notepad directory: %w", err)
+	}
+	if err := handle.Close(); err != nil {
+		return fmt.Errorf("close notepad directory: %w", err)
+	}
+	return nil
 }
 
 func withFileLock(path string, operation func() error) (returnErr error) {
@@ -197,6 +233,13 @@ func (s Store) path() (string, error) {
 		return filepath.Abs(s.Path)
 	}
 	return ResolvePath()
+}
+
+func (s Store) legacyPath(current string) string {
+	if s.Path != "" || strings.TrimSpace(os.Getenv("HYPERLITE_NOTEPAD_PATH")) != "" {
+		return ""
+	}
+	return filepath.Join(filepath.Dir(current), legacyNotepadFileName)
 }
 
 func validate(content string) error {

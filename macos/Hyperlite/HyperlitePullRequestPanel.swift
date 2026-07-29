@@ -43,9 +43,10 @@ struct HyperlitePullRequestPanel: View {
                         }
                     }
                 }
-                .frame(height: scrollHeight)
+                .frame(maxHeight: .infinity, alignment: .top)
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Open pull requests across configured projects")
     }
@@ -56,10 +57,6 @@ struct HyperlitePullRequestPanel: View {
         return age == "now" ? "Updated now" : "Updated \(age) ago"
     }
 
-    private var scrollHeight: CGFloat {
-        let visibleRows = rows.count + availability.count
-        return min(176, max(20, CGFloat(visibleRows * 19)))
-    }
 }
 
 private struct HyperlitePullRequestPanelRow: View {
@@ -68,9 +65,11 @@ private struct HyperlitePullRequestPanelRow: View {
     var body: some View {
         Button(action: openPullRequest) {
             HStack(alignment: .firstTextBaseline, spacing: 7) {
-                Text(row.projectName)
+                Text(row.repository)
                     .frame(width: 78, alignment: .leading)
                     .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
                 Text("#\(row.number)")
                     .frame(width: 42, alignment: .leading)
                     .foregroundStyle(.secondary)
@@ -93,7 +92,7 @@ private struct HyperlitePullRequestPanelRow: View {
         .disabled(row.url == nil)
         .help(row.url?.absoluteString ?? "Pull request URL is unavailable")
         .accessibilityLabel(
-            "\(row.projectName) pull request \(row.number), " +
+            "\(row.repository) pull request \(row.number), " +
                 "\(row.isDraft ? "draft" : "ready"), \(row.title)"
         )
     }
@@ -109,8 +108,10 @@ private struct HyperlitePullRequestAvailabilityRow: View {
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 7) {
-            Text(project.name)
+            Text(project.repository ?? project.name)
                 .frame(width: 78, alignment: .leading)
+                .lineLimit(1)
+                .truncationMode(.tail)
             Text(project.status == .cached ? "cached" : "unavailable")
                 .frame(width: 91, alignment: .leading)
             Text(project.message ?? "GitHub data is unavailable")

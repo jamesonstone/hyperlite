@@ -6,8 +6,21 @@ struct HyperliteMenuBarLabel: View {
     @AppStorage("hyperlite.hotkey") private var hotkey = defaultHotKey
 
     var body: some View {
+        Group {
+            if HyperliteFeatureFlags.inferredAttentionPresentation {
+                attentionLabel
+            } else {
+                HyperliteGhostMark()
+                    .frame(width: 15, height: 15)
+                    .help("Hyperlite — \(hotkey)")
+                    .accessibilityLabel("Hyperlite")
+            }
+        }
+    }
+
+    private var attentionLabel: some View {
         let count = state.attentionThreadCount()
-        HStack(spacing: 2) {
+        return HStack(spacing: 2) {
             HyperliteGhostMark()
                 .frame(width: 15, height: 15)
             Text(count > 99 ? "99+" : "\(count)")
@@ -41,13 +54,16 @@ struct HyperliteWindow: View {
     @State private var selectedThread: HyperliteThread?
 
     private var activeThreads: [HyperliteThread] { state.activeThreads() }
-    private var attentionThreads: [HyperliteThread] { state.attentionThreads() }
     private var pullRequestScan: HyperliteProjectPullRequestScan? { state.pullRequestScan }
-    private var projectIndex: [HyperliteProjectLocation] { state.scan?.projectIndex ?? [] }
+    private var projectIndex: [HyperliteProjectLocation] {
+        HyperliteProjectIndexPresentation.visibleProjects(
+            state.scan?.projectIndex ?? [],
+            pullRequests: pullRequestScan
+        )
+    }
     private var warnings: [HyperliteDiagnostic] { state.scan?.warnings ?? [] }
 
     var body: some View {
-        let attention = attentionThreads
         let active = activeThreads
         let pullRequests = pullRequestScan
         let projects = projectIndex
@@ -58,21 +74,23 @@ struct HyperliteWindow: View {
                     Text("Hyperlite")
                         .font(HyperliteTypography.bold(22))
                         .fixedSize(horizontal: true, vertical: false)
-                    HStack(spacing: 6) {
-                        HyperliteGhostMark()
-                            .frame(width: 11, height: 11)
-                        Text("\(active.count) active thread\(active.count == 1 ? "" : "s")")
-                        HyperliteAttentionStatus(count: attention.count)
+                    if HyperliteFeatureFlags.inferredAttentionPresentation {
+                        HStack(spacing: 6) {
+                            HyperliteGhostMark()
+                                .frame(width: 11, height: 11)
+                            Text("\(active.count) active thread\(active.count == 1 ? "" : "s")")
+                            HyperliteAttentionStatus(count: state.attentionThreadCount())
+                        }
+                        .font(HyperliteTypography.medium(11))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                     }
-                    .font(HyperliteTypography.medium(11))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
                     Spacer(minLength: 8)
                     Button { state.refresh() } label: { Image(systemName: "arrow.clockwise") }
                         .buttonStyle(.bordered)
                         .disabled(state.isRefreshing || state.isPruning)
-                        .help("Refresh evidence and inferred threads")
+                        .help("Refresh projects and open pull requests")
                     Button(action: openHyperliteSettings) { Image(systemName: "gearshape.fill") }
                         .buttonStyle(.bordered)
                         .help("Hyperlite settings")
@@ -86,36 +104,19 @@ struct HyperliteWindow: View {
                         .foregroundStyle(.red)
                 }
                 if state.scan == nil {
-                    ProgressView("Reconstructing local threads…")
+                    ProgressView("Refreshing configured projects…")
                         .controlSize(.small)
+                }
+                if let pullRequests {
+                    HyperlitePullRequestPanel(scan: pullRequests)
+                        .layoutPriority(1)
                 } else {
-                    if attention.isEmpty {
-                        Spacer(minLength: 28)
-                    } else {
-                        ScrollView {
-                            LazyVStack(alignment: .leading, spacing: 8) {
-                                HyperliteSectionHeader(count: attention.count)
-                                ForEach(attention) { thread in
-                                    HyperliteThreadRow(
-                                        thread: thread,
-                                        highlighted: false,
-                                        onOpen: { selectedThread = thread }
-                                    )
-                                    if thread.id != attention.last?.id {
-                                        Divider()
-                                    }
-                                }
-                            }
-                        }
-                        .frame(maxHeight: .infinity, alignment: .top)
-                    }
-
-                    if let pullRequests {
-                        HyperlitePullRequestPanel(scan: pullRequests)
-                    }
-                    if !projects.isEmpty {
-                        HyperliteProjectMap(projects: projects)
-                    }
+                    ProgressView("Loading open pull requests…")
+                        .controlSize(.small)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                }
+                if !projects.isEmpty {
+                    HyperliteProjectMap(projects: projects)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -127,7 +128,7 @@ struct HyperliteWindow: View {
                     .onTapGesture { state.dismissPalette() }
                 HyperliteCommandPalette(
                     mode: mode,
-                    threads: active,
+                    threads: HyperliteFeatureFlags.inferredAttentionPresentation ? active : [],
                     warnings: currentWarnings,
                     onAction: handlePaletteAction,
                     onDismiss: state.dismissPalette

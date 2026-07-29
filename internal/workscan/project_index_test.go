@@ -56,7 +56,7 @@ func TestProjectIndexPreservesConfiguredOrderAndMissingPaths(t *testing.T) {
 		},
 	}}
 
-	index := buildProjectIndex(cfg, results, nil)
+	index := buildProjectIndex(cfg, results)
 	if len(index) != 2 || index[0].Name != "zeta" ||
 		index[0].Path != "/configured/zeta" || index[0].Repository != "" ||
 		index[1].Repository != "owner/alpha" {
@@ -64,7 +64,7 @@ func TestProjectIndexPreservesConfiguredOrderAndMissingPaths(t *testing.T) {
 	}
 }
 
-func TestProjectIndexShowsOnlyActiveExactWorktreeLanes(t *testing.T) {
+func TestProjectIndexExposesRegisteredNonPrunableWorktreeLanes(t *testing.T) {
 	entry := model.ProjectIndexEntry{
 		ID: "/repo/kit", Name: "kit", Path: "/repo/kit",
 		Repository: "owner/kit",
@@ -74,28 +74,13 @@ func TestProjectIndexShowsOnlyActiveExactWorktreeLanes(t *testing.T) {
 			{ID: "/worktrees/kit/GH-8", Path: "/worktrees/kit/GH-8"},
 		},
 	}
-	threads := []model.Thread{
-		{
-			ID: "active", Active: true, Repositories: []string{"owner/kit"},
-			Artifacts: []model.ThreadArtifact{{
-				Kind: model.ArtifactWorktree, Path: "/worktrees/kit/GH-7",
-			}},
-		},
-		{
-			ID: "dormant", Active: false, Repositories: []string{"owner/kit"},
-			Artifacts: []model.ThreadArtifact{{
-				Kind: model.ArtifactWorktree, Path: "/worktrees/kit/GH-8",
-			}},
-		},
-	}
-
 	index := buildProjectIndex(
 		config.Config{},
 		[]repositoryResult{{project: entry}},
-		threads,
 	)
-	if len(index) != 1 || len(index[0].Lanes) != 2 ||
-		index[0].Lanes[1].Path != "/worktrees/kit/GH-7" {
+	if len(index) != 1 || len(index[0].Lanes) != 3 ||
+		index[0].Lanes[1].Path != "/worktrees/kit/GH-7" ||
+		index[0].Lanes[2].Path != "/worktrees/kit/GH-8" {
 		t.Fatalf("index = %#v", index)
 	}
 }
