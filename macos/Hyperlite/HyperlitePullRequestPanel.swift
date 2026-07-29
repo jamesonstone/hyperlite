@@ -59,7 +59,9 @@ struct HyperlitePullRequestPanel: View {
 
 }
 
-private struct HyperlitePullRequestPanelRow: View {
+struct HyperlitePullRequestPanelRow: View {
+    static let layout = HyperlitePullRequestRowLayout.repositoryFirst
+
     let row: HyperlitePullRequestRow
 
     var body: some View {
@@ -67,13 +69,13 @@ private struct HyperlitePullRequestPanelRow: View {
             HStack(alignment: .firstTextBaseline, spacing: 7) {
                 Text(row.repository)
                     .frame(
-                        width: HyperlitePullRequestRowLayout.repositoryColumnWidth,
+                        width: Self.layout.repositoryColumnWidth,
                         alignment: .leading
                     )
                     .foregroundStyle(.tertiary)
                     .lineLimit(1)
                     .truncationMode(.tail)
-                    .layoutPriority(HyperlitePullRequestRowLayout.repositoryLayoutPriority)
+                    .layoutPriority(Self.layout.repositoryLayoutPriority)
                 Text("#\(row.number)")
                     .frame(width: 42, alignment: .leading)
                     .foregroundStyle(.secondary)
@@ -84,7 +86,7 @@ private struct HyperlitePullRequestPanelRow: View {
                     .foregroundStyle(row.status == .current ? .secondary : .tertiary)
                     .lineLimit(1)
                     .truncationMode(.tail)
-                    .layoutPriority(HyperlitePullRequestRowLayout.titleLayoutPriority)
+                    .layoutPriority(Self.layout.titleLayoutPriority)
                 Spacer(minLength: 6)
                 Text(HyperlitePresentation.ageLabel(for: row.updatedAt))
                     .foregroundStyle(.tertiary)
@@ -108,25 +110,27 @@ private struct HyperlitePullRequestPanelRow: View {
     }
 }
 
-private struct HyperlitePullRequestAvailabilityRow: View {
+struct HyperlitePullRequestAvailabilityRow: View {
+    static let layout = HyperlitePullRequestRowLayout.repositoryFirst
+
     let project: HyperliteProjectPullRequests
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 7) {
             Text(project.repository ?? project.name)
                 .frame(
-                    width: HyperlitePullRequestRowLayout.repositoryColumnWidth,
+                    width: Self.layout.repositoryColumnWidth,
                     alignment: .leading
                 )
                 .lineLimit(1)
                 .truncationMode(.tail)
-                .layoutPriority(HyperlitePullRequestRowLayout.repositoryLayoutPriority)
+                .layoutPriority(Self.layout.repositoryLayoutPriority)
             Text(project.status == .cached ? "cached" : "unavailable")
                 .frame(width: 91, alignment: .leading)
             Text(project.message ?? "GitHub data is unavailable")
                 .lineLimit(1)
                 .truncationMode(.tail)
-                .layoutPriority(HyperlitePullRequestRowLayout.titleLayoutPriority)
+                .layoutPriority(Self.layout.titleLayoutPriority)
             Spacer(minLength: 0)
         }
         .font(HyperliteTypography.regular(10))

@@ -73,10 +73,16 @@ struct HyperlitePullRequestRow: Equatable, Identifiable {
     let updatedAt: Date
 }
 
-enum HyperlitePullRequestRowLayout {
-    static let repositoryColumnWidth: CGFloat = 190
-    static let repositoryLayoutPriority = 1.0
-    static let titleLayoutPriority = -1.0
+struct HyperlitePullRequestRowLayout: Equatable {
+    let repositoryColumnWidth: CGFloat
+    let repositoryLayoutPriority: Double
+    let titleLayoutPriority: Double
+
+    static let repositoryFirst = HyperlitePullRequestRowLayout(
+        repositoryColumnWidth: 190,
+        repositoryLayoutPriority: 1,
+        titleLayoutPriority: -1
+    )
 }
 
 enum HyperlitePullRequestPresentation {

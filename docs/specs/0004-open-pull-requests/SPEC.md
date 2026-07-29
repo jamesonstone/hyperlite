@@ -202,12 +202,13 @@ background indexing, pull-request actions, or configuration schema changes.
   updates, repeated-cursor and page-limit guards, and CLI mode selection.
 - Native executable model tests cover schema decoding, recent-first ordering,
   draft and ready labels, cached and unavailable states, URL preservation, and
-  the five-minute floor. Row-layout coverage fixes a minimum 180-point
-  repository allocation and proves repository identity has higher horizontal
-  priority than the PR title. Project-lane tests prove exact case-sensitive
-  head branch filtering, primary-checkout retention, cached fallback, and
-  removal after a successful empty refresh. Swift type-checking passed with
-  only the two existing macOS 14 `onChange` deprecation warnings in
+  the five-minute floor. Row-layout coverage exercises both current and
+  availability row presentations, fixes a minimum 180-point repository
+  allocation, and proves repository identity has higher horizontal priority
+  than the PR title. Project-lane tests prove exact case-sensitive head branch
+  filtering, primary-checkout retention, cached fallback, and removal after a
+  successful empty refresh. Swift type-checking passed with only the two
+  existing macOS 14 `onChange` deprecation warnings in
   `HyperlitePaletteViews.swift`.
 - One isolated-cache live validation queried all 16 configured projects in one
   GraphQL batch and returned 18 open pull requests, 0 unavailable projects, 0

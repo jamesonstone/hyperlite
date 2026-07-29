@@ -127,15 +127,20 @@ enum HyperlitePullRequestTests {
     }
 
     private static func testRowLayoutPrioritizesRepositoryIdentity() {
-        expect(
-            HyperlitePullRequestRowLayout.repositoryColumnWidth >= 180,
-            "repository column should remain wide enough to distinguish common project names"
-        )
-        expect(
-            HyperlitePullRequestRowLayout.repositoryLayoutPriority >
-                HyperlitePullRequestRowLayout.titleLayoutPriority,
-            "pull request title should yield horizontal space before repository identity"
-        )
+        let rowLayouts = [
+            ("current", HyperlitePullRequestPanelRow.layout),
+            ("availability", HyperlitePullRequestAvailabilityRow.layout),
+        ]
+        for (rowKind, layout) in rowLayouts {
+            expect(
+                layout.repositoryColumnWidth >= 180,
+                "\(rowKind) row repository column should distinguish common project names"
+            )
+            expect(
+                layout.repositoryLayoutPriority > layout.titleLayoutPriority,
+                "\(rowKind) row title should yield space before repository identity"
+            )
+        }
     }
 
     private static func require<T>(_ value: T?, _ message: String) throws -> T {
