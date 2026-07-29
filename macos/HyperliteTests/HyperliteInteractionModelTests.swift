@@ -121,13 +121,14 @@ struct HyperliteInteractionModelTests {
     private static func testCommandEntries() {
         let entries = HyperliteInteractionModel.commandEntries(
             threads: [thread(id: "one", repository: "owner/kit")],
-            warnings: [prunableDiagnostic()]
+            warnings: [genericDiagnostic(), prunableDiagnostic()]
         )
         expect(entries.map(\.id).contains("action:refresh"), "commands should include refresh")
         expect(entries.map(\.id).contains("action:settings"), "commands should include settings")
         expect(!entries.map(\.id).contains("action:diagnostics"),
                "commands should not expose generic scan diagnostics")
-        expect(entries.contains { $0.id.hasPrefix("prune:") }, "commands should include prune")
+        expect(entries.filter { $0.id.hasPrefix("prune:") }.count == 1,
+               "only actionable diagnostics should produce prune commands")
         expect(entries.contains { $0.id.hasPrefix("thread:") }, "commands should include threads")
     }
 
@@ -256,6 +257,17 @@ struct HyperliteInteractionModelTests {
             message: "worktree is prunable: /stale/kit",
             code: "worktree_prunable",
             worktreePath: "/stale/kit"
+        )
+    }
+
+    private static func genericDiagnostic() -> HyperliteDiagnostic {
+        HyperliteDiagnostic(
+            repository: "kit",
+            repositoryPath: nil,
+            stage: "github",
+            message: "cached GitHub evidence is stale",
+            code: nil,
+            worktreePath: nil
         )
     }
 
