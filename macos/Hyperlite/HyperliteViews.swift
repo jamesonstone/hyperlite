@@ -52,6 +52,7 @@ struct HyperliteWindow: View {
     let notepad: HyperliteNotepadState
     @State private var pendingPrune: HyperliteDiagnostic?
     @State private var selectedThread: HyperliteThread?
+    @State private var activityContentHeight: CGFloat?
 
     private var activeThreads: [HyperliteThread] { state.activeThreads() }
     private var pullRequestScan: HyperliteProjectPullRequestScan? { state.pullRequestScan }
@@ -96,27 +97,64 @@ struct HyperliteWindow: View {
                         .help("Hyperlite settings")
                 }
 
-                HyperliteNotepadView(state: notepad)
+                GeometryReader { workspace in
+                    VStack(alignment: .leading, spacing: HyperliteWorkspaceSizing.sectionSpacing) {
+                        HyperliteNotepadView(state: notepad)
+                            .frame(
+                                minHeight: min(
+                                    HyperliteWorkspaceSizing.minimumNotepadHeight,
+                                    workspace.size.height
+                                ),
+                                maxHeight: .infinity
+                            )
+                            .layoutPriority(1)
 
-                if let errorMessage = state.errorMessage {
-                    Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
-                        .font(HyperliteTypography.regular(12))
-                        .foregroundStyle(.red)
-                }
-                if state.scan == nil {
-                    ProgressView("Refreshing configured projects…")
-                        .controlSize(.small)
-                }
-                if let pullRequests {
-                    HyperlitePullRequestPanel(scan: pullRequests)
-                        .layoutPriority(1)
-                } else {
-                    ProgressView("Loading open pull requests…")
-                        .controlSize(.small)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                }
-                if !projects.isEmpty {
-                    HyperliteProjectMap(projects: projects)
+                        ScrollView {
+                            LazyVStack(alignment: .leading, spacing: 14) {
+                                if let errorMessage = state.errorMessage {
+                                    Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                                        .font(HyperliteTypography.regular(12))
+                                        .foregroundStyle(.red)
+                                }
+                                if state.scan == nil {
+                                    ProgressView("Refreshing configured projects…")
+                                        .controlSize(.small)
+                                }
+                                if let pullRequests {
+                                    HyperlitePullRequestPanel(scan: pullRequests)
+                                } else {
+                                    ProgressView("Loading open pull requests…")
+                                        .controlSize(.small)
+                                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                                }
+                                if !projects.isEmpty {
+                                    HyperliteProjectMap(projects: projects)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .topLeading)
+                            .background {
+                                GeometryReader { content in
+                                    Color.clear.preference(
+                                        key: HyperliteActivityContentHeightKey.self,
+                                        value: content.size.height
+                                    )
+                                }
+                            }
+                        }
+                        .frame(height: HyperliteWorkspaceSizing.activityViewportHeight(
+                            availableHeight: workspace.size.height,
+                            contentHeight: activityContentHeight
+                        ))
+                        .onPreferenceChange(HyperliteActivityContentHeightKey.self) { height in
+                            guard height > 0,
+                                  activityContentHeight.map({ abs($0 - height) > 0.5 }) ?? true
+                            else {
+                                return
+                            }
+                            activityContentHeight = height
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -178,5 +216,13 @@ struct HyperliteWindow: View {
         case let .reveal(threadID):
             selectedThread = state.activeThreads().first { $0.id == threadID }
         }
+    }
+}
+
+private struct HyperliteActivityContentHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }

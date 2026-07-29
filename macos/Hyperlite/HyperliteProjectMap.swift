@@ -3,11 +3,6 @@ import SwiftUI
 struct HyperliteProjectMap: View {
     let projects: [HyperliteProjectLocation]
 
-    private let columns = [
-        GridItem(.flexible(), spacing: 24, alignment: .top),
-        GridItem(.flexible(), spacing: 24, alignment: .top),
-    ]
-
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
@@ -18,19 +13,20 @@ struct HyperliteProjectMap: View {
                     .font(HyperliteTypography.bold(10).monospacedDigit())
                     .foregroundStyle(.tertiary)
                 Spacer()
-                Text("Configured paths")
+                Text("Active branches and worktrees")
                     .font(HyperliteTypography.regular(10))
                     .foregroundStyle(.tertiary)
             }
 
-            LazyVGrid(columns: columns, alignment: .leading, spacing: 4) {
+            LazyVStack(alignment: .leading, spacing: 4) {
                 ForEach(projects) { project in
                     HyperliteProjectMapEntry(project: project)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Configured project paths")
+        .accessibilityLabel("Active project branches and worktrees")
     }
 }
 
@@ -45,12 +41,18 @@ private struct HyperliteProjectMapEntry: View {
                         .font(HyperliteTypography.medium(10))
                         .foregroundStyle(.tertiary)
                         .lineLimit(1)
-                        .frame(width: 68, alignment: .leading)
+                        .truncationMode(.tail)
+                        .frame(width: 190, alignment: .leading)
+                    Text(HyperliteProjectIndexPresentation.laneKind(lane))
+                        .font(HyperliteTypography.regular(10))
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                        .frame(width: 58, alignment: .leading)
                     Text(HyperliteProjectIndexPresentation.laneLabel(lane))
                         .font(HyperliteTypography.regular(10))
                         .foregroundStyle(.tertiary)
                         .lineLimit(1)
-                        .frame(width: 64, alignment: .leading)
+                        .frame(width: 86, alignment: .leading)
                     Text(HyperliteProjectIndexPresentation.abbreviatedPath(lane.path))
                         .font(HyperliteTypography.regular(10))
                         .foregroundStyle(.secondary)
@@ -61,7 +63,8 @@ private struct HyperliteProjectMapEntry: View {
                 .help(lane.path)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(
-                    "\(project.name), \(HyperliteProjectIndexPresentation.laneLabel(lane)), \(lane.path)"
+                    "\(project.name), \(HyperliteProjectIndexPresentation.laneKind(lane)), " +
+                        "\(HyperliteProjectIndexPresentation.laneLabel(lane)), \(lane.path)"
                 )
             }
         }

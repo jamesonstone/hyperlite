@@ -22,7 +22,7 @@ enum HyperliteProjectIndexPresentation {
         pullRequests scan: HyperliteProjectPullRequestScan?
     ) -> [HyperliteProjectLocation] {
         var branchesByProject: [String: Set<String>] = [:]
-        for project in scan?.projects ?? [] {
+        for project in scan?.projects ?? [] where project.status == .current {
             branchesByProject[project.id, default: []].formUnion(
                 project.pullRequests.map(\.headRefName).filter { !$0.isEmpty }
             )
@@ -31,7 +31,9 @@ enum HyperliteProjectIndexPresentation {
             let openBranches = branchesByProject[project.id] ?? []
             let lanes = project.lanes.filter { lane in
                 guard !lane.primary else { return true }
-                guard let branch = lane.branch else { return false }
+                guard !lane.detached, let branch = lane.branch else {
+                    return false
+                }
                 return openBranches.contains(branch)
             }
             return HyperliteProjectLocation(
@@ -51,6 +53,10 @@ enum HyperliteProjectIndexPresentation {
             return branch
         }
         return lane.detached ? "detached" : "checkout"
+    }
+
+    static func laneKind(_ lane: HyperliteProjectLane) -> String {
+        lane.primary ? "branch" : "worktree"
     }
 
     static func abbreviatedPath(

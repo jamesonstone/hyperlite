@@ -37,16 +37,18 @@
   or attention projection. Every configured project remains present; its
   configured checkout is always visible, and a subordinate registered
   worktree is visible only while its exact case-sensitive branch appears as an
-  open pull-request head for that project. No lane receives attention styling,
-  and hiding a lane never deletes or prunes it.
+  open pull-request head in current project evidence. Cached or unavailable
+  pull-request data cannot retain a subordinate lane as active. No lane
+  receives attention styling, and hiding a lane never deletes or prunes it.
 - The configured-project pull-request index is a separate informational
   projection. Open pull requests from any author remain visible without
   establishing thread membership, liveness, lifecycle, or attention. Its
   GitHub access is read-only, bounded, cached separately from thread state, and
   refreshed only by startup or foreground staleness and explicit user action,
   never by a continuous timer. A successful refresh is authoritative for
-  removing merged or closed PR branches from the visible Projects map; cached
-  rows remain authoritative during a failed refresh.
+  removing merged or closed PR branches from the visible Projects map. Cached
+  rows remain available in Open PRs during a failed refresh but are not
+  authoritative for active worktree visibility.
 - Exact evidence owns thread membership. Semantic inference may relate
   separate threads, but it may not merge them, establish authoritative
   lifecycle state, suppress a thread, or close a goal.

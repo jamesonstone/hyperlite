@@ -63,6 +63,8 @@ enum HyperliteProjectIndexTests {
         )
         expect(HyperliteProjectIndexPresentation.laneLabel(lane) == "GH-7",
                "branch should identify the lane")
+        expect(HyperliteProjectIndexPresentation.laneKind(lane) == "worktree",
+               "secondary lanes should identify themselves as worktrees")
         expect(
             HyperliteProjectIndexPresentation.abbreviatedPath(
                 lane.path,
@@ -77,6 +79,8 @@ enum HyperliteProjectIndexTests {
             id: "/repo/hyperlite", branch: "main", path: "/repo/hyperlite",
             primary: true, detached: false
         )
+        expect(HyperliteProjectIndexPresentation.laneKind(primary) == "branch",
+               "primary lanes should identify themselves as branches")
         let open = HyperliteProjectLane(
             id: "/worktrees/hyperlite/GH-9", branch: "GH-9",
             path: "/worktrees/hyperlite/GH-9", primary: false, detached: false
@@ -85,9 +89,14 @@ enum HyperliteProjectIndexTests {
             id: "/worktrees/hyperlite/GH-7", branch: "GH-7",
             path: "/worktrees/hyperlite/GH-7", primary: false, detached: false
         )
+        let detached = HyperliteProjectLane(
+            id: "/worktrees/hyperlite/PR-10", branch: "GH-9",
+            path: "/worktrees/hyperlite/PR-10", primary: false, detached: true
+        )
         let project = HyperliteProjectLocation(
             id: "/repo/hyperlite", name: "hyperlite", path: "/repo/hyperlite",
-            repository: "owner/hyperlite", lanes: [primary, merged, open]
+            repository: "owner/hyperlite",
+            lanes: [primary, merged, detached, open]
         )
         let pullRequest = HyperliteProjectPullRequest(
             id: "owner/hyperlite#10", number: 10, title: "Open",
@@ -109,7 +118,24 @@ enum HyperliteProjectIndexTests {
             [project], pullRequests: scan
         )
         expect(visible[0].lanes.map(\.branch) == ["main", "GH-9"],
-               "only an exact open-PR branch should remain visible")
+               "only an attached exact open-PR branch should remain visible")
+
+        let cachedScan = HyperliteProjectPullRequestScan(
+            schemaVersion: 1, generatedAt: Date(), checkedAt: Date(),
+            observedAt: Date(), refreshIntervalSeconds: 300,
+            projects: [HyperliteProjectPullRequests(
+                id: project.id, name: project.name, path: project.path,
+                repository: project.repository, status: .cached,
+                message: "Cached pull request data is older than five minutes",
+                checkedAt: Date(), observedAt: Date(), pullRequests: [pullRequest]
+            )],
+            errors: [], warnings: []
+        )
+        let cached = HyperliteProjectIndexPresentation.visibleProjects(
+            [project], pullRequests: cachedScan
+        )
+        expect(cached[0].lanes.map(\.branch) == ["main"],
+               "cached PR evidence should not present a worktree as active")
 
         let mergedScan = HyperliteProjectPullRequestScan(
             schemaVersion: 1, generatedAt: Date(), checkedAt: Date(),

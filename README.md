@@ -64,10 +64,13 @@ The current native presentation focuses on notes and open pull requests.
 Inferred attention remains available through CLI/JSON but is hidden behind a
 single native feature flag: the window, menu bar, and palettes show no thread
 or attention counts or entries, and the app skips remote attention enrichment.
-The fixed header contains only the product name, Refresh, and Settings. Open
-PRs fills the flexible space between the notepad and the bottom-anchored
-Projects map. The pull-request index is informational only: it never
-establishes thread activity or attention.
+The fixed header contains only the product name, Refresh, and Settings. The
+notepad takes the available vertical space while Open PRs and the
+single-column Projects list remain pinned to the bottom as one activity
+region. Long notes use the notepad's native scrollbar; if the activity region
+outgrows the remaining window, it scrolls independently. Projects immediately
+follows the final PR row. The pull-request index is informational only: it
+never establishes thread activity or attention.
 
 Open PRs load from a separate private cache, refresh stale configured
 repositories on startup or foreground activation no more often than every five
@@ -79,9 +82,11 @@ page limit instead of risking an unbounded GitHub query loop.
 
 Projects always shows every configured checkout. Registered subordinate
 worktrees appear only when their exact case-sensitive branch is the head branch
-of a current or retained cached open pull request for that project. After a
-successful refresh observes that pull request as merged or closed, its worktree
-row disappears; Hyperlite never deletes or prunes the local checkout.
+of a current open pull request for that project. Detached worktrees never
+appear as active even if their metadata retains a matching branch. Cached or
+unavailable pull-request data does not retain a subordinate worktree as active.
+After a successful refresh observes that pull request as merged or closed, its
+worktree row disappears; Hyperlite never deletes or prunes the local checkout.
 
 The global notepad directly beneath the header is a local scratch surface, not
 another source of project truth. Typing stays in memory, the latest edit saves

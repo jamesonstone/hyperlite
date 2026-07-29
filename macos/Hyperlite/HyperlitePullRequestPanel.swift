@@ -33,20 +33,17 @@ struct HyperlitePullRequestPanel: View {
                     .foregroundStyle(.tertiary)
                     .padding(.vertical, 2)
             } else {
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 3) {
-                        ForEach(rows) { row in
-                            HyperlitePullRequestPanelRow(row: row)
-                        }
-                        ForEach(availability) { project in
-                            HyperlitePullRequestAvailabilityRow(project: project)
-                        }
+                LazyVStack(alignment: .leading, spacing: 3) {
+                    ForEach(rows) { row in
+                        HyperlitePullRequestPanelRow(row: row)
+                    }
+                    ForEach(availability) { project in
+                        HyperlitePullRequestAvailabilityRow(project: project)
                     }
                 }
-                .frame(maxHeight: .infinity, alignment: .top)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Open pull requests across configured projects")
     }
