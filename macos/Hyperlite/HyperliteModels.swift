@@ -1,5 +1,27 @@
 import Foundation
 
+enum HyperliteJSON {
+    static let decoder: JSONDecoder = {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let value = try decoder.singleValueContainer().decode(String.self)
+            if let date = try? fractionalDateFormat.parse(value) { return date }
+            if let date = try? standardDateFormat.parse(value) { return date }
+            let container = try decoder.singleValueContainer()
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "invalid ISO-8601 date"
+            )
+        }
+        return decoder
+    }()
+
+    nonisolated private static let fractionalDateFormat = Date.ISO8601FormatStyle(
+        includingFractionalSeconds: true
+    )
+    nonisolated private static let standardDateFormat = Date.ISO8601FormatStyle()
+}
+
 struct HyperliteThreadScan: Codable, Equatable {
     let schemaVersion: Int
     let generatedAt: Date

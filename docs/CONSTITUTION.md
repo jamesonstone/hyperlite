@@ -37,6 +37,12 @@
   or attention projection. Every configured project remains present; only
   exact local paths supported by current threads supplement its configured
   checkout, and none receives attention styling.
+- The configured-project pull-request index is a separate informational
+  projection. Open pull requests from any author remain visible without
+  establishing thread membership, liveness, lifecycle, or attention. Its
+  GitHub access is read-only, bounded, cached separately from thread state, and
+  refreshed only by startup or foreground staleness and explicit user action,
+  never by a continuous timer.
 - Exact evidence owns thread membership. Semantic inference may relate
   separate threads, but it may not merge them, establish authoritative
   lifecycle state, suppress a thread, or close a goal.

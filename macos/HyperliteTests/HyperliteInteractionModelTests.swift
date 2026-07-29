@@ -13,6 +13,7 @@ struct HyperliteInteractionModelTests {
         testHoverSummaryLimit()
         HyperliteTypographyTests.run()
         try HyperliteProjectIndexTests.run()
+        try HyperlitePullRequestTests.run()
         try await HyperliteNotepadTests.run()
         print("Hyperlite interaction model tests passed")
     }
