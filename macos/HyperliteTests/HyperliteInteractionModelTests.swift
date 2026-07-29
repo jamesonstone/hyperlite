@@ -11,6 +11,7 @@ struct HyperliteInteractionModelTests {
         testProjectEntries()
         testSelectionClamping()
         testHoverSummaryLimit()
+        HyperliteTypographyTests.run()
         try HyperliteProjectIndexTests.run()
         try await HyperliteNotepadTests.run()
         print("Hyperlite interaction model tests passed")

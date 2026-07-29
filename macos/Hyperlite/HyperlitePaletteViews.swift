@@ -25,10 +25,10 @@ struct HyperliteCommandPalette: View {
             HStack {
                 Label(mode == .commands ? "Commands and Threads" : "Projects and Threads",
                       systemImage: mode == .commands ? "command" : "folder")
-                    .font(.headline)
+                    .font(HyperliteTypography.semibold(13))
                 Spacer()
                 Text(mode == .commands ? "⌘K" : "⌘P")
-                    .font(.caption.monospaced())
+                    .font(HyperliteTypography.regular(11))
                     .foregroundStyle(.secondary)
             }
             .padding(12)
@@ -42,7 +42,7 @@ struct HyperliteCommandPalette: View {
                 Spacer()
                 Text("Esc close")
             }
-            .font(.caption2)
+            .font(HyperliteTypography.regular(10))
             .foregroundStyle(.secondary)
             .padding(10)
         }
@@ -86,15 +86,19 @@ struct HyperliteCommandPalette: View {
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: entry.symbol)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(HyperliteTypography.semibold(13))
                     .frame(width: 18)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(entry.title)
-                        .font(.subheadline.weight(isProject(entry) ? .bold : .semibold))
+                        .font(
+                            isProject(entry)
+                                ? HyperliteTypography.bold(12)
+                                : HyperliteTypography.semibold(12)
+                        )
                         .lineLimit(1)
                     if !entry.subtitle.isEmpty {
                         Text(entry.subtitle)
-                            .font(.caption)
+                            .font(HyperliteTypography.regular(11))
                             .foregroundStyle(.secondary)
                             .lineLimit(2)
                     }

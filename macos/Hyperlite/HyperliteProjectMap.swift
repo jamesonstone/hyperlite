@@ -12,14 +12,14 @@ struct HyperliteProjectMap: View {
         VStack(alignment: .leading, spacing: 5) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text("Projects")
-                    .font(.caption.weight(.semibold))
+                    .font(HyperliteTypography.semibold(11))
                     .foregroundStyle(.secondary)
                 Text("\(projects.count)")
-                    .font(.caption2.monospacedDigit().weight(.bold))
+                    .font(HyperliteTypography.bold(10).monospacedDigit())
                     .foregroundStyle(.tertiary)
                 Spacer()
                 Text("Configured paths")
-                    .font(.caption2)
+                    .font(HyperliteTypography.regular(10))
                     .foregroundStyle(.tertiary)
             }
 
@@ -42,17 +42,17 @@ private struct HyperliteProjectMapEntry: View {
             ForEach(Array(project.lanes.enumerated()), id: \.element.id) { index, lane in
                 HStack(alignment: .firstTextBaseline, spacing: 7) {
                     Text(index == 0 ? project.name : "")
-                        .font(.caption2.weight(.medium))
+                        .font(HyperliteTypography.medium(10))
                         .foregroundStyle(.tertiary)
                         .lineLimit(1)
                         .frame(width: 68, alignment: .leading)
                     Text(HyperliteProjectIndexPresentation.laneLabel(lane))
-                        .font(.caption2.monospaced())
+                        .font(HyperliteTypography.regular(10))
                         .foregroundStyle(.tertiary)
                         .lineLimit(1)
                         .frame(width: 64, alignment: .leading)
                     Text(HyperliteProjectIndexPresentation.abbreviatedPath(lane.path))
-                        .font(.caption2)
+                        .font(HyperliteTypography.regular(10))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.middle)

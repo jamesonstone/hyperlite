@@ -19,9 +19,9 @@ struct HyperliteThreadDetail: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(thread.title).font(.title2.bold())
+                    Text(thread.title).font(HyperliteTypography.bold(20))
                     Label(thread.phase.label, systemImage: thread.phase.symbol)
-                        .font(.subheadline.weight(.semibold))
+                        .font(HyperliteTypography.semibold(12))
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -59,9 +59,9 @@ struct HyperliteThreadDetail: View {
                     )
                     evidenceSection
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Note").font(.headline)
+                        Text("Note").font(HyperliteTypography.semibold(13))
                         TextEditor(text: $note)
-                            .font(.body)
+                            .font(HyperliteTypography.regular(13))
                             .frame(minHeight: 72)
                             .overlay {
                                 RoundedRectangle(cornerRadius: 6)
@@ -69,7 +69,7 @@ struct HyperliteThreadDetail: View {
                             }
                         HStack {
                             Text("Optional annotation; it never creates or completes a thread.")
-                                .font(.caption)
+                                .font(HyperliteTypography.regular(11))
                                 .foregroundStyle(.secondary)
                             Spacer()
                             Button("Save Note") { onSaveNote(note) }
@@ -98,7 +98,7 @@ struct HyperliteThreadDetail: View {
     @ViewBuilder
     private func detailSection(_ title: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(title).font(.headline)
+            Text(title).font(HyperliteTypography.semibold(13))
             Text(value).textSelection(.enabled)
         }
     }
@@ -113,7 +113,7 @@ struct HyperliteThreadDetail: View {
     @ViewBuilder
     private func bulletSection(_ title: String, _ values: [String], empty: String? = nil) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(title).font(.headline)
+            Text(title).font(HyperliteTypography.semibold(13))
             if values.isEmpty, let empty {
                 Text(empty).foregroundStyle(.secondary)
             } else {
@@ -126,7 +126,7 @@ struct HyperliteThreadDetail: View {
 
     private var evidenceSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Evidence").font(.headline)
+            Text("Evidence").font(HyperliteTypography.semibold(13))
             if thread.evidence.isEmpty {
                 Text("No evidence is currently cited for this thread.")
                     .foregroundStyle(.secondary)
@@ -134,9 +134,9 @@ struct HyperliteThreadDetail: View {
                 ForEach(thread.evidence) { evidence in
                     HStack(alignment: .firstTextBaseline) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(evidence.title).font(.subheadline.weight(.semibold))
+                            Text(evidence.title).font(HyperliteTypography.semibold(12))
                             Text("\(evidence.source) · \(evidence.freshness)")
-                                .font(.caption)
+                                .font(HyperliteTypography.regular(11))
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()

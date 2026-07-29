@@ -6,7 +6,8 @@ HYPERLITE_APP ?= $(CURDIR)/build/Hyperlite.app
 SWIFT_SOURCES := $(sort $(wildcard macos/Hyperlite/*.swift))
 SWIFT_MODEL_TEST_SOURCES := macos/Hyperlite/HyperliteModels.swift macos/Hyperlite/HyperliteProjectModels.swift macos/Hyperlite/HyperlitePresentation.swift macos/Hyperlite/HyperliteInteractionModels.swift
 SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteProcess.swift macos/Hyperlite/HyperliteProcessSupport.swift macos/Hyperlite/HyperliteNotepadState.swift
-SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperliteInteractionModelTests.swift macos/HyperliteTests/HyperliteProjectIndexTests.swift macos/HyperliteTests/HyperliteNotepadTests.swift
+SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteTypography.swift macos/HyperliteTests/HyperliteInteractionModelTests.swift macos/HyperliteTests/HyperliteProjectIndexTests.swift
+SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperliteNotepadTests.swift macos/HyperliteTests/HyperliteTypographyTests.swift
 SWIFT_MODEL_TEST_BINARY := build/tests/HyperliteInteractionModelTests
 
 help:
@@ -49,7 +50,7 @@ macos-build:
 macos-test:
 	xcrun swiftc -parse-as-library -typecheck -framework SwiftUI -framework AppKit -framework Carbon $(SWIFT_SOURCES)
 	mkdir -p "$(dir $(SWIFT_MODEL_TEST_BINARY))"
-	xcrun swiftc -parse-as-library $(SWIFT_MODEL_TEST_SOURCES) -o "$(SWIFT_MODEL_TEST_BINARY)"
+	xcrun swiftc -parse-as-library -framework SwiftUI -framework AppKit $(SWIFT_MODEL_TEST_SOURCES) -o "$(SWIFT_MODEL_TEST_BINARY)"
 	"$(SWIFT_MODEL_TEST_BINARY)"
 
 stop-hyper:

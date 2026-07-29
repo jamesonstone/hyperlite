@@ -65,14 +65,18 @@ changes that warrant human attention.
   fail-soft presentation state, render material Attention urgently, and keep
   ordinary active threads available through compact navigation. Use a stable
   bottom project map for configured checkouts and exact current local lanes.
-  Keep a separate local notepad beneath the header for optional operator context
-  without interpreting its contents as project state.
+  Keep a separate local notepad beneath the header for optional operator
+  context without interpreting its contents as project state. Present all
+  application-owned text in JetBrainsMono Nerd Font and keep the product name,
+  active count, attention state, refresh, and settings on one header row.
 - **OPEN ITEMS**: Implementation and local validation are complete on issue
   #7 and branch `GH-7`; ready pull-request review and merge remain.
 - **POINTERS**: `docs/specs/0003-inferred-attention/SPEC.md`
 
 ## LAST UPDATED
 
+- 2026-07-29: Unified native typography on JetBrainsMono Nerd Font with a safe
+  monospaced fallback and flattened the complete header into one line.
 - 2026-07-29: Replaced the inferred current-work ledger with a stable,
   bottom-anchored map of configured projects and exact current local lanes.
 - 2026-07-29: Added a local, debounced global notepad beneath the fixed header

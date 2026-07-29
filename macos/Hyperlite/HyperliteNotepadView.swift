@@ -8,7 +8,7 @@ struct HyperliteNotepadView: View {
         VStack(alignment: .leading, spacing: 7) {
             HStack(spacing: 6) {
                 Text("Notepad")
-                    .font(.caption.weight(.semibold))
+                    .font(HyperliteTypography.semibold(11))
                     .foregroundStyle(.secondary)
                 Spacer()
                 if state.isSaving {
@@ -17,7 +17,7 @@ struct HyperliteNotepadView: View {
                         .accessibilityLabel("Saving notepad")
                 } else if let error = state.errorMessage {
                     Label(error, systemImage: "exclamationmark.triangle.fill")
-                        .font(.caption2)
+                        .font(HyperliteTypography.regular(10))
                         .foregroundStyle(.red)
                         .lineLimit(1)
                         .help(error)
@@ -34,7 +34,7 @@ struct HyperliteNotepadView: View {
                 )
                 if state.text.isEmpty {
                     Text("Write anything — local only")
-                        .font(.system(size: 13))
+                        .font(HyperliteTypography.regular(13))
                         .foregroundStyle(.tertiary)
                         .padding(.horizontal, 7)
                         .padding(.vertical, 6)
@@ -68,7 +68,7 @@ private struct HyperlitePlainTextEditor: NSViewRepresentable {
 
         textView.delegate = context.coordinator
         textView.string = text
-        textView.font = .systemFont(ofSize: 13)
+        textView.font = HyperliteTypography.appKitFont(13)
         textView.textColor = .labelColor
         textView.backgroundColor = .clear
         textView.drawsBackground = false

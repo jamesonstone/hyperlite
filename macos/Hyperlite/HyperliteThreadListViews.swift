@@ -7,10 +7,10 @@ struct HyperliteSectionHeader: View {
     var body: some View {
         HStack {
             Text("Attention")
-                .font(.caption.weight(.bold))
+                .font(HyperliteTypography.bold(11))
                 .foregroundStyle(Color.orange)
             Text("\(count)")
-                .font(.caption2.monospacedDigit().weight(.bold))
+                .font(HyperliteTypography.bold(10).monospacedDigit())
                 .foregroundStyle(.secondary)
             Spacer()
         }
@@ -26,7 +26,7 @@ struct HyperliteSettingsView: View {
             Section("Shortcut") {
                 TextField("Hot key", text: $hotkey)
                 Text("Default: \(defaultHotKey). Use modifier names joined with +, for example Command+Shift+H.")
-                    .font(.caption)
+                    .font(HyperliteTypography.regular(11))
                     .foregroundStyle(.secondary)
             }
             Section {
@@ -48,16 +48,18 @@ struct HyperliteThreadRow: View {
         Button(action: onOpen) {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: thread.hasUnseenAttention ? "exclamationmark.bubble.fill" : thread.phase.symbol)
-                    .font(.system(size: 18, weight: .bold))
+                    .font(HyperliteTypography.bold(18))
                     .foregroundStyle(thread.hasUnseenAttention ? .orange : .cyan)
                     .frame(width: 22)
                     .padding(.top, 2)
                 VStack(alignment: .leading, spacing: 5) {
                     HStack(alignment: .firstTextBaseline) {
-                        Text(thread.title).font(.system(size: 15, weight: .bold)).lineLimit(1)
+                        Text(thread.title)
+                            .font(HyperliteTypography.bold(15))
+                            .lineLimit(1)
                         Spacer(minLength: 8)
                         Text(HyperlitePresentation.ageLabel(for: thread.updatedAt))
-                            .font(.caption.monospacedDigit().weight(.semibold))
+                            .font(HyperliteTypography.semibold(11).monospacedDigit())
                             .foregroundStyle(.secondary)
                     }
                     HStack(spacing: 5) {
@@ -65,11 +67,11 @@ struct HyperliteThreadRow: View {
                         Text("·")
                         Label(thread.phase.label, systemImage: thread.phase.symbol)
                     }
-                    .font(.caption.weight(.semibold))
+                    .font(HyperliteTypography.semibold(11))
                     .foregroundStyle(.secondary)
                     if let summary = HyperlitePresentation.rowSummary(for: thread) {
                         Text(summary)
-                            .font(.subheadline)
+                            .font(HyperliteTypography.regular(12))
                             .foregroundStyle(.primary)
                             .lineLimit(2)
                     }

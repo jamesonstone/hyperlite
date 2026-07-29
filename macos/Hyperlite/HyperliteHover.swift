@@ -66,10 +66,10 @@ struct HyperliteThreadHoverCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(HyperliteInteractionModel.hoverTitle(for: thread))
-                .font(.subheadline.weight(.semibold))
+                .font(HyperliteTypography.semibold(12))
                 .lineLimit(2)
             Text(HyperliteInteractionModel.hoverSummary(for: thread))
-                .font(.caption)
+                .font(HyperliteTypography.regular(11))
                 .foregroundStyle(.secondary)
                 .lineLimit(4)
         }

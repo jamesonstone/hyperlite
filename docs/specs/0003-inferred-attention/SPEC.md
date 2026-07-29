@@ -176,6 +176,15 @@ completion.
   path without making extra Git or GitHub calls. Lane presence, branch age,
   cleanliness, and publication state do not independently establish activity
   or attention; this projection exists only for orientation and spatial memory.
+- R31: Use `JetBrainsMono Nerd Font` for every application-controlled text
+  surface. Resolve it once through AppKit so SwiftUI and native text editing
+  share the same family and requested weight; fall back to the system
+  monospaced font when the family is unavailable. macOS-owned window chrome
+  and system menus remain under operating-system typography.
+- R32: Keep the native header on one horizontal line: product name, active
+  thread count, current attention state, flexible space, refresh, and settings.
+  Active count and attention state remain secondary context beside the product
+  name rather than a stacked status block.
 
 Non-goals: user-authored task tracking, manual lifecycle management, hosted
 model calls, continuous polling, notifications, agent transcript ingestion,
@@ -236,6 +245,9 @@ or model-assisted note mutation.
     already collected during a scan. Keep project and lane ordering stable,
     preserve configured paths when repository inspection degrades, and include
     only exact active-thread worktrees after excluding prunable metadata.
+17. Centralize native typography around the installed JetBrainsMono Nerd Font
+    with a monospaced fallback, route SwiftUI and AppKit text through that
+    boundary, and flatten the header into one baseline-aligned toolbar.
 
 ## DECISIONS
 
@@ -286,6 +298,12 @@ or model-assisted note mutation.
 - The bottom project map is configuration and filesystem orientation, not
   inferred work state. Stable placement and path identity are more important
   there than recency, phase, or semantic importance.
+- Typography is an application-wide presentation primitive, not a per-view
+  decoration. A single resolver keeps weights and fallback behavior consistent
+  across SwiftUI, the AppKit notepad editor, sheets, palettes, and settings.
+- Header status is context, not a second heading. Keeping it inline with the
+  product name preserves the top anchor while reducing vertical hierarchy and
+  leaving the notepad immediately below the toolbar.
 
 ## ACCEPTANCE CRITERIA
 
@@ -355,6 +373,11 @@ or model-assisted note mutation.
   registered worktree paths only when cited by active threads, excludes
   prunable metadata, and remains unchanged by attention classification.
   Building it performs no additional Git or GitHub commands.
+- AC24: Every application-controlled text view resolves to JetBrainsMono Nerd
+  Font when installed and to the system monospaced family otherwise. The
+  notepad's AppKit editor uses the same resolution. The main header renders the
+  product name, active count, attention state, refresh, and settings in one
+  horizontal row at the minimum supported window width.
 
 ## VALIDATION MAP
 
@@ -384,6 +407,8 @@ or model-assisted note mutation.
 - AC23: deterministic project-index projection tests, schema decoding and path
   presentation tests, command-count regression, and packaged native visual
   inspection.
+- AC24: executable typography resolver tests, native type-check, packaged
+  AppKit font inspection, and minimum-width header hierarchy inspection.
 
 ## DISCOVERIES
 
@@ -647,6 +672,13 @@ Go-owned Markdown store. Autosave and lifecycle flush preserve the document
 across relaunches without allowing its content to create or alter a thread,
 goal, obligation, or attention moment.
 
+All application-owned native text now resolves through one JetBrainsMono Nerd
+Font boundary shared by SwiftUI and the AppKit notepad editor, with a system
+monospaced fallback when the family is unavailable. The fixed header is one
+horizontal toolbar: product name, informational active count, attention state,
+refresh, and settings remain visually distinct without introducing a stacked
+status heading.
+
 ## REPOSITORY MEMORY
 
 Decision: updated.
@@ -654,8 +686,9 @@ Decision: updated.
 Rationale: automatic thread inference, evidence authority, material-attention
 semantics, closure integrity, and the boundary between private scratch text and
 project evidence are consequential product behavior that code and tests cannot
-communicate completely. The Constitution now records the cross-feature
-invariants and the project progress index exposes the canonical feature state.
+communicate completely. The shared application typography contract is also a
+project-wide visual invariant. The Constitution records those cross-feature
+boundaries and the project progress index exposes the canonical feature state.
 
 Artifacts: `docs/specs/0003-inferred-attention/SPEC.md`,
 `docs/specs/0001-standalone-hyperlite/SPEC.md`,

@@ -45,6 +45,10 @@
 - The global notepad is private operator memory, not project evidence.
   Hyperlite never interprets it as a thread, relation, obligation, lifecycle
   signal, or attention moment.
+- Every application-controlled native text surface uses JetBrainsMono Nerd
+  Font through one shared SwiftUI/AppKit resolver, with the system monospaced
+  family as the unavailable-font fallback. Operating-system-owned window
+  chrome and menus retain native macOS typography.
 
 ### Kit-Managed Baseline Rules
 

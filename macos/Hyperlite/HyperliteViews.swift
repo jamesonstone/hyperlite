@@ -11,7 +11,7 @@ struct HyperliteMenuBarLabel: View {
             HyperliteGhostMark()
                 .frame(width: 15, height: 15)
             Text(count > 99 ? "99+" : "\(count)")
-                .font(.system(size: 10, weight: .bold, design: .rounded).monospacedDigit())
+                .font(HyperliteTypography.bold(10).monospacedDigit())
         }
         .help("Hyperlite — \(count) thread\(count == 1 ? "" : "s") need attention — \(hotkey)")
         .accessibilityElement(children: .ignore)
@@ -52,19 +52,21 @@ struct HyperliteWindow: View {
         let currentWarnings = warnings
         return ZStack(alignment: .topLeading) {
             VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .firstTextBaseline) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Hyperlite").font(.system(size: 22, weight: .bold, design: .rounded))
-                        HStack(spacing: 6) {
-                            HyperliteGhostMark()
-                                .frame(width: 12, height: 12)
-                            Text("\(active.count) active thread\(active.count == 1 ? "" : "s")")
-                            HyperliteAttentionStatus(count: attention.count)
-                        }
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.secondary)
+                HStack(alignment: .center, spacing: 10) {
+                    Text("Hyperlite")
+                        .font(HyperliteTypography.bold(22))
+                        .fixedSize(horizontal: true, vertical: false)
+                    HStack(spacing: 6) {
+                        HyperliteGhostMark()
+                            .frame(width: 11, height: 11)
+                        Text("\(active.count) active thread\(active.count == 1 ? "" : "s")")
+                        HyperliteAttentionStatus(count: attention.count)
                     }
-                    Spacer()
+                    .font(HyperliteTypography.medium(11))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                    Spacer(minLength: 8)
                     Button { state.refresh() } label: { Image(systemName: "arrow.clockwise") }
                         .buttonStyle(.bordered)
                         .disabled(state.isRefreshing || state.isPruning)
@@ -78,7 +80,7 @@ struct HyperliteWindow: View {
 
                 if let errorMessage = state.errorMessage {
                     Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
-                        .font(.subheadline)
+                        .font(HyperliteTypography.regular(12))
                         .foregroundStyle(.red)
                 }
                 if state.scan == nil {
