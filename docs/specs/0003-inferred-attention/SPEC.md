@@ -703,8 +703,9 @@ unused vertical space and scrolls natively for long notes. Open PRs and Projects
 remain bottom-pinned as one bounded activity region, with Projects immediately
 following the final PR row. Projects always retains configured checkouts and
 renders a subordinate registered worktree only while its exact branch is
-present in current Open PR evidence. Cached, unavailable, merged, or closed
-evidence hides the lane without deleting or pruning local data.
+present in current Open PR evidence and the worktree remains attached. Detached,
+cached, unavailable, merged, or closed evidence hides the lane without deleting
+or pruning local data.
 
 ## REPOSITORY MEMORY
 

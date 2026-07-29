@@ -31,7 +31,9 @@ enum HyperliteProjectIndexPresentation {
             let openBranches = branchesByProject[project.id] ?? []
             let lanes = project.lanes.filter { lane in
                 guard !lane.primary else { return true }
-                guard let branch = lane.branch else { return false }
+                guard !lane.detached, let branch = lane.branch else {
+                    return false
+                }
                 return openBranches.contains(branch)
             }
             return HyperliteProjectLocation(

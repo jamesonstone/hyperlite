@@ -82,9 +82,10 @@ page limit instead of risking an unbounded GitHub query loop.
 
 Projects always shows every configured checkout. Registered subordinate
 worktrees appear only when their exact case-sensitive branch is the head branch
-of a current open pull request for that project. Cached or unavailable
-pull-request data does not retain a subordinate worktree as active. After a
-successful refresh observes that pull request as merged or closed, its
+of a current open pull request for that project. Detached worktrees never
+appear as active even if their metadata retains a matching branch. Cached or
+unavailable pull-request data does not retain a subordinate worktree as active.
+After a successful refresh observes that pull request as merged or closed, its
 worktree row disappears; Hyperlite never deletes or prunes the local checkout.
 
 The global notepad directly beneath the header is a local scratch surface, not
