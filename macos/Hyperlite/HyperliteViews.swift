@@ -36,6 +36,7 @@ struct HyperliteMenu: View {
 
 struct HyperliteWindow: View {
     @ObservedObject var state: HyperliteState
+    let notepad: HyperliteNotepadState
     @State private var pendingPrune: HyperliteDiagnostic?
     @State private var selectedThread: HyperliteThread?
 
@@ -75,6 +76,8 @@ struct HyperliteWindow: View {
                         .buttonStyle(.bordered)
                         .help("Hyperlite settings")
                 }
+
+                HyperliteNotepadView(state: notepad)
 
                 if let errorMessage = state.errorMessage {
                     Label(errorMessage, systemImage: "exclamationmark.triangle.fill")

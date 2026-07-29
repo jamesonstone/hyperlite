@@ -161,11 +161,20 @@ completion.
   Anchor the non-attention working set near the bottom as a distinct,
   low-density reference layer. The header reports the complete active-thread
   count without implying that those threads need attention.
+- R29: Place one always-available global notepad directly below the native
+  header. Keep its draft in memory while typing, persist only the latest edit
+  after three idle seconds, and flush pending content when the window or
+  application yields. Store the Markdown document at
+  `$XDG_DATA_HOME/hyperlite/notepad.md`, defaulting to
+  `~/.local/share/hyperlite/notepad.md`, using bounded user-only atomic writes.
+  The notepad is optional operator memory: its content never enters evidence,
+  inference, thread membership, lifecycle, or attention.
 
 Non-goals: user-authored task tracking, manual lifecycle management, hosted
 model calls, continuous polling, notifications, agent transcript ingestion,
-agent lifecycle authority, cloud-runtime inspection, deployment mutation, or
-automatic project selection.
+agent lifecycle authority, cloud-runtime inspection, deployment mutation,
+automatic project selection, note tabs, Markdown preview, syntax highlighting,
+or model-assisted note mutation.
 
 ## ACCEPTED PLAN
 
@@ -211,6 +220,10 @@ automatic project selection.
 14. Render unseen valid attention as the primary native list, render remaining
     active threads as a plain-text reference ledger, retain palette and detail
     navigation, and preserve empty space when no attention exists.
+15. Add a plain-text global notepad beneath the fixed header, backed by one
+    Go-owned local Markdown document and a three-second latest-edit debounce;
+    keep Swift as the responsive draft owner and exclude the document from all
+    inferred coordination paths.
 
 ## DECISIONS
 
@@ -234,6 +247,9 @@ automatic project selection.
 - Reading is the only acknowledgement gesture. Hyperlite has no manual
   attention state, parking, pinning, or completion controls.
 - Optional notes are durable user context, not lifecycle authority.
+- The global notepad is a private scratch surface, not another information
+  radiator. Hyperlite never interprets its contents or requires it for thread
+  reconstruction.
 - Completed and dormant projections may remain in private persisted state and
   scan JSON for continuity. Current working-set threads remain visible and
   navigable, but only valid unseen attention receives urgent presentation.
@@ -313,6 +329,11 @@ automatic project selection.
   unseen valid attention with urgent styling, and presents remaining active
   threads in a bottom-anchored plain-text ledger. When no attention exists it
   preserves substantial empty space without hiding the current working set.
+- AC22: A borderless global notepad appears immediately below the header,
+  remains responsive without per-keystroke processes or writes, saves only the
+  latest edit after three idle seconds, flushes on application or window
+  deactivation, survives relaunch, rejects content above 256 KiB, and remains
+  absent from thread and attention projections.
 
 ## VALIDATION MAP
 
@@ -336,6 +357,9 @@ automatic project selection.
   and high-consequence uncertainty tests.
 - AC21: executable Swift projection and palette-navigation regressions plus
   packaged native hierarchy inspection.
+- AC22: Go path, permission, bound, atomic-write, and CLI tests; executable
+  Swift load/debounce/flush tests; packaged editor interaction and relaunch
+  inspection.
 
 ## DISCOVERIES
 
@@ -447,6 +471,11 @@ automatic project selection.
   generic user-facing uncertainty summary. Current-evidence enrichment stays
   quiet, while a different stale consequential artifact creates a distinct
   situation that can require renewed verification.
+- Beacon's useful Notes boundary is smaller than its complete notes feature:
+  one XDG Markdown document, a 256 KiB bound, atomic user-only writes, an
+  in-memory editor draft, and a three-second latest-edit debounce. Hyperlite
+  needs those persistence and responsiveness properties, but not Beacon's
+  tabs, styled Markdown, agent protocol, assistant, or note-derived context.
 
 ## VALIDATION
 
@@ -501,8 +530,16 @@ automatic project selection.
   based Go and Swift splits.
 - The new attention contract and presentation retain that boundary: the largest
   touched implementation files are `internal/threadstate/reconcile.go` at 297
-  lines, the Swift interaction test at 293, and
+  lines, the Swift interaction test at 294, and
   `internal/threadstate/attention.go` at 289.
+- Notepad store and CLI tests prove XDG path resolution, configuration-
+  independent access, verbatim round trips, `0600` file and `0700` directory
+  permissions, atomic replacement, concurrent-writer serialization, and
+  rejection of symlinks, NUL bytes, and content above 256 KiB.
+- Executable Swift tests prove that the editor loads persisted content, a
+  three-second debounce retains only the newest edit, lifecycle flush bypasses
+  the debounce, successful writes clear dirty state, and oversized drafts are
+  rejected without replacing the in-memory document.
 - Repeated local and remote scans against the expanded configuration preserved
   the R2 attention-history count exactly after acknowledgement, proving that
   deterministic projection changes do not re-emit the same operational
@@ -526,6 +563,11 @@ automatic project selection.
   Attention area remains spatially quiet, and ordinary current threads use a
   bottom-anchored text ledger without containers, alert styling, or goal
   excerpts.
+- Packaged-app inspection confirms that the accessible borderless notepad sits
+  immediately below the header. A two-line edit autosaved to the private
+  Markdown file, survived application relaunch, and was then cleared through
+  the quit-time flush. Note observation is scoped to the notepad component, so
+  keystrokes do not invalidate the thread or attention view hierarchy.
 - `kit check 0003-inferred-attention` passes. `kit check --project` remains
   blocked by six pre-existing V3 support-document drift findings outside this
   change; no managed instruction or worktree guidance was broadened into this
@@ -553,15 +595,22 @@ claim valid. Seen state acknowledges a moment; reconciliation independently
 retracts unsupported moments. Diagnostic data stays in CLI/JSON and only
 actionable verified pruning enters Command-K.
 
+The same surface now includes one quiet global notepad immediately below the
+header. Its native editor keeps keystrokes in memory, performs no styling or
+project interpretation, and sends only the latest idle draft to a bounded
+Go-owned Markdown store. Autosave and lifecycle flush preserve the document
+across relaunches without allowing its content to create or alter a thread,
+goal, obligation, or attention moment.
+
 ## REPOSITORY MEMORY
 
 Decision: updated.
 
 Rationale: automatic thread inference, evidence authority, material-attention
-semantics, and closure integrity are consequential product behavior that code
-and tests cannot communicate completely. The Constitution now records the
-cross-feature invariants and the project progress index exposes the canonical
-feature state.
+semantics, closure integrity, and the boundary between private scratch text and
+project evidence are consequential product behavior that code and tests cannot
+communicate completely. The Constitution now records the cross-feature
+invariants and the project progress index exposes the canonical feature state.
 
 Artifacts: `docs/specs/0003-inferred-attention/SPEC.md`,
 `docs/specs/0001-standalone-hyperlite/SPEC.md`,

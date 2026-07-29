@@ -38,6 +38,9 @@
   lifecycle state, suppress a thread, or close a goal.
 - Notes and seen state are optional presentation metadata. They never create,
   order, advance, or complete project work.
+- The global notepad is private operator memory, not project evidence.
+  Hyperlite never interprets it as a thread, relation, obligation, lifecycle
+  signal, or attention moment.
 
 ### Kit-Managed Baseline Rules
 

@@ -4,7 +4,9 @@
 
 HYPERLITE_APP ?= $(CURDIR)/build/Hyperlite.app
 SWIFT_SOURCES := $(sort $(wildcard macos/Hyperlite/*.swift))
-SWIFT_MODEL_TEST_SOURCES := macos/Hyperlite/HyperliteModels.swift macos/Hyperlite/HyperlitePresentation.swift macos/Hyperlite/HyperliteInteractionModels.swift macos/HyperliteTests/HyperliteInteractionModelTests.swift
+SWIFT_MODEL_TEST_SOURCES := macos/Hyperlite/HyperliteModels.swift macos/Hyperlite/HyperlitePresentation.swift macos/Hyperlite/HyperliteInteractionModels.swift
+SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteProcess.swift macos/Hyperlite/HyperliteProcessSupport.swift macos/Hyperlite/HyperliteNotepadState.swift
+SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperliteInteractionModelTests.swift macos/HyperliteTests/HyperliteNotepadTests.swift
 SWIFT_MODEL_TEST_BINARY := build/tests/HyperliteInteractionModelTests
 
 help:

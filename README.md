@@ -70,6 +70,11 @@ space remains empty instead of being filled by ordinary work. Completed and
 dormant projections stay out of the active surface. Command+K/Command+P retain
 keyboard access to the same current working set.
 
+The global notepad directly beneath the header is a local scratch surface, not
+another source of project truth. Typing stays in memory, the latest edit saves
+after three idle seconds, and pending text flushes when the window or
+application yields. Its content never enters thread inference or attention.
+
 Open a thread to see its goal, rationale, progress, dependencies, implications,
 remaining obligations, evidence, expected action, consequence, validity, and
 optional note. Opening marks material moments through the displayed revision as
@@ -84,6 +89,9 @@ The JSON and local-inference interfaces are:
 ```sh
 hyperlite --json
 hyperlite infer --json
+hyperlite notepad
+hyperlite notepad set --stdin
+hyperlite notepad path
 hyperlite thread seen <thread-id> --revision <digest>
 hyperlite thread note <thread-id> --stdin
 ```
@@ -92,6 +100,10 @@ Thread state is stored atomically with user-only permissions at
 `$XDG_STATE_HOME/hyperlite/threads.json`, or
 `~/.local/state/hyperlite/threads.json` by default. Notes and seen state are
 presentation metadata; neither can create or complete a thread.
+
+The global notepad is stored separately with the same atomic, user-only
+boundary at `$XDG_DATA_HOME/hyperlite/notepad.md`, or
+`~/.local/share/hyperlite/notepad.md` by default. It is limited to 256 KiB.
 
 ## Development
 

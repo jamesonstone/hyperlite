@@ -23,7 +23,7 @@ struct HyperliteApp: App {
 
     var body: some Scene {
         WindowGroup("Hyperlite", id: "hyperlite") {
-            HyperliteWindow(state: state)
+            HyperliteWindow(state: state, notepad: HyperliteNotepadState.shared)
                 .background(HyperliteSettingsActionInstaller())
         }
         .defaultSize(width: 480, height: 650)

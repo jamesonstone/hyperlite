@@ -2,7 +2,7 @@ import Foundation
 
 @main
 struct HyperliteInteractionModelTests {
-    static func main() throws {
+    static func main() async throws {
         try testSchemaV2Decoding()
         try testStructuredDiagnosticDecoding()
         testAttentionAndInformationalProjections()
@@ -11,6 +11,7 @@ struct HyperliteInteractionModelTests {
         testProjectEntries()
         testSelectionClamping()
         testHoverSummaryLimit()
+        try await HyperliteNotepadTests.run()
         print("Hyperlite interaction model tests passed")
     }
 
