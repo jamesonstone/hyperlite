@@ -63,6 +63,10 @@ opening a palette, scanning, or explicitly pruning.
 - Diagnostics include errors and warnings. Only structured prunable worktree
   warnings expose a mutation button.
 - Hover uses a compact custom menu rather than only the native help tooltip.
+- The inferred-attention simplification in issue #7 supersedes the native
+  diagnostics icon, popover, and generic Command-K Diagnostics entry described
+  below. Structured diagnostics remain in CLI/JSON, while actionable verified
+  stale-worktree pruning remains available through Command-K.
 
 ## REQUIREMENTS
 

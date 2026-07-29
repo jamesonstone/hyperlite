@@ -121,12 +121,12 @@ struct HyperliteInteractionModelTests {
     private static func testCommandEntries() {
         let entries = HyperliteInteractionModel.commandEntries(
             threads: [thread(id: "one", repository: "owner/kit")],
-            errors: [],
             warnings: [prunableDiagnostic()]
         )
         expect(entries.map(\.id).contains("action:refresh"), "commands should include refresh")
         expect(entries.map(\.id).contains("action:settings"), "commands should include settings")
-        expect(entries.map(\.id).contains("action:diagnostics"), "commands should include diagnostics")
+        expect(!entries.map(\.id).contains("action:diagnostics"),
+               "commands should not expose generic scan diagnostics")
         expect(entries.contains { $0.id.hasPrefix("prune:") }, "commands should include prune")
         expect(entries.contains { $0.id.hasPrefix("thread:") }, "commands should include threads")
     }

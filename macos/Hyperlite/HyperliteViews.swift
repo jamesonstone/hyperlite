@@ -36,7 +36,6 @@ struct HyperliteMenu: View {
 
 struct HyperliteWindow: View {
     @ObservedObject var state: HyperliteState
-    @State private var diagnosticsClickRequest = 0
     @State private var pendingPrune: HyperliteDiagnostic?
     @State private var selectedThread: HyperliteThread?
     @State private var highlightedThreadID: String?
@@ -44,12 +43,10 @@ struct HyperliteWindow: View {
     @State private var highlightClearTask: Task<Void, Never>?
 
     private var visibleThreads: [HyperliteThread] { state.visibleThreads() }
-    private var errors: [HyperliteDiagnostic] { state.scan?.errors ?? [] }
     private var warnings: [HyperliteDiagnostic] { state.scan?.warnings ?? [] }
 
     var body: some View {
         let threads = visibleThreads
-        let currentErrors = errors
         let currentWarnings = warnings
         let activeCount = threads.filter(\.active).count
         return ZStack {
@@ -70,15 +67,6 @@ struct HyperliteWindow: View {
                         .buttonStyle(.bordered)
                         .disabled(state.isRefreshing || state.isPruning)
                         .help("Refresh evidence and inferred threads")
-                    if !currentErrors.isEmpty || !currentWarnings.isEmpty {
-                        HyperliteDiagnosticsButton(
-                            errors: currentErrors,
-                            warnings: currentWarnings,
-                            isPruning: state.isPruning,
-                            clickRequest: diagnosticsClickRequest,
-                            onPruneRequest: { pendingPrune = $0 }
-                        )
-                    }
                     Button(action: openHyperliteSettings) { Image(systemName: "gearshape.fill") }
                         .buttonStyle(.bordered)
                         .help("Hyperlite settings")
@@ -133,7 +121,6 @@ struct HyperliteWindow: View {
                 HyperliteCommandPalette(
                     mode: mode,
                     threads: threads,
-                    errors: currentErrors,
                     warnings: currentWarnings,
                     onAction: handlePaletteAction,
                     onDismiss: state.dismissPalette
@@ -184,8 +171,6 @@ struct HyperliteWindow: View {
             state.refresh()
         case .settings:
             openHyperliteSettings()
-        case .diagnostics:
-            diagnosticsClickRequest += 1
         case let .prune(diagnostic):
             pendingPrune = diagnostic
         case let .reveal(threadID):

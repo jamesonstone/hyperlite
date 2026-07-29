@@ -5,7 +5,7 @@
 | ID | FEATURE | PATH | PHASE | PAUSED | CREATED | SUMMARY |
 | -- | ------- | ---- | ----- | ------ | ------- | ------- |
 | 0001 | standalone-hyperlite | `docs/specs/0001-standalone-hyperlite` | deliver | no | 2026-07-26 | Extract Hyperlite into an independent Go CLI and native macOS application with direct, bounded project scanning. |
-| 0002 | command-palettes | `docs/specs/0002-command-palettes` | deliver | no | 2026-07-27 | Add keyboard navigation, compact diagnostics, safe worktree pruning, concise hover context, and native ghost branding. |
+| 0002 | command-palettes | `docs/specs/0002-command-palettes` | deliver | no | 2026-07-27 | Add keyboard navigation, safe worktree pruning, concise hover context, and native ghost branding. |
 | 0003 | inferred-attention | `docs/specs/0003-inferred-attention` | deliver | no | 2026-07-28 | Reconstruct evidence-backed goal threads and surface only material coordination changes without user bookkeeping. |
 
 ## PROJECT INTENT
@@ -43,11 +43,12 @@ changes that warrant human attention.
 
 - **STATUS**: deliver
 - **PAUSED**: no
-- **INTENT**: Keep the main surface quiet while making navigation,
-  diagnostics, and safe cleanup quickly reachable.
-- **APPROACH**: Add pure palette interaction models, compact diagnostics,
-  verified repository-scoped worktree pruning, lean hover context, and native
-  ghost branding.
+- **INTENT**: Keep the main surface quiet while making navigation and safe
+  cleanup quickly reachable.
+- **APPROACH**: Add pure palette interaction models, retain structured scan
+  diagnostics in CLI/JSON, expose verified repository-scoped worktree pruning
+  only when actionable, and provide lean hover context and native ghost
+  branding.
 - **OPEN ITEMS**: Implementation was delivered through issue #5 and PR #6; no
   implementation items remain.
 - **POINTERS**: `docs/specs/0002-command-palettes/SPEC.md`
@@ -69,5 +70,7 @@ changes that warrant human attention.
 
 ## LAST UPDATED
 
+- 2026-07-29: Removed the native scan-diagnostics control and retained only
+  actionable stale-worktree pruning in Command-K.
 - 2026-07-28: Added feature `0003-inferred-attention` and reconciled the
   project index with all current canonical specifications.

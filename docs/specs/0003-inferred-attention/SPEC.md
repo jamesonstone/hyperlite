@@ -130,6 +130,9 @@ completion.
   explanation; ordinary In Flight rows show identity, project, phase, and age
   without repeating a generic `In <phase>` sentence. Full progress and evidence
   remain in thread detail.
+- R23: Do not render a generic scan-diagnostics control in the native header or
+  Command-K. Preserve structured diagnostics in CLI/JSON and expose only
+  actionable verified stale-worktree prune commands through Command-K.
 
 Non-goals: user-authored task tracking, manual lifecycle management, hosted
 model calls, continuous polling, notifications, agent transcript ingestion,
@@ -153,8 +156,9 @@ automatic project selection.
    enrichment as separate bounded operations.
 6. Replace the native flat list with compact Attention and In Flight sections,
    a thread detail surface, optional notes, evidence actions, and seen-revision
-   persistence. Retain palettes, diagnostics, pruning, and direct artifact
-   activation.
+   persistence. Retain palettes, actionable pruning, and direct artifact
+   activation while keeping generic scan diagnostics out of the native
+   attention surface.
 7. Validate the model with focused unit and integration fixtures, including
    distinct related R2 and Event Sink threads whose implementation pull
    requests do not satisfy their operational obligations.
@@ -200,6 +204,9 @@ automatic project selection.
   outside that set are visible only as unresolved external targets.
 - GitHub/spec/Git evidence is the first complete release. Agent and runtime
   adapters are intentionally deferred.
+- Native scan diagnostics are evidence plumbing, not an attention surface.
+  CLI/JSON retain the complete diagnostic record; the native UI exposes only
+  actionable stale-worktree prune commands when they exist.
 
 ## ACCEPTANCE CRITERIA
 
@@ -240,6 +247,9 @@ automatic project selection.
   does.
 - AC16: Previously emitted unread guard or reconcile moments are retired when
   the current evidence no longer supports the underlying claim.
+- AC17: The native header contains no scan-diagnostics control, Command-K
+  contains no generic Diagnostics entry, and actionable verified
+  stale-worktree prune commands remain available.
 
 ## VALIDATION MAP
 
@@ -257,6 +267,8 @@ automatic project selection.
   concurrent-spec collision tests.
 - AC15-AC16: actionable-boundary, material-delta, and unsupported-moment
   retirement tests plus Swift compact-row coverage.
+- AC17: executable Swift palette regression, native type-check, packaged app
+  header inspection, and Command-K accessibility inspection.
 
 ## DISCOVERIES
 
@@ -340,6 +352,10 @@ automatic project selection.
   without describing a pending boundary. Classification is clause-aware:
   completed clauses remain quiet, historical clauses require explicit current
   intent, and a separate current clause may still establish a boundary.
+- The generic Command-K Diagnostics entry only forwarded into the header
+  diagnostics popover. Removing the header control therefore requires removing
+  that command and its presentation state together; verified prune commands
+  remain independent and actionable.
 - Current-head review exposed two coordination-integrity edge cases: a
   non-actionable obligation digest change could mask a simultaneous goal or
   review change, and rapid replacement note saves could overlap after
@@ -403,6 +419,9 @@ automatic project selection.
   seconds, within the two-second primary-content target.
 - The packaged CLI and application are universal `arm64`/`x86_64` binaries and
   the application bundle passes strict code-signature verification.
+- Packaged-app accessibility inspection confirms that the header contains only
+  Refresh and Settings controls, Command-K contains no Diagnostics entry, and
+  current prunable worktree warnings still produce verified prune commands.
 - `kit check 0003-inferred-attention` passes. `kit check --project` remains
   blocked by six pre-existing V3 support-document drift findings outside this
   change; no managed instruction or worktree guidance was broadened into this
@@ -424,7 +443,9 @@ acknowledgement, and optional non-authoritative notes. Evidence is ranked so
 that open pull requests and recent exact lanes establish current work while
 stale issues, experimental local state, and unrelated worktree memory do not;
 ordinary in-flight rows remain compact and reserve explanatory copy for
-material attention.
+material attention. The native header no longer carries a generic scan
+diagnostics control; diagnostic data stays in CLI/JSON and only actionable
+verified pruning enters Command-K.
 
 ## REPOSITORY MEMORY
 

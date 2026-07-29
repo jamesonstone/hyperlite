@@ -10,7 +10,6 @@ enum HyperlitePaletteMode: String, Hashable, Identifiable {
 enum HyperlitePaletteAction: Equatable {
     case refresh
     case settings
-    case diagnostics
     case prune(HyperliteDiagnostic)
     case reveal(String)
 }
@@ -31,23 +30,12 @@ struct HyperlitePaletteEntry: Equatable, Identifiable {
 enum HyperliteInteractionModel {
     static func commandEntries(
         threads: [HyperliteThread],
-        errors: [HyperliteDiagnostic],
         warnings: [HyperliteDiagnostic]
     ) -> [HyperlitePaletteEntry] {
         var entries = [
             actionEntry("action:refresh", "Refresh", "Refresh local and GitHub evidence", "arrow.clockwise", .refresh),
             actionEntry("action:settings", "Settings", "Open Hyperlite settings", "gearshape.fill", .settings),
         ]
-        let diagnostics = errors + warnings
-        if !diagnostics.isEmpty {
-            entries.append(actionEntry(
-                "action:diagnostics",
-                "Diagnostics",
-                diagnosticCountSummary(errors: errors.count, warnings: warnings.count),
-                errors.isEmpty ? "exclamationmark.triangle.fill" : "xmark.octagon.fill",
-                .diagnostics
-            ))
-        }
         for diagnostic in warnings where diagnostic.isPrunableWorktree {
             entries.append(actionEntry(
                 "prune:\(diagnostic.id)",
@@ -128,13 +116,6 @@ enum HyperliteInteractionModel {
         guard limit > 0, value.count > limit else { return limit > 0 ? value : "" }
         if limit == 1 { return "…" }
         return String(value.prefix(limit - 1)) + "…"
-    }
-
-    static func diagnosticCountSummary(errors: Int, warnings: Int) -> String {
-        var parts: [String] = []
-        if errors > 0 { parts.append("\(errors) error\(errors == 1 ? "" : "s")") }
-        if warnings > 0 { parts.append("\(warnings) warning\(warnings == 1 ? "" : "s")") }
-        return parts.joined(separator: " and ")
     }
 
     private static func actionEntry(

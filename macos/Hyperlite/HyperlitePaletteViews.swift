@@ -4,7 +4,6 @@ import SwiftUI
 struct HyperliteCommandPalette: View {
     let mode: HyperlitePaletteMode
     let threads: [HyperliteThread]
-    let errors: [HyperliteDiagnostic]
     let warnings: [HyperliteDiagnostic]
     let onAction: (HyperlitePaletteAction) -> Void
     let onDismiss: () -> Void
@@ -15,7 +14,7 @@ struct HyperliteCommandPalette: View {
     private var entries: [HyperlitePaletteEntry] {
         switch mode {
         case .commands:
-            HyperliteInteractionModel.commandEntries(threads: threads, errors: errors, warnings: warnings)
+            HyperliteInteractionModel.commandEntries(threads: threads, warnings: warnings)
         case .projects:
             HyperliteInteractionModel.projectEntries(threads: threads, expandedProjects: expandedProjects)
         }

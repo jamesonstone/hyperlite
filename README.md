@@ -62,8 +62,8 @@ Open a thread to see its goal, rationale, progress, dependencies, implications,
 remaining obligations, evidence, and optional note. Opening marks material
 moments through the displayed revision as seen without hiding the thread.
 Command+K navigates commands and threads; Command+P navigates projects and
-their threads. Diagnostics and verified stale-worktree pruning remain
-available from the header.
+their threads. Verified stale-worktree pruning appears in Command+K when
+applicable; scan diagnostics remain available through CLI output and JSON.
 
 The JSON and local-inference interfaces are:
 
