@@ -41,8 +41,12 @@ struct HyperliteNotepadView: View {
                         .allowsHitTesting(false)
                 }
             }
-            .frame(height: 112)
+            .frame(
+                minHeight: HyperliteWorkspaceSizing.minimumNotepadEditorHeight,
+                maxHeight: .infinity
+            )
         }
+        .frame(maxHeight: .infinity)
         .padding(.vertical, 9)
         .overlay(alignment: .top) { Divider() }
         .overlay(alignment: .bottom) { Divider() }

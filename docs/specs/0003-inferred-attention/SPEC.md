@@ -165,9 +165,10 @@ completion.
   consequential decision or delivery boundary cannot be evaluated safely.
 - R28: Keep the native header anchored to the top of the window. While inferred
   attention is disabled, the header contains only the product name, Refresh,
-  and Settings; Open PRs and the configured-project spatial index share the
-  scrolling region below the notepad, with Projects directly after Open PRs as
-  a distinct, low-density reference layer.
+  and Settings; the notepad owns unused vertical space while Open PRs and the
+  configured-project spatial index remain bottom-pinned below it, with Projects
+  directly after Open PRs as a distinct, independently scrollable reference
+  layer when the window is constrained.
 - R29: Place one always-available global notepad directly below the native
   header. Keep its draft in memory while typing, persist only the latest edit
   after three idle seconds, and flush pending content when the window or
@@ -697,11 +698,13 @@ content to create or alter a thread, goal, obligation, or attention moment.
 
 Application interface text continues to resolve through one JetBrainsMono Nerd
 Font boundary with a system monospaced fallback, while editable notepad content
-uses the regular proportional system font. The Projects list immediately
-follows Open PRs, always retains configured checkouts, and renders a
-subordinate registered worktree only while its exact branch is present in
-current Open PR evidence. Cached, unavailable, merged, or closed evidence hides
-the lane without deleting or pruning local data.
+uses the regular proportional system font. The notepad expands into otherwise
+unused vertical space and scrolls natively for long notes. Open PRs and Projects
+remain bottom-pinned as one bounded activity region, with Projects immediately
+following the final PR row. Projects always retains configured checkouts and
+renders a subordinate registered worktree only while its exact branch is
+present in current Open PR evidence. Cached, unavailable, merged, or closed
+evidence hides the lane without deleting or pruning local data.
 
 ## REPOSITORY MEMORY
 

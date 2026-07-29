@@ -12,6 +12,7 @@ struct HyperliteInteractionModelTests {
         testProjectEntries()
         testSelectionClamping()
         testHoverSummaryLimit()
+        HyperliteWorkspaceSizingTests.run()
         HyperliteTypographyTests.run()
         try HyperliteProjectIndexTests.run()
         try HyperlitePullRequestTests.run()

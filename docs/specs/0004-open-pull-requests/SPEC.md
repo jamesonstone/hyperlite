@@ -39,7 +39,7 @@ references:
     target: https://github.com/jamesonstone/hyperlite/issues/15
     relation: implements
     read_policy: must
-    used_for: shared scrolling layout and fresh project-lane presentation
+    used_for: bottom-pinned activity layout and fresh project-lane presentation
     status: active
 ---
 
@@ -68,8 +68,8 @@ thread scanner cadence or starting continuous background work.
 
 ## REQUIREMENTS
 
-- R1: Render a visually subdued Open PRs panel immediately below the notepad,
-  followed directly by Projects in one shared scrolling content region.
+- R1: Render Open PRs followed directly by Projects as one visually subdued
+  list region pinned to the bottom of the window below the notepad.
 - R2: Include every currently open pull request in each configured GitHub
   repository, including drafts and pull requests from every author.
 - R3: Show repository, pull-request number, title, draft or ready state, and
@@ -103,6 +103,11 @@ thread scanner cadence or starting continuous background work.
 - R12: Render Projects as one vertical column in stable configuration order.
   Group each configured primary branch and its current subordinate worktrees
   under one project identity, showing the branch and abbreviated local path.
+- R13: Give unused vertical space to the plain-text notepad. As Open PRs or
+  Projects grow, compress the notepad to a small usable editor viewport and
+  rely on its native scrollbar for longer notes. If the combined lists still
+  exceed the remaining window after that compression, bound and scroll the
+  list region rather than clipping content or overflowing the window.
 
 Non-goals: CI or review-detail hydration, authored-only filtering, turning open
 pull requests into inferred threads or attention moments, continuous timers,
@@ -128,6 +133,9 @@ background indexing, pull-request actions, or configuration schema changes.
 8. Put Open PRs and Projects in one scrolling content stack, render Projects
    as one grouped column, and require current PR evidence for secondary
    worktree visibility.
+9. Size the combined list region to its content up to the available height,
+   pin it below an expanding notepad, and preserve independent scroll
+   containment for both surfaces when either must compress.
 
 ## DECISIONS
 
@@ -153,12 +161,16 @@ background indexing, pull-request actions, or configuration schema changes.
 - Repository identity is the row's primary orientation label. It receives a
   stable wide column so rows remain aligned; pull-request titles retain their
   full accessible value but truncate visually before that identity column.
+- Vertical whitespace belongs to the notepad, not the activity lists. The
+  combined Open PRs and Projects region keeps its intrinsic height and bottom
+  edge until it reaches the notepad's minimum usable viewport; beyond that
+  point the notepad and lists retain independent scroll containment.
 
 ## ACCEPTANCE CRITERIA
 
-- AC1: The native window shows Open PRs immediately below the notepad and
-  Projects directly after the final PR or availability row in the same
-  scrolling content region.
+- AC1: The native window pins the combined Open PRs and Projects region to the
+  bottom, keeps Projects directly after the final PR or availability row, and
+  gives all remaining vertical space to the notepad.
 - AC2: Draft and ready pull requests from all authors decode and render with
   their repository, number, title, state, age, and URL. Common repository names
   remain readable in a widened aligned column, while long pull-request titles
@@ -175,12 +187,15 @@ background indexing, pull-request actions, or configuration schema changes.
 - AC7: Projects render as one grouped vertical column in configuration order,
   with project, branch, and abbreviated path available visually and through
   accessibility.
+- AC8: Larger PR/project sets shrink the notepad to a usable minimum with its
+  native scrollbar; list overflow remains reachable through a separate bounded
+  scrollbar at constrained window heights.
 
 ## VALIDATION MAP
 
 | Acceptance | Evidence |
 | --- | --- |
-| AC1-AC2, AC7 | Swift model and presentation tests plus native type-check/build |
+| AC1-AC2, AC7-AC8 | Swift sizing/presentation tests plus native type-check/build |
 | AC3 | Go service and client tests with fake clock and command runner |
 | AC4 | Go partial-failure/cache tests and Swift availability decoding tests |
 | AC5 | Adapter command assertions and implementation self-review |
@@ -213,6 +228,10 @@ background indexing, pull-request actions, or configuration schema changes.
   cached head branches to label local worktrees active can preserve a merged or
   otherwise stale lane. Project-lane visibility therefore has a stricter
   freshness boundary than PR-row availability.
+- A fixed notepad height leaves unused space below short activity lists, while
+  a permanently full-height list scroll region leaves the same space inside
+  the wrong surface. Content-sized lists with a bounded overflow height let
+  the notepad own the flexible space without making dense activity unreachable.
 
 ## VALIDATION
 
@@ -233,15 +252,20 @@ background indexing, pull-request actions, or configuration schema changes.
   allocation, and proves repository identity has higher horizontal priority
   than the PR title. Project-lane tests prove exact case-sensitive head branch
   filtering, primary-checkout retention, cached suppression, and removal after
-  a successful empty refresh. Swift type-checking passed with only the two
-  existing macOS 14 `onChange` deprecation warnings in
-  `HyperlitePaletteViews.swift`.
+  a successful empty refresh. Workspace-sizing tests prove intrinsic-height,
+  notepad-minimum, and smaller-than-minimum boundaries. Swift type-checking
+  passed with only the two existing macOS 14 `onChange` deprecation warnings
+  in `HyperlitePaletteViews.swift`.
 - One isolated-cache live validation queried all 16 configured projects in one
   GraphQL batch and returned 18 open pull requests, 0 unavailable projects, 0
   errors, and 0 warnings.
 - The universal signed app was built and launched. The native accessibility
-  tree and screenshot confirmed that Open PRs begins immediately below the
-  notepad and Projects follows its final row in the same scrolling region. The
+  tree and screenshot confirmed that a 60-line notepad owns the flexible space
+  above the bottom-pinned activity region and exposes its native scrollbar.
+  Open PRs begins immediately below the notepad and Projects follows its final
+  row in the same region. At a constrained window height, the notepad retained
+  a small usable editor viewport and the activity region exposed a separate
+  scrollbar; scrolling reached the final project and worktree rows. The
   single-column Projects list retained every configured checkout, labeled each
   primary branch and subordinate worktree explicitly, and exposed full project,
   branch, and path values to accessibility.
@@ -269,15 +293,18 @@ unavailable. Repeated pagination cursors and excessive pages fail safely into
 that cache boundary. Open pull requests do not change thread liveness,
 lifecycle, or attention.
 
-Open PRs and Projects share the native content region. Projects follows the
-final PR row as one grouped vertical list in configuration order. Its exact
-current head-branch projection controls subordinate worktree visibility:
-cached or unavailable evidence cannot retain an active lane, and a successful
-refresh that no longer reports a merged or closed PR removes that lane from
-Projects without deleting or pruning any checkout. Open PR rows reserve a
-190-point aligned repository column and let the title yield horizontal space
-first, so project identity remains useful even when a pull-request title is
-unusually long.
+The notepad owns otherwise unused vertical space and scrolls natively for long
+notes. Open PRs and Projects remain bottom-pinned as one content-sized activity
+region; if they outgrow the window after the notepad reaches its usable
+minimum, that region scrolls independently. Projects follows the final PR row
+as one grouped vertical list in configuration order. Its exact current
+head-branch projection controls subordinate worktree visibility: cached or
+unavailable evidence cannot retain an active lane, and a successful refresh
+that no longer reports a merged or closed PR removes that lane from Projects
+without deleting or pruning any checkout. Open PR rows reserve a 190-point
+aligned repository column and let the title yield horizontal space first, so
+project identity remains useful even when a pull-request title is unusually
+long.
 
 ## REPOSITORY MEMORY
 

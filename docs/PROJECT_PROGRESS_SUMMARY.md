@@ -80,9 +80,10 @@ changes that warrant human attention.
   configured projects without turning artifact presence into attention.
 - **APPROACH**: Resolve configured GitHub repositories locally, retrieve
   all-author open pull requests in bounded GraphQL batches, keep an independent
-  private cache with a five-minute success and failure floor, compose Open PRs
-  and Projects in one scrolling native region, and use current exact PR head
-  branches to hide cached, unavailable, merged, or closed worktree lanes.
+  private cache with a five-minute success and failure floor, bottom-pin Open
+  PRs and Projects beneath a flexible scrollable notepad, and use current exact
+  PR head branches to hide cached, unavailable, merged, or closed worktree
+  lanes.
 - **OPEN ITEMS**: The initial projection merged through issue #9 and PR #10;
   the focused native layout and merged-lane follow-up merged through issue #11
   and PR #12. Repository-column prioritization merged through issue #13 and PR
@@ -92,6 +93,9 @@ changes that warrant human attention.
 
 ## LAST UPDATED
 
+- 2026-07-29: Reallocated unused activity-list space to a flexible scrollable
+  notepad while keeping Open PRs and Projects bottom-pinned with an independent
+  overflow viewport at constrained window heights.
 - 2026-07-29: Grouped fresh active project branches and worktrees in one column
   directly after the Open PRs list.
 - 2026-07-29: Prioritized readable repository names over long pull-request

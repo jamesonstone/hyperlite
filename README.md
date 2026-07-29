@@ -64,11 +64,13 @@ The current native presentation focuses on notes and open pull requests.
 Inferred attention remains available through CLI/JSON but is hidden behind a
 single native feature flag: the window, menu bar, and palettes show no thread
 or attention counts or entries, and the app skips remote attention enrichment.
-The fixed header contains only the product name, Refresh, and Settings. Open
-PRs and Projects share the scrolling content region below the notepad, with
-the single-column Projects list immediately following the final PR row. The
-pull-request index is informational only: it never establishes thread activity
-or attention.
+The fixed header contains only the product name, Refresh, and Settings. The
+notepad takes the available vertical space while Open PRs and the
+single-column Projects list remain pinned to the bottom as one activity
+region. Long notes use the notepad's native scrollbar; if the activity region
+outgrows the remaining window, it scrolls independently. Projects immediately
+follows the final PR row. The pull-request index is informational only: it
+never establishes thread activity or attention.
 
 Open PRs load from a separate private cache, refresh stale configured
 repositories on startup or foreground activation no more often than every five

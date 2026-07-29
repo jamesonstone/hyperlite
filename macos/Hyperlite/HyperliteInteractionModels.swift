@@ -1,5 +1,23 @@
 import Foundation
 
+enum HyperliteWorkspaceSizing {
+    static let sectionSpacing: CGFloat = 14
+    static let minimumNotepadHeight: CGFloat = 84
+    static let minimumNotepadEditorHeight: CGFloat = 44
+
+    static func activityViewportHeight(
+        availableHeight: CGFloat,
+        contentHeight: CGFloat?
+    ) -> CGFloat {
+        let maximum = max(
+            0,
+            availableHeight - minimumNotepadHeight - sectionSpacing
+        )
+        guard let contentHeight, contentHeight > 0 else { return maximum }
+        return min(maximum, contentHeight)
+    }
+}
+
 enum HyperlitePaletteMode: String, Hashable, Identifiable {
     case commands
     case projects
