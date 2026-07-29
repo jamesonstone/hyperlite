@@ -65,9 +65,10 @@ refreshes remote evidence on foreground activation only when stale, and then
 runs optional local inference. The menu-bar ghost counts threads with unseen
 attention, not artifacts. The fixed header reports the complete active-thread
 count, unseen Attention receives the urgent treatment, and the remaining
-working set appears as calm informational cards. Completed and dormant
-projections stay out of the active surface. Command+K/Command+P retain keyboard
-access to the same current working set.
+working set appears in a quiet bottom-anchored text ledger. Empty attention
+space remains empty instead of being filled by ordinary work. Completed and
+dormant projections stay out of the active surface. Command+K/Command+P retain
+keyboard access to the same current working set.
 
 Open a thread to see its goal, rationale, progress, dependencies, implications,
 remaining obligations, evidence, expected action, consequence, validity, and

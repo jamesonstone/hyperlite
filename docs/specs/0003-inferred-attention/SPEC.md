@@ -134,9 +134,10 @@ completion.
   evidence invalidates an unread inferred moment, retire that moment.
 - R22: Keep the main surface quiet through visual hierarchy rather than
   omission. Attention rows show the concise material explanation. Ordinary
-  working-set threads appear as compact informational cards without alert
-  color, alert iconography, or “why now” language. Full progress and evidence
-  remain in thread detail and the palettes.
+  working-set threads appear in a bottom-anchored plain-text ledger without
+  containers, alert color, alert iconography, goal excerpts, or “why now”
+  language. Full progress and evidence remain in thread detail and the
+  palettes.
 - R23: Do not render a generic scan-diagnostics control in the native header or
   Command-K. Preserve structured diagnostics in CLI/JSON and expose only
   actionable verified stale-worktree prune commands through Command-K.
@@ -156,10 +157,10 @@ completion.
   uncertainty moment. Stale uncertainty may surface only when a currently
   consequential decision or delivery boundary cannot be evaluated safely.
 - R28: Keep the native header anchored to the top of the window. Treat an empty
-  Attention queue as a compact successful state, then show the non-attention
-  working set as a distinct informational activity layer. The header reports
-  the complete active-thread count without implying that those threads need
-  attention.
+  Attention queue as successful without filling the vacated attention area.
+  Anchor the non-attention working set near the bottom as a distinct,
+  low-density reference layer. The header reports the complete active-thread
+  count without implying that those threads need attention.
 
 Non-goals: user-authored task tracking, manual lifecycle management, hosted
 model calls, continuous polling, notifications, agent transcript ingestion,
@@ -181,8 +182,8 @@ automatic project selection.
 5. Preserve the fast local result path. Load cached remote and inference
    evidence first, then perform stale foreground refresh and semantic
    enrichment as separate bounded operations.
-6. Replace the native flat list with a compact Attention surface, a calm
-   informational working-set layer, thread detail, optional notes, evidence
+6. Replace the native flat list with a compact Attention surface, a quiet
+   bottom-anchored working-set ledger, thread detail, optional notes, evidence
    actions, and seen-revision persistence. Retain palettes, actionable pruning,
    and direct artifact activation while keeping generic scan diagnostics out
    of the native attention surface.
@@ -208,8 +209,8 @@ automatic project selection.
     ordinary open or merged artifacts age dormant without current movement,
     while a still-supported material decision can preserve current relevance.
 14. Render unseen valid attention as the primary native list, render remaining
-    active threads as informational cards, retain palette and detail
-    navigation, and make the empty attention state explicit.
+    active threads as a plain-text reference ledger, retain palette and detail
+    navigation, and preserve empty space when no attention exists.
 
 ## DECISIONS
 
@@ -251,7 +252,9 @@ automatic project selection.
   request eventually leaves the current working set.
 - Silence is a valid attention result. Hyperlite may show the current working
   set for orientation, but must not style, describe, or count it as attention
-  when no situation currently benefits from user judgment.
+  when no situation currently benefits from user judgment. Empty space is part
+  of that distinction; ordinary activity must not rush into the vacated
+  attention area.
 
 ## ACCEPTANCE CRITERIA
 
@@ -308,8 +311,8 @@ automatic project selection.
   and validity statement in addition to its explanation and evidence.
 - AC21: The native surface keeps its header anchored to the top, presents only
   unseen valid attention with urgent styling, and presents remaining active
-  threads as calm informational cards. When no attention exists it shows a
-  compact confident status without hiding the current working set.
+  threads in a bottom-anchored plain-text ledger. When no attention exists it
+  preserves substantial empty space without hiding the current working set.
 
 ## VALIDATION MAP
 
@@ -520,8 +523,9 @@ automatic project selection.
   current prunable worktree warnings still produce verified prune commands.
 - Packaged-app visual and accessibility inspection confirms that the header
   remains top-anchored, the complete active count is neutral, the empty
-  Attention state is compact, and ordinary current threads use responsive
-  informational cards without alert styling or placeholder goal headings.
+  Attention area remains spatially quiet, and ordinary current threads use a
+  bottom-anchored text ledger without containers, alert styling, or goal
+  excerpts.
 - `kit check 0003-inferred-attention` passes. `kit check --project` remains
   blocked by six pre-existing V3 support-document drift findings outside this
   change; no managed instruction or worktree guidance was broadened into this
@@ -540,14 +544,14 @@ routine artifact motion remain quiet.
 
 The native experience renders cached content first and anchors its header to
 the top of the window. It places unseen valid Attention in the urgent list and
-shows the remaining working set as compact informational activity cards. The
+shows the remaining working set in a bottom-anchored plain-text ledger. The
 header reports the full active count without treating it as an attention count,
-so an empty Attention queue remains a successful state without becoming an
-empty application. Thread detail explains the expected action, why it matters
-now, the consequence of inaction, and the condition that keeps the claim
-valid. Seen state acknowledges a moment; reconciliation independently retracts
-unsupported moments. Diagnostic data stays in CLI/JSON and only actionable
-verified pruning enters Command-K.
+and an empty Attention queue preserves open space rather than pulling ordinary
+work into the urgent region. Thread detail explains the expected action, why it
+matters now, the consequence of inaction, and the condition that keeps the
+claim valid. Seen state acknowledges a moment; reconciliation independently
+retracts unsupported moments. Diagnostic data stays in CLI/JSON and only
+actionable verified pruning enters Command-K.
 
 ## REPOSITORY MEMORY
 

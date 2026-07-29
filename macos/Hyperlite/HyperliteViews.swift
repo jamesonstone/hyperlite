@@ -85,11 +85,11 @@ struct HyperliteWindow: View {
                     ProgressView("Reconstructing local threads…")
                         .controlSize(.small)
                 } else {
-                    ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 14) {
-                            if attention.isEmpty {
-                                HyperliteQuietStatus(activeCount: active.count)
-                            } else {
+                    if attention.isEmpty {
+                        Spacer(minLength: 28)
+                    } else {
+                        ScrollView {
+                            LazyVStack(alignment: .leading, spacing: 8) {
                                 HyperliteSectionHeader(count: attention.count)
                                 ForEach(attention) { thread in
                                     HyperliteThreadRow(
@@ -102,15 +102,16 @@ struct HyperliteWindow: View {
                                     }
                                 }
                             }
-
-                            if !informational.isEmpty {
-                                HyperliteActivitySection(
-                                    threads: informational,
-                                    onOpen: { selectedThread = $0 }
-                                )
-                            }
                         }
-                        .padding(.bottom, 8)
+                        .frame(maxHeight: .infinity, alignment: .top)
+                    }
+
+                    if !informational.isEmpty {
+                        HyperliteActivityLedger(
+                            threads: informational,
+                            title: attention.isEmpty ? "Current work" : "Other active work",
+                            onOpen: { selectedThread = $0 }
+                        )
                     }
                 }
             }

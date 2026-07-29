@@ -71,7 +71,7 @@ changes that warrant human attention.
 ## LAST UPDATED
 
 - 2026-07-29: Anchored the native header and separated urgent Attention from
-  visible informational active-thread cards.
+  a bottom-anchored informational active-thread ledger.
 - 2026-07-29: Removed the native scan-diagnostics control and retained only
   actionable stale-worktree pruning in Command-K.
 - 2026-07-28: Added feature `0003-inferred-attention` and reconciled the

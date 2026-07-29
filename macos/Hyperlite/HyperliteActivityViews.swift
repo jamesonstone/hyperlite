@@ -21,134 +21,77 @@ struct HyperliteAttentionStatus: View {
     }
 }
 
-struct HyperliteQuietStatus: View {
-    let activeCount: Int
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "checkmark")
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(.cyan)
-                .frame(width: 26, height: 26)
-                .background(Color.cyan.opacity(0.12), in: Circle())
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Nothing needs your attention")
-                    .font(.subheadline.weight(.semibold))
-                Text(message)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-        }
-        .padding(12)
-        .background(Color.cyan.opacity(0.045), in: RoundedRectangle(cornerRadius: 10))
-        .overlay {
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(Color.cyan.opacity(0.12), lineWidth: 1)
-        }
-    }
-
-    private var message: String {
-        guard activeCount > 0 else {
-            return "There is no current coordination work."
-        }
-        return "Active work is available for context; no decision or intervention is requested."
-    }
-}
-
-struct HyperliteActivitySection: View {
+struct HyperliteActivityLedger: View {
     let threads: [HyperliteThread]
+    let title: String
     let onOpen: (HyperliteThread) -> Void
 
     private let columns = [
-        GridItem(.adaptive(minimum: 220), spacing: 10, alignment: .top),
+        GridItem(.adaptive(minimum: 360), spacing: 24, alignment: .top),
     ]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .firstTextBaseline, spacing: 7) {
-                Text("Ongoing activity")
-                    .font(.caption.weight(.bold))
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
                 Text("\(threads.count)")
                     .font(.caption2.monospacedDigit().weight(.bold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.tertiary)
                 Spacer()
-                Label("Informational", systemImage: "info.circle")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                Text("For reference")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
             }
 
-            LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
+            LazyVGrid(columns: columns, alignment: .leading, spacing: 0) {
                 ForEach(threads) { thread in
-                    HyperliteActivityCard(thread: thread) {
+                    HyperliteActivityRow(thread: thread) {
                         onOpen(thread)
                     }
                 }
             }
         }
-        .padding(.top, 2)
     }
 }
 
-struct HyperliteActivityCard: View {
+struct HyperliteActivityRow: View {
     let thread: HyperliteThread
     let onOpen: () -> Void
 
     var body: some View {
         Button(action: onOpen) {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(alignment: .center, spacing: 7) {
-                    Image(systemName: thread.phase.symbol)
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(.cyan)
-                        .frame(width: 22, height: 22)
-                        .background(Color.cyan.opacity(0.10), in: Circle())
-                    Text(thread.projectName)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                    Spacer(minLength: 6)
-                    Text(HyperlitePresentation.ageLabel(for: thread.updatedAt))
-                        .font(.caption2.monospacedDigit().weight(.semibold))
-                        .foregroundStyle(.tertiary)
-                }
-
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(thread.projectName)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+                    .frame(width: 68, alignment: .leading)
                 Text(thread.title)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.primary)
-                    .lineLimit(2)
-
-                if let summary {
-                    Text(summary)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
-
-                Label(thread.phase.label, systemImage: "circle.fill")
-                    .font(.caption2.weight(.semibold))
+                    .font(.subheadline.weight(.medium))
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                Spacer(minLength: 4)
+                Text(thread.phase.label)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+                Text(HyperlitePresentation.ageLabel(for: thread.updatedAt))
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.tertiary)
+                    .frame(minWidth: 24, alignment: .trailing)
             }
-            .frame(maxWidth: .infinity, minHeight: 104, alignment: .topLeading)
-            .padding(12)
+            .padding(.vertical, 6)
             .contentShape(Rectangle())
-            .background(Color.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 10))
-            .overlay {
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color.primary.opacity(0.075), lineWidth: 1)
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .fill(Color.primary.opacity(0.055))
+                    .frame(height: 0.5)
             }
         }
         .buttonStyle(.plain)
         .help("Open this active thread. No attention is currently requested.")
         .hyperliteHoverPopover { HyperliteThreadHoverCard(thread: thread) }
-    }
-
-    private var summary: String? {
-        thread.goal.split(whereSeparator: \.isNewline)
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .first { line in
-                let label = line.trimmingCharacters(in: CharacterSet(charactersIn: "#: ")).lowercased()
-                return label != "original ask" && line.count >= 20
-            }
     }
 }
