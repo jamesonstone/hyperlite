@@ -440,6 +440,10 @@ automatic project selection.
   obligation after it was seen turns refresh into interruption, so
   reconciliation fingerprints the supported coordination situation separately
   from the complete thread revision.
+- Uncertainty acknowledgement is scoped to the exact stale evidence, not the
+  generic user-facing uncertainty summary. Current-evidence enrichment stays
+  quiet, while a different stale consequential artifact creates a distinct
+  situation that can require renewed verification.
 
 ## VALIDATION
 
@@ -494,8 +498,8 @@ automatic project selection.
   based Go and Swift splits.
 - The new attention contract and presentation retain that boundary: the largest
   touched implementation files are `internal/threadstate/reconcile.go` at 297
-  lines, the Swift interaction test at 291, and
-  `internal/threadstate/attention.go` at 288.
+  lines, the Swift interaction test at 293, and
+  `internal/threadstate/attention.go` at 289.
 - Repeated local and remote scans against the expanded configuration preserved
   the R2 attention-history count exactly after acknowledgement, proving that
   deterministic projection changes do not re-emit the same operational

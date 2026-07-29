@@ -165,3 +165,30 @@ func TestStaleEvidenceNeedsAConsequentialCurrentClaim(t *testing.T) {
 		t.Fatalf("consequential stale evidence = %#v", value)
 	}
 }
+
+func TestUncertaintyFingerprintTracksOnlyStaleEvidence(t *testing.T) {
+	thread := model.Thread{
+		Phase: model.ThreadReviewing, Active: true,
+		Implications: []model.ThreadImplication{{
+			Summary: "Deploy the production worker.", Category: "production",
+		}},
+		Evidence: []model.EvidenceRef{
+			{ID: "stale-1", Freshness: "stale"},
+			{ID: "current", Freshness: "current"},
+		},
+	}
+	first := currentCandidate(thread)
+	if first == nil || len(first.evidence) != 1 || first.evidence[0] != "stale-1" {
+		t.Fatalf("initial uncertainty = %#v", first)
+	}
+
+	thread.Evidence[1].Title = "Hydrated current evidence"
+	if current := currentCandidate(thread); !sameAttentionSituation(first, current) {
+		t.Fatal("current evidence enrichment changed the stale-evidence situation")
+	}
+
+	thread.Evidence[0] = model.EvidenceRef{ID: "stale-2", Freshness: "stale"}
+	if current := currentCandidate(thread); sameAttentionSituation(first, current) {
+		t.Fatal("different stale evidence reused the acknowledged situation")
+	}
+}

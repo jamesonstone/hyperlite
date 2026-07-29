@@ -1,6 +1,7 @@
 package threadstate
 
 import (
+	"sort"
 	"time"
 
 	"github.com/jamesonstone/hyperlite/internal/model"
@@ -60,6 +61,17 @@ func sameAttentionSituation(previous, current *candidate) bool {
 	}
 	return previous.fingerprint != "" &&
 		previous.fingerprint == current.fingerprint
+}
+
+func staleEvidenceRefs(thread model.Thread) []model.EvidenceRef {
+	var values []model.EvidenceRef
+	for _, evidence := range thread.Evidence {
+		if evidence.Freshness == "stale" {
+			values = append(values, evidence)
+		}
+	}
+	sort.Slice(values, func(i, j int) bool { return values[i].ID < values[j].ID })
+	return values
 }
 
 func appendAttentionMoment(

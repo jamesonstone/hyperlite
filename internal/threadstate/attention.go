@@ -55,14 +55,15 @@ func currentCandidate(thread model.Thread) *candidate {
 		return nil
 	}
 	if highConsequenceUncertainty(thread) {
+		staleEvidence := staleEvidenceRefs(thread)
 		return &candidate{
 			kind: model.AttentionUncertain, summary: staleSummary,
-			fingerprint: staleSummary,
+			fingerprint: digest(staleEvidence),
 			action:      "Verify the stale evidence before authorizing the consequential boundary.",
 			why:         "Hyperlite cannot safely infer the current coordination state.",
 			consequence: "A consequential action may rely on an unsupported coordination conclusion.",
 			validWhile:  "The thread remains current and consequential while authoritative evidence is stale.",
-			evidence:    evidenceIDs(thread.Evidence),
+			evidence:    evidenceIDs(staleEvidence),
 		}
 	}
 	for _, implication := range thread.Implications {
