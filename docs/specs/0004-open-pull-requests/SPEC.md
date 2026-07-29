@@ -33,6 +33,14 @@ references:
     read_policy: must
     used_for: repository-column layout priority
     status: active
+  - id: issue-15
+    name: Organize active project branches and worktrees
+    type: github-issue
+    target: https://github.com/jamesonstone/hyperlite/issues/15
+    relation: implements
+    read_policy: must
+    used_for: shared scrolling layout and fresh project-lane presentation
+    status: active
 ---
 
 # Configured Project Pull Requests
@@ -61,7 +69,7 @@ thread scanner cadence or starting continuous background work.
 ## REQUIREMENTS
 
 - R1: Render a visually subdued Open PRs panel immediately below the notepad,
-  filling the flexible space down to the configured Projects map.
+  followed directly by Projects in one shared scrolling content region.
 - R2: Include every currently open pull request in each configured GitHub
   repository, including drafts and pull requests from every author.
 - R3: Show repository, pull-request number, title, draft or ready state, and
@@ -88,8 +96,13 @@ thread scanner cadence or starting continuous background work.
   notifications, repository mutation, or pull-request mutation.
 - R11: Include each pull request's head branch in the lightweight projection.
   Use that exact case-sensitive branch to show only matching registered
-  worktrees in Projects. After a successful refresh observes a PR as merged or
+  worktrees in Projects when that project's pull-request status is current.
+  Cached or unavailable pull-request data must not present a secondary
+  worktree as active. After a successful refresh observes a PR as merged or
   closed, remove its worktree row without deleting or pruning the checkout.
+- R12: Render Projects as one vertical column in stable configuration order.
+  Group each configured primary branch and its current subordinate worktrees
+  under one project identity, showing the branch and abbreviated local path.
 
 Non-goals: CI or review-detail hydration, authored-only filtering, turning open
 pull requests into inferred threads or attention moments, continuous timers,
@@ -112,6 +125,9 @@ background indexing, pull-request actions, or configuration schema changes.
    inferred-attention presentation.
 7. Widen the aligned repository column for current and availability rows, and
    give the pull-request title lower horizontal layout priority.
+8. Put Open PRs and Projects in one scrolling content stack, render Projects
+   as one grouped column, and require current PR evidence for secondary
+   worktree visibility.
 
 ## DECISIONS
 
@@ -125,9 +141,11 @@ background indexing, pull-request actions, or configuration schema changes.
   issue, check, and review evidence.
 - Cache ownership is separate from thread state to avoid lost updates between
   independently running helper commands.
-- The native Projects map treats current or retained cached open-PR branches as
-  worktree visibility authority. It never removes a checkout; it only stops
-  rendering a subordinate lane after a successful PR refresh drops the branch.
+- The native Projects map treats only current open-PR branches as worktree
+  visibility authority. Cached or unavailable PR data can retain its rows in
+  Open PRs, but cannot claim a secondary local worktree is active. The map
+  never removes a checkout; it only stops rendering an unconfirmed subordinate
+  lane.
 - Pull-request refresh remains serialized behind the heavier evidence refresh
   when both are enabled so one user action does not launch concurrent GitHub
   request bursts. While attention presentation is disabled, native attention
@@ -138,8 +156,9 @@ background indexing, pull-request actions, or configuration schema changes.
 
 ## ACCEPTANCE CRITERIA
 
-- AC1: The native window shows Open PRs immediately below the notepad, lets its
-  scroll region fill the available space, and keeps Projects anchored below it.
+- AC1: The native window shows Open PRs immediately below the notepad and
+  Projects directly after the final PR or availability row in the same
+  scrolling content region.
 - AC2: Draft and ready pull requests from all authors decode and render with
   their repository, number, title, state, age, and URL. Common repository names
   remain readable in a widened aligned column, while long pull-request titles
@@ -150,19 +169,22 @@ background indexing, pull-request actions, or configuration schema changes.
 - AC4: Partial query failure preserves cached rows with a cached state, while a
   project with neither a usable GitHub identity nor cache is unavailable.
 - AC5: No configured-project or GitHub mutation occurs.
-- AC6: Exact registered worktree branches remain visible only while their
-  project reports a corresponding open PR; a successful refresh after merge
-  removes the row without deleting local data.
+- AC6: Exact registered worktree branches remain visible only while current
+  project evidence reports a corresponding open PR; cached, unavailable,
+  merged, or closed lanes disappear without deleting local data.
+- AC7: Projects render as one grouped vertical column in configuration order,
+  with project, branch, and abbreviated path available visually and through
+  accessibility.
 
 ## VALIDATION MAP
 
 | Acceptance | Evidence |
 | --- | --- |
-| AC1-AC2 | Swift model and presentation tests plus native type-check/build |
+| AC1-AC2, AC7 | Swift model and presentation tests plus native type-check/build |
 | AC3 | Go service and client tests with fake clock and command runner |
 | AC4 | Go partial-failure/cache tests and Swift availability decoding tests |
 | AC5 | Adapter command assertions and implementation self-review |
-| AC6 | Head-branch transport tests and Swift project-lane projection tests |
+| AC6 | Head-branch transport tests and Swift fresh project-lane projection tests |
 
 ## DISCOVERIES
 
@@ -187,6 +209,10 @@ background indexing, pull-request actions, or configuration schema changes.
   identical. A 190-point aligned column fits common repository identities at
   the supported narrow window width while leaving the title as the flexible,
   first-truncated field.
+- Retaining cached PR rows is useful for the Open PRs index, but using those
+  cached head branches to label local worktrees active can preserve a merged or
+  otherwise stale lane. Project-lane visibility therefore has a stricter
+  freshness boundary than PR-row availability.
 
 ## VALIDATION
 
@@ -206,8 +232,8 @@ background indexing, pull-request actions, or configuration schema changes.
   availability row presentations, fixes a minimum 180-point repository
   allocation, and proves repository identity has higher horizontal priority
   than the PR title. Project-lane tests prove exact case-sensitive head branch
-  filtering, primary-checkout retention, cached fallback, and removal after a
-  successful empty refresh. Swift type-checking passed with only the two
+  filtering, primary-checkout retention, cached suppression, and removal after
+  a successful empty refresh. Swift type-checking passed with only the two
   existing macOS 14 `onChange` deprecation warnings in
   `HyperlitePaletteViews.swift`.
 - One isolated-cache live validation queried all 16 configured projects in one
@@ -215,17 +241,21 @@ background indexing, pull-request actions, or configuration schema changes.
   errors, and 0 warnings.
 - The universal signed app was built and launched. The native accessibility
   tree and screenshot confirmed that Open PRs begins immediately below the
-  notepad and fills the flexible region down to the bottom-anchored Projects
-  map. It exposed 18 URL-backed rows with full repository identity, draft and
-  ready states, age labels, and subdued visual hierarchy. The Projects map
-  retained every configured checkout and showed only subordinate branches
-  represented in the open-PR snapshot.
+  notepad and Projects follows its final row in the same scrolling region. The
+  single-column Projects list retained every configured checkout, labeled each
+  primary branch and subordinate worktree explicitly, and exposed full project,
+  branch, and path values to accessibility.
 - A second isolated packaged-app inspection at the supported narrow/default
   window width confirmed that common repository identities such as
   `lsmc-bio/lsmc-vivarium` remain fully visible, long identities retain a
   distinguishing repository prefix, and long PR titles truncate to protect
   the aligned repository, number, state, and age columns. Accessibility labels
   retain the complete repository and title.
+- An isolated issue-15 preview first loaded seven-minute-old cached PR evidence
+  and correctly showed no subordinate worktrees. Its one bounded refresh
+  returned 15 current PRs and added exactly seven matching active worktrees,
+  while preserving all 16 configured primary branches. Projects remained
+  directly after Open PRs in one grouped column.
 
 ## OUTCOME
 
@@ -239,13 +269,15 @@ unavailable. Repeated pagination cursors and excessive pages fail safely into
 that cache boundary. Open pull requests do not change thread liveness,
 lifecycle, or attention.
 
-The panel now owns all flexible space between the plain-text notepad and the
-Projects map. Its exact head-branch projection controls subordinate worktree
-visibility: a successful refresh that no longer reports a merged or closed PR
-removes that lane from Projects without deleting or pruning any checkout.
-Open PR rows reserve a 190-point aligned repository column and let the title
-yield horizontal space first, so project identity remains useful even when a
-pull-request title is unusually long.
+Open PRs and Projects share the native content region. Projects follows the
+final PR row as one grouped vertical list in configuration order. Its exact
+current head-branch projection controls subordinate worktree visibility:
+cached or unavailable evidence cannot retain an active lane, and a successful
+refresh that no longer reports a merged or closed PR removes that lane from
+Projects without deleting or pruning any checkout. Open PR rows reserve a
+190-point aligned repository column and let the title yield horizontal space
+first, so project identity remains useful even when a pull-request title is
+unusually long.
 
 ## REPOSITORY MEMORY
 

@@ -165,9 +165,9 @@ completion.
   consequential decision or delivery boundary cannot be evaluated safely.
 - R28: Keep the native header anchored to the top of the window. While inferred
   attention is disabled, the header contains only the product name, Refresh,
-  and Settings; the Open PRs panel owns the flexible space below the notepad.
-  Anchor the configured-project spatial index near the bottom as a distinct,
-  low-density reference layer.
+  and Settings; Open PRs and the configured-project spatial index share the
+  scrolling region below the notepad, with Projects directly after Open PRs as
+  a distinct, low-density reference layer.
 - R29: Place one always-available global notepad directly below the native
   header. Keep its draft in memory while typing, persist only the latest edit
   after three idle seconds, and flush pending content when the window or
@@ -178,14 +178,14 @@ completion.
   the text file does not yet exist. The notepad is optional operator memory:
   its content never enters evidence, inference, thread membership, lifecycle,
   or attention.
-- R30: Project configured paths into a stable bottom map in configuration
-  order. Every configured project appears even when it has no active inferred
-  thread. Always show its configured checkout; expose registered non-prunable
-  worktrees to native presentation, which shows a subordinate worktree only
-  when its exact case-sensitive branch is present in that project's open-PR
-  index. Order lanes by path without adding GitHub calls. Lane presence, branch
-  age, cleanliness, and publication state do not independently establish
-  activity or attention.
+- R30: Project configured paths into a stable single-column list in
+  configuration order. Every configured project appears even when it has no
+  active inferred thread. Always show its configured checkout; expose
+  registered non-prunable worktrees to native presentation, which shows a
+  subordinate worktree only when its exact case-sensitive branch is present in
+  that project's current open-PR evidence. Order lanes by path without adding
+  GitHub calls. Lane presence, branch age, cleanliness, and publication state
+  do not independently establish activity or attention.
 - R31: Use `JetBrainsMono Nerd Font` for every application-controlled text
   surface except notepad content, which uses the regular proportional system
   font to reinforce its plain-text writing role. Resolve the application font
@@ -316,13 +316,14 @@ or model-assisted note mutation.
   when no situation currently benefits from user judgment. Empty space is part
   of that distinction; ordinary activity must not rush into the vacated
   attention area.
-- The bottom project map is configuration and filesystem orientation, not
-  inferred work state. Stable placement and path identity are more important
-  there than recency, phase, or semantic importance.
-- Project worktree visibility follows exact branches in the separate open-PR
-  index rather than inferred-thread activity. A successful refresh that no
-  longer reports a merged PR removes that branch's worktree from the Projects
-  panel while leaving the checkout untouched.
+- The project list is configuration and filesystem orientation, not inferred
+  work state. Stable order and path identity are more important there than
+  recency, phase, or semantic importance.
+- Project worktree visibility follows exact branches in current evidence from
+  the separate open-PR index rather than inferred-thread activity. Cached or
+  unavailable data cannot retain a subordinate lane; a successful refresh
+  that no longer reports a merged PR removes that branch's worktree from the
+  Projects panel while leaving the checkout untouched.
 - Typography is an application-wide presentation primitive, not a per-view
   decoration. A single resolver keeps weights and fallback behavior consistent
   across SwiftUI, the AppKit notepad editor, sheets, palettes, and settings.
@@ -656,11 +657,11 @@ or model-assisted note mutation.
   branches while preserving every configured checkout. A successful empty PR
   projection is covered to remove merged or closed lanes without local
   deletion.
-- Packaged-app accessibility and visual inspection confirms a bottom-anchored
-  two-column plain-text project map with `Projects 16`, full path accessibility
-  labels, home-relative visible paths, no cards, and no alert, phase, age, goal,
-  or attention styling. Open PRs owns the flexible region between the notepad
-  and Projects.
+- The initial packaged-app validation confirmed the plain-text configured
+  project map, full path accessibility labels, home-relative visible paths,
+  and absence of alert, phase, age, goal, or attention styling. The later
+  single-column placement and stricter freshness boundary are owned and
+  validated by `0004-open-pull-requests`.
 - `kit check 0003-inferred-attention` passes. `kit check --project` remains
   blocked by six pre-existing V3 support-document drift findings outside this
   change; no managed instruction or worktree guidance was broadened into this
@@ -696,11 +697,11 @@ content to create or alter a thread, goal, obligation, or attention moment.
 
 Application interface text continues to resolve through one JetBrainsMono Nerd
 Font boundary with a system monospaced fallback, while editable notepad content
-uses the regular proportional system font. The bottom Projects map always
-retains configured checkouts and now renders a subordinate registered worktree
-only while its exact branch is present in that project's Open PRs projection.
-A successful refresh after merge hides the lane without deleting or pruning
-local data.
+uses the regular proportional system font. The Projects list immediately
+follows Open PRs, always retains configured checkouts, and renders a
+subordinate registered worktree only while its exact branch is present in
+current Open PR evidence. Cached, unavailable, merged, or closed evidence hides
+the lane without deleting or pruning local data.
 
 ## REPOSITORY MEMORY
 

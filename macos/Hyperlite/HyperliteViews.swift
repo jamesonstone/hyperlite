@@ -107,16 +107,20 @@ struct HyperliteWindow: View {
                     ProgressView("Refreshing configured projects…")
                         .controlSize(.small)
                 }
-                if let pullRequests {
-                    HyperlitePullRequestPanel(scan: pullRequests)
-                        .layoutPriority(1)
-                } else {
-                    ProgressView("Loading open pull requests…")
-                        .controlSize(.small)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                }
-                if !projects.isEmpty {
-                    HyperliteProjectMap(projects: projects)
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 14) {
+                        if let pullRequests {
+                            HyperlitePullRequestPanel(scan: pullRequests)
+                        } else {
+                            ProgressView("Loading open pull requests…")
+                                .controlSize(.small)
+                                .frame(maxWidth: .infinity, alignment: .topLeading)
+                        }
+                        if !projects.isEmpty {
+                            HyperliteProjectMap(projects: projects)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

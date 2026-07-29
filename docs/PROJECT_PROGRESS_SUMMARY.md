@@ -66,8 +66,8 @@ changes that warrant human attention.
   fail-soft presentation state, and preserve material Attention behind a
   native feature boundary. The current native surface disables that
   presentation to focus on open PRs and a regular-text notepad. Keep a stable
-  bottom project map with every configured checkout and only subordinate lanes
-  whose exact branch has an open PR.
+  project map directly after Open PRs with every configured checkout and only
+  subordinate lanes whose exact branch has a current open PR.
 - **OPEN ITEMS**: Core inference merged through issue #7 and PR #8. Re-enabling
   its native presentation is intentionally deferred.
 - **POINTERS**: `docs/specs/0003-inferred-attention/SPEC.md`
@@ -80,17 +80,20 @@ changes that warrant human attention.
   configured projects without turning artifact presence into attention.
 - **APPROACH**: Resolve configured GitHub repositories locally, retrieve
   all-author open pull requests in bounded GraphQL batches, keep an independent
-  private cache with a five-minute success and failure floor, let the panel own
-  the flexible native content region, and use exact PR head branches to hide
-  merged or closed worktree lanes after a successful refresh.
+  private cache with a five-minute success and failure floor, compose Open PRs
+  and Projects in one scrolling native region, and use current exact PR head
+  branches to hide cached, unavailable, merged, or closed worktree lanes.
 - **OPEN ITEMS**: The initial projection merged through issue #9 and PR #10;
   the focused native layout and merged-lane follow-up merged through issue #11
-  and PR #12. Repository-column prioritization is complete locally on issue
-  #13; ready pull-request review and merge remain.
+  and PR #12. Repository-column prioritization merged through issue #13 and PR
+  #14. Single-column active project lanes are complete locally on issue #15;
+  ready pull-request review and merge remain.
 - **POINTERS**: `docs/specs/0004-open-pull-requests/SPEC.md`
 
 ## LAST UPDATED
 
+- 2026-07-29: Grouped fresh active project branches and worktrees in one column
+  directly after the Open PRs list.
 - 2026-07-29: Prioritized readable repository names over long pull-request
   titles in the aligned Open PRs row layout.
 - 2026-07-29: Focused the native surface on plain-text notes and Open PRs,
