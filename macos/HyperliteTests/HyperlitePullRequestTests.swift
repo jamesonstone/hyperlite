@@ -4,6 +4,7 @@ enum HyperlitePullRequestTests {
     static func run() throws {
         let scan = try testSchemaDecodingAndPresentation()
         testFiveMinuteFreshnessFloor(scan: scan)
+        testRowLayoutPrioritizesRepositoryIdentity()
     }
 
     private static func testSchemaDecodingAndPresentation() throws
@@ -123,6 +124,23 @@ enum HyperlitePullRequestTests {
             ),
             "native freshness should enforce the five-minute floor"
         )
+    }
+
+    private static func testRowLayoutPrioritizesRepositoryIdentity() {
+        let rowLayouts = [
+            ("current", HyperlitePullRequestPanelRow.layout),
+            ("availability", HyperlitePullRequestAvailabilityRow.layout),
+        ]
+        for (rowKind, layout) in rowLayouts {
+            expect(
+                layout.repositoryColumnWidth >= 180,
+                "\(rowKind) row repository column should distinguish common project names"
+            )
+            expect(
+                layout.repositoryLayoutPriority > layout.titleLayoutPriority,
+                "\(rowKind) row title should yield space before repository identity"
+            )
+        }
     }
 
     private static func require<T>(_ value: T?, _ message: String) throws -> T {
