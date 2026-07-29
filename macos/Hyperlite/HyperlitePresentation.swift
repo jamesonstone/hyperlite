@@ -5,6 +5,10 @@ enum HyperlitePresentation {
         activeThreads(scan: scan).filter(\.hasUnseenAttention)
     }
 
+    static func informationalThreads(scan: HyperliteThreadScan) -> [HyperliteThread] {
+        activeThreads(scan: scan).filter { !$0.hasUnseenAttention }
+    }
+
     static func activeThreads(scan: HyperliteThreadScan) -> [HyperliteThread] {
         scan.threads.filter(\.active).sorted {
             if $0.hasUnseenAttention != $1.hasUnseenAttention {

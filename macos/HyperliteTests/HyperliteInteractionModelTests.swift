@@ -5,7 +5,7 @@ struct HyperliteInteractionModelTests {
     static func main() throws {
         try testSchemaV2Decoding()
         try testStructuredDiagnosticDecoding()
-        testAttentionOnlyPrimaryProjection()
+        testAttentionAndInformationalProjections()
         testRowSummaryOnlyShowsAttention()
         testCommandEntries()
         testProjectEntries()
@@ -89,7 +89,7 @@ struct HyperliteInteractionModelTests {
         expect(diagnostic.repositoryPath == "/repo/kit", "repository path should decode")
     }
 
-    private static func testAttentionOnlyPrimaryProjection() {
+    private static func testAttentionAndInformationalProjections() {
         let now = Date()
         let attention = thread(id: "attention", repository: "owner/r2", active: true, unseen: true, updatedAt: now)
         let activeOld = thread(
@@ -115,9 +115,11 @@ struct HyperliteInteractionModelTests {
         )
         let scan = scan(threads: [complete, inactiveAttention, activeOld, attention], now: now)
         expect(HyperlitePresentation.attentionThreads(scan: scan).map(\.id) == ["attention"],
-               "the primary projection should contain current attention only")
+               "the urgent projection should contain current attention only")
+        expect(HyperlitePresentation.informationalThreads(scan: scan).map(\.id) == ["active-old"],
+               "the informational projection should contain active threads without attention")
         expect(HyperlitePresentation.activeThreads(scan: scan).map(\.id) == ["attention", "active-old"],
-               "the working set should remain available outside the primary list")
+               "the active count should cover both visible projections")
     }
 
     private static func testCommandEntries() {

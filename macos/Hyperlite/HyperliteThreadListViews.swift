@@ -18,33 +18,6 @@ struct HyperliteSectionHeader: View {
     }
 }
 
-struct HyperliteEmptyState: View {
-    let activeCount: Int
-
-    var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "checkmark.circle")
-                .font(.system(size: 28))
-                .foregroundStyle(.cyan)
-            Text("Nothing needs your attention")
-                .font(.headline)
-            Text(message)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 48)
-    }
-
-    private var message: String {
-        guard activeCount > 0 else {
-            return "No current coordination requires intervention."
-        }
-        return "\(activeCount) active thread\(activeCount == 1 ? "" : "s") remain available in Command-P."
-    }
-}
-
 struct HyperliteSettingsView: View {
     @AppStorage("hyperlite.hotkey") private var hotkey = defaultHotKey
 

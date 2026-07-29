@@ -41,32 +41,27 @@ struct HyperliteWindow: View {
 
     private var activeThreads: [HyperliteThread] { state.activeThreads() }
     private var attentionThreads: [HyperliteThread] { state.attentionThreads() }
+    private var informationalThreads: [HyperliteThread] {
+        guard let scan = state.scan else { return [] }
+        return HyperlitePresentation.informationalThreads(scan: scan)
+    }
     private var warnings: [HyperliteDiagnostic] { state.scan?.warnings ?? [] }
 
     var body: some View {
         let attention = attentionThreads
         let active = activeThreads
+        let informational = informationalThreads
         let currentWarnings = warnings
-        return ZStack {
+        return ZStack(alignment: .topLeading) {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .firstTextBaseline) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Hyperlite").font(.system(size: 22, weight: .bold, design: .rounded))
-                        HStack(spacing: 4) {
+                        HStack(spacing: 6) {
                             HyperliteGhostMark()
                                 .frame(width: 12, height: 12)
-                            Text(attention.isEmpty
-                                ? "Nothing needs attention"
-                                : "\(attention.count) thread\(attention.count == 1 ? "" : "s") need attention")
-                            if !active.isEmpty {
-                                Text("·")
-                                Button("\(active.count) active") {
-                                    state.showPalette(.projects)
-                                }
-                                .buttonStyle(.plain)
-                                .underline()
-                                .help("Browse the current working set in Command-P")
-                            }
+                            Text("\(active.count) active thread\(active.count == 1 ? "" : "s")")
+                            HyperliteAttentionStatus(count: attention.count)
                         }
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(.secondary)
@@ -89,26 +84,37 @@ struct HyperliteWindow: View {
                 if state.scan == nil {
                     ProgressView("Reconstructing local threads…")
                         .controlSize(.small)
-                } else if attention.isEmpty {
-                    HyperliteEmptyState(activeCount: active.count)
                 } else {
                     ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 8) {
-                            HyperliteSectionHeader(count: attention.count)
-                            ForEach(attention) { thread in
-                                HyperliteThreadRow(
-                                    thread: thread,
-                                    highlighted: false,
-                                    onOpen: { selectedThread = thread }
-                                )
-                                if thread.id != attention.last?.id {
-                                    Divider()
+                        LazyVStack(alignment: .leading, spacing: 14) {
+                            if attention.isEmpty {
+                                HyperliteQuietStatus(activeCount: active.count)
+                            } else {
+                                HyperliteSectionHeader(count: attention.count)
+                                ForEach(attention) { thread in
+                                    HyperliteThreadRow(
+                                        thread: thread,
+                                        highlighted: false,
+                                        onOpen: { selectedThread = thread }
+                                    )
+                                    if thread.id != attention.last?.id {
+                                        Divider()
+                                    }
                                 }
                             }
+
+                            if !informational.isEmpty {
+                                HyperliteActivitySection(
+                                    threads: informational,
+                                    onOpen: { selectedThread = $0 }
+                                )
+                            }
                         }
+                        .padding(.bottom, 8)
                     }
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .padding(20)
 
             if let mode = state.paletteMode {

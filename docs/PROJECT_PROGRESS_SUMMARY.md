@@ -62,14 +62,16 @@ changes that warrant human attention.
   not lost.
 - **APPROACH**: Correlate exact evidence into stable threads, derive lifecycle
   and closure conservatively, add cited bounded local-model synthesis, persist
-  fail-soft presentation state, and render Attention, In Flight, and recent
-  completed sections.
+  fail-soft presentation state, render material Attention urgently, and keep
+  the remaining current working set visible as quiet informational activity.
 - **OPEN ITEMS**: Implementation and local validation are complete on issue
   #7 and branch `GH-7`; ready pull-request review and merge remain.
 - **POINTERS**: `docs/specs/0003-inferred-attention/SPEC.md`
 
 ## LAST UPDATED
 
+- 2026-07-29: Anchored the native header and separated urgent Attention from
+  visible informational active-thread cards.
 - 2026-07-29: Removed the native scan-diagnostics control and retained only
   actionable stale-worktree pruning in Command-K.
 - 2026-07-28: Added feature `0003-inferred-attention` and reconciled the

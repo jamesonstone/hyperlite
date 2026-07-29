@@ -63,10 +63,11 @@ delivery, deployment, infrastructure, or reflection work.
 The native window loads cached state and current local Git evidence first. It
 refreshes remote evidence on foreground activation only when stale, and then
 runs optional local inference. The menu-bar ghost counts threads with unseen
-attention, not artifacts. The primary window shows current Attention only and
-treats an empty queue as a successful state. The compact active count and
-Command+K/Command+P retain access to the current working set; ordinary active,
-completed, and dormant projections do not fill the attention list.
+attention, not artifacts. The fixed header reports the complete active-thread
+count, unseen Attention receives the urgent treatment, and the remaining
+working set appears as calm informational cards. Completed and dormant
+projections stay out of the active surface. Command+K/Command+P retain keyboard
+access to the same current working set.
 
 Open a thread to see its goal, rationale, progress, dependencies, implications,
 remaining obligations, evidence, expected action, consequence, validity, and
