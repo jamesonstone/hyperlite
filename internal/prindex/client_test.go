@@ -48,6 +48,7 @@ func TestGitHubClientBatchesRepositoriesAndPaginatesOnlyWhenNeeded(t *testing.T)
 	if got := results["owner/one"]; got.Error != "" ||
 		len(got.PullRequests) != 2 ||
 		got.PullRequests[0].Number != 3 ||
+		got.PullRequests[0].HeadRefName != "GH-3" ||
 		got.PullRequests[1].Number != 1 {
 		t.Fatalf("owner/one = %#v", got)
 	}
@@ -119,6 +120,36 @@ func TestGitHubClientDoesNotExposeGraphQLQueryOnCommandFailure(t *testing.T) {
 	}
 }
 
+func TestGitHubClientStopsOnRepeatedPaginationCursor(t *testing.T) {
+	runner := &graphQLRunner{respond: func(_ string, _ int) ([]byte, error) {
+		return responseJSON(map[string]any{
+			"repository0": repositoryPage(1, true, "same-cursor"),
+		}, nil), nil
+	}}
+	results := (GitHubClient{Runner: runner}).ListOpen(
+		context.Background(), []config.Repository{{GitHub: "owner/one"}},
+	)
+	if runner.calls != 2 ||
+		!strings.Contains(results["owner/one"].Error, "cursor repeated") {
+		t.Fatalf("calls=%d result=%#v", runner.calls, results["owner/one"])
+	}
+}
+
+func TestGitHubClientStopsAtPaginationPageLimit(t *testing.T) {
+	runner := &graphQLRunner{respond: func(_ string, call int) ([]byte, error) {
+		return responseJSON(map[string]any{
+			"repository0": repositoryPage(call, true, fmt.Sprintf("cursor-%d", call)),
+		}, nil), nil
+	}}
+	results := (GitHubClient{Runner: runner}).ListOpen(
+		context.Background(), []config.Repository{{GitHub: "owner/one"}},
+	)
+	if runner.calls != maxRepositoryPages ||
+		!strings.Contains(results["owner/one"].Error, "pagination exceeded") {
+		t.Fatalf("calls=%d result=%#v", runner.calls, results["owner/one"])
+	}
+}
+
 type graphQLRunner struct {
 	calls   int
 	queries []string
@@ -146,11 +177,12 @@ func repositoryPage(number int, hasNext bool, cursor string) map[string]any {
 	return map[string]any{
 		"pullRequests": map[string]any{
 			"nodes": []map[string]any{{
-				"number":    number,
-				"title":     fmt.Sprintf("Pull request %d", number),
-				"url":       fmt.Sprintf("https://github.com/owner/repo/pull/%d", number),
-				"isDraft":   number%2 == 0,
-				"updatedAt": fmt.Sprintf("2026-07-29T12:%02d:00Z", number),
+				"number":      number,
+				"title":       fmt.Sprintf("Pull request %d", number),
+				"url":         fmt.Sprintf("https://github.com/owner/repo/pull/%d", number),
+				"headRefName": fmt.Sprintf("GH-%d", number),
+				"isDraft":     number%2 == 0,
+				"updatedAt":   fmt.Sprintf("2026-07-29T12:%02d:00Z", number),
 			}},
 			"pageInfo": map[string]any{
 				"hasNextPage": hasNext,

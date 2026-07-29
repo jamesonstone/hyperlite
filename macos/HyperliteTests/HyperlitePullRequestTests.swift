@@ -31,6 +31,7 @@ enum HyperlitePullRequestTests {
                 "number": 7,
                 "title": "Draft change",
                 "url": "https://github.com/owner/one/pull/7",
+                "head_ref_name": "GH-7",
                 "is_draft": true,
                 "updated_at": "2026-07-29T15:58:00Z"
               }]
@@ -48,6 +49,7 @@ enum HyperlitePullRequestTests {
                 "number": 9,
                 "title": "Ready change",
                 "url": "https://github.com/owner/two/pull/9",
+                "head_ref_name": "GH-9",
                 "is_draft": false,
                 "updated_at": "2026-07-29T16:04:00Z"
               }]
@@ -70,8 +72,10 @@ enum HyperlitePullRequestTests {
         let scan = try decoder.decode(HyperliteProjectPullRequestScan.self, from: data)
         let rows = HyperlitePullRequestPresentation.rows(scan: scan)
         expect(rows.map(\.number) == [9, 7], "rows should be recent-first")
-        expect(rows[0].projectName == "two" && !rows[0].isDraft,
+        expect(rows[0].repository == "owner/two" && !rows[0].isDraft,
                "ready pull request metadata should decode")
+        expect(scan.projects[1].pullRequests[0].headRefName == "GH-9",
+               "head branch should decode for project-lane projection")
         expect(rows[1].status == .cached && rows[1].isDraft,
                "cached draft metadata should remain visible")
         expect(rows[0].url?.absoluteString == "https://github.com/owner/two/pull/9",

@@ -17,6 +17,14 @@ references:
     read_policy: must
     used_for: product scope and acceptance criteria
     status: active
+  - id: issue-11
+    name: Focus native workspace on pull requests and notes
+    type: github-issue
+    target: https://github.com/jamesonstone/hyperlite/issues/11
+    relation: implements
+    read_policy: must
+    used_for: native presentation follow-up scope and acceptance criteria
+    status: active
 ---
 
 # Inferred Attention Threads
@@ -132,12 +140,11 @@ completion.
   mentions are context only. Dependency or obligation changes require an
   authoritative dependency or an unsatisfied obligation. When stronger
   evidence invalidates an unread inferred moment, retire that moment.
-- R22: Keep the main surface quiet through visual hierarchy. Attention rows
-  show the concise material explanation. The bottom reference layer is a
-  plain-text spatial index of configured projects and their local paths, not a
-  second rendering of inferred threads. It uses no containers, alert color,
-  alert iconography, goal excerpts, or “why now” language. Full thread progress
-  and evidence remain in thread detail and the palettes.
+- R22: Keep inferred attention available behind one native presentation flag,
+  but disable that flag while the product focuses on open pull requests and
+  notes. While disabled, do not render thread or attention counts in the window
+  or menu bar, attention rows in the main surface, or thread entries in native
+  palettes. CLI/JSON inference remains available.
 - R23: Do not render a generic scan-diagnostics control in the native header or
   Command-K. Preserve structured diagnostics in CLI/JSON and expose only
   actionable verified stale-worktree prune commands through Command-K.
@@ -156,35 +163,38 @@ completion.
   current evidence disappears becomes dormant without manufacturing an
   uncertainty moment. Stale uncertainty may surface only when a currently
   consequential decision or delivery boundary cannot be evaluated safely.
-- R28: Keep the native header anchored to the top of the window. Treat an empty
-  Attention queue as successful without filling the vacated attention area.
+- R28: Keep the native header anchored to the top of the window. While inferred
+  attention is disabled, the header contains only the product name, Refresh,
+  and Settings; the Open PRs panel owns the flexible space below the notepad.
   Anchor the configured-project spatial index near the bottom as a distinct,
-  low-density reference layer. The header reports the complete active-thread
-  count without implying that those threads need attention.
+  low-density reference layer.
 - R29: Place one always-available global notepad directly below the native
   header. Keep its draft in memory while typing, persist only the latest edit
   after three idle seconds, and flush pending content when the window or
-  application yields. Store the Markdown document at
-  `$XDG_DATA_HOME/hyperlite/notepad.md`, defaulting to
-  `~/.local/share/hyperlite/notepad.md`, using bounded user-only atomic writes.
-  The notepad is optional operator memory: its content never enters evidence,
-  inference, thread membership, lifecycle, or attention.
+  application yields. Store regular UTF-8 text at
+  `$XDG_DATA_HOME/hyperlite/notepad.txt`, defaulting to
+  `~/.local/share/hyperlite/notepad.txt`, using bounded user-only atomic writes.
+  Migrate the prior default `notepad.md` file without changing its content when
+  the text file does not yet exist. The notepad is optional operator memory:
+  its content never enters evidence, inference, thread membership, lifecycle,
+  or attention.
 - R30: Project configured paths into a stable bottom map in configuration
   order. Every configured project appears even when it has no active inferred
-  thread. Always show its configured checkout; add a non-prunable registered
-  Git worktree only when an active thread cites that exact path. Order lanes by
-  path without making extra Git or GitHub calls. Lane presence, branch age,
-  cleanliness, and publication state do not independently establish activity
-  or attention; this projection exists only for orientation and spatial memory.
+  thread. Always show its configured checkout; expose registered non-prunable
+  worktrees to native presentation, which shows a subordinate worktree only
+  when its exact case-sensitive branch is present in that project's open-PR
+  index. Order lanes by path without adding GitHub calls. Lane presence, branch
+  age, cleanliness, and publication state do not independently establish
+  activity or attention.
 - R31: Use `JetBrainsMono Nerd Font` for every application-controlled text
-  surface. Resolve it once through AppKit so SwiftUI and native text editing
-  share the same family and requested weight; fall back to the system
-  monospaced font when the family is unavailable. macOS-owned window chrome
-  and system menus remain under operating-system typography.
-- R32: Keep the native header on one horizontal line: product name, active
-  thread count, current attention state, flexible space, refresh, and settings.
-  Active count and attention state remain secondary context beside the product
-  name rather than a stacked status block.
+  surface except notepad content, which uses the regular proportional system
+  font to reinforce its plain-text writing role. Resolve the application font
+  once through AppKit and fall back to the system monospaced font when it is
+  unavailable. macOS-owned window chrome and system menus remain under
+  operating-system typography.
+- R32: Keep the native header on one horizontal line: while attention
+  presentation is disabled it contains the product name, flexible space,
+  Refresh, and Settings.
 
 Non-goals: user-authored task tracking, manual lifecycle management, hosted
 model calls, continuous polling, notifications, agent transcript ingestion,
@@ -238,16 +248,19 @@ or model-assisted note mutation.
     projects and local paths as the plain-text reference layer, and preserve
     empty space when no attention exists.
 15. Add a plain-text global notepad beneath the fixed header, backed by one
-    Go-owned local Markdown document and a three-second latest-edit debounce;
+    Go-owned local text document and a three-second latest-edit debounce;
     keep Swift as the responsive draft owner and exclude the document from all
     inferred coordination paths.
 16. Derive a configured-project spatial index from the local Git results
     already collected during a scan. Keep project and lane ordering stable,
-    preserve configured paths when repository inspection degrades, and include
-    only exact active-thread worktrees after excluding prunable metadata.
+    preserve configured paths when repository inspection degrades, and expose
+    non-prunable worktrees for native open-PR branch projection.
 17. Centralize native typography around the installed JetBrainsMono Nerd Font
     with a monospaced fallback, route SwiftUI and AppKit text through that
     boundary, and flatten the header into one baseline-aligned toolbar.
+18. Temporarily disable inferred-attention presentation, migrate the notepad
+    from the legacy Markdown filename to regular text, and let the open-PR
+    projection decide which subordinate worktree lanes remain visible.
 
 ## DECISIONS
 
@@ -274,6 +287,10 @@ or model-assisted note mutation.
 - The global notepad is a private scratch surface, not another information
   radiator. Hyperlite never interprets its contents or requires it for thread
   reconstruction.
+- The notepad is regular text rather than a Markdown document. The default
+  filename migrates from `notepad.md` to `notepad.txt` without rewriting
+  existing content, and only editable notepad content uses proportional system
+  typography.
 - Completed and dormant projections may remain in private persisted state and
   scan JSON for continuity. Current working-set threads remain visible and
   navigable, but only valid unseen attention receives urgent presentation.
@@ -287,6 +304,10 @@ or model-assisted note mutation.
 - Attention is a temporary relationship between a current situation and the
   user's judgment, not a durable property of a thread or artifact. The history
   may remain append-only while the active attention projection is retractable.
+- Inferred attention remains implemented but its native presentation is
+  temporarily disabled at one feature boundary. This preserves the evidence
+  model for later re-enablement without allowing hidden attention state to
+  occupy the current PR-and-notes interface.
 - Artifact recency is evidence age, not importance. A consequential supported
   decision may outlive routine activity, while an ordinary untouched open pull
   request eventually leaves the current working set.
@@ -298,6 +319,10 @@ or model-assisted note mutation.
 - The bottom project map is configuration and filesystem orientation, not
   inferred work state. Stable placement and path identity are more important
   there than recency, phase, or semantic importance.
+- Project worktree visibility follows exact branches in the separate open-PR
+  index rather than inferred-thread activity. A successful refresh that no
+  longer reports a merged PR removes that branch's worktree from the Projects
+  panel while leaving the checkout untouched.
 - Typography is an application-wide presentation primitive, not a per-view
   decoration. A single resolver keeps weights and fallback behavior consistent
   across SwiftUI, the AppKit notepad editor, sheets, palettes, and settings.
@@ -358,26 +383,26 @@ or model-assisted note mutation.
   an incomplete thread without creating an uncertainty alert.
 - AC20: Every emitted moment includes a non-empty expected action, consequence,
   and validity statement in addition to its explanation and evidence.
-- AC21: The native surface keeps its header anchored to the top, presents only
-  unseen valid attention with urgent styling, and presents a bottom-anchored
-  plain-text map of configured projects and local lanes. When no attention
-  exists it preserves substantial empty space without hiding the configured
-  project map or active-thread navigation.
+- AC21: With inferred-attention presentation disabled, the native header shows
+  no thread or attention counts, the main surface and palettes render no
+  attention threads, and CLI/JSON inference behavior remains intact.
 - AC22: A borderless global notepad appears immediately below the header,
   remains responsive without per-keystroke processes or writes, saves only the
   latest edit after three idle seconds, flushes on application or window
-  deactivation, survives relaunch, rejects content above 256 KiB, and remains
-  absent from thread and attention projections.
+  deactivation, survives relaunch as regular text, safely adopts the prior
+  default Markdown file, rejects content above 256 KiB, and remains absent from
+  thread and attention projections.
 - AC23: The project map contains every configured project in stable
   configuration order, always includes its configured checkout, adds real
-  registered worktree paths only when cited by active threads, excludes
-  prunable metadata, and remains unchanged by attention classification.
-  Building it performs no additional Git or GitHub commands.
+  registered worktree paths only when their exact branch has an open PR in
+  that project, excludes prunable metadata, and removes a lane after a
+  successful refresh observes its PR merged. Building it performs no
+  additional GitHub commands.
 - AC24: Every application-controlled text view resolves to JetBrainsMono Nerd
-  Font when installed and to the system monospaced family otherwise. The
-  notepad's AppKit editor uses the same resolution. The main header renders the
-  product name, active count, attention state, refresh, and settings in one
-  horizontal row at the minimum supported window width.
+  Font when installed and to the system monospaced family otherwise; notepad
+  content alone uses the regular proportional system font. The main header
+  renders the product name, Refresh, and Settings in one horizontal row while
+  attention presentation is disabled.
 
 ## VALIDATION MAP
 
@@ -588,9 +613,10 @@ or model-assisted note mutation.
   lines, the Swift interaction test at 294, and
   `internal/threadstate/attention.go` at 289.
 - Notepad store and CLI tests prove XDG path resolution, configuration-
-  independent access, verbatim round trips, `0600` file and `0700` directory
-  permissions, atomic replacement, concurrent-writer serialization, and
-  rejection of symlinks, NUL bytes, and content above 256 KiB.
+  independent access, verbatim round trips, legacy `notepad.md` adoption into
+  the default `notepad.txt` path, `0600` file and `0700` directory permissions,
+  atomic replacement, concurrent-writer serialization, and rejection of
+  symlinks, NUL bytes, and content above 256 KiB.
 - Executable Swift tests prove that the editor loads persisted content, a
   three-second debounce retains only the newest edit, lifecycle flush bypasses
   the debounce, successful writes clear dirty state, and oversized drafts are
@@ -614,28 +640,27 @@ or model-assisted note mutation.
   Refresh and Settings controls, Command-K contains no Diagnostics entry, and
   current prunable worktree warnings still produce verified prune commands.
 - Packaged-app visual and accessibility inspection confirms that the header
-  remains top-anchored, the complete active count is neutral, the empty
-  Attention area remains spatially quiet, and ordinary current threads use a
-  bottom-anchored text ledger without containers, alert styling, or goal
-  excerpts.
+  remains top-anchored and contains only the product name, Refresh, and
+  Settings while the native attention feature flag is disabled. No thread or
+  attention counts, rows, or palette entries occupy the interface.
 - Packaged-app inspection confirms that the accessible borderless notepad sits
-  immediately below the header. A two-line edit autosaved to the private
-  Markdown file, survived application relaunch, and was then cleared through
-  the quit-time flush. Note observation is scoped to the notepad component, so
-  keystrokes do not invalidate the thread or attention view hierarchy.
-- Project-index tests prove that configured order and missing configured paths
-  survive degraded discovery, primary checkouts remain present, prunable and
-  dormant lanes stay absent, only exact active worktree artifacts add
-  subordinate paths, and a complete scan still invokes Git and GitHub exactly
-  once per repository.
-- A read-only local scan of the sixteen configured projects produced sixteen
-  stable project anchors and eight exact active worktree paths while excluding
-  the dozens of retained historical and automation registrations. It completed
-  in under four seconds without remote access.
+  immediately below the header and renders editable content in the
+  proportional system font without Markdown presentation.
+- Go project-index tests prove that configured order and missing configured
+  paths survive degraded discovery, primary checkouts remain present,
+  prunable lanes stay absent, and registered subordinate worktrees are exposed
+  without another GitHub scan. Swift projection tests prove that only exact
+  case-sensitive open-PR head branches render those subordinate lanes.
+- An isolated-cache live native inspection of all sixteen configured projects
+  rendered eighteen open PRs and only their matching subordinate worktree
+  branches while preserving every configured checkout. A successful empty PR
+  projection is covered to remove merged or closed lanes without local
+  deletion.
 - Packaged-app accessibility and visual inspection confirms a bottom-anchored
   two-column plain-text project map with `Projects 16`, full path accessibility
   labels, home-relative visible paths, no cards, and no alert, phase, age, goal,
-  or attention styling.
+  or attention styling. Open PRs owns the flexible region between the notepad
+  and Projects.
 - `kit check 0003-inferred-attention` passes. `kit check --project` remains
   blocked by six pre-existing V3 support-document drift findings outside this
   change; no managed instruction or worktree guidance was broadened into this
@@ -652,32 +677,30 @@ consequential boundary, authoritative coordination need, or post-merge
 operational obligation. Missing evidence, ordinary metadata enrichment, and
 routine artifact motion remain quiet.
 
-The native experience renders cached content first and anchors its header to
-the top of the window. It places unseen valid Attention in the urgent list and
-keeps ordinary active threads in palette and detail navigation. The bottom
-reference layer is now a stable map of every configured project and its
-current exact local worktree paths, not another lifecycle or attention
-projection. The header reports the full active count without treating it as an
-attention count, and an empty Attention queue preserves open space rather than
-pulling ordinary work into the urgent region. Thread detail explains the
-expected action, why it matters now, the consequence of inaction, and the
-condition that keeps the claim valid. Seen state acknowledges a moment;
-reconciliation independently retracts unsupported moments. Diagnostic data
-stays in CLI/JSON and only actionable verified pruning enters Command-K.
+The native presentation of inferred attention is temporarily disabled behind
+one feature boundary while the product focuses on notes and open pull
+requests. The evidence model, CLI/JSON inference, reconciliation, and seen
+history remain intact, but the native window, menu bar, and palettes omit
+thread and attention counts and entries and skip remote attention enrichment.
+The fixed header contains only the product name, Refresh, and Settings.
+Diagnostic data stays in CLI/JSON and only actionable verified pruning enters
+Command-K.
 
 The same surface now includes one quiet global notepad immediately below the
 header. Its native editor keeps keystrokes in memory, performs no styling or
 project interpretation, and sends only the latest idle draft to a bounded
-Go-owned Markdown store. Autosave and lifecycle flush preserve the document
-across relaunches without allowing its content to create or alter a thread,
-goal, obligation, or attention moment.
+Go-owned regular-text store. The default `notepad.txt` path safely adopts the
+prior default Markdown file without changing its contents. Autosave and
+lifecycle flush preserve the document across relaunches without allowing its
+content to create or alter a thread, goal, obligation, or attention moment.
 
-All application-owned native text now resolves through one JetBrainsMono Nerd
-Font boundary shared by SwiftUI and the AppKit notepad editor, with a system
-monospaced fallback when the family is unavailable. The fixed header is one
-horizontal toolbar: product name, informational active count, attention state,
-refresh, and settings remain visually distinct without introducing a stacked
-status heading.
+Application interface text continues to resolve through one JetBrainsMono Nerd
+Font boundary with a system monospaced fallback, while editable notepad content
+uses the regular proportional system font. The bottom Projects map always
+retains configured checkouts and now renders a subordinate registered worktree
+only while its exact branch is present in that project's Open PRs projection.
+A successful refresh after merge hides the lane without deleting or pruning
+local data.
 
 ## REPOSITORY MEMORY
 

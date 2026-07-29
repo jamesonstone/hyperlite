@@ -14,7 +14,7 @@ func TestStoreRoundTripUsesPrivateAtomicCache(t *testing.T) {
 	now := time.Date(2026, 7, 29, 16, 0, 0, 0, time.UTC)
 	path := filepath.Join(t.TempDir(), "state", "pull-requests.json")
 	store := Store{Path: path, Now: func() time.Time { return now }}
-	if err := store.Update(func(state *cacheState) {
+	updated, err := store.Update(func(state *cacheState) {
 		state.Projects["/repo/one"] = "owner/one"
 		state.Repositories["owner/one"] = cacheEntry{
 			Repository: "owner/one", ObservedAt: now,
@@ -22,7 +22,8 @@ func TestStoreRoundTripUsesPrivateAtomicCache(t *testing.T) {
 				ID: "owner/one#1", Number: 1, Title: "One",
 			}},
 		}
-	}); err != nil {
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
 	state, warning, err := store.Load()
@@ -30,6 +31,9 @@ func TestStoreRoundTripUsesPrivateAtomicCache(t *testing.T) {
 		state.Projects["/repo/one"] != "owner/one" ||
 		len(state.Repositories["owner/one"].PullRequests) != 1 {
 		t.Fatalf("state=%#v warning=%q err=%v", state, warning, err)
+	}
+	if !updated.UpdatedAt.Equal(state.UpdatedAt) || !updated.UpdatedAt.Equal(now) {
+		t.Fatalf("updated=%s persisted=%s want=%s", updated.UpdatedAt, state.UpdatedAt, now)
 	}
 	info, err := os.Stat(path)
 	if err != nil {

@@ -63,15 +63,13 @@ changes that warrant human attention.
   not lost.
 - **APPROACH**: Correlate exact evidence into stable threads, derive lifecycle
   and closure conservatively, add cited bounded local-model synthesis, persist
-  fail-soft presentation state, render material Attention urgently, and keep
-  ordinary active threads available through compact navigation. Use a stable
-  bottom project map for configured checkouts and exact current local lanes.
-  Keep a separate local notepad beneath the header for optional operator
-  context without interpreting its contents as project state. Present all
-  application-owned text in JetBrainsMono Nerd Font and keep the product name,
-  active count, attention state, refresh, and settings on one header row.
-- **OPEN ITEMS**: Implementation merged through issue #7 and PR #8; no
-  implementation items remain.
+  fail-soft presentation state, and preserve material Attention behind a
+  native feature boundary. The current native surface disables that
+  presentation to focus on open PRs and a regular-text notepad. Keep a stable
+  bottom project map with every configured checkout and only subordinate lanes
+  whose exact branch has an open PR.
+- **OPEN ITEMS**: Core inference merged through issue #7 and PR #8. Re-enabling
+  its native presentation is intentionally deferred.
 - **POINTERS**: `docs/specs/0003-inferred-attention/SPEC.md`
 
 ### open-pull-requests
@@ -82,14 +80,19 @@ changes that warrant human attention.
   configured projects without turning artifact presence into attention.
 - **APPROACH**: Resolve configured GitHub repositories locally, retrieve
   all-author open pull requests in bounded GraphQL batches, keep an independent
-  private cache with a five-minute success and failure floor, and render
-  current, cached, and unavailable states above the configured-project map.
-- **OPEN ITEMS**: Implementation and local validation are complete on issue #9
-  and branch `GH-9`; ready pull-request review and merge remain.
+  private cache with a five-minute success and failure floor, let the panel own
+  the flexible native content region, and use exact PR head branches to hide
+  merged or closed worktree lanes after a successful refresh.
+- **OPEN ITEMS**: The initial projection merged through issue #9 and PR #10.
+  The focused native layout and merged-lane follow-up is complete locally on
+  issue #11 and branch `GH-11`; ready pull-request review and merge remain.
 - **POINTERS**: `docs/specs/0004-open-pull-requests/SPEC.md`
 
 ## LAST UPDATED
 
+- 2026-07-29: Focused the native surface on plain-text notes and Open PRs,
+  temporarily hid inferred-attention presentation, and made successful PR
+  refreshes remove merged or closed worktree lanes from Projects.
 - 2026-07-29: Added the rate-safe configured-project Open PRs projection above
   the stable Projects map.
 - 2026-07-29: Recorded inferred-attention delivery through merged PR #8.

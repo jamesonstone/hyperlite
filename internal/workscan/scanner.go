@@ -182,7 +182,7 @@ func (s Scanner) scan(ctx context.Context, cfg config.Config, refresh, includeRe
 	result := model.ThreadScan{
 		SchemaVersion: model.ThreadScanSchemaVersion, GeneratedAt: now,
 		RemoteRefreshIntervalSeconds: int64(cfg.Settings.RemoteRefreshInterval / time.Second),
-		ProjectIndex:                 buildProjectIndex(cfg, nil, nil),
+		ProjectIndex:                 buildProjectIndex(cfg, nil),
 		Threads:                      []model.Thread{}, Errors: []model.ScanError{},
 		Warnings: discoveryWarnings(discovered.Warnings),
 	}
@@ -228,7 +228,7 @@ func (s Scanner) scan(ctx context.Context, cfg config.Config, refresh, includeRe
 		selectedGitHub = append(selectedGitHub, repository.GitHub)
 	}
 	result.Threads = threadstate.ReconcileSelected(&state, result.Threads, selectedGitHub, now)
-	result.ProjectIndex = buildProjectIndex(cfg, ordered, result.Threads)
+	result.ProjectIndex = buildProjectIndex(cfg, ordered)
 	result.Summary.Projects = len(result.ProjectIndex)
 	if err := s.Store.Write(state); err != nil {
 		return model.ThreadScan{}, err

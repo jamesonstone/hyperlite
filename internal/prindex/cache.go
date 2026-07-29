@@ -37,7 +37,7 @@ type cacheState struct {
 
 type CacheStore interface {
 	Load() (cacheState, string, error)
-	Update(func(*cacheState)) error
+	Update(func(*cacheState)) (cacheState, error)
 }
 
 type Store struct {
@@ -84,17 +84,24 @@ func (s Store) Load() (cacheState, string, error) {
 	return state, warning, err
 }
 
-func (s Store) Update(mutate func(*cacheState)) error {
+func (s Store) Update(mutate func(*cacheState)) (cacheState, error) {
 	cacheMutex.Lock()
 	defer cacheMutex.Unlock()
-	return s.withFileLock(func() error {
+	var updated cacheState
+	err := s.withFileLock(func() error {
 		state, _, err := s.load()
 		if err != nil {
 			return err
 		}
 		mutate(&state)
-		return s.write(state)
+		state.UpdatedAt = s.now()
+		if err := s.write(state); err != nil {
+			return err
+		}
+		updated = state
+		return nil
 	})
+	return updated, err
 }
 
 func (s Store) load() (cacheState, string, error) {
@@ -150,7 +157,6 @@ func (s Store) write(state cacheState) (returnErr error) {
 	if err != nil {
 		return err
 	}
-	state.UpdatedAt = s.now()
 	sortCache(&state)
 	contents, err := json.MarshalIndent(state, "", "  ")
 	if err != nil {

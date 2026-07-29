@@ -17,13 +17,13 @@ final class HyperliteState: ObservableObject {
     private var pruneTask: Task<Void, Never>?
     private var mutationTasks: [String: Task<Void, Never>] = [:]
     private var mutationGenerations: [String: Int] = [:]
-    private var refreshGeneration = 0
-    private var pullRequestRefreshGeneration = 0
+    private var refreshGeneration = 0, pullRequestRefreshGeneration = 0
 
     var isRefreshing: Bool { isRefreshingThreads || isRefreshingPullRequests }
 
     init() {
-        refresh(localOnly: true, continueIfRemoteStale: true)
+        refresh(localOnly: true,
+                continueIfRemoteStale: HyperliteFeatureFlags.inferredAttentionPresentation)
         refreshPullRequests(mode: .local, continueIfStale: true)
     }
 
@@ -35,17 +35,22 @@ final class HyperliteState: ObservableObject {
     }
 
     func refresh() {
-        refresh(localOnly: false, continueIfRemoteStale: false, supersedeExisting: true)
+        refresh(localOnly: !HyperliteFeatureFlags.inferredAttentionPresentation,
+                continueIfRemoteStale: false, supersedeExisting: true)
         refreshPullRequests(mode: .force, continueIfStale: false, supersedeExisting: true)
     }
 
     func refreshIfStale(now: Date = Date()) {
-        if !isRefreshingThreads, let scan {
-            if remoteIsStale(scan: scan, now: now) {
-                refresh(localOnly: false, continueIfRemoteStale: false)
+        if HyperliteFeatureFlags.inferredAttentionPresentation {
+            if !isRefreshingThreads, let scan {
+                if HyperlitePresentation.remoteIsStale(scan: scan, now: now) {
+                    refresh(localOnly: false, continueIfRemoteStale: false)
+                }
+            } else if !isRefreshingThreads {
+                refresh(localOnly: true, continueIfRemoteStale: true)
             }
-        } else if !isRefreshingThreads {
-            refresh(localOnly: true, continueIfRemoteStale: true)
+        } else if !isRefreshingThreads, scan == nil {
+            refresh(localOnly: true, continueIfRemoteStale: false)
         }
         if !isRefreshingPullRequests, let pullRequestScan {
             if HyperlitePullRequestPresentation.isStale(scan: pullRequestScan, now: now) {
@@ -203,6 +208,8 @@ final class HyperliteState: ObservableObject {
                 try await HyperlitePullRequestRefresh.run(
                     mode: mode,
                     continueIfStale: continueIfStale,
+                    // Serializing these helpers avoids a user-triggered burst
+                    // when attention evidence is enabled again.
                     waitForEvidence: self.waitForRefresh
                 ) { decoded in
                     guard self.pullRequestRefreshGeneration == generation else { return }
@@ -243,7 +250,9 @@ final class HyperliteState: ObservableObject {
                 guard refreshGeneration == generation else { return }
                 scan = decoded
                 errorMessage = nil
-                if localOnly, continueIfRemoteStale, remoteIsStale(scan: decoded, now: Date()) {
+                if localOnly, continueIfRemoteStale,
+                   HyperlitePresentation.remoteIsStale(scan: decoded, now: Date())
+                {
                     decoded = try await runScan(localOnly: false)
                     guard refreshGeneration == generation else { return }
                     scan = decoded
@@ -288,11 +297,4 @@ final class HyperliteState: ObservableObject {
             }
         }
     }
-
-    private func remoteIsStale(scan: HyperliteThreadScan, now: Date) -> Bool {
-        guard let observedAt = scan.remoteObservedAt else { return true }
-        let interval = max(1, scan.remoteRefreshIntervalSeconds ?? 300)
-        return now.timeIntervalSince(observedAt) >= Double(interval)
-    }
-
 }

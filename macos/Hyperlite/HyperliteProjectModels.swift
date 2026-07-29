@@ -17,6 +17,33 @@ struct HyperliteProjectLane: Codable, Equatable, Identifiable {
 }
 
 enum HyperliteProjectIndexPresentation {
+    static func visibleProjects(
+        _ projects: [HyperliteProjectLocation],
+        pullRequests scan: HyperliteProjectPullRequestScan?
+    ) -> [HyperliteProjectLocation] {
+        var branchesByProject: [String: Set<String>] = [:]
+        for project in scan?.projects ?? [] {
+            branchesByProject[project.id, default: []].formUnion(
+                project.pullRequests.map(\.headRefName).filter { !$0.isEmpty }
+            )
+        }
+        return projects.map { project in
+            let openBranches = branchesByProject[project.id] ?? []
+            let lanes = project.lanes.filter { lane in
+                guard !lane.primary else { return true }
+                guard let branch = lane.branch else { return false }
+                return openBranches.contains(branch)
+            }
+            return HyperliteProjectLocation(
+                id: project.id,
+                name: project.name,
+                path: project.path,
+                repository: project.repository,
+                lanes: lanes
+            )
+        }
+    }
+
     static func laneLabel(_ lane: HyperliteProjectLane) -> String {
         if let branch = lane.branch?.trimmingCharacters(in: .whitespacesAndNewlines),
            !branch.isEmpty

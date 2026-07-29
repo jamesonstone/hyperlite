@@ -33,8 +33,10 @@ struct HyperliteApp: App {
             CommandMenu("Navigate") {
                 Button("Command Palette") { state.showPalette(.commands) }
                     .keyboardShortcut("k", modifiers: .command)
-                Button("Project Palette") { state.showPalette(.projects) }
-                    .keyboardShortcut("p", modifiers: .command)
+                if HyperliteFeatureFlags.inferredAttentionPresentation {
+                    Button("Project Palette") { state.showPalette(.projects) }
+                        .keyboardShortcut("p", modifiers: .command)
+                }
             }
         }
 

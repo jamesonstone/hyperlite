@@ -23,7 +23,7 @@ struct HyperliteCommandPalette: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Label(mode == .commands ? "Commands and Threads" : "Projects and Threads",
+                Label(paletteTitle,
                       systemImage: mode == .commands ? "command" : "folder")
                     .font(HyperliteTypography.semibold(13))
                 Spacer()
@@ -58,6 +58,11 @@ struct HyperliteCommandPalette: View {
         .onChange(of: entries.count) { count in
             selection = HyperliteInteractionModel.movedSelection(selection, by: 0, count: count)
         }
+    }
+
+    private var paletteTitle: String {
+        if mode == .projects { return "Projects and Threads" }
+        return threads.isEmpty ? "Commands" : "Commands and Threads"
     }
 
     private var entryList: some View {

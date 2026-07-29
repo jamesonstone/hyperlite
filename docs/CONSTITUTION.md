@@ -29,20 +29,24 @@
   invalidated unread moments retire automatically. Acknowledgement survives
   unrelated evidence revisions while the underlying coordination situation is
   unchanged.
-- The primary attention surface contains only current unseen attention. The
-  current working set remains available through compact navigation; completed
-  and dormant projections may remain in private state and scan output for
-  continuity but do not occupy the interface.
+- Inferred attention remains available through CLI/JSON behind one native
+  presentation boundary. While that presentation is disabled, the app omits
+  thread and attention counts, rows, palette entries, and remote enrichment so
+  notes and open pull requests own the interface.
 - The configured-project map is a stable spatial reference, not a work-state
-  or attention projection. Every configured project remains present; only
-  exact local paths supported by current threads supplement its configured
-  checkout, and none receives attention styling.
+  or attention projection. Every configured project remains present; its
+  configured checkout is always visible, and a subordinate registered
+  worktree is visible only while its exact case-sensitive branch appears as an
+  open pull-request head for that project. No lane receives attention styling,
+  and hiding a lane never deletes or prunes it.
 - The configured-project pull-request index is a separate informational
   projection. Open pull requests from any author remain visible without
   establishing thread membership, liveness, lifecycle, or attention. Its
   GitHub access is read-only, bounded, cached separately from thread state, and
   refreshed only by startup or foreground staleness and explicit user action,
-  never by a continuous timer.
+  never by a continuous timer. A successful refresh is authoritative for
+  removing merged or closed PR branches from the visible Projects map; cached
+  rows remain authoritative during a failed refresh.
 - Exact evidence owns thread membership. Semantic inference may relate
   separate threads, but it may not merge them, establish authoritative
   lifecycle state, suppress a thread, or close a goal.
@@ -50,11 +54,14 @@
   order, advance, or complete project work.
 - The global notepad is private operator memory, not project evidence.
   Hyperlite never interprets it as a thread, relation, obligation, lifecycle
-  signal, or attention moment.
-- Every application-controlled native text surface uses JetBrainsMono Nerd
-  Font through one shared SwiftUI/AppKit resolver, with the system monospaced
-  family as the unavailable-font fallback. Operating-system-owned window
-  chrome and menus retain native macOS typography.
+  signal, or attention moment. It is a bounded regular-text document; the
+  default `.txt` store adopts the prior default `.md` file without rewriting
+  its content.
+- Application-controlled native interface text uses JetBrainsMono Nerd Font
+  through one shared SwiftUI/AppKit resolver, with the system monospaced family
+  as the unavailable-font fallback. Editable notepad content deliberately uses
+  the proportional system font, while operating-system-owned window chrome and
+  menus retain native macOS typography.
 
 ### Kit-Managed Baseline Rules
 

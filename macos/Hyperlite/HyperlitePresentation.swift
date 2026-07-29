@@ -1,5 +1,9 @@
 import Foundation
 
+enum HyperliteFeatureFlags {
+    static let inferredAttentionPresentation = false
+}
+
 enum HyperlitePresentation {
     static func attentionThreads(scan: HyperliteThreadScan) -> [HyperliteThread] {
         activeThreads(scan: scan).filter(\.hasUnseenAttention)
@@ -30,6 +34,12 @@ enum HyperlitePresentation {
         if seconds < 3_600 { return "\(seconds / 60)m" }
         if seconds < 86_400 { return "\(seconds / 3_600)h" }
         return "\(seconds / 86_400)d"
+    }
+
+    static func remoteIsStale(scan: HyperliteThreadScan, now: Date) -> Bool {
+        guard let observedAt = scan.remoteObservedAt else { return true }
+        let interval = max(1, scan.remoteRefreshIntervalSeconds ?? 300)
+        return now.timeIntervalSince(observedAt) >= Double(interval)
     }
 
     static func coordinationProjection(_ scan: HyperliteThreadScan) -> String {

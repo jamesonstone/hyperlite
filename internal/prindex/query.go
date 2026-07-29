@@ -28,7 +28,7 @@ func buildQuery(requests []pageRequest) (string, map[string]pageRequest) {
 			query.WriteString(strconv.Quote(request.cursor))
 		}
 		query.WriteString(", orderBy: {field: UPDATED_AT, direction: DESC}) {\n")
-		query.WriteString("      nodes { number title url isDraft updatedAt }\n")
+		query.WriteString("      nodes { number title url headRefName isDraft updatedAt }\n")
 		query.WriteString("      pageInfo { hasNextPage endCursor }\n")
 		query.WriteString("    }\n")
 		query.WriteString("  }\n")

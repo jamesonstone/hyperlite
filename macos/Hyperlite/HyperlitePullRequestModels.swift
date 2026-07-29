@@ -50,11 +50,13 @@ struct HyperliteProjectPullRequest: Codable, Equatable, Identifiable {
     let number: Int
     let title: String
     let url: String
+    let headRefName: String
     let isDraft: Bool
     let updatedAt: Date
 
     enum CodingKeys: String, CodingKey {
         case id, number, title, url
+        case headRefName = "head_ref_name"
         case isDraft = "is_draft"
         case updatedAt = "updated_at"
     }
@@ -62,7 +64,6 @@ struct HyperliteProjectPullRequest: Codable, Equatable, Identifiable {
 
 struct HyperlitePullRequestRow: Equatable, Identifiable {
     let id: String
-    let projectName: String
     let repository: String
     let status: HyperliteProjectPullRequestStatus
     let number: Int
@@ -78,7 +79,6 @@ enum HyperlitePullRequestPresentation {
             project.pullRequests.map { pullRequest in
                 HyperlitePullRequestRow(
                     id: "\(project.id)\u{1F}\(pullRequest.id)",
-                    projectName: project.name,
                     repository: project.repository ?? project.name,
                     status: project.status,
                     number: pullRequest.number,

@@ -1,6 +1,7 @@
 package notepad
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,14 +17,14 @@ func TestResolvePathUsesXDGDataHome(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := filepath.Join(root, "hyperlite", "notepad.md")
+	want := filepath.Join(root, "hyperlite", "notepad.txt")
 	if path != want {
 		t.Fatalf("path = %q, want %q", path, want)
 	}
 }
 
 func TestStoreWritesPrivateAtomicDocument(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "data", "notepad.md")
+	path := filepath.Join(t.TempDir(), "data", "notepad.txt")
 	store := Store{Path: path}
 	document, err := store.Write("# Working context\n\nDeploy after migration.\n")
 	if err != nil {
@@ -46,12 +47,39 @@ func TestStoreWritesPrivateAtomicDocument(t *testing.T) {
 	if directoryInfo.Mode().Perm() != 0o700 {
 		t.Fatalf("directory mode = %o", directoryInfo.Mode().Perm())
 	}
-	matches, err := filepath.Glob(filepath.Join(filepath.Dir(path), ".hyperlite-notepad-*.md"))
+	matches, err := filepath.Glob(filepath.Join(filepath.Dir(path), ".hyperlite-notepad-*.txt"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(matches) != 0 {
 		t.Fatalf("temporary files remain: %v", matches)
+	}
+}
+
+func TestStoreMigratesLegacyDefaultMarkdownDocument(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("HYPERLITE_NOTEPAD_PATH", "")
+	t.Setenv("XDG_DATA_HOME", root)
+	directory := filepath.Join(root, "hyperlite")
+	if err := os.MkdirAll(directory, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	legacy := filepath.Join(directory, legacyNotepadFileName)
+	content := "# Kept verbatim\n\nNo formatting is applied.\n"
+	if err := os.WriteFile(legacy, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	document, err := (Store{}).Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	current := filepath.Join(directory, notepadFileName)
+	if document.Path != current || document.Content != content {
+		t.Fatalf("document = %#v", document)
+	}
+	if _, err := os.Stat(legacy); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("legacy file remains: %v", err)
 	}
 }
 
