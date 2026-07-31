@@ -2,27 +2,30 @@ import Foundation
 
 enum HyperliteWorkspaceSizingTests {
     static func run() {
-        expect(
-            HyperliteWorkspaceSizing.activityViewportHeight(
-                availableHeight: 600,
-                contentHeight: 240
-            ) == 240,
-            "short activity should keep its intrinsic height"
+        let availableHeight: CGFloat = 628
+        let sectionHeight = HyperliteWorkspaceSizing.sectionHeight(
+            availableHeight: availableHeight
         )
         expect(
-            HyperliteWorkspaceSizing.activityViewportHeight(
-                availableHeight: 600,
-                contentHeight: 700
-            ) == 502,
-            "dense activity should preserve the minimum notepad viewport"
+            approximatelyEqual(sectionHeight, 200),
+            "each section should receive one third after fixed spacing"
         )
         expect(
-            HyperliteWorkspaceSizing.activityViewportHeight(
-                availableHeight: 70,
-                contentHeight: 700
-            ) == 0,
-            "activity should not force an undersized workspace to overflow"
+            approximatelyEqual(
+                sectionHeight * HyperliteWorkspaceSizing.sectionCount +
+                    HyperliteWorkspaceSizing.sectionSpacing * 2,
+                availableHeight
+            ),
+            "three sections and two gaps should exactly fill the workspace"
         )
+        expect(
+            HyperliteWorkspaceSizing.sectionHeight(availableHeight: 20) == 0,
+            "an undersized workspace should not produce negative section heights"
+        )
+    }
+
+    private static func approximatelyEqual(_ lhs: CGFloat, _ rhs: CGFloat) -> Bool {
+        abs(lhs - rhs) < 0.001
     }
 
     private static func expect(

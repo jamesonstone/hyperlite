@@ -40,6 +40,12 @@
   open pull-request head in current project evidence. Cached or unavailable
   pull-request data cannot retain a subordinate lane as active. No lane
   receives attention styling, and hiding a lane never deletes or prunes it.
+  The Command-P palette is a navigation surface and may list every registered
+  lane, including detached lanes, without establishing activity or attention.
+- Configured-project selection changes are explicit user actions written
+  atomically through the bundled helper. Adding or removing a project changes
+  Hyperlite's configuration only; it never deletes a repository, worktree, or
+  branch.
 - The configured-project pull-request index is a separate informational
   projection. Open pull requests from any author remain visible without
   establishing thread membership, liveness, lifecycle, or attention. Its

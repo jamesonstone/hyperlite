@@ -22,7 +22,9 @@ struct HyperlitePullRequestPanel: View {
                     .font(HyperliteTypography.bold(10).monospacedDigit())
                     .foregroundStyle(.tertiary)
                 Spacer()
-                Text(freshnessLabel)
+                Text(HyperlitePullRequestPresentation.freshnessLabel(
+                    observedAt: scan.observedAt
+                ))
                     .font(HyperliteTypography.regular(10))
                     .foregroundStyle(.tertiary)
             }
@@ -46,12 +48,6 @@ struct HyperlitePullRequestPanel: View {
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Open pull requests across configured projects")
-    }
-
-    private var freshnessLabel: String {
-        guard let observedAt = scan.observedAt else { return "GitHub availability limited" }
-        let age = HyperlitePresentation.ageLabel(for: observedAt)
-        return age == "now" ? "Updated now" : "Updated \(age) ago"
     }
 
 }

@@ -4,6 +4,7 @@ enum HyperlitePullRequestTests {
     static func run() throws {
         let scan = try testSchemaDecodingAndPresentation()
         testFiveMinuteFreshnessFloor(scan: scan)
+        testFreshnessTimestamp(scan: scan)
         testRowLayoutPrioritizesRepositoryIdentity()
     }
 
@@ -123,6 +124,21 @@ enum HyperlitePullRequestTests {
                 now: checkedAt.addingTimeInterval(299)
             ),
             "native freshness should enforce the five-minute floor"
+        )
+    }
+
+    private static func testFreshnessTimestamp(scan: HyperliteProjectPullRequestScan) {
+        expect(
+            HyperlitePullRequestPresentation.freshnessLabel(
+                observedAt: scan.observedAt,
+                timeZone: TimeZone(secondsFromGMT: 0)!
+            ) == "Updated 2026-07-29 15:55",
+            "freshness should include a date and 24-hour minute timestamp"
+        )
+        expect(
+            HyperlitePullRequestPresentation.freshnessLabel(observedAt: nil) ==
+                "GitHub availability limited",
+            "missing observations should remain explicit"
         )
     }
 

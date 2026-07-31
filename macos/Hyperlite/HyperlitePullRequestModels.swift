@@ -121,4 +121,17 @@ enum HyperlitePullRequestPresentation {
         let interval = max(300, scan.refreshIntervalSeconds)
         return now.timeIntervalSince(checkedAt) >= Double(interval)
     }
+
+    static func freshnessLabel(
+        observedAt: Date?,
+        timeZone: TimeZone = .current
+    ) -> String {
+        guard let observedAt else { return "GitHub availability limited" }
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = timeZone
+        formatter.dateFormat = "yyyy-MM-dd HH:mm"
+        return "Updated \(formatter.string(from: observedAt))"
+    }
 }

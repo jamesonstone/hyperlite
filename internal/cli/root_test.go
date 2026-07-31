@@ -85,6 +85,14 @@ type testWorkSnapshotScanner struct {
 	err    error
 }
 
+func TestRootDoesNotExposeWorktreePruning(t *testing.T) {
+	for _, command := range (App{}).Root().Commands() {
+		if command.Name() == "prune-worktree" {
+			t.Fatal("worktree pruning command should be removed")
+		}
+	}
+}
+
 func (s testWorkSnapshotScanner) Scan(_ context.Context, _ config.Config, _, _ bool) (model.ThreadScan, error) {
 	return s.result, s.err
 }

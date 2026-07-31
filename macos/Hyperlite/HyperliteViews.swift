@@ -28,7 +28,10 @@ struct HyperliteMenuBarLabel: View {
         }
         .help("Hyperlite — \(count) thread\(count == 1 ? "" : "s") need attention — \(hotkey)")
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Hyperlite, \(count) thread\(count == 1 ? "" : "s") need\(count == 1 ? "s" : "") attention")
+        .accessibilityLabel(
+            "Hyperlite, \(count) thread\(count == 1 ? "" : "s") " +
+                "need\(count == 1 ? "s" : "") attention"
+        )
     }
 }
 
@@ -50,75 +53,48 @@ struct HyperliteMenu: View {
 struct HyperliteWindow: View {
     @ObservedObject var state: HyperliteState
     let notepad: HyperliteNotepadState
-    @State private var pendingPrune: HyperliteDiagnostic?
     @State private var selectedThread: HyperliteThread?
-    @State private var activityContentHeight: CGFloat?
+    @State private var pendingProjectRemoval: HyperliteProjectLocation?
 
     private var activeThreads: [HyperliteThread] { state.activeThreads() }
     private var pullRequestScan: HyperliteProjectPullRequestScan? { state.pullRequestScan }
-    private var projectIndex: [HyperliteProjectLocation] {
+    private var configuredProjects: [HyperliteProjectLocation] {
+        HyperliteProjectIndexPresentation.configuredProjects(
+            state.scan?.projectIndex ?? [],
+            pullRequests: pullRequestScan
+        )
+    }
+    private var visibleProjects: [HyperliteProjectLocation] {
         HyperliteProjectIndexPresentation.visibleProjects(
             state.scan?.projectIndex ?? [],
             pullRequests: pullRequestScan
         )
     }
-    private var warnings: [HyperliteDiagnostic] { state.scan?.warnings ?? [] }
 
     var body: some View {
         let active = activeThreads
         let pullRequests = pullRequestScan
-        let projects = projectIndex
-        let currentWarnings = warnings
+        let allProjects = configuredProjects
+        let projects = visibleProjects
         return ZStack(alignment: .topLeading) {
             VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .center, spacing: 10) {
-                    Text("Hyperlite")
-                        .font(HyperliteTypography.bold(22))
-                        .fixedSize(horizontal: true, vertical: false)
-                    if HyperliteFeatureFlags.inferredAttentionPresentation {
-                        HStack(spacing: 6) {
-                            HyperliteGhostMark()
-                                .frame(width: 11, height: 11)
-                            Text("\(active.count) active thread\(active.count == 1 ? "" : "s")")
-                            HyperliteAttentionStatus(count: state.attentionThreadCount())
-                        }
-                        .font(HyperliteTypography.medium(11))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
-                    }
-                    Spacer(minLength: 8)
-                    Button { state.refresh() } label: { Image(systemName: "arrow.clockwise") }
-                        .buttonStyle(.bordered)
-                        .disabled(state.isRefreshing || state.isPruning)
-                        .help("Refresh projects and open pull requests")
-                    Button(action: openHyperliteSettings) { Image(systemName: "gearshape.fill") }
-                        .buttonStyle(.bordered)
-                        .help("Hyperlite settings")
-                }
+                header(active: active)
 
                 GeometryReader { workspace in
+                    let sectionHeight = HyperliteWorkspaceSizing.sectionHeight(
+                        availableHeight: workspace.size.height
+                    )
                     VStack(alignment: .leading, spacing: HyperliteWorkspaceSizing.sectionSpacing) {
                         HyperliteNotepadView(state: notepad)
-                            .frame(
-                                minHeight: min(
-                                    HyperliteWorkspaceSizing.minimumNotepadHeight,
-                                    workspace.size.height
-                                ),
-                                maxHeight: .infinity
-                            )
-                            .layoutPriority(1)
+                            .frame(height: sectionHeight)
+                            .clipped()
 
-                        ScrollView {
-                            LazyVStack(alignment: .leading, spacing: 14) {
+                        ScrollView(.vertical, showsIndicators: true) {
+                            VStack(alignment: .leading, spacing: 10) {
                                 if let errorMessage = state.errorMessage {
                                     Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
                                         .font(HyperliteTypography.regular(12))
                                         .foregroundStyle(.red)
-                                }
-                                if state.scan == nil {
-                                    ProgressView("Refreshing configured projects…")
-                                        .controlSize(.small)
                                 }
                                 if let pullRequests {
                                     HyperlitePullRequestPanel(scan: pullRequests)
@@ -127,32 +103,29 @@ struct HyperliteWindow: View {
                                         .controlSize(.small)
                                         .frame(maxWidth: .infinity, alignment: .topLeading)
                                 }
-                                if !projects.isEmpty {
+                            }
+                            .frame(maxWidth: .infinity, alignment: .topLeading)
+                        }
+                        .frame(height: sectionHeight)
+                        .overlay(alignment: .bottom) { Divider() }
+
+                        ScrollView(.vertical, showsIndicators: true) {
+                            VStack(alignment: .leading, spacing: 10) {
+                                if state.scan == nil {
+                                    ProgressView("Refreshing configured projects…")
+                                        .controlSize(.small)
+                                }
+                                if projects.isEmpty, state.scan != nil {
+                                    Text("No configured projects")
+                                        .font(HyperliteTypography.regular(10))
+                                        .foregroundStyle(.tertiary)
+                                } else if !projects.isEmpty {
                                     HyperliteProjectMap(projects: projects)
                                 }
                             }
                             .frame(maxWidth: .infinity, alignment: .topLeading)
-                            .background {
-                                GeometryReader { content in
-                                    Color.clear.preference(
-                                        key: HyperliteActivityContentHeightKey.self,
-                                        value: content.size.height
-                                    )
-                                }
-                            }
                         }
-                        .frame(height: HyperliteWorkspaceSizing.activityViewportHeight(
-                            availableHeight: workspace.size.height,
-                            contentHeight: activityContentHeight
-                        ))
-                        .onPreferenceChange(HyperliteActivityContentHeightKey.self) { height in
-                            guard height > 0,
-                                  activityContentHeight.map({ abs($0 - height) > 0.5 }) ?? true
-                            else {
-                                return
-                            }
-                            activityContentHeight = height
-                        }
+                        .frame(height: sectionHeight)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
@@ -167,7 +140,8 @@ struct HyperliteWindow: View {
                 HyperliteCommandPalette(
                     mode: mode,
                     threads: HyperliteFeatureFlags.inferredAttentionPresentation ? active : [],
-                    warnings: currentWarnings,
+                    projects: allProjects,
+                    pullRequests: pullRequests,
                     onAction: handlePaletteAction,
                     onDismiss: state.dismissPalette
                 )
@@ -183,46 +157,91 @@ struct HyperliteWindow: View {
             )
         }
         .confirmationDialog(
-            "Prune stale worktree metadata?",
-            isPresented: pruneConfirmationPresented,
+            "Remove project from Hyperlite?",
+            isPresented: projectRemovalConfirmationPresented,
             titleVisibility: .visible
         ) {
-            Button("Prune All Stale Metadata", role: .destructive) {
-                if let pendingPrune { state.prune(pendingPrune) }
-                pendingPrune = nil
+            Button("Remove Project", role: .destructive) {
+                if let project = pendingProjectRemoval {
+                    state.removeProject(path: project.path)
+                }
+                pendingProjectRemoval = nil
             }
-            Button("Cancel", role: .cancel) { pendingPrune = nil }
+            Button("Cancel", role: .cancel) { pendingProjectRemoval = nil }
         } message: {
-            Text("Git will prune all stale worktree records for \(pendingPrune?.repository ?? "this repository") after re-verifying the selected path.")
+            Text(
+                "This removes \(pendingProjectRemoval?.name ?? "the project") from " +
+                    "Hyperlite's configuration. It does not delete the repository or its worktrees."
+            )
         }
     }
 
-    private var pruneConfirmationPresented: Binding<Bool> {
+    private func header(active: [HyperliteThread]) -> some View {
+        HStack(alignment: .center, spacing: 10) {
+            HStack(spacing: 7) {
+                Text("Hyperlite")
+                    .font(HyperliteTypography.bold(22))
+                    .fixedSize(horizontal: true, vertical: false)
+                Text("👻")
+                    .font(.system(size: 18))
+                    .accessibilityLabel("Ghost")
+            }
+            if HyperliteFeatureFlags.inferredAttentionPresentation {
+                HStack(spacing: 6) {
+                    HyperliteGhostMark()
+                        .frame(width: 11, height: 11)
+                    Text("\(active.count) active thread\(active.count == 1 ? "" : "s")")
+                    HyperliteAttentionStatus(count: state.attentionThreadCount())
+                }
+                .font(HyperliteTypography.medium(11))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+            }
+            Spacer(minLength: 8)
+            Button { state.refresh() } label: { Image(systemName: "arrow.clockwise") }
+                .buttonStyle(.bordered)
+                .tint(Color.orange.opacity(0.82))
+                .disabled(state.isRefreshing || state.isUpdatingProjects)
+                .help("Refresh projects and open pull requests (⌘R)")
+            Button(action: openHyperliteSettings) { Image(systemName: "gearshape.fill") }
+                .buttonStyle(.bordered)
+                .help("Hyperlite settings")
+        }
+    }
+
+    private var projectRemovalConfirmationPresented: Binding<Bool> {
         Binding(
-            get: { pendingPrune != nil },
-            set: { if !$0 { pendingPrune = nil } }
+            get: { pendingProjectRemoval != nil },
+            set: { if !$0 { pendingProjectRemoval = nil } }
         )
     }
 
     private func handlePaletteAction(_ action: HyperlitePaletteAction) {
+        if action == .chooseProjectToRemove {
+            state.showPalette(.removeProjects)
+            return
+        }
         state.dismissPalette()
         switch action {
         case .refresh:
             state.refresh()
         case .settings:
             openHyperliteSettings()
-        case let .prune(diagnostic):
-            pendingPrune = diagnostic
+        case .addProject:
+            guard let path = HyperliteProjectPicker.selectProject() else { return }
+            state.addProject(path: path)
+        case .chooseProjectToRemove:
+            break
+        case let .removeProject(path):
+            pendingProjectRemoval = configuredProjects.first { $0.path == path }
         case let .reveal(threadID):
             selectedThread = state.activeThreads().first { $0.id == threadID }
+        case let .openPullRequest(rawURL):
+            guard let url = URL(string: rawURL) else { return }
+            NSWorkspace.shared.open(url)
+        case let .revealPath(path):
+            NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
         }
-    }
-}
-
-private struct HyperliteActivityContentHeightKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = max(value, nextValue())
     }
 }

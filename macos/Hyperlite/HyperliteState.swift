@@ -9,12 +9,12 @@ final class HyperliteState: ObservableObject {
     @Published private(set) var pullRequestScan: HyperliteProjectPullRequestScan?
     @Published private(set) var isRefreshingThreads = false
     @Published private(set) var isRefreshingPullRequests = false
-    @Published private(set) var isPruning = false
+    @Published private(set) var isUpdatingProjects = false
     @Published private(set) var errorMessage: String?
     @Published private(set) var paletteMode: HyperlitePaletteMode?
     private var refreshTask: Task<Void, Never>?
     private var pullRequestRefreshTask: Task<Void, Never>?
-    private var pruneTask: Task<Void, Never>?
+    private var projectMutationTask: Task<Void, Never>?
     private var mutationTasks: [String: Task<Void, Never>] = [:]
     private var mutationGenerations: [String: Int] = [:]
     private var refreshGeneration = 0, pullRequestRefreshGeneration = 0
@@ -30,7 +30,7 @@ final class HyperliteState: ObservableObject {
     deinit {
         refreshTask?.cancel()
         pullRequestRefreshTask?.cancel()
-        pruneTask?.cancel()
+        projectMutationTask?.cancel()
         mutationTasks.values.forEach { $0.cancel() }
     }
 
@@ -69,30 +69,12 @@ final class HyperliteState: ObservableObject {
         paletteMode = nil
     }
 
-    func prune(_ diagnostic: HyperliteDiagnostic) {
-        guard !isPruning, !isRefreshing,
-              diagnostic.isPrunableWorktree,
-              let repositoryPath = diagnostic.repositoryPath,
-              let worktreePath = diagnostic.worktreePath
-        else { return }
-        isPruning = true
-        pruneTask?.cancel()
-        pruneTask = Task { [weak self] in
-            guard let self else { return }
-            do {
-                _ = try await HyperliteProcess.run(
-                    arguments: ["prune-worktree", repositoryPath, worktreePath],
-                    operation: "prune"
-                )
-                isPruning = false
-                refresh(localOnly: true, continueIfRemoteStale: false)
-            } catch is CancellationError {
-                isPruning = false
-            } catch {
-                errorMessage = error.localizedDescription
-                isPruning = false
-            }
-        }
+    func addProject(path: String) {
+        updateConfiguredProject(path: path, action: "add")
+    }
+
+    func removeProject(path: String) {
+        updateConfiguredProject(path: path, action: "remove")
     }
 
     func activeThreads() -> [HyperliteThread] {
@@ -182,6 +164,34 @@ final class HyperliteState: ObservableObject {
         try Task.checkCancellation()
         await refreshTask?.value
         try Task.checkCancellation()
+    }
+
+    private func updateConfiguredProject(path: String, action: String) {
+        guard !isUpdatingProjects else { return }
+        isUpdatingProjects = true
+        projectMutationTask?.cancel()
+        projectMutationTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                await refreshTask?.value
+                await pullRequestRefreshTask?.value
+                try Task.checkCancellation()
+                _ = try await HyperliteProcess.run(
+                    arguments: ["projects", action, path],
+                    operation: "\(action) project"
+                )
+                isUpdatingProjects = false
+                projectMutationTask = nil
+                refresh()
+            } catch is CancellationError {
+                isUpdatingProjects = false
+                projectMutationTask = nil
+            } catch {
+                errorMessage = error.localizedDescription
+                isUpdatingProjects = false
+                projectMutationTask = nil
+            }
+        }
     }
 
     private func refreshPullRequests(

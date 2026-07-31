@@ -31,12 +31,13 @@ struct HyperliteApp: App {
         .windowResizability(.contentMinSize)
         .commands {
             CommandMenu("Navigate") {
+                Button("Refresh") { state.refresh() }
+                    .keyboardShortcut("r", modifiers: .command)
+                Divider()
                 Button("Command Palette") { state.showPalette(.commands) }
                     .keyboardShortcut("k", modifiers: .command)
-                if HyperliteFeatureFlags.inferredAttentionPresentation {
-                    Button("Project Palette") { state.showPalette(.projects) }
-                        .keyboardShortcut("p", modifiers: .command)
-                }
+                Button("Project Palette") { state.showPalette(.projects) }
+                    .keyboardShortcut("p", modifiers: .command)
             }
         }
 
@@ -50,7 +51,7 @@ struct HyperliteApp: App {
         .menuBarExtraStyle(.menu)
 
         Settings {
-            HyperliteSettingsView()
+            HyperliteSettingsView(state: state)
                 .font(HyperliteTypography.regular(13))
         }
     }

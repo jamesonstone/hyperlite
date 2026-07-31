@@ -41,6 +41,14 @@ references:
     read_policy: must
     used_for: bottom-pinned activity layout and fresh project-lane presentation
     status: active
+  - id: issue-17
+    name: Improve dashboard layout and project commands
+    type: github-issue
+    target: https://github.com/jamesonstone/hyperlite/issues/17
+    relation: supersedes
+    read_policy: evidence
+    used_for: equal-third layout and absolute freshness follow-up
+    status: active
 ---
 
 # Configured Project Pull Requests
@@ -310,6 +318,12 @@ without deleting or pruning any checkout. Open PR rows reserve a 190-point
 aligned repository column and let the title yield horizontal space first, so
 project identity remains useful even when a pull-request title is unusually
 long.
+
+Issue #17 supersedes the combined bottom activity region with equal-height,
+independently scrollable Notes, Open PRs, and Projects sections. It also
+replaces relative Open PR freshness text with a local `yyyy-MM-dd HH:mm`
+timestamp. The cache, five-minute automatic refresh floor, PR row projection,
+and active-lane rules remain unchanged.
 
 ## REPOSITORY MEMORY
 

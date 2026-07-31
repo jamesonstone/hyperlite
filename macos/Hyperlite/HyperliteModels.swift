@@ -242,10 +242,6 @@ struct HyperliteDiagnostic: Codable, Equatable, Identifiable {
         [repository, stage, code ?? "", worktreePath ?? "", message].joined(separator: "\u{1F}")
     }
 
-    var isPrunableWorktree: Bool {
-        code == "worktree_prunable" && repositoryPath != nil && worktreePath != nil
-    }
-
     enum CodingKeys: String, CodingKey {
         case repository, stage, message, code
         case repositoryPath = "repository_path"
