@@ -33,6 +33,14 @@ references:
     read_policy: must
     used_for: existing pull-request and project projections
     status: active
+  - id: selene-selenized-dark
+    name: Selene Selenized Dark
+    type: external-reference
+    target: https://github.com/santoso-wijaya/vscode-helios-selene/blob/main/themes/Selenized_Dark-color-theme.json
+    relation: informs
+    read_policy: evidence
+    used_for: command-palette presentation tokens
+    status: active
 skills: []
 ---
 
@@ -89,6 +97,10 @@ intentionally deferred so GH-17 remains reviewable and reversible.
 - Command-K opens a searchable palette of current commands. It includes
   Refresh, Settings, Add Project, and Remove Project and contains no prune
   action.
+- Every palette floats at the center of the Hyperlite window with responsive
+  margins at the minimum window size. Its surface, search field, selection,
+  text, focus, and backdrop colors use the Selene Selenized Dark workbench
+  palette without changing the rest of Hyperlite's native window theme.
 - Command-P always opens the same searchable overlay in configured-project
   mode. It initially shows every configured project collapsed. Expanding a
   project shows all currently indexed open pull requests and all registered
@@ -121,6 +133,9 @@ Observable acceptance:
   commands; Command-P is available with inferred attention disabled.
 - Palette typing filters results and selecting a project reveals its PR and
   lane children.
+- Command-K, Command-P, and Remove Project share the same centered floating
+  presentation, remain fully visible at the minimum window size, and retain
+  their existing keyboard and outside-click dismissal behavior.
 - Adding and removing a temporary repository changes only the project
   selection in a loadable configuration and preserves settings/inventory.
 - No `prune-worktree` command or native prune action remains.
@@ -135,7 +150,9 @@ Observable acceptance:
    changes.
 3. Extend the palette's pure entry model to use configured projects, PRs, and
    lanes; add case-insensitive filtering and project-preserving child matches;
-   keep keyboard capture mounted only while the overlay is visible.
+   keep keyboard capture mounted only while the overlay is visible. Present
+   the shared palette in a centered responsive layer using explicit Selene
+   Selenized Dark tokens and no continuous visual work.
 4. Add narrow `projects add` and `projects remove` helper commands that load,
    validate, atomically replace only project paths, and report idempotent
    results. Orchestrate them from `HyperliteState`, a native directory picker,
@@ -159,6 +176,9 @@ Observable acceptance:
 - Keep add/remove operations explicit and user initiated. Adding uses the
   native directory picker; removing uses the searchable project list and a
   confirmation dialog.
+- Apply Selene Selenized Dark only to the palette layer. A scoped token set
+  gives the requested VS Code visual language without silently recoloring the
+  main dashboard or replacing native macOS control behavior elsewhere.
 - Defer unrelated Kit-managed refresh output observed during preflight.
 
 ## DISCOVERIES
@@ -179,6 +199,13 @@ Observable acceptance:
 - Search must generate project children before filtering, and Remove Project
   must use only the local persisted-project projection rather than the
   pull-request-backed availability fallback.
+- The original top-leading root stack implicitly positioned the palette in the
+  window corner. A full-window geometry layer can center the shared palette
+  while a pure sizing helper preserves fixed margins and testable maximums.
+- Selene's generated Selenized Dark workbench theme provides explicit widget,
+  input, text, selection, and focus values. Keeping those values in a scoped
+  palette token type prevents ambient macOS accent colors from diluting the
+  requested scheme.
 
 ## VALIDATION
 
@@ -202,21 +229,22 @@ Observable acceptance:
   its identifier, executable, and icon metadata.
 - A real packaged-app inspection confirmed three equal independent scroll
   regions, the ghost and orange Refresh treatment, absolute Open PR timestamp,
-  focused searchable Command-K/Command-P palettes, configured-project
-  expansion into PRs and all registered lanes, the Remove Project chooser, and
-  Settings → Add Project. The live inspection stopped before mutating the
-  user's project configuration; isolated temporary-config tests cover both
-  atomic write paths.
+  centered Selene Selenized searchable Command-K/Command-P palettes,
+  configured-project expansion into PRs and all registered lanes, the Remove
+  Project chooser, and Settings → Add Project. The live inspection stopped
+  before mutating the user's project configuration; isolated temporary-config
+  tests cover both atomic write paths.
 
 ## OUTCOME
 
 Hyperlite now presents Notes, Open PRs, and Projects as equal independently
 scrollable thirds. Its focused macOS commands provide Refresh, a searchable
-all-command palette, and a searchable configured-project palette. Project rows
-expand into open PRs and every registered lane; add/remove selection changes
-flow through explicit serialized, atomic Go helper commands, with native
-picking and removal confirmation. Native and helper worktree-prune actions are
-removed, while read-only diagnostic evidence remains available.
+all-command palette, and a searchable configured-project palette. Both palette
+modes use the same centered, responsive Selene Selenized Dark floating surface.
+Project rows expand into open PRs and every registered lane; add/remove
+selection changes flow through explicit serialized, atomic Go helper commands,
+with native picking and removal confirmation. Native and helper worktree-prune
+actions are removed, while read-only diagnostic evidence remains available.
 
 ## REPOSITORY MEMORY
 
@@ -224,6 +252,8 @@ removed, while read-only diagnostic evidence remains available.
   configuration ownership, and removed-capability rationale.
 - Updated the command-palette and open-pull-request specifications with their
   superseded behavior while retaining historical decisions.
+- Updated this specification with the scoped Selene Selenized Dark presentation
+  source, responsive centering boundary, and packaged-app evidence.
 - Updated `docs/CONSTITUTION.md` with the durable palette-liveness and
   serialized atomic project-selection safety boundaries.
 - Updated `README.md` and `docs/PROJECT_PROGRESS_SUMMARY.md` to describe the

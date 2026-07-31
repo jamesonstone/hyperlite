@@ -6,6 +6,8 @@ enum HyperlitePaletteTests {
         testProjectEntries()
         testSearchFiltering()
         testRemoveProjectEntries()
+        testSelenizedThemeTokens()
+        testResponsivePaletteSizing()
     }
 
     private static func testCommandEntries() {
@@ -135,6 +137,38 @@ enum HyperlitePaletteTests {
             if case .action(.removeProject(_)) = $0.kind { return true }
             return false
         }, "remove-project rows should carry only configuration actions")
+    }
+
+    private static func testSelenizedThemeTokens() {
+        expect(HyperlitePaletteTheme.canvas.hex == 0x053d48,
+               "palette canvas should use Selene Selenized Dark bg_0")
+        expect(HyperlitePaletteTheme.surface.hex == 0x0e4956,
+               "palette surface should use Selene Selenized Dark bg_1")
+        expect(HyperlitePaletteTheme.elevatedSurface.hex == 0x275b69,
+               "palette search should use Selene Selenized Dark bg_2")
+        expect(HyperlitePaletteTheme.primaryText.hex == 0xc8d7d8,
+               "palette text should use Selene Selenized Dark fg_1")
+        expect(HyperlitePaletteTheme.blue.hex == 0x0096f5,
+               "palette selection should use Selene Selenized Dark blue")
+        expect(HyperlitePaletteTheme.cyan.hex == 0x39c7b9,
+               "palette focus should use Selene Selenized Dark cyan")
+    }
+
+    private static func testResponsivePaletteSizing() {
+        let roomy = HyperlitePaletteLayout.size(containerWidth: 900, containerHeight: 800)
+        expect(roomy.width == 560 && roomy.height == 480,
+               "a roomy window should use the floating palette maximum size")
+
+        let minimumWindow = HyperlitePaletteLayout.size(
+            containerWidth: 480,
+            containerHeight: 580
+        )
+        expect(minimumWindow.width == 432 && minimumWindow.height == 480,
+               "the palette should preserve responsive margins at the minimum window size")
+
+        let compact = HyperlitePaletteLayout.size(containerWidth: 300, containerHeight: 300)
+        expect(compact.width == 252 && compact.height == 204,
+               "the palette should remain contained in smaller proposed sizes")
     }
 
     private static func projectFixture() -> (

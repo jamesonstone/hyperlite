@@ -137,17 +137,27 @@ struct HyperliteWindow: View {
                 let paletteProjects = mode == .removeProjects
                     ? (state.scan?.projectIndex ?? [])
                     : allProjects
-                Color.black.opacity(0.34)
-                    .contentShape(Rectangle())
-                    .onTapGesture { state.dismissPalette() }
-                HyperliteCommandPalette(
-                    mode: mode,
-                    threads: HyperliteFeatureFlags.inferredAttentionPresentation ? active : [],
-                    projects: paletteProjects,
-                    pullRequests: pullRequests,
-                    onAction: handlePaletteAction,
-                    onDismiss: state.dismissPalette
-                )
+                GeometryReader { paletteArea in
+                    let paletteSize = HyperlitePaletteLayout.size(
+                        containerWidth: paletteArea.size.width,
+                        containerHeight: paletteArea.size.height
+                    )
+                    ZStack {
+                        HyperlitePaletteTheme.canvas.color.opacity(0.36)
+                            .contentShape(Rectangle())
+                            .onTapGesture { state.dismissPalette() }
+                        HyperliteCommandPalette(
+                            mode: mode,
+                            threads: HyperliteFeatureFlags.inferredAttentionPresentation ? active : [],
+                            projects: paletteProjects,
+                            pullRequests: pullRequests,
+                            onAction: handlePaletteAction,
+                            onDismiss: state.dismissPalette
+                        )
+                        .frame(width: paletteSize.width, height: paletteSize.height)
+                    }
+                    .frame(width: paletteArea.size.width, height: paletteArea.size.height)
+                }
                 .id(mode)
             }
         }

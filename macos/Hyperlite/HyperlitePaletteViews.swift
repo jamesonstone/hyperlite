@@ -41,9 +41,9 @@ struct HyperliteCommandPalette: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             paletteHeader
-            Divider()
+            paletteDivider
             entryList
-            Divider()
+            paletteDivider
             HStack(spacing: 12) {
                 Text("↑↓ navigate")
                 Text("Enter select")
@@ -51,16 +51,23 @@ struct HyperliteCommandPalette: View {
                 Text("Esc close")
             }
             .font(HyperliteTypography.regular(10))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(HyperlitePaletteTheme.mutedText.color)
             .padding(10)
+            .background(HyperlitePaletteTheme.canvas.color.opacity(0.38))
         }
-        .frame(width: 420, height: 430)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .foregroundStyle(HyperlitePaletteTheme.primaryText.color)
+        .background(
+            HyperlitePaletteTheme.surface.color,
+            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+        )
         .overlay {
-            RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(Color.primary.opacity(0.16), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(HyperlitePaletteTheme.mutedText.color.opacity(0.42), lineWidth: 1)
         }
-        .shadow(color: .black.opacity(0.35), radius: 18, y: 8)
+        .shadow(color: .black.opacity(0.5), radius: 30, y: 18)
+        .shadow(color: HyperlitePaletteTheme.blue.color.opacity(0.14), radius: 9, y: 2)
+        .environment(\.colorScheme, .dark)
         .background(HyperliteKeyCapture(onKeyDown: handleKey))
         .onExitCommand(perform: onDismiss)
         .onAppear {
@@ -77,24 +84,32 @@ struct HyperliteCommandPalette: View {
             HStack {
                 Label(paletteTitle, systemImage: paletteSymbol)
                     .font(HyperliteTypography.semibold(13))
+                    .foregroundStyle(HyperlitePaletteTheme.primaryText.color)
                 Spacer()
                 Text(shortcutLabel)
                     .font(HyperliteTypography.regular(11))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(HyperlitePaletteTheme.mutedText.color)
             }
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                TextField(searchPrompt, text: $query)
+                    .foregroundStyle(HyperlitePaletteTheme.cyan.color)
+                TextField(
+                    "",
+                    text: $query,
+                    prompt: Text(searchPrompt)
+                        .foregroundColor(HyperlitePaletteTheme.mutedText.color)
+                )
                     .textFieldStyle(.plain)
                     .font(HyperliteTypography.regular(12))
+                    .foregroundStyle(HyperlitePaletteTheme.primaryText.color)
+                    .tint(HyperlitePaletteTheme.blue.color)
                     .focused($searchFocused)
                 if !query.isEmpty {
                     Button {
                         query = ""
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(HyperlitePaletteTheme.mutedText.color)
                     }
                     .buttonStyle(.plain)
                     .help("Clear search")
@@ -102,9 +117,20 @@ struct HyperliteCommandPalette: View {
             }
             .padding(.horizontal, 9)
             .padding(.vertical, 7)
-            .background(Color.primary.opacity(0.07), in: RoundedRectangle(cornerRadius: 7))
+            .background(
+                HyperlitePaletteTheme.elevatedSurface.color,
+                in: RoundedRectangle(cornerRadius: 7, style: .continuous)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .strokeBorder(
+                        HyperlitePaletteTheme.cyan.color.opacity(searchFocused ? 0.72 : 0.3),
+                        lineWidth: 1
+                    )
+            }
         }
         .padding(12)
+        .background(HyperlitePaletteTheme.surface.color)
     }
 
     private var paletteTitle: String {
@@ -140,7 +166,7 @@ struct HyperliteCommandPalette: View {
                 if entries.isEmpty {
                     Text(query.isEmpty ? "No configured projects" : "No matches")
                         .font(HyperliteTypography.regular(11))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(HyperlitePaletteTheme.mutedText.color)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(12)
                 } else {
@@ -169,6 +195,11 @@ struct HyperliteCommandPalette: View {
             HStack(spacing: 10) {
                 Image(systemName: entry.symbol)
                     .font(HyperliteTypography.semibold(13))
+                    .foregroundStyle(
+                        selected
+                            ? HyperlitePaletteTheme.primaryText.color
+                            : HyperlitePaletteTheme.cyan.color
+                    )
                     .frame(width: 18)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(entry.title)
@@ -181,7 +212,7 @@ struct HyperliteCommandPalette: View {
                     if !entry.subtitle.isEmpty {
                         Text(entry.subtitle)
                             .font(HyperliteTypography.regular(11))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(HyperlitePaletteTheme.secondaryText.color)
                             .lineLimit(2)
                     }
                 }
@@ -191,8 +222,8 @@ struct HyperliteCommandPalette: View {
             .padding(.vertical, 7)
             .contentShape(Rectangle())
             .background(
-                selected ? Color.accentColor.opacity(0.18) : Color.clear,
-                in: RoundedRectangle(cornerRadius: 7)
+                selected ? HyperlitePaletteTheme.blue.color.opacity(0.53) : Color.clear,
+                in: RoundedRectangle(cornerRadius: 7, style: .continuous)
             )
         }
         .buttonStyle(.plain)
@@ -238,5 +269,11 @@ struct HyperliteCommandPalette: View {
     private func isProject(_ entry: HyperlitePaletteEntry) -> Bool {
         if case .project = entry.kind { return true }
         return false
+    }
+
+    private var paletteDivider: some View {
+        Rectangle()
+            .fill(HyperlitePaletteTheme.mutedText.color.opacity(0.32))
+            .frame(height: 1)
     }
 }
