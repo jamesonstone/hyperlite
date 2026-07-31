@@ -146,6 +146,17 @@ enum HyperliteInteractionModel {
         return entries
     }
 
+    static func effectiveProjectExpansion(
+        projects: [HyperliteProjectLocation],
+        expandedProjects: Set<String>,
+        query: String
+    ) -> Set<String> {
+        guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return expandedProjects
+        }
+        return Set(projects.map(\.id))
+    }
+
     static func removeProjectEntries(
         projects: [HyperliteProjectLocation]
     ) -> [HyperlitePaletteEntry] {

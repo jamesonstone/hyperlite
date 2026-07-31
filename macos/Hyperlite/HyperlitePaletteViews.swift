@@ -19,10 +19,11 @@ struct HyperliteCommandPalette: View {
         case .commands:
             return HyperliteInteractionModel.commandEntries(threads: threads)
         case .projects:
-            let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
-            let effectiveExpansion = trimmedQuery.isEmpty
-                ? expandedProjects
-                : Set(projects.map(\.id))
+            let effectiveExpansion = HyperliteInteractionModel.effectiveProjectExpansion(
+                projects: projects,
+                expandedProjects: expandedProjects,
+                query: query
+            )
             return HyperliteInteractionModel.projectEntries(
                 projects: projects,
                 pullRequests: pullRequests,

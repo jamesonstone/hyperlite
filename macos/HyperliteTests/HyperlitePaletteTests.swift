@@ -32,10 +32,11 @@ enum HyperlitePaletteTests {
                "project order should follow configured projects")
 
         let whitespaceQuery = "  \n"
-        let whitespaceExpansion = whitespaceQuery
-            .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            ? collapsedExpansion
-            : Set(fixture.projects.map(\.id))
+        let whitespaceExpansion = HyperliteInteractionModel.effectiveProjectExpansion(
+            projects: fixture.projects,
+            expandedProjects: collapsedExpansion,
+            query: whitespaceQuery
+        )
         let whitespaceSearch = HyperliteInteractionModel.projectEntries(
             projects: fixture.projects,
             pullRequests: fixture.scan,
@@ -60,22 +61,38 @@ enum HyperlitePaletteTests {
 
     private static func testSearchFiltering() {
         let fixture = projectFixture()
-        let allProjectIDs = Set(fixture.projects.map(\.id))
-        let searchable = HyperliteInteractionModel.projectEntries(
+        let manuallyExpanded: Set<String> = []
+        let childQuery = "ship feature"
+        let childExpansion = HyperliteInteractionModel.effectiveProjectExpansion(
+            projects: fixture.projects,
+            expandedProjects: manuallyExpanded,
+            query: childQuery
+        )
+        let childSearchable = HyperliteInteractionModel.projectEntries(
             projects: fixture.projects,
             pullRequests: fixture.scan,
-            expandedProjects: allProjectIDs
+            expandedProjects: childExpansion
         )
         let childMatch = HyperliteInteractionModel.filteredEntries(
-            searchable,
-            query: "ship feature"
+            childSearchable,
+            query: childQuery
         )
         expect(childMatch.map(\.id) == ["project:/repo/kit", "project-pr:/repo/kit:owner/kit#7"],
                "search should find a child PR from an initially collapsed project")
 
         let worktreeQuery = "/worktrees/kit"
+        let worktreeExpansion = HyperliteInteractionModel.effectiveProjectExpansion(
+            projects: fixture.projects,
+            expandedProjects: manuallyExpanded,
+            query: worktreeQuery
+        )
+        let worktreeSearchable = HyperliteInteractionModel.projectEntries(
+            projects: fixture.projects,
+            pullRequests: fixture.scan,
+            expandedProjects: worktreeExpansion
+        )
         let worktreeMatch = HyperliteInteractionModel.filteredEntries(
-            searchable,
+            worktreeSearchable,
             query: worktreeQuery
         )
         expect(worktreeMatch.map(\.id) == [
@@ -83,8 +100,18 @@ enum HyperlitePaletteTests {
         ], "search should find a child worktree from an initially collapsed project")
 
         let parentQuery = "KIT"
+        let parentExpansion = HyperliteInteractionModel.effectiveProjectExpansion(
+            projects: fixture.projects,
+            expandedProjects: manuallyExpanded,
+            query: parentQuery
+        )
+        let parentSearchable = HyperliteInteractionModel.projectEntries(
+            projects: fixture.projects,
+            pullRequests: fixture.scan,
+            expandedProjects: parentExpansion
+        )
         let parentMatch = HyperliteInteractionModel.filteredEntries(
-            searchable,
+            parentSearchable,
             query: parentQuery
         )
         expect(parentMatch.count == 5 && parentMatch.allSatisfy {
