@@ -87,7 +87,7 @@ private struct HyperlitePlainTextEditor: NSViewRepresentable {
         textView.insertionPointColor = HyperliteTheme.blue.appKitColor
         textView.selectedTextAttributes = [
             .backgroundColor: HyperliteTheme.blue.appKitColor.withAlphaComponent(0.53),
-            .foregroundColor: HyperliteTheme.primaryText.appKitColor,
+            .foregroundColor: NSColor.white,
         ]
         textView.backgroundColor = .clear
         textView.drawsBackground = false
