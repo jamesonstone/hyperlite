@@ -1,10 +1,13 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
+	"sync"
+	"syscall"
 
 	"go.yaml.in/yaml/v3"
 )
@@ -14,6 +17,64 @@ type Writer interface {
 }
 
 type AtomicWriter struct{}
+
+var mutationMutex sync.Mutex
+
+// Mutate serializes a configuration read-modify-write across goroutines and
+// processes. The callback reports whether its changes should be persisted.
+func Mutate(path string, mutate func(*Config) (bool, error)) error {
+	resolved, err := ResolvePath(path)
+	if err != nil {
+		return err
+	}
+	mutationMutex.Lock()
+	defer mutationMutex.Unlock()
+	return withMutationLock(resolved, func() error {
+		cfg, err := Load(resolved)
+		if err != nil {
+			if !errors.Is(err, os.ErrNotExist) {
+				return err
+			}
+			cfg = Config{Version: Version, Path: resolved}
+		}
+		changed, err := mutate(&cfg)
+		if err != nil {
+			return err
+		}
+		if !changed {
+			return nil
+		}
+		return (AtomicWriter{}).Write(resolved, cfg)
+	})
+}
+
+func withMutationLock(path string, operation func() error) (returnErr error) {
+	directory := filepath.Dir(path)
+	if err := os.MkdirAll(directory, 0o755); err != nil {
+		return fmt.Errorf("create config directory: %w", err)
+	}
+	lock, err := os.OpenFile(path+".lock", os.O_CREATE|os.O_RDWR, 0o600)
+	if err != nil {
+		return fmt.Errorf("open config lock: %w", err)
+	}
+	if err := lock.Chmod(0o600); err != nil {
+		_ = lock.Close()
+		return fmt.Errorf("secure config lock: %w", err)
+	}
+	if err := syscall.Flock(int(lock.Fd()), syscall.LOCK_EX); err != nil {
+		_ = lock.Close()
+		return fmt.Errorf("lock config: %w", err)
+	}
+	defer func() {
+		if err := syscall.Flock(int(lock.Fd()), syscall.LOCK_UN); err != nil && returnErr == nil {
+			returnErr = fmt.Errorf("unlock config: %w", err)
+		}
+		if err := lock.Close(); err != nil && returnErr == nil {
+			returnErr = fmt.Errorf("close config lock: %w", err)
+		}
+	}()
+	return operation()
+}
 
 func (AtomicWriter) Write(path string, cfg Config) error {
 	contents, err := Marshal(cfg)

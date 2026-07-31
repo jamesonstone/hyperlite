@@ -167,7 +167,10 @@ final class HyperliteState: ObservableObject {
     }
 
     private func updateConfiguredProject(path: String, action: String) {
-        guard !isUpdatingProjects else { return }
+        guard !isUpdatingProjects else {
+            errorMessage = "A project configuration update is already in progress."
+            return
+        }
         isUpdatingProjects = true
         projectMutationTask?.cancel()
         projectMutationTask = Task { [weak self] in

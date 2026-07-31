@@ -172,6 +172,13 @@ Observable acceptance:
 - The first packaged-app check found that palette search focus remained in the
   notepad. Deferring the focus assignment by one main run-loop turn made typing
   reliably target the search field.
+- Pull-request review exposed that atomic file replacement protects config file
+  integrity but does not serialize a read-modify-write sequence. The config
+  mutation boundary now holds the repository-standard process mutex and
+  sidecar file lock from load through replacement.
+- Search must generate project children before filtering, and Remove Project
+  must use only the local persisted-project projection rather than the
+  pull-request-backed availability fallback.
 
 ## VALIDATION
 
@@ -180,6 +187,11 @@ Observable acceptance:
   palette filtering/hierarchy, equal-third sizing, timestamp formatting,
   native type-checking, executable Swift model tests, and the universal app.
 - `git diff --check` passed.
+- `go test -count=5 -run '^TestConfiguredProjectMutationsSerializeAcrossProcesses$' ./internal/cli`
+  passed five consecutive subprocess race reproductions.
+- A separate read-only verification agent re-read all four active PR review
+  threads against the integrated diff and verified D001-D004 with no blocking
+  gaps before delivery.
 - `kit check dashboard-project-management` passed. `kit check --project`
   continues to report the same six preflight findings for unrelated managed
   agent/testing/worktree guidance, labeling them as warnings before returning
@@ -202,9 +214,9 @@ Hyperlite now presents Notes, Open PRs, and Projects as equal independently
 scrollable thirds. Its focused macOS commands provide Refresh, a searchable
 all-command palette, and a searchable configured-project palette. Project rows
 expand into open PRs and every registered lane; add/remove selection changes
-flow through explicit atomic Go helper commands, with native picking and
-removal confirmation. Native and helper worktree-prune actions are removed,
-while read-only diagnostic evidence remains available.
+flow through explicit serialized, atomic Go helper commands, with native
+picking and removal confirmation. Native and helper worktree-prune actions are
+removed, while read-only diagnostic evidence remains available.
 
 ## REPOSITORY MEMORY
 
@@ -212,7 +224,7 @@ while read-only diagnostic evidence remains available.
   configuration ownership, and removed-capability rationale.
 - Updated the command-palette and open-pull-request specifications with their
   superseded behavior while retaining historical decisions.
-- Updated `docs/CONSTITUTION.md` with the durable palette-liveness and atomic
-  project-selection safety boundaries.
+- Updated `docs/CONSTITUTION.md` with the durable palette-liveness and
+  serialized atomic project-selection safety boundaries.
 - Updated `README.md` and `docs/PROJECT_PROGRESS_SUMMARY.md` to describe the
   current operator interface and feature state.

@@ -134,13 +134,16 @@ struct HyperliteWindow: View {
             .padding(20)
 
             if let mode = state.paletteMode {
+                let paletteProjects = mode == .removeProjects
+                    ? (state.scan?.projectIndex ?? [])
+                    : allProjects
                 Color.black.opacity(0.34)
                     .contentShape(Rectangle())
                     .onTapGesture { state.dismissPalette() }
                 HyperliteCommandPalette(
                     mode: mode,
                     threads: HyperliteFeatureFlags.inferredAttentionPresentation ? active : [],
-                    projects: allProjects,
+                    projects: paletteProjects,
                     pullRequests: pullRequests,
                     onAction: handlePaletteAction,
                     onDismiss: state.dismissPalette

@@ -17,15 +17,19 @@ struct HyperliteCommandPalette: View {
     private var unfilteredEntries: [HyperlitePaletteEntry] {
         switch mode {
         case .commands:
-            HyperliteInteractionModel.commandEntries(threads: threads)
+            return HyperliteInteractionModel.commandEntries(threads: threads)
         case .projects:
-            HyperliteInteractionModel.projectEntries(
+            let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
+            let effectiveExpansion = trimmedQuery.isEmpty
+                ? expandedProjects
+                : Set(projects.map(\.id))
+            return HyperliteInteractionModel.projectEntries(
                 projects: projects,
                 pullRequests: pullRequests,
-                expandedProjects: expandedProjects
+                expandedProjects: effectiveExpansion
             )
         case .removeProjects:
-            HyperliteInteractionModel.removeProjectEntries(projects: projects)
+            return HyperliteInteractionModel.removeProjectEntries(projects: projects)
         }
     }
 

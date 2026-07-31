@@ -21,14 +21,28 @@ enum HyperlitePaletteTests {
 
     private static func testProjectEntries() {
         let fixture = projectFixture()
+        let collapsedExpansion: Set<String> = []
         let collapsed = HyperliteInteractionModel.projectEntries(
             projects: fixture.projects,
             pullRequests: fixture.scan,
-            expandedProjects: []
+            expandedProjects: collapsedExpansion
         )
         expect(collapsed.count == 2, "collapsed projects should show only configured headers")
         expect(collapsed.map(\.title) == ["kit", "flx"],
                "project order should follow configured projects")
+
+        let whitespaceQuery = "  \n"
+        let whitespaceExpansion = whitespaceQuery
+            .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? collapsedExpansion
+            : Set(fixture.projects.map(\.id))
+        let whitespaceSearch = HyperliteInteractionModel.projectEntries(
+            projects: fixture.projects,
+            pullRequests: fixture.scan,
+            expandedProjects: whitespaceExpansion
+        )
+        expect(whitespaceSearch == collapsed,
+               "a trimmed-empty search should preserve manual collapsed state")
 
         let expanded = HyperliteInteractionModel.projectEntries(
             projects: fixture.projects,
@@ -46,16 +60,33 @@ enum HyperlitePaletteTests {
 
     private static func testSearchFiltering() {
         let fixture = projectFixture()
-        let expanded = HyperliteInteractionModel.projectEntries(
+        let allProjectIDs = Set(fixture.projects.map(\.id))
+        let searchable = HyperliteInteractionModel.projectEntries(
             projects: fixture.projects,
             pullRequests: fixture.scan,
-            expandedProjects: [fixture.projects[0].id]
+            expandedProjects: allProjectIDs
         )
-        let childMatch = HyperliteInteractionModel.filteredEntries(expanded, query: "ship feature")
+        let childMatch = HyperliteInteractionModel.filteredEntries(
+            searchable,
+            query: "ship feature"
+        )
         expect(childMatch.map(\.id) == ["project:/repo/kit", "project-pr:/repo/kit:owner/kit#7"],
-               "a matching child should retain its project header")
+               "search should find a child PR from an initially collapsed project")
 
-        let parentMatch = HyperliteInteractionModel.filteredEntries(expanded, query: "KIT")
+        let worktreeQuery = "/worktrees/kit"
+        let worktreeMatch = HyperliteInteractionModel.filteredEntries(
+            searchable,
+            query: worktreeQuery
+        )
+        expect(worktreeMatch.map(\.id) == [
+            "project:/repo/kit", "project-lane:/repo/kit:/worktrees/kit/GH-7",
+        ], "search should find a child worktree from an initially collapsed project")
+
+        let parentQuery = "KIT"
+        let parentMatch = HyperliteInteractionModel.filteredEntries(
+            searchable,
+            query: parentQuery
+        )
         expect(parentMatch.count == 5 && parentMatch.allSatisfy {
             $0.id.contains("/repo/kit") || $0.parentProjectID == "/repo/kit"
         }, "a project-name match should retain all expanded children")

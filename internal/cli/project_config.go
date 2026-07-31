@@ -107,40 +107,38 @@ func (a App) updateConfiguredProject(configPath, path string, add bool) error {
 	if err != nil {
 		return err
 	}
-	cfg, err := config.Load(resolvedConfig)
-	if err != nil {
-		if !errors.Is(err, os.ErrNotExist) {
-			return err
+	message := ""
+	if err := config.Mutate(resolvedConfig, func(cfg *config.Config) (bool, error) {
+		selected := configuredProjectPaths(*cfg)
+		_, exists := selected[canonical]
+		if add == exists {
+			state := "not configured"
+			if exists {
+				state = "already configured"
+			}
+			message = fmt.Sprintf("project %s: %s", state, canonical)
+			return false, nil
 		}
-		cfg = config.Config{Version: config.Version, Path: resolvedConfig}
-	}
-	selected := configuredProjectPaths(cfg)
-	_, exists := selected[canonical]
-	if add == exists {
-		state := "not configured"
-		if exists {
-			state = "already configured"
+		if add {
+			selected[canonical] = struct{}{}
+		} else {
+			delete(selected, canonical)
 		}
-		_, err = fmt.Fprintf(a.Out, "project %s: %s\n", state, canonical)
+		updated, err := config.ReplaceProjectPaths(*cfg, sortedProjectPaths(selected))
+		if err != nil {
+			return false, err
+		}
+		*cfg = updated
+		action := "removed"
+		if add {
+			action = "added"
+		}
+		message = fmt.Sprintf("%s project: %s", action, canonical)
+		return true, nil
+	}); err != nil {
 		return err
 	}
-	if add {
-		selected[canonical] = struct{}{}
-	} else {
-		delete(selected, canonical)
-	}
-	cfg, err = config.ReplaceProjectPaths(cfg, sortedProjectPaths(selected))
-	if err != nil {
-		return err
-	}
-	if err := (config.AtomicWriter{}).Write(resolvedConfig, cfg); err != nil {
-		return err
-	}
-	action := "removed"
-	if add {
-		action = "added"
-	}
-	_, err = fmt.Fprintf(a.Out, "%s project: %s\n", action, canonical)
+	_, err = fmt.Fprintln(a.Out, message)
 	return err
 }
 
