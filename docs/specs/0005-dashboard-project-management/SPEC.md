@@ -173,9 +173,9 @@ Observable acceptance:
   notepad. Deferring the focus assignment by one main run-loop turn made typing
   reliably target the search field.
 - Pull-request review exposed that atomic file replacement protects config file
-  integrity but does not serialize a read-modify-write sequence. The config
-  mutation boundary now holds the repository-standard process mutex and
-  sidecar file lock from load through replacement.
+  integrity but does not serialize a read-modify-write sequence. The
+  noninteractive add/remove mutation boundary now holds the repository-standard
+  process mutex and sidecar file lock from load through replacement.
 - Search must generate project children before filtering, and Remove Project
   must use only the local persisted-project projection rather than the
   pull-request-backed availability fallback.
