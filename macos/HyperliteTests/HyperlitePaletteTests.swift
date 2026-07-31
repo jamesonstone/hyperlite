@@ -6,7 +6,7 @@ enum HyperlitePaletteTests {
         testProjectEntries()
         testSearchFiltering()
         testRemoveProjectEntries()
-        testSelenizedThemeTokens()
+        testSelenizedApplicationThemeTokens()
         testResponsivePaletteSizing()
     }
 
@@ -139,19 +139,25 @@ enum HyperlitePaletteTests {
         }, "remove-project rows should carry only configuration actions")
     }
 
-    private static func testSelenizedThemeTokens() {
-        expect(HyperlitePaletteTheme.canvas.hex == 0x053d48,
-               "palette canvas should use Selene Selenized Dark bg_0")
-        expect(HyperlitePaletteTheme.surface.hex == 0x0e4956,
-               "palette surface should use Selene Selenized Dark bg_1")
-        expect(HyperlitePaletteTheme.elevatedSurface.hex == 0x275b69,
-               "palette search should use Selene Selenized Dark bg_2")
-        expect(HyperlitePaletteTheme.primaryText.hex == 0xc8d7d8,
-               "palette text should use Selene Selenized Dark fg_1")
-        expect(HyperlitePaletteTheme.blue.hex == 0x0096f5,
-               "palette selection should use Selene Selenized Dark blue")
-        expect(HyperlitePaletteTheme.cyan.hex == 0x39c7b9,
-               "palette focus should use Selene Selenized Dark cyan")
+    private static func testSelenizedApplicationThemeTokens() {
+        expect(HyperliteTheme.canvas.hex == 0x053d48,
+               "application canvas should use Selene Selenized Dark bg_0")
+        expect(HyperliteTheme.surface.hex == 0x0e4956,
+               "elevated application surfaces should use Selene Selenized Dark bg_1")
+        expect(HyperliteTheme.elevatedSurface.hex == 0x275b69,
+               "inputs and dividers should use Selene Selenized Dark bg_2")
+        expect(HyperliteTheme.primaryText.hex == 0xc8d7d8,
+               "application text should use Selene Selenized Dark fg_1")
+        expect(HyperliteTheme.red.hex == 0xfd564e,
+               "application errors should use Selene Selenized Dark red")
+        expect(HyperliteTheme.orange.hex == 0xf38649,
+               "application attention should use Selene Selenized Dark orange")
+        expect(HyperliteTheme.green.hex == 0x80b83c,
+               "application success should use Selene Selenized Dark green")
+        expect(HyperliteTheme.blue.hex == 0x0096f5,
+               "application controls should use Selene Selenized Dark blue")
+        expect(HyperliteTheme.cyan.hex == 0x39c7b9,
+               "application focus should use Selene Selenized Dark cyan")
     }
 
     private static func testResponsivePaletteSizing() {

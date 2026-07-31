@@ -100,7 +100,10 @@ intentionally deferred so GH-17 remains reviewable and reversible.
 - Every palette floats at the center of the Hyperlite window with responsive
   margins at the minimum window size. Its surface, search field, selection,
   text, focus, and backdrop colors use the Selene Selenized Dark workbench
-  palette without changing the rest of Hyperlite's native window theme.
+  palette.
+- The native dashboard, settings, detail, and hover surfaces use the same
+  Selene Selenized Dark semantic background, text, border, status, and control
+  colors even when no palette is open.
 - Command-P always opens the same searchable overlay in configured-project
   mode. It initially shows every configured project collapsed. Expanding a
   project shows all currently indexed open pull requests and all registered
@@ -176,9 +179,9 @@ Observable acceptance:
 - Keep add/remove operations explicit and user initiated. Adding uses the
   native directory picker; removing uses the searchable project list and a
   confirmation dialog.
-- Apply Selene Selenized Dark only to the palette layer. A scoped token set
-  gives the requested VS Code visual language without silently recoloring the
-  main dashboard or replacing native macOS control behavior elsewhere.
+- Apply Selene Selenized Dark through one app-wide semantic token set. Native
+  controls keep their macOS behavior, while the palette uses elevated surfaces
+  and a dim backdrop to distinguish its modal layer from the themed dashboard.
 - Defer unrelated Kit-managed refresh output observed during preflight.
 
 ## DISCOVERIES
@@ -204,8 +207,12 @@ Observable acceptance:
   while a pure sizing helper preserves fixed margins and testable maximums.
 - Selene's generated Selenized Dark workbench theme provides explicit widget,
   input, text, selection, and focus values. Keeping those values in a scoped
-  palette token type prevents ambient macOS accent colors from diluting the
+  application token type prevents ambient macOS accent colors from diluting the
   requested scheme.
+- Packaged-app inspection showed that palette-only tokens restored the native
+  dark dashboard as soon as the palette closed. The requested theme is an
+  application appearance, so its semantic colors must be installed at every
+  native scene root and at the AppKit notepad boundary.
 
 ## VALIDATION
 
@@ -229,22 +236,25 @@ Observable acceptance:
   its identifier, executable, and icon metadata.
 - A real packaged-app inspection confirmed three equal independent scroll
   regions, the ghost and orange Refresh treatment, absolute Open PR timestamp,
-  centered Selene Selenized searchable Command-K/Command-P palettes,
-  configured-project expansion into PRs and all registered lanes, the Remove
-  Project chooser, and Settings → Add Project. The live inspection stopped
-  before mutating the user's project configuration; isolated temporary-config
-  tests cover both atomic write paths.
+  persistent Selene Selenized dashboard and Settings surfaces with no palette
+  open, and the centered elevated Command-K/Command-P palettes over that same
+  theme. It also confirmed configured-project expansion into PRs and all
+  registered lanes, the Remove Project chooser, and Settings → Add Project.
+  The live inspection stopped before mutating the user's project configuration;
+  isolated temporary-config tests cover both atomic write paths.
 
 ## OUTCOME
 
 Hyperlite now presents Notes, Open PRs, and Projects as equal independently
 scrollable thirds. Its focused macOS commands provide Refresh, a searchable
-all-command palette, and a searchable configured-project palette. Both palette
-modes use the same centered, responsive Selene Selenized Dark floating surface.
-Project rows expand into open PRs and every registered lane; add/remove
-selection changes flow through explicit serialized, atomic Go helper commands,
-with native picking and removal confirmation. Native and helper worktree-prune
-actions are removed, while read-only diagnostic evidence remains available.
+all-command palette, and a searchable configured-project palette. Selene
+Selenized Dark now persists across the native dashboard, Settings, detail, and
+hover surfaces, including when the palette is closed; both palette modes use a
+centered, responsive elevated surface over that theme. Project rows expand into
+open PRs and every registered lane; add/remove selection changes flow through
+explicit serialized, atomic Go helper commands, with native picking and removal
+confirmation. Native and helper worktree-prune actions are removed, while
+read-only diagnostic evidence remains available.
 
 ## REPOSITORY MEMORY
 
@@ -252,8 +262,9 @@ actions are removed, while read-only diagnostic evidence remains available.
   configuration ownership, and removed-capability rationale.
 - Updated the command-palette and open-pull-request specifications with their
   superseded behavior while retaining historical decisions.
-- Updated this specification with the scoped Selene Selenized Dark presentation
-  source, responsive centering boundary, and packaged-app evidence.
+- Updated this specification with the app-wide Selene Selenized Dark
+  presentation source, responsive palette-centering boundary, and closed/open
+  packaged-app evidence.
 - Updated `docs/CONSTITUTION.md` with the durable palette-liveness and
   serialized atomic project-selection safety boundaries.
 - Updated `README.md` and `docs/PROJECT_PROGRESS_SUMMARY.md` to describe the

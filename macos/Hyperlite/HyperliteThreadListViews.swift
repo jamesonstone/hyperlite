@@ -8,10 +8,10 @@ struct HyperliteSectionHeader: View {
         HStack {
             Text("Attention")
                 .font(HyperliteTypography.bold(11))
-                .foregroundStyle(Color.orange)
+                .foregroundStyle(HyperliteTheme.orange.color)
             Text("\(count)")
                 .font(HyperliteTypography.bold(10).monospacedDigit())
-                .foregroundStyle(.secondary)
+                .foregroundStyle(HyperliteTheme.secondaryText.color)
             Spacer()
         }
         .padding(.top, 5)
@@ -28,7 +28,7 @@ struct HyperliteSettingsView: View {
                 TextField("Hot key", text: $hotkey)
                 Text("Default: \(defaultHotKey). Use modifier names joined with +, for example Command+Shift+H.")
                     .font(HyperliteTypography.regular(11))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(HyperliteTheme.secondaryText.color)
             }
             Section("Projects") {
                 Button("Add Project…") {
@@ -43,7 +43,7 @@ struct HyperliteSettingsView: View {
                 if let error = state.errorMessage {
                     Label(error, systemImage: "exclamationmark.triangle.fill")
                         .font(HyperliteTypography.regular(10))
-                        .foregroundStyle(.red)
+                        .foregroundStyle(HyperliteTheme.red.color)
                         .lineLimit(2)
                         .help(error)
                 }
@@ -52,6 +52,7 @@ struct HyperliteSettingsView: View {
                 Button("Quit Hyperlite") { NSApp.terminate(nil) }
             }
         }
+        .scrollContentBackground(.hidden)
         .formStyle(.grouped)
         .frame(width: 400)
         .padding()
@@ -68,7 +69,11 @@ struct HyperliteThreadRow: View {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: thread.hasUnseenAttention ? "exclamationmark.bubble.fill" : thread.phase.symbol)
                     .font(HyperliteTypography.bold(18))
-                    .foregroundStyle(thread.hasUnseenAttention ? .orange : .cyan)
+                    .foregroundStyle(
+                        thread.hasUnseenAttention
+                            ? HyperliteTheme.orange.color
+                            : HyperliteTheme.cyan.color
+                    )
                     .frame(width: 22)
                     .padding(.top, 2)
                 VStack(alignment: .leading, spacing: 5) {
@@ -79,7 +84,7 @@ struct HyperliteThreadRow: View {
                         Spacer(minLength: 8)
                         Text(HyperlitePresentation.ageLabel(for: thread.updatedAt))
                             .font(HyperliteTypography.semibold(11).monospacedDigit())
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(HyperliteTheme.secondaryText.color)
                     }
                     HStack(spacing: 5) {
                         Text(thread.projectName)
@@ -87,11 +92,11 @@ struct HyperliteThreadRow: View {
                         Label(thread.phase.label, systemImage: thread.phase.symbol)
                     }
                     .font(HyperliteTypography.semibold(11))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(HyperliteTheme.secondaryText.color)
                     if let summary = HyperlitePresentation.rowSummary(for: thread) {
                         Text(summary)
                             .font(HyperliteTypography.regular(12))
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(HyperliteTheme.primaryText.color)
                             .lineLimit(2)
                     }
                 }
@@ -100,7 +105,7 @@ struct HyperliteThreadRow: View {
             .padding(.horizontal, 6)
             .contentShape(Rectangle())
             .background(
-                highlighted ? Color.accentColor.opacity(0.16) : Color.clear,
+                highlighted ? HyperliteTheme.blue.color.opacity(0.28) : Color.clear,
                 in: RoundedRectangle(cornerRadius: 8)
             )
         }

@@ -22,12 +22,12 @@ struct HyperliteThreadDetail: View {
                     Text(thread.title).font(HyperliteTypography.bold(20))
                     Label(thread.phase.label, systemImage: thread.phase.symbol)
                         .font(HyperliteTypography.semibold(12))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(HyperliteTheme.secondaryText.color)
                 }
                 Spacer()
                 Button("Done") { dismiss() }
             }
-            Divider()
+            HyperliteThemeDivider()
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     detailSection("Goal", thread.goal)
@@ -63,14 +63,19 @@ struct HyperliteThreadDetail: View {
                         TextEditor(text: $note)
                             .font(HyperliteTypography.regular(13))
                             .frame(minHeight: 72)
+                            .scrollContentBackground(.hidden)
+                            .background(
+                                HyperliteTheme.surface.color,
+                                in: RoundedRectangle(cornerRadius: 6)
+                            )
                             .overlay {
                                 RoundedRectangle(cornerRadius: 6)
-                                    .strokeBorder(Color.secondary.opacity(0.25))
+                                    .strokeBorder(HyperliteTheme.mutedText.color.opacity(0.6))
                             }
                         HStack {
                             Text("Optional annotation; it never creates or completes a thread.")
                                 .font(HyperliteTypography.regular(11))
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(HyperliteTheme.secondaryText.color)
                             Spacer()
                             Button("Save Note") { onSaveNote(note) }
                         }
@@ -115,7 +120,7 @@ struct HyperliteThreadDetail: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title).font(HyperliteTypography.semibold(13))
             if values.isEmpty, let empty {
-                Text(empty).foregroundStyle(.secondary)
+                Text(empty).foregroundStyle(HyperliteTheme.secondaryText.color)
             } else {
                 ForEach(Array(values.enumerated()), id: \.offset) { _, value in
                     Text("• \(value)").textSelection(.enabled)
@@ -129,7 +134,7 @@ struct HyperliteThreadDetail: View {
             Text("Evidence").font(HyperliteTypography.semibold(13))
             if thread.evidence.isEmpty {
                 Text("No evidence is currently cited for this thread.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(HyperliteTheme.secondaryText.color)
             } else {
                 ForEach(thread.evidence) { evidence in
                     HStack(alignment: .firstTextBaseline) {
@@ -137,7 +142,7 @@ struct HyperliteThreadDetail: View {
                             Text(evidence.title).font(HyperliteTypography.semibold(12))
                             Text("\(evidence.source) · \(evidence.freshness)")
                                 .font(HyperliteTypography.regular(11))
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(HyperliteTheme.secondaryText.color)
                         }
                         Spacer()
                         if let value = evidence.url, let url = URL(string: value) {

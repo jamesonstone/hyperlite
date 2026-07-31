@@ -9,16 +9,17 @@ struct HyperliteNotepadView: View {
             HStack(spacing: 6) {
                 Text("Notepad")
                     .font(HyperliteTypography.semibold(11))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(HyperliteTheme.secondaryText.color)
                 Spacer()
                 if state.isSaving {
                     ProgressView()
                         .controlSize(.mini)
+                        .tint(HyperliteTheme.cyan.color)
                         .accessibilityLabel("Saving notepad")
                 } else if let error = state.errorMessage {
                     Label(error, systemImage: "exclamationmark.triangle.fill")
                         .font(HyperliteTypography.regular(10))
-                        .foregroundStyle(.red)
+                        .foregroundStyle(HyperliteTheme.red.color)
                         .lineLimit(1)
                         .help(error)
                 }
@@ -35,7 +36,7 @@ struct HyperliteNotepadView: View {
                 if state.text.isEmpty {
                     Text("Write anything — local only")
                         .font(.system(size: 13))
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(HyperliteTheme.mutedText.color)
                         .padding(.horizontal, 7)
                         .padding(.vertical, 6)
                         .allowsHitTesting(false)
@@ -48,8 +49,8 @@ struct HyperliteNotepadView: View {
         }
         .frame(maxHeight: .infinity)
         .padding(.vertical, 9)
-        .overlay(alignment: .top) { Divider() }
-        .overlay(alignment: .bottom) { Divider() }
+        .overlay(alignment: .top) { HyperliteThemeDivider() }
+        .overlay(alignment: .bottom) { HyperliteThemeDivider() }
     }
 }
 
@@ -73,7 +74,12 @@ private struct HyperlitePlainTextEditor: NSViewRepresentable {
         textView.delegate = context.coordinator
         textView.string = text
         textView.font = HyperliteTypography.plainTextAppKitFont(13)
-        textView.textColor = .labelColor
+        textView.textColor = HyperliteTheme.primaryText.appKitColor
+        textView.insertionPointColor = HyperliteTheme.blue.appKitColor
+        textView.selectedTextAttributes = [
+            .backgroundColor: HyperliteTheme.blue.appKitColor.withAlphaComponent(0.53),
+            .foregroundColor: HyperliteTheme.primaryText.appKitColor,
+        ]
         textView.backgroundColor = .clear
         textView.drawsBackground = false
         textView.isRichText = false

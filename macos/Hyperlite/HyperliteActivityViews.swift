@@ -6,16 +6,16 @@ struct HyperliteAttentionStatus: View {
     var body: some View {
         HStack(spacing: 5) {
             Text("·")
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(HyperliteTheme.mutedText.color)
             if count == 0 {
                 Label("All clear", systemImage: "checkmark.circle.fill")
-                    .foregroundStyle(.cyan)
+                    .foregroundStyle(HyperliteTheme.green.color)
             } else {
                 Label(
                     "\(count) need\(count == 1 ? "s" : "") attention",
                     systemImage: "exclamationmark.bubble.fill"
                 )
-                .foregroundStyle(.orange)
+                .foregroundStyle(HyperliteTheme.orange.color)
             }
         }
     }

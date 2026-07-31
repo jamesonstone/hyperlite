@@ -17,22 +17,22 @@ struct HyperlitePullRequestPanel: View {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text("Open PRs")
                     .font(HyperliteTypography.semibold(11))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(HyperliteTheme.secondaryText.color)
                 Text("\(rows.count)")
                     .font(HyperliteTypography.bold(10).monospacedDigit())
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(HyperliteTheme.mutedText.color)
                 Spacer()
                 Text(HyperlitePullRequestPresentation.freshnessLabel(
                     observedAt: scan.observedAt
                 ))
                     .font(HyperliteTypography.regular(10))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(HyperliteTheme.mutedText.color)
             }
 
             if rows.isEmpty && availability.isEmpty {
                 Text("No open pull requests")
                     .font(HyperliteTypography.regular(10))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(HyperliteTheme.mutedText.color)
                     .padding(.vertical, 2)
             } else {
                 LazyVStack(alignment: .leading, spacing: 3) {
@@ -65,24 +65,32 @@ struct HyperlitePullRequestPanelRow: View {
                         width: Self.layout.repositoryColumnWidth,
                         alignment: .leading
                     )
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(HyperliteTheme.mutedText.color)
                     .lineLimit(1)
                     .truncationMode(.tail)
                     .layoutPriority(Self.layout.repositoryLayoutPriority)
                 Text("#\(row.number)")
                     .frame(width: 42, alignment: .leading)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(HyperliteTheme.secondaryText.color)
                 Text(row.isDraft ? "draft" : "ready")
                     .frame(width: 42, alignment: .leading)
-                    .foregroundStyle(row.isDraft ? .tertiary : .secondary)
+                    .foregroundStyle(
+                        row.isDraft
+                            ? HyperliteTheme.mutedText.color
+                            : HyperliteTheme.secondaryText.color
+                    )
                 Text(row.title)
-                    .foregroundStyle(row.status == .current ? .secondary : .tertiary)
+                    .foregroundStyle(
+                        row.status == .current
+                            ? HyperliteTheme.secondaryText.color
+                            : HyperliteTheme.mutedText.color
+                    )
                     .lineLimit(1)
                     .truncationMode(.tail)
                     .layoutPriority(Self.layout.titleLayoutPriority)
                 Spacer(minLength: 6)
                 Text(HyperlitePresentation.ageLabel(for: row.updatedAt))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(HyperliteTheme.mutedText.color)
                     .monospacedDigit()
             }
             .font(HyperliteTypography.regular(10))
@@ -127,7 +135,7 @@ struct HyperlitePullRequestAvailabilityRow: View {
             Spacer(minLength: 0)
         }
         .font(HyperliteTypography.regular(10))
-        .foregroundStyle(.tertiary)
+        .foregroundStyle(HyperliteTheme.mutedText.color)
         .help(project.message ?? "GitHub data is unavailable")
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(

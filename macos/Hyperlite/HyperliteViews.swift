@@ -94,7 +94,7 @@ struct HyperliteWindow: View {
                                 if let errorMessage = state.errorMessage {
                                     Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
                                         .font(HyperliteTypography.regular(12))
-                                        .foregroundStyle(.red)
+                                        .foregroundStyle(HyperliteTheme.red.color)
                                 }
                                 if let pullRequests {
                                     HyperlitePullRequestPanel(scan: pullRequests)
@@ -107,7 +107,7 @@ struct HyperliteWindow: View {
                             .frame(maxWidth: .infinity, alignment: .topLeading)
                         }
                         .frame(height: sectionHeight)
-                        .overlay(alignment: .bottom) { Divider() }
+                        .overlay(alignment: .bottom) { HyperliteThemeDivider() }
 
                         ScrollView(.vertical, showsIndicators: true) {
                             VStack(alignment: .leading, spacing: 10) {
@@ -118,7 +118,7 @@ struct HyperliteWindow: View {
                                 if projects.isEmpty, state.scan != nil {
                                     Text("No configured projects")
                                         .font(HyperliteTypography.regular(10))
-                                        .foregroundStyle(.tertiary)
+                                        .foregroundStyle(HyperliteTheme.mutedText.color)
                                 } else if !projects.isEmpty {
                                     HyperliteProjectMap(projects: projects)
                                 }
@@ -143,7 +143,7 @@ struct HyperliteWindow: View {
                         containerHeight: paletteArea.size.height
                     )
                     ZStack {
-                        HyperlitePaletteTheme.canvas.color.opacity(0.36)
+                        Color.black.opacity(0.3)
                             .contentShape(Rectangle())
                             .onTapGesture { state.dismissPalette() }
                         HyperliteCommandPalette(
@@ -168,6 +168,7 @@ struct HyperliteWindow: View {
                 onSeen: { state.markSeen(threadID: thread.id) },
                 onSaveNote: { state.updateNote(threadID: thread.id, note: $0) }
             )
+            .hyperliteTheme()
         }
         .confirmationDialog(
             "Remove project from Hyperlite?",
@@ -207,14 +208,14 @@ struct HyperliteWindow: View {
                     HyperliteAttentionStatus(count: state.attentionThreadCount())
                 }
                 .font(HyperliteTypography.medium(11))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(HyperliteTheme.secondaryText.color)
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
             }
             Spacer(minLength: 8)
             Button { state.refresh() } label: { Image(systemName: "arrow.clockwise") }
                 .buttonStyle(.bordered)
-                .tint(Color.orange.opacity(0.82))
+                .tint(HyperliteTheme.orange.color.opacity(0.82))
                 .disabled(state.isRefreshing || state.isUpdatingProjects)
                 .help("Refresh projects and open pull requests (⌘R)")
             Button(action: openHyperliteSettings) { Image(systemName: "gearshape.fill") }

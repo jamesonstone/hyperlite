@@ -26,6 +26,7 @@ struct HyperliteApp: App {
             HyperliteWindow(state: state, notepad: HyperliteNotepadState.shared)
                 .font(HyperliteTypography.regular(13))
                 .background(HyperliteSettingsActionInstaller())
+                .hyperliteTheme()
         }
         .defaultSize(width: 480, height: 650)
         .windowResizability(.contentMinSize)
@@ -53,6 +54,7 @@ struct HyperliteApp: App {
         Settings {
             HyperliteSettingsView(state: state)
                 .font(HyperliteTypography.regular(13))
+                .hyperliteTheme()
         }
     }
 }
