@@ -87,6 +87,9 @@ intentionally deferred so GH-17 remains reviewable and reversible.
 - Notes, Open PRs, and Projects each receive exactly one third of the content
   workspace after fixed inter-section spacing. Each section clips to its share
   and owns a vertical scrollbar for overflow.
+- The Notepad's editable body uses a distinct Selenized surface and boundary so
+  its text-entry area remains obvious without changing its focus or scrolling
+  behavior.
 - Open PRs remains directly below Notes and renders its last observed GitHub
   timestamp as local date plus 24-hour `HH:mm`; missing observations remain an
   explicit availability message.
@@ -147,7 +150,8 @@ Observable acceptance:
 
 1. Replace proportional activity sizing with a pure equal-third workspace
    calculation and compose three fixed-height section views, reusing the
-   notepad's native scroller and adding separate PR/project `ScrollView`s.
+   notepad's native scroller inside a distinct themed editor surface and adding
+   separate PR/project `ScrollView`s.
 2. Move freshness formatting into a pure pull-request presentation helper,
    add the focused Refresh command, and apply the small header presentation
    changes.
@@ -235,7 +239,8 @@ Observable acceptance:
   executable and bundled helper contain `x86_64` and `arm64`; the bundle retains
   its identifier, executable, and icon metadata.
 - A real packaged-app inspection confirmed three equal independent scroll
-  regions, the ghost and orange Refresh treatment, absolute Open PR timestamp,
+  regions, a distinct bordered Selenized surface around the editable Notepad
+  body, the ghost and orange Refresh treatment, absolute Open PR timestamp,
   persistent Selene Selenized dashboard and Settings surfaces with no palette
   open, and the centered elevated Command-K/Command-P palettes over that same
   theme. It also confirmed configured-project expansion into PRs and all
@@ -246,15 +251,16 @@ Observable acceptance:
 ## OUTCOME
 
 Hyperlite now presents Notes, Open PRs, and Projects as equal independently
-scrollable thirds. Its focused macOS commands provide Refresh, a searchable
-all-command palette, and a searchable configured-project palette. Selene
-Selenized Dark now persists across the native dashboard, Settings, detail, and
-hover surfaces, including when the palette is closed; both palette modes use a
-centered, responsive elevated surface over that theme. Project rows expand into
-open PRs and every registered lane; add/remove selection changes flow through
-explicit serialized, atomic Go helper commands, with native picking and removal
-confirmation. Native and helper worktree-prune actions are removed, while
-read-only diagnostic evidence remains available.
+scrollable thirds, with the editable Notepad body clearly identified by its own
+bordered Selenized surface. Its focused macOS commands provide Refresh, a
+searchable all-command palette, and a searchable configured-project palette.
+Selene Selenized Dark now persists across the native dashboard, Settings,
+detail, and hover surfaces, including when the palette is closed; both palette
+modes use a centered, responsive elevated surface over that theme. Project rows
+expand into open PRs and every registered lane; add/remove selection changes
+flow through explicit serialized, atomic Go helper commands, with native
+picking and removal confirmation. Native and helper worktree-prune actions are
+removed, while read-only diagnostic evidence remains available.
 
 ## REPOSITORY MEMORY
 

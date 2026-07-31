@@ -46,6 +46,15 @@ struct HyperliteNotepadView: View {
                 minHeight: HyperliteWorkspaceSizing.minimumNotepadEditorHeight,
                 maxHeight: .infinity
             )
+            .background(
+                HyperliteTheme.surface.color,
+                in: RoundedRectangle(cornerRadius: 7, style: .continuous)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .strokeBorder(HyperliteTheme.elevatedSurface.color, lineWidth: 1)
+            }
         }
         .frame(maxHeight: .infinity)
         .padding(.vertical, 9)
