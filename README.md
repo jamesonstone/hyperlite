@@ -64,13 +64,12 @@ The current native presentation focuses on notes and open pull requests.
 Inferred attention remains available through CLI/JSON but is hidden behind a
 single native feature flag: the window, menu bar, and palettes show no thread
 or attention counts or entries, and the app skips remote attention enrichment.
-The fixed header contains only the product name, Refresh, and Settings. The
-notepad takes the available vertical space while Open PRs and the
-single-column Projects list remain pinned to the bottom as one activity
-region. Long notes use the notepad's native scrollbar; if the activity region
-outgrows the remaining window, it scrolls independently. Projects immediately
-follows the final PR row. The pull-request index is informational only: it
-never establishes thread activity or attention.
+The fixed header contains the product name and ghost, a subtly orange Refresh
+action, and Settings. Notes, Open PRs, and the single-column Projects list each
+own one third of the content workspace. Every section has its own vertical
+scroll boundary, so long notes, a large pull-request index, and a dense project
+map remain independently usable. The pull-request index is informational only:
+it never establishes thread activity or attention.
 
 Open PRs load from a separate private cache, refresh stale configured
 repositories on startup or foreground activation no more often than every five
@@ -95,10 +94,14 @@ application yields. It is regular UTF-8 text rendered in the proportional
 system font, with no Markdown presentation. Its content never enters thread
 inference or attention.
 
-Command+K navigates current commands. Verified stale-worktree pruning appears
-there when applicable; scan diagnostics remain available through CLI output and
-JSON. Thread and project navigation can be re-enabled with the native attention
-presentation later.
+Command+R refreshes the focused Hyperlite application. Command+K opens a
+searchable command palette with Refresh, Settings, Add Project, and Remove
+Project. Command+P opens the same searchable surface in configured-project
+mode; projects start collapsed and expand to show their open pull requests and
+registered branch/worktree lanes. Add Project is also available from Settings.
+Project selection changes are written atomically by the bundled helper.
+Hyperlite does not expose worktree-pruning functionality; scan diagnostics
+remain available through CLI output and JSON.
 
 The JSON and local-inference interfaces are:
 
@@ -108,6 +111,9 @@ hyperlite infer --json
 hyperlite pull-requests --json
 hyperlite pull-requests --json --local
 hyperlite pull-requests --json --force
+hyperlite projects
+hyperlite projects add /path/to/repository
+hyperlite projects remove /path/to/repository
 hyperlite notepad
 hyperlite notepad set --stdin
 hyperlite notepad path

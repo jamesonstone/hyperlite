@@ -66,7 +66,80 @@ func (a App) configuredProjectsCommand(configPath *string) *cobra.Command {
 		},
 	}
 	command.Flags().StringVar(&browserRoot, "root", defaultProjectBrowserRoot, "project browser root")
+	command.AddCommand(
+		a.configuredProjectAddCommand(configPath),
+		a.configuredProjectRemoveCommand(configPath),
+	)
 	return command
+}
+
+func (a App) configuredProjectAddCommand(configPath *string) *cobra.Command {
+	return &cobra.Command{
+		Use:   "add <repository-path>",
+		Short: "Add one repository to Hyperlite",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			return a.updateConfiguredProject(*configPath, args[0], true)
+		},
+	}
+}
+
+func (a App) configuredProjectRemoveCommand(configPath *string) *cobra.Command {
+	return &cobra.Command{
+		Use:   "remove <repository-path>",
+		Short: "Remove one repository from Hyperlite",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			return a.updateConfiguredProject(*configPath, args[0], false)
+		},
+	}
+}
+
+func (a App) updateConfiguredProject(configPath, path string, add bool) error {
+	canonical, err := config.CanonicalizeSourcePath(path)
+	if err != nil {
+		return fmt.Errorf("resolve project path: %w", err)
+	}
+	if add && !discovery.IsRepositoryRoot(canonical) {
+		return fmt.Errorf("project path is not a Git repository root: %s", canonical)
+	}
+	resolvedConfig, err := config.ResolvePath(configPath)
+	if err != nil {
+		return err
+	}
+	message := ""
+	if err := config.Mutate(resolvedConfig, func(cfg *config.Config) (bool, error) {
+		selected := configuredProjectPaths(*cfg)
+		_, exists := selected[canonical]
+		if add == exists {
+			state := "not configured"
+			if exists {
+				state = "already configured"
+			}
+			message = fmt.Sprintf("project %s: %s", state, canonical)
+			return false, nil
+		}
+		if add {
+			selected[canonical] = struct{}{}
+		} else {
+			delete(selected, canonical)
+		}
+		updated, err := config.ReplaceProjectPaths(*cfg, sortedProjectPaths(selected))
+		if err != nil {
+			return false, err
+		}
+		*cfg = updated
+		action := "removed"
+		if add {
+			action = "added"
+		}
+		message = fmt.Sprintf("%s project: %s", action, canonical)
+		return true, nil
+	}); err != nil {
+		return err
+	}
+	_, err = fmt.Fprintln(a.Out, message)
+	return err
 }
 
 func (a App) runConfiguredProjectSelector(ctx context.Context, configPath, root, commandPath string) error {

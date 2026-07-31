@@ -8,8 +8,7 @@ struct HyperliteInteractionModelTests {
         testAttentionAndInformationalProjections()
         expect(!HyperliteFeatureFlags.inferredAttentionPresentation, "attention presentation hidden")
         testRowSummaryOnlyShowsAttention()
-        testCommandEntries()
-        testProjectEntries()
+        HyperlitePaletteTests.run()
         testSelectionClamping()
         testHoverSummaryLimit()
         HyperliteWorkspaceSizingTests.run()
@@ -91,7 +90,7 @@ struct HyperliteInteractionModelTests {
         }
         """.utf8)
         let diagnostic = try JSONDecoder().decode(HyperliteDiagnostic.self, from: data)
-        expect(diagnostic.isPrunableWorktree, "structured diagnostic should be actionable")
+        expect(diagnostic.code == "worktree_prunable", "structured diagnostic code should decode")
         expect(diagnostic.repositoryPath == "/repo/kit", "repository path should decode")
     }
 
@@ -128,20 +127,6 @@ struct HyperliteInteractionModelTests {
                "the active count should cover both visible projections")
     }
 
-    private static func testCommandEntries() {
-        let entries = HyperliteInteractionModel.commandEntries(
-            threads: [thread(id: "one", repository: "owner/kit")],
-            warnings: [genericDiagnostic(), prunableDiagnostic()]
-        )
-        expect(entries.map(\.id).contains("action:refresh"), "commands should include refresh")
-        expect(entries.map(\.id).contains("action:settings"), "commands should include settings")
-        expect(!entries.map(\.id).contains("action:diagnostics"),
-               "commands should not expose generic scan diagnostics")
-        expect(entries.filter { $0.id.hasPrefix("prune:") }.count == 1,
-               "only actionable diagnostics should produce prune commands")
-        expect(entries.contains { $0.id.hasPrefix("thread:") }, "commands should include threads")
-    }
-
     private static func testRowSummaryOnlyShowsAttention() {
         let ordinary = thread(id: "ordinary", repository: "owner/kit")
         let attention = thread(
@@ -152,25 +137,6 @@ struct HyperliteInteractionModelTests {
                "ordinary in-flight rows should stay quiet")
         expect(HyperlitePresentation.rowSummary(for: attention) == "A decision is required",
                "attention rows should explain why they need attention")
-    }
-
-    private static func testProjectEntries() {
-        let threads = [
-            thread(id: "one", repository: "owner/kit"),
-            thread(id: "two", repository: "owner/kit"),
-            thread(id: "three", repository: "owner/flx"),
-        ]
-        let collapsed = HyperliteInteractionModel.projectEntries(threads: threads, expandedProjects: [])
-        expect(collapsed.count == 2, "collapsed projects should show only headers")
-        expect(collapsed.map(\.title) == ["kit", "flx"], "project order should follow source threads")
-
-        let expanded = HyperliteInteractionModel.projectEntries(
-            threads: threads,
-            expandedProjects: ["owner/kit"]
-        )
-        expect(expanded.count == 4, "expanded project should expose only its own threads")
-        expect(expanded[0].id == "project:owner/kit", "kit header should remain selected")
-        expect(expanded[3].id == "project:owner/flx", "flx should remain collapsed")
     }
 
     private static func testSelectionClamping() {
@@ -260,28 +226,6 @@ struct HyperliteInteractionModelTests {
             inferenceStatus: "not_configured",
             note: nil,
             updatedAt: updatedAt
-        )
-    }
-
-    private static func prunableDiagnostic() -> HyperliteDiagnostic {
-        HyperliteDiagnostic(
-            repository: "kit",
-            repositoryPath: "/repo/kit",
-            stage: "worktree",
-            message: "worktree is prunable: /stale/kit",
-            code: "worktree_prunable",
-            worktreePath: "/stale/kit"
-        )
-    }
-
-    private static func genericDiagnostic() -> HyperliteDiagnostic {
-        HyperliteDiagnostic(
-            repository: "kit",
-            repositoryPath: nil,
-            stage: "github",
-            message: "cached GitHub evidence is stale",
-            code: nil,
-            worktreePath: nil
         )
     }
 

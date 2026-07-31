@@ -17,6 +17,25 @@ struct HyperliteProjectLane: Codable, Equatable, Identifiable {
 }
 
 enum HyperliteProjectIndexPresentation {
+    static func configuredProjects(
+        _ projects: [HyperliteProjectLocation],
+        pullRequests scan: HyperliteProjectPullRequestScan?
+    ) -> [HyperliteProjectLocation] {
+        var configured = projects
+        var seen = Set(projects.map(\.id))
+        for project in scan?.projects ?? [] where !seen.contains(project.id) {
+            seen.insert(project.id)
+            configured.append(HyperliteProjectLocation(
+                id: project.id,
+                name: project.name,
+                path: project.path,
+                repository: project.repository,
+                lanes: []
+            ))
+        }
+        return configured
+    }
+
     static func visibleProjects(
         _ projects: [HyperliteProjectLocation],
         pullRequests scan: HyperliteProjectPullRequestScan?
@@ -27,7 +46,7 @@ enum HyperliteProjectIndexPresentation {
                 project.pullRequests.map(\.headRefName).filter { !$0.isEmpty }
             )
         }
-        return projects.map { project in
+        return configuredProjects(projects, pullRequests: scan).map { project in
             let openBranches = branchesByProject[project.id] ?? []
             let lanes = project.lanes.filter { lane in
                 guard !lane.primary else { return true }

@@ -33,7 +33,6 @@ type App struct {
 	workScannerSource               workSnapshotScanner
 	pullRequestScannerSource        projectPullRequestScanner
 	configuredProjectPrompterSource configuredProjectPrompter
-	worktreePrunerSource            staleWorktreePruner
 }
 
 type workSnapshotScanner interface {
@@ -76,7 +75,7 @@ func (a App) Root() *cobra.Command {
 		SilenceUsage:  true,
 		Args:          noArgs,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			if cmd.Name() == "version" || cmd.Name() == "prune-worktree" ||
+			if cmd.Name() == "version" ||
 				strings.HasPrefix(cmd.CommandPath(), "hyperlite notepad") ||
 				(cmd.Name() == "scan" && len(args) > 0) {
 				return nil
@@ -99,7 +98,6 @@ func (a App) Root() *cobra.Command {
 		a.threadCommand(),
 		a.pullRequestsCommand(&configPath),
 		a.configuredProjectsCommand(&configPath),
-		a.pruneWorktreeCommand(),
 		versionCommand(a.Out),
 	)
 	return root

@@ -22,6 +22,7 @@ private struct HyperliteLeanHoverPopover<PopoverContent: View>: ViewModifier {
                 content()
                     .padding(10)
                     .frame(width: 300, alignment: .leading)
+                    .hyperliteTheme()
                     .onHover { hovered in
                         popoverHovered = hovered
                         hovered ? pendingTask?.cancel() : scheduleClose()
@@ -70,7 +71,7 @@ struct HyperliteThreadHoverCard: View {
                 .lineLimit(2)
             Text(HyperliteInteractionModel.hoverSummary(for: thread))
                 .font(HyperliteTypography.regular(11))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(HyperliteTheme.secondaryText.color)
                 .lineLimit(4)
         }
     }

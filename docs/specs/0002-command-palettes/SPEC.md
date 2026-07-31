@@ -206,6 +206,16 @@ backward compatible because new diagnostic fields are optional.
   feature-specific interaction and safety behavior, not a new project
   invariant or cross-feature practice.
 
+## SUPERSEDED BEHAVIOR
+
+Issue #17 and `docs/specs/0005-dashboard-project-management/SPEC.md` supersede
+the native worktree-prune action, hidden `prune-worktree` helper command, and
+non-searchable palette behavior. Hyperlite now retains stale-worktree evidence
+as read-only diagnostics, provides searchable Command-K and Command-P
+surfaces, and uses atomic project add/remove commands instead. The original
+pruning rationale remains above as historical delivery context; it is no
+longer an active product or safety contract.
+
 ## DELIVERY DECISION
 
 Implemented on issue #5 in branch and worktree `GH-5`. Ready pull request #6

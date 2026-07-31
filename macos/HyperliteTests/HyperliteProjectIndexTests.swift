@@ -120,6 +120,12 @@ enum HyperliteProjectIndexTests {
         expect(visible[0].lanes.map(\.branch) == ["main", "GH-9"],
                "only an attached exact open-PR branch should remain visible")
 
+        let configuredFallback = HyperliteProjectIndexPresentation.configuredProjects(
+            [], pullRequests: scan
+        )
+        expect(configuredFallback.map(\.id) == [project.id] && configuredFallback[0].lanes.isEmpty,
+               "pull-request data should retain configured projects while the local scan loads")
+
         let cachedScan = HyperliteProjectPullRequestScan(
             schemaVersion: 1, generatedAt: Date(), checkedAt: Date(),
             observedAt: Date(), refreshIntervalSeconds: 300,

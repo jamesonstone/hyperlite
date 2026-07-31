@@ -5,9 +5,10 @@
 | ID | FEATURE | PATH | PHASE | PAUSED | CREATED | SUMMARY |
 | -- | ------- | ---- | ----- | ------ | ------- | ------- |
 | 0001 | standalone-hyperlite | `docs/specs/0001-standalone-hyperlite` | deliver | no | 2026-07-26 | Extract Hyperlite into an independent Go CLI and native macOS application with direct, bounded project scanning. |
-| 0002 | command-palettes | `docs/specs/0002-command-palettes` | deliver | no | 2026-07-27 | Add keyboard navigation, safe worktree pruning, concise hover context, and native ghost branding. |
+| 0002 | command-palettes | `docs/specs/0002-command-palettes` | deliver | no | 2026-07-27 | Add keyboard navigation, concise hover context, and native ghost branding; issue #17 supersedes prune and non-searchable palette behavior. |
 | 0003 | inferred-attention | `docs/specs/0003-inferred-attention` | deliver | no | 2026-07-28 | Reconstruct evidence-backed goal threads and surface only material coordination changes without user bookkeeping. |
 | 0004 | open-pull-requests | `docs/specs/0004-open-pull-requests` | deliver | no | 2026-07-29 | Track every open pull request across configured projects through a separate rate-safe informational projection. |
+| 0005 | dashboard-project-management | `docs/specs/0005-dashboard-project-management` | deliver | no | 2026-07-31 | Give Notes, Open PRs, and Projects equal scrollable space and add searchable project configuration commands. |
 
 ## PROJECT INTENT
 
@@ -44,15 +45,15 @@ changes that warrant human attention.
 
 - **STATUS**: deliver
 - **PAUSED**: no
-- **INTENT**: Keep the main surface quiet while making navigation and safe
-  cleanup quickly reachable.
-- **APPROACH**: Add pure palette interaction models, retain structured scan
-  diagnostics in CLI/JSON, expose verified repository-scoped worktree pruning
-  only when actionable, and provide lean hover context and native ghost
-  branding.
-- **OPEN ITEMS**: Implementation was delivered through issue #5 and PR #6; no
-  implementation items remain.
-- **POINTERS**: `docs/specs/0002-command-palettes/SPEC.md`
+- **INTENT**: Keep the main surface quiet while making navigation and current
+  commands quickly reachable.
+- **APPROACH**: Use pure palette interaction models, local key capture, concise
+  hover context, and native ghost branding. Issue #17 supersedes native
+  worktree pruning and makes both command/project palettes searchable.
+- **OPEN ITEMS**: Issue #5 and PR #6 delivered the original surface; issue #17
+  owns the active supersession.
+- **POINTERS**: `docs/specs/0002-command-palettes/SPEC.md`,
+  `docs/specs/0005-dashboard-project-management/SPEC.md`
 
 ### inferred-attention
 
@@ -66,8 +67,8 @@ changes that warrant human attention.
   fail-soft presentation state, and preserve material Attention behind a
   native feature boundary. The current native surface disables that
   presentation to focus on open PRs and a regular-text notepad. Keep a stable
-  project map directly after Open PRs with every configured checkout and only
-  subordinate lanes whose exact branch has a current open PR.
+  project map with every configured checkout and only subordinate lanes whose
+  exact branch has a current open PR.
 - **OPEN ITEMS**: Core inference merged through issue #7 and PR #8. Re-enabling
   its native presentation is intentionally deferred.
 - **POINTERS**: `docs/specs/0003-inferred-attention/SPEC.md`
@@ -80,19 +81,33 @@ changes that warrant human attention.
   configured projects without turning artifact presence into attention.
 - **APPROACH**: Resolve configured GitHub repositories locally, retrieve
   all-author open pull requests in bounded GraphQL batches, keep an independent
-  private cache with a five-minute success and failure floor, bottom-pin Open
-  PRs and Projects beneath a flexible scrollable notepad, and use current exact
-  PR head branches to hide cached, unavailable, merged, or closed worktree
-  lanes.
-- **OPEN ITEMS**: The initial projection merged through issue #9 and PR #10;
-  the focused native layout and merged-lane follow-up merged through issue #11
-  and PR #12. Repository-column prioritization merged through issue #13 and PR
-  #14. Single-column active project lanes are complete locally on issue #15;
-  ready pull-request review and merge remain.
-- **POINTERS**: `docs/specs/0004-open-pull-requests/SPEC.md`
+  private cache with a five-minute success and failure floor, and use current
+  exact PR head branches to hide cached, unavailable, merged, or closed
+  worktree lanes. Issue #17 gives Open PRs an equal independently scrollable
+  section and absolute freshness timestamp.
+- **OPEN ITEMS**: Issues #9, #11, #13, and #15 delivered the projection and
+  active-lane presentation; issue #17 owns the current layout follow-up.
+- **POINTERS**: `docs/specs/0004-open-pull-requests/SPEC.md`,
+  `docs/specs/0005-dashboard-project-management/SPEC.md`
+
+### dashboard-project-management
+
+- **STATUS**: deliver
+- **PAUSED**: no
+- **INTENT**: Make the three primary native surfaces predictable under dense
+  content and let the operator manage configured projects inside Hyperlite.
+- **APPROACH**: Allocate equal fixed section heights, keep independent native
+  scroll boundaries, share one searchable palette across Command-K and
+  Command-P, and route atomic add/remove writes through the bundled Go helper.
+- **OPEN ITEMS**: Local implementation and validation are complete; ready
+  pull-request delivery remains for issue #17.
+- **POINTERS**: `docs/specs/0005-dashboard-project-management/SPEC.md`
 
 ## LAST UPDATED
 
+- 2026-07-31: Added feature `0005-dashboard-project-management` for the
+  equal-third native workspace, searchable palettes, project configuration,
+  and removal of worktree-prune functionality.
 - 2026-07-29: Reallocated unused activity-list space to a flexible scrollable
   notepad while keeping Open PRs and Projects bottom-pinned with an independent
   overflow viewport at constrained window heights.
