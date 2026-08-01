@@ -25,6 +25,15 @@ references:
     read_policy: must
     used_for: native presentation follow-up scope and acceptance criteria
     status: active
+  - id: issue-19
+    name: Refine Notepad editor styling
+    type: github-issue
+    target: https://github.com/jamesonstone/hyperlite/issues/19
+    relation: implements
+    read_policy: must
+    used_for: notepad presentation follow-up scope and acceptance criteria
+    status: active
+skills: []
 ---
 
 # Inferred Attention Threads
@@ -188,11 +197,10 @@ completion.
   GitHub calls. Lane presence, branch age, cleanliness, and publication state
   do not independently establish activity or attention.
 - R31: Use `JetBrainsMono Nerd Font` for every application-controlled text
-  surface except notepad content, which uses the regular proportional system
-  font to reinforce its plain-text writing role. Resolve the application font
-  once through AppKit and fall back to the system monospaced font when it is
-  unavailable. macOS-owned window chrome and system menus remain under
-  operating-system typography.
+  surface, including editable notepad content and its empty-state prompt.
+  Resolve the application font once through AppKit and fall back to the system
+  monospaced font when it is unavailable. macOS-owned window chrome and system
+  menus remain under operating-system typography.
 - R32: Keep the native header on one horizontal line: while attention
   presentation is disabled it contains the product name, flexible space,
   Refresh, and Settings.
@@ -257,8 +265,9 @@ or model-assisted note mutation.
     preserve configured paths when repository inspection degrades, and expose
     non-prunable worktrees for native open-PR branch projection.
 17. Centralize native typography around the installed JetBrainsMono Nerd Font
-    with a monospaced fallback, route SwiftUI and AppKit text through that
-    boundary, and flatten the header into one baseline-aligned toolbar.
+    with a monospaced fallback, route SwiftUI and AppKit text including the
+    editable notepad through that boundary, and flatten the header into one
+    baseline-aligned toolbar.
 18. Temporarily disable inferred-attention presentation, migrate the notepad
     from the legacy Markdown filename to regular text, and let the open-PR
     projection decide which subordinate worktree lanes remain visible.
@@ -290,8 +299,17 @@ or model-assisted note mutation.
   reconstruction.
 - The notepad is regular text rather than a Markdown document. The default
   filename migrates from `notepad.md` to `notepad.txt` without rewriting
-  existing content, and only editable notepad content uses proportional system
-  typography.
+  existing content, and its editor uses the same application typography
+  boundary as other Hyperlite-controlled text.
+- The original notepad shipped with proportional system typography to
+  emphasize its plain-text writing role. Issue #19 supersedes that presentation
+  choice: consistent JetBrainsMono Nerd Font strengthens the editor identity
+  and matches the requested Codex-like dark writing surface without adding
+  Markdown or syntax-aware behavior.
+- SwiftUI text wraps the exact `NSFont` produced by the shared resolver rather
+  than calling `Font.custom` with a family name. This preserves the requested
+  Nerd Font face and weight instead of risking SwiftUI's silent system-font
+  fallback, while keeping the same monospaced fallback as the AppKit editor.
 - Completed and dormant projections may remain in private persisted state and
   scan JSON for continuity. Current working-set threads remain visible and
   navigable, but only valid unseen attention receives urgent presentation.
@@ -401,10 +419,10 @@ or model-assisted note mutation.
   successful refresh observes its PR merged. Building it performs no
   additional GitHub commands.
 - AC24: Every application-controlled text view resolves to JetBrainsMono Nerd
-  Font when installed and to the system monospaced family otherwise; notepad
-  content alone uses the regular proportional system font. The main header
-  renders the product name, Refresh, and Settings in one horizontal row while
-  attention presentation is disabled.
+  Font when installed and to the system monospaced family otherwise, including
+  the editable notepad and its empty-state prompt. The main header renders the
+  product name, Refresh, and Settings in one horizontal row while attention
+  presentation is disabled.
 
 ## VALIDATION MAP
 
@@ -434,8 +452,9 @@ or model-assisted note mutation.
 - AC23: deterministic project-index projection tests, schema decoding and path
   presentation tests, command-count regression, and packaged native visual
   inspection.
-- AC24: executable typography resolver tests, native type-check, packaged
-  AppKit font inspection, and minimum-width header hierarchy inspection.
+- AC24: executable typography resolver tests including the notepad contract,
+  native type-check, packaged AppKit font inspection, minimum-width header
+  hierarchy inspection, and packaged Notepad surface inspection.
 
 ## DISCOVERIES
 
@@ -645,9 +664,15 @@ or model-assisted note mutation.
   remains top-anchored and contains only the product name, Refresh, and
   Settings while the native attention feature flag is disabled. No thread or
   attention counts, rows, or palette entries occupy the interface.
-- Packaged-app inspection confirms that the accessible borderless notepad sits
-  immediately below the header and renders editable content in the
-  proportional system font without Markdown presentation.
+- Initial packaged-app inspection confirmed that the accessible borderless
+  notepad sat immediately below the header and rendered editable content in
+  the proportional system font without Markdown presentation.
+- Issue #19 executable typography tests and native type-checking confirm that
+  the superseding editor and empty prompt use the shared JetBrainsMono Nerd
+  Font boundary. Packaged-app inspection confirms the displayed editor uses
+  that monospaced presentation on the darker Selenized `canvas` token while
+  retaining its elevated border, focus, native scroll behavior, and plain-text
+  semantics.
 - Go project-index tests prove that configured order and missing configured
   paths survive degraded discovery, primary checkouts remain present,
   prunable lanes stay absent, and registered subordinate worktrees are exposed
@@ -696,16 +721,17 @@ prior default Markdown file without changing its contents. Autosave and
 lifecycle flush preserve the document across relaunches without allowing its
 content to create or alter a thread, goal, obligation, or attention moment.
 
-Application interface text continues to resolve through one JetBrainsMono Nerd
-Font boundary with a system monospaced fallback, while editable notepad content
-uses the regular proportional system font. The notepad expands into otherwise
-unused vertical space and scrolls natively for long notes. Open PRs and Projects
-remain bottom-pinned as one bounded activity region, with Projects immediately
+Application interface text, including editable notepad content and its empty
+prompt, resolves through one JetBrainsMono Nerd Font boundary with a system
+monospaced fallback. The Notepad uses the darker Selenized `canvas` token
+inside its existing elevated border, expands into otherwise unused vertical
+space, and scrolls natively for long notes. Open PRs and Projects remain
+bottom-pinned as one bounded activity region, with Projects immediately
 following the final PR row. Projects always retains configured checkouts and
 renders a subordinate registered worktree only while its exact branch is
-present in current Open PR evidence and the worktree remains attached. Detached,
-cached, unavailable, merged, or closed evidence hides the lane without deleting
-or pruning local data.
+present in current Open PR evidence and the worktree remains attached.
+Detached, cached, unavailable, merged, or closed evidence hides the lane
+without deleting or pruning local data.
 
 ## REPOSITORY MEMORY
 
@@ -714,10 +740,11 @@ Decision: updated.
 Rationale: automatic thread inference, evidence authority, material-attention
 semantics, closure integrity, and the boundary between private scratch text and
 project evidence are consequential product behavior that code and tests cannot
-communicate completely. The shared application typography contract is also a
-project-wide visual invariant. The Constitution records those cross-feature
-boundaries and the project progress index exposes the canonical feature state.
+communicate completely. Issue #19 supersedes the original proportional-font
+exception while retaining its rationale here; the Constitution records the
+validated shared application typography contract as the current project-wide
+visual invariant.
 
 Artifacts: `docs/specs/0003-inferred-attention/SPEC.md`,
 `docs/specs/0001-standalone-hyperlite/SPEC.md`,
-`docs/CONSTITUTION.md`, and `docs/PROJECT_PROGRESS_SUMMARY.md`.
+`docs/CONSTITUTION.md`, `docs/PROJECT_PROGRESS_SUMMARY.md`, and `README.md`.

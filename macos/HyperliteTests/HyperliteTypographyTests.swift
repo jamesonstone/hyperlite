@@ -25,18 +25,22 @@ enum HyperliteTypographyTests {
         let expected = NSFont.monospacedSystemFont(ofSize: 13, weight: .medium)
         expect(
             fallback.fontName == expected.fontName,
-            "native editing should use the system monospaced fallback"
+            "the shared SwiftUI/AppKit resolver should use the monospaced fallback"
         )
         let plainText = HyperliteTypography.plainTextAppKitFont(13)
-        let expectedPlainText = NSFont.systemFont(ofSize: 13, weight: .regular)
+        let expectedPlainText = HyperliteTypography.appKitFont(13)
         expect(
             plainText.fontName == expectedPlainText.fontName,
-            "notepad content should use regular proportional system text"
+            "notepad content should use the application font contract"
         )
 
         if let installed = HyperliteTypography.resolveFamily(
             in: NSFontManager.shared.availableFontFamilies
         ) {
+            expect(
+                plainText.familyName == installed,
+                "notepad content should resolve the installed Nerd Font family"
+            )
             let resolved = HyperliteTypography.appKitFont(
                 13,
                 weight: .semibold,

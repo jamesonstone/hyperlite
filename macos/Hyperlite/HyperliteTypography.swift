@@ -32,7 +32,7 @@ enum HyperliteTypography {
     }
 
     static func plainTextAppKitFont(_ size: CGFloat) -> NSFont {
-        NSFont.systemFont(ofSize: size, weight: .regular)
+        appKitFont(size)
     }
 
     static func resolveFamily(in installedFamilies: [String]) -> String? {
@@ -61,10 +61,7 @@ enum HyperliteTypography {
         return NSFont.monospacedSystemFont(ofSize: size, weight: weight)
     }
 
-    private static func swiftUIFont(size: CGFloat, weight: Font.Weight) -> Font {
-        guard let resolvedFamily else {
-            return .system(size: size, weight: weight, design: .monospaced)
-        }
-        return .custom(resolvedFamily, size: size).weight(weight)
+    private static func swiftUIFont(size: CGFloat, weight: NSFont.Weight) -> Font {
+        Font(appKitFont(size, weight: weight))
     }
 }

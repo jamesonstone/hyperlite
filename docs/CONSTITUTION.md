@@ -65,11 +65,11 @@
   signal, or attention moment. It is a bounded regular-text document; the
   default `.txt` store adopts the prior default `.md` file without rewriting
   its content.
-- Application-controlled native interface text uses JetBrainsMono Nerd Font
-  through one shared SwiftUI/AppKit resolver, with the system monospaced family
-  as the unavailable-font fallback. Editable notepad content deliberately uses
-  the proportional system font, while operating-system-owned window chrome and
-  menus retain native macOS typography.
+- Application-controlled native interface text, including editable notepad
+  content, uses JetBrainsMono Nerd Font through one shared SwiftUI/AppKit
+  resolver, with the system monospaced family as the unavailable-font fallback.
+  Operating-system-owned window chrome and menus retain native macOS
+  typography.
 
 ### Kit-Managed Baseline Rules
 

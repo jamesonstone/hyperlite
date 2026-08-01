@@ -90,9 +90,10 @@ worktree row disappears; Hyperlite never deletes or prunes the local checkout.
 The global notepad directly beneath the header is a local scratch surface, not
 another source of project truth. Typing stays in memory, the latest edit saves
 after three idle seconds, and pending text flushes when the window or
-application yields. It is regular UTF-8 text rendered in the proportional
-system font, with no Markdown presentation. Its content never enters thread
-inference or attention.
+application yields. It is regular UTF-8 text rendered with JetBrainsMono Nerd
+Font through the shared application resolver and a system monospaced fallback,
+with no Markdown presentation. Its darker inset surface follows the existing
+Selenized theme, and its content never enters thread inference or attention.
 
 Command+R refreshes the focused Hyperlite application. Command+K opens a
 searchable command palette with Refresh, Settings, Add Project, and Remove
