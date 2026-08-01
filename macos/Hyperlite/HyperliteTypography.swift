@@ -32,7 +32,7 @@ enum HyperliteTypography {
     }
 
     static func plainTextAppKitFont(_ size: CGFloat) -> NSFont {
-        NSFont.systemFont(ofSize: size, weight: .regular)
+        appKitFont(size)
     }
 
     static func resolveFamily(in installedFamilies: [String]) -> String? {

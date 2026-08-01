@@ -35,7 +35,7 @@ struct HyperliteNotepadView: View {
                 )
                 if state.text.isEmpty {
                     Text("Write anything — local only")
-                        .font(.system(size: 13))
+                        .font(HyperliteTypography.regular(13))
                         .foregroundStyle(HyperliteTheme.mutedText.color)
                         .padding(.horizontal, 7)
                         .padding(.vertical, 6)
@@ -47,7 +47,7 @@ struct HyperliteNotepadView: View {
                 maxHeight: .infinity
             )
             .background(
-                HyperliteTheme.surface.color,
+                HyperliteTheme.canvas.color,
                 in: RoundedRectangle(cornerRadius: 7, style: .continuous)
             )
             .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
