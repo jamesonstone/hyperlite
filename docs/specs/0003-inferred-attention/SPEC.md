@@ -306,6 +306,10 @@ or model-assisted note mutation.
   choice: consistent JetBrainsMono Nerd Font strengthens the editor identity
   and matches the requested Codex-like dark writing surface without adding
   Markdown or syntax-aware behavior.
+- SwiftUI text wraps the exact `NSFont` produced by the shared resolver rather
+  than calling `Font.custom` with a family name. This preserves the requested
+  Nerd Font face and weight instead of risking SwiftUI's silent system-font
+  fallback, while keeping the same monospaced fallback as the AppKit editor.
 - Completed and dormant projections may remain in private persisted state and
   scan JSON for continuity. Current working-set threads remain visible and
   navigable, but only valid unseen attention receives urgent presentation.

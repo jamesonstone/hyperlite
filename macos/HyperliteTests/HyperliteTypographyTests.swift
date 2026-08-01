@@ -25,7 +25,7 @@ enum HyperliteTypographyTests {
         let expected = NSFont.monospacedSystemFont(ofSize: 13, weight: .medium)
         expect(
             fallback.fontName == expected.fontName,
-            "native editing should use the system monospaced fallback"
+            "the shared SwiftUI/AppKit resolver should use the monospaced fallback"
         )
         let plainText = HyperliteTypography.plainTextAppKitFont(13)
         let expectedPlainText = HyperliteTypography.appKitFont(13)
