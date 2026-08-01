@@ -112,6 +112,49 @@ func TestScannerRefreshesLegacyReviewCountsInsideFiveMinuteFloor(t *testing.T) {
 	}
 }
 
+func TestScannerThrottlesFailedLegacyReviewCountHydration(t *testing.T) {
+	now := time.Date(2026, 7, 29, 16, 0, 0, 0, time.UTC)
+	source := config.Source{Path: "/repo/one"}
+	repository := config.Repository{Name: "one", Path: source.Path, GitHub: "owner/one"}
+	client := &fakePullRequestClient{}
+	scanner := Scanner{
+		Discovery: fakeProjectDiscoverer{result: discovery.Result{
+			Repositories: []config.Repository{repository},
+		}},
+		Client: client,
+		Store: &memoryCacheStore{state: cacheState{
+			Version:  cacheVersion,
+			Projects: map[string]string{source.Path: repository.GitHub},
+			Repositories: map[string]cacheEntry{
+				"owner/one": {
+					Repository: repository.GitHub,
+					CheckedAt:  now.Add(-time.Minute),
+					ObservedAt: now.Add(-time.Minute),
+					LastError:  "review pagination failed",
+					PullRequests: []model.ProjectPullRequest{{
+						ID: "owner/one#1", Number: 1, Title: "Legacy",
+						HeadRefName: "GH-1",
+					}},
+				},
+			},
+		}},
+		Now: func() time.Time { return now },
+	}
+	result, err := scanner.Scan(
+		context.Background(),
+		config.Config{Projects: []config.Source{source}},
+		RefreshStale,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if client.calls != 0 ||
+		result.Projects[0].Status != model.ProjectPullRequestsCached ||
+		result.Projects[0].Message != "review pagination failed" {
+		t.Fatalf("calls=%d result=%#v", client.calls, result)
+	}
+}
+
 func TestScannerRefreshesOnlyStaleRepositoriesInOneClientCall(t *testing.T) {
 	now := time.Date(2026, 7, 29, 16, 0, 0, 0, time.UTC)
 	one := config.Repository{Name: "one", Path: "/repo/one", GitHub: "owner/one"}
