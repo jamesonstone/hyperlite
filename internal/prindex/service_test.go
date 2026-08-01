@@ -148,9 +148,13 @@ func TestScannerThrottlesFailedLegacyReviewCountHydration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	pullRequests := result.Projects[0].PullRequests
 	if client.calls != 0 ||
 		result.Projects[0].Status != model.ProjectPullRequestsCached ||
-		result.Projects[0].Message != "review pagination failed" {
+		result.Projects[0].Message != "review pagination failed" ||
+		len(pullRequests) != 1 ||
+		pullRequests[0].ID != "owner/one#1" ||
+		pullRequests[0].UnresolvedReviewThreads != nil {
 		t.Fatalf("calls=%d result=%#v", client.calls, result)
 	}
 }
