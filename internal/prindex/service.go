@@ -173,6 +173,9 @@ func repositoriesToRefresh(
 		if cached && entry.CheckedAt.IsZero() && cacheEntryNeedsHeadRefs(entry) {
 			cached = false
 		}
+		if cached && entry.LastError == "" && cacheEntryNeedsReviewCounts(entry) {
+			cached = false
+		}
 		lastCheck := entry.CheckedAt
 		if lastCheck.IsZero() {
 			lastCheck = entry.ObservedAt
@@ -190,6 +193,15 @@ func repositoriesToRefresh(
 func cacheEntryNeedsHeadRefs(entry cacheEntry) bool {
 	for _, pullRequest := range entry.PullRequests {
 		if pullRequest.HeadRefName == "" {
+			return true
+		}
+	}
+	return false
+}
+
+func cacheEntryNeedsReviewCounts(entry cacheEntry) bool {
+	for _, pullRequest := range entry.PullRequests {
+		if pullRequest.UnresolvedReviewThreads == nil {
 			return true
 		}
 	}

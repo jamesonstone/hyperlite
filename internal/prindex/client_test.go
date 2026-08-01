@@ -17,7 +17,8 @@ func TestGitHubClientBatchesRepositoriesAndPaginatesOnlyWhenNeeded(t *testing.T)
 		switch call {
 		case 1:
 			if !strings.Contains(query, `name: "one"`) ||
-				!strings.Contains(query, `name: "two"`) {
+				!strings.Contains(query, `name: "two"`) ||
+				!strings.Contains(query, `nodes { isResolved isOutdated }`) {
 				t.Fatalf("first query = %s", query)
 			}
 			return responseJSON(map[string]any{
@@ -55,6 +56,88 @@ func TestGitHubClientBatchesRepositoriesAndPaginatesOnlyWhenNeeded(t *testing.T)
 	if got := results["owner/two"]; got.Error != "" ||
 		len(got.PullRequests) != 1 || got.PullRequests[0].Number != 2 {
 		t.Fatalf("owner/two = %#v", got)
+	}
+}
+
+func TestGitHubClientCountsOnlyActionableReviewThreads(t *testing.T) {
+	runner := &graphQLRunner{respond: func(_ string, _ int) ([]byte, error) {
+		return responseJSON(map[string]any{
+			"repository0": repositoryPageWithReviewThreads(
+				1, false, "",
+				[]map[string]any{
+					{"isResolved": false, "isOutdated": false},
+					{"isResolved": true, "isOutdated": false},
+					{"isResolved": false, "isOutdated": true},
+					{"isResolved": true, "isOutdated": true},
+				},
+				false, "",
+			),
+		}, nil), nil
+	}}
+	result := (GitHubClient{Runner: runner}).ListOpen(
+		context.Background(), []config.Repository{{GitHub: "owner/one"}},
+	)["owner/one"]
+	if result.Error != "" || len(result.PullRequests) != 1 ||
+		result.PullRequests[0].UnresolvedReviewThreads == nil ||
+		*result.PullRequests[0].UnresolvedReviewThreads != 1 {
+		t.Fatalf("result = %#v", result)
+	}
+}
+
+func TestGitHubClientPaginatesReviewThreadsOnlyWhenNeeded(t *testing.T) {
+	runner := &graphQLRunner{respond: func(query string, call int) ([]byte, error) {
+		switch call {
+		case 1:
+			return responseJSON(map[string]any{
+				"repository0": repositoryPageWithReviewThreads(
+					1, false, "",
+					[]map[string]any{{"isResolved": false, "isOutdated": false}},
+					true, "review-cursor-one",
+				),
+			}, nil), nil
+		case 2:
+			if !strings.Contains(query, `pullRequest(number: 1)`) ||
+				!strings.Contains(query, `after: "review-cursor-one"`) ||
+				strings.Contains(query, "pullRequests(states: OPEN") {
+				t.Fatalf("review pagination query = %s", query)
+			}
+			return responseJSON(map[string]any{
+				"repository0": reviewThreadRepositoryPage(
+					[]map[string]any{
+						{"isResolved": false, "isOutdated": false},
+						{"isResolved": true, "isOutdated": false},
+					},
+					false, "",
+				),
+			}, nil), nil
+		default:
+			t.Fatalf("unexpected call %d", call)
+			return nil, nil
+		}
+	}}
+	result := (GitHubClient{Runner: runner}).ListOpen(
+		context.Background(), []config.Repository{{GitHub: "owner/one"}},
+	)["owner/one"]
+	if runner.calls != 2 || result.Error != "" ||
+		result.PullRequests[0].UnresolvedReviewThreads == nil ||
+		*result.PullRequests[0].UnresolvedReviewThreads != 2 {
+		t.Fatalf("calls=%d result=%#v", runner.calls, result)
+	}
+}
+
+func TestGitHubClientRejectsMissingReviewThreadData(t *testing.T) {
+	runner := &graphQLRunner{respond: func(_ string, _ int) ([]byte, error) {
+		page := repositoryPage(1, false, "")
+		pullRequests := page["pullRequests"].(map[string]any)
+		nodes := pullRequests["nodes"].([]map[string]any)
+		delete(nodes[0], "reviewThreads")
+		return responseJSON(map[string]any{"repository0": page}, nil), nil
+	}}
+	result := (GitHubClient{Runner: runner}).ListOpen(
+		context.Background(), []config.Repository{{GitHub: "owner/one"}},
+	)["owner/one"]
+	if !strings.Contains(result.Error, "no review thread data") {
+		t.Fatalf("result = %#v", result)
 	}
 }
 
@@ -104,6 +187,53 @@ func TestGitHubClientKeepsPartialGraphQLFailureRepositoryScoped(t *testing.T) {
 	}
 }
 
+func TestGitHubClientCompletesReviewPaginationForUnaffectedRepository(t *testing.T) {
+	runner := &graphQLRunner{respond: func(query string, call int) ([]byte, error) {
+		switch call {
+		case 1:
+			return responseJSON(map[string]any{
+				"repository0": repositoryPage(1, true, "pull-request-cursor"),
+				"repository1": repositoryPageWithReviewThreads(
+					2, false, "",
+					[]map[string]any{{"isResolved": false, "isOutdated": false}},
+					true, "review-thread-cursor",
+				),
+			}, nil), nil
+		case 2:
+			if !strings.Contains(query, `after: "pull-request-cursor"`) {
+				t.Fatalf("pull request pagination query = %s", query)
+			}
+			return nil, errors.New("pull request pagination failed")
+		case 3:
+			if !strings.Contains(query, `after: "review-thread-cursor"`) {
+				t.Fatalf("review thread pagination query = %s", query)
+			}
+			return responseJSON(map[string]any{
+				"repository0": reviewThreadRepositoryPage(
+					[]map[string]any{{"isResolved": false, "isOutdated": false}},
+					false, "",
+				),
+			}, nil), nil
+		default:
+			t.Fatalf("unexpected call %d", call)
+			return nil, nil
+		}
+	}}
+	results := (GitHubClient{Runner: runner}).ListOpen(
+		context.Background(),
+		[]config.Repository{{GitHub: "owner/one"}, {GitHub: "owner/two"}},
+	)
+	if !strings.Contains(results["owner/one"].Error, "pagination failed") {
+		t.Fatalf("owner/one = %#v", results["owner/one"])
+	}
+	ownerTwo := results["owner/two"]
+	if runner.calls != 3 || ownerTwo.Error != "" ||
+		ownerTwo.PullRequests[0].UnresolvedReviewThreads == nil ||
+		*ownerTwo.PullRequests[0].UnresolvedReviewThreads != 2 {
+		t.Fatalf("calls=%d owner/two=%#v", runner.calls, ownerTwo)
+	}
+}
+
 func TestGitHubClientDoesNotExposeGraphQLQueryOnCommandFailure(t *testing.T) {
 	runner := &graphQLRunner{respond: func(_ string, _ int) ([]byte, error) {
 		return nil, &command.Error{
@@ -150,6 +280,53 @@ func TestGitHubClientStopsAtPaginationPageLimit(t *testing.T) {
 	}
 }
 
+func TestGitHubClientStopsOnRepeatedReviewThreadCursor(t *testing.T) {
+	runner := &graphQLRunner{respond: func(_ string, call int) ([]byte, error) {
+		if call == 1 {
+			return responseJSON(map[string]any{
+				"repository0": repositoryPageWithReviewThreads(
+					1, false, "", nil, true, "same-review-cursor",
+				),
+			}, nil), nil
+		}
+		return responseJSON(map[string]any{
+			"repository0": reviewThreadRepositoryPage(
+				nil, true, "same-review-cursor",
+			),
+		}, nil), nil
+	}}
+	result := (GitHubClient{Runner: runner}).ListOpen(
+		context.Background(), []config.Repository{{GitHub: "owner/one"}},
+	)["owner/one"]
+	if runner.calls != 2 || !strings.Contains(result.Error, "cursor repeated") {
+		t.Fatalf("calls=%d result=%#v", runner.calls, result)
+	}
+}
+
+func TestGitHubClientStopsAtReviewThreadPageLimit(t *testing.T) {
+	runner := &graphQLRunner{respond: func(_ string, call int) ([]byte, error) {
+		if call == 1 {
+			return responseJSON(map[string]any{
+				"repository0": repositoryPageWithReviewThreads(
+					1, false, "", nil, true, "review-cursor-1",
+				),
+			}, nil), nil
+		}
+		return responseJSON(map[string]any{
+			"repository0": reviewThreadRepositoryPage(
+				nil, true, fmt.Sprintf("review-cursor-%d", call),
+			),
+		}, nil), nil
+	}}
+	result := (GitHubClient{Runner: runner}).ListOpen(
+		context.Background(), []config.Repository{{GitHub: "owner/one"}},
+	)["owner/one"]
+	if runner.calls != maxReviewThreadPages ||
+		!strings.Contains(result.Error, "pagination exceeded") {
+		t.Fatalf("calls=%d result=%#v", runner.calls, result)
+	}
+}
+
 type graphQLRunner struct {
 	calls   int
 	queries []string
@@ -174,6 +351,19 @@ func (r *graphQLRunner) Run(
 }
 
 func repositoryPage(number int, hasNext bool, cursor string) map[string]any {
+	return repositoryPageWithReviewThreads(
+		number, hasNext, cursor, nil, false, "",
+	)
+}
+
+func repositoryPageWithReviewThreads(
+	number int,
+	pullRequestsHaveNext bool,
+	pullRequestsCursor string,
+	reviewThreads []map[string]any,
+	reviewThreadsHaveNext bool,
+	reviewThreadsCursor string,
+) map[string]any {
 	return map[string]any{
 		"pullRequests": map[string]any{
 			"nodes": []map[string]any{{
@@ -183,11 +373,43 @@ func repositoryPage(number int, hasNext bool, cursor string) map[string]any {
 				"headRefName": fmt.Sprintf("GH-%d", number),
 				"isDraft":     number%2 == 0,
 				"updatedAt":   fmt.Sprintf("2026-07-29T12:%02d:00Z", number),
+				"reviewThreads": reviewThreadPage(
+					reviewThreads, reviewThreadsHaveNext, reviewThreadsCursor,
+				),
 			}},
 			"pageInfo": map[string]any{
-				"hasNextPage": hasNext,
-				"endCursor":   cursor,
+				"hasNextPage": pullRequestsHaveNext,
+				"endCursor":   pullRequestsCursor,
 			},
+		},
+	}
+}
+
+func reviewThreadRepositoryPage(
+	threads []map[string]any,
+	hasNext bool,
+	cursor string,
+) map[string]any {
+	return map[string]any{
+		"pullRequest": map[string]any{
+			"reviewThreads": reviewThreadPage(threads, hasNext, cursor),
+		},
+	}
+}
+
+func reviewThreadPage(
+	threads []map[string]any,
+	hasNext bool,
+	cursor string,
+) map[string]any {
+	if threads == nil {
+		threads = []map[string]any{}
+	}
+	return map[string]any{
+		"nodes": threads,
+		"pageInfo": map[string]any{
+			"hasNextPage": hasNext,
+			"endCursor":   cursor,
 		},
 	}
 }

@@ -54,7 +54,9 @@
   never by a continuous timer. A successful refresh is authoritative for
   removing merged or closed PR branches from the visible Projects map. Cached
   rows remain available in Open PRs during a failed refresh but are not
-  authoritative for active worktree visibility.
+  authoritative for active worktree visibility. Unresolved, non-outdated review
+  thread counts are informational metadata in this projection; they do not
+  establish inferred attention or thread lifecycle state.
 - Exact evidence owns thread membership. Semantic inference may relate
   separate threads, but it may not merge them, establish authoritative
   lifecycle state, suppress a thread, or close a goal.

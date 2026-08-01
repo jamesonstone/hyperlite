@@ -12,6 +12,7 @@ import (
 
 func TestScannerHonorsFiveMinuteFloorAndForceRefresh(t *testing.T) {
 	now := time.Date(2026, 7, 29, 16, 0, 0, 0, time.UTC)
+	cachedReviewThreads := 0
 	source := config.Source{Path: "/repo/one"}
 	repository := config.Repository{Name: "one", Path: source.Path, GitHub: "owner/one"}
 	store := &memoryCacheStore{state: cacheState{
@@ -23,7 +24,8 @@ func TestScannerHonorsFiveMinuteFloorAndForceRefresh(t *testing.T) {
 				ObservedAt: now.Add(-4 * time.Minute),
 				PullRequests: []model.ProjectPullRequest{{
 					ID: "owner/one#1", Number: 1, Title: "Cached",
-					HeadRefName: "GH-1",
+					HeadRefName:             "GH-1",
+					UnresolvedReviewThreads: &cachedReviewThreads,
 				}},
 			},
 		},
@@ -59,6 +61,54 @@ func TestScannerHonorsFiveMinuteFloorAndForceRefresh(t *testing.T) {
 		forced.Projects[0].ObservedAt == nil ||
 		!forced.Projects[0].ObservedAt.Equal(now) {
 		t.Fatalf("calls=%d forced=%#v", client.calls, forced)
+	}
+}
+
+func TestScannerRefreshesLegacyReviewCountsInsideFiveMinuteFloor(t *testing.T) {
+	now := time.Date(2026, 7, 29, 16, 0, 0, 0, time.UTC)
+	freshReviewThreads := 0
+	source := config.Source{Path: "/repo/one"}
+	repository := config.Repository{Name: "one", Path: source.Path, GitHub: "owner/one"}
+	store := &memoryCacheStore{state: cacheState{
+		Version:  cacheVersion,
+		Projects: map[string]string{source.Path: repository.GitHub},
+		Repositories: map[string]cacheEntry{
+			"owner/one": {
+				Repository: repository.GitHub,
+				CheckedAt:  now.Add(-time.Minute),
+				ObservedAt: now.Add(-time.Minute),
+				PullRequests: []model.ProjectPullRequest{{
+					ID: "owner/one#1", Number: 1, Title: "Legacy",
+					HeadRefName: "GH-1",
+				}},
+			},
+		},
+	}}
+	client := &fakePullRequestClient{results: map[string]RepositoryResult{
+		"owner/one": {PullRequests: []model.ProjectPullRequest{{
+			ID: "owner/one#1", Number: 1, Title: "Fresh",
+			HeadRefName:             "GH-1",
+			UnresolvedReviewThreads: &freshReviewThreads,
+		}}},
+	}}
+	scanner := Scanner{
+		Discovery: fakeProjectDiscoverer{result: discovery.Result{
+			Repositories: []config.Repository{repository},
+		}},
+		Client: client, Store: store, Now: func() time.Time { return now },
+	}
+	result, err := scanner.Scan(
+		context.Background(),
+		config.Config{Projects: []config.Source{source}},
+		RefreshStale,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if client.calls != 1 ||
+		result.Projects[0].PullRequests[0].UnresolvedReviewThreads == nil ||
+		*result.Projects[0].PullRequests[0].UnresolvedReviewThreads != 0 {
+		t.Fatalf("calls=%d result=%#v", client.calls, result)
 	}
 }
 
@@ -101,6 +151,8 @@ func TestScannerRefreshesOnlyStaleRepositoriesInOneClientCall(t *testing.T) {
 
 func TestScannerPreservesCachedRowsAndMarksUnavailableProjects(t *testing.T) {
 	now := time.Date(2026, 7, 29, 16, 0, 0, 0, time.UTC)
+	cachedReviewThreads := 2
+	partialReviewThreads := 99
 	cached := config.Repository{Name: "cached", Path: "/repo/cached", GitHub: "owner/cached"}
 	missing := config.Repository{Name: "missing", Path: "/repo/missing", GitHub: "owner/missing"}
 	unresolvedPath := "/repo/local-only"
@@ -115,6 +167,7 @@ func TestScannerPreservesCachedRowsAndMarksUnavailableProjects(t *testing.T) {
 				Repository: cached.GitHub, ObservedAt: now.Add(-time.Hour),
 				PullRequests: []model.ProjectPullRequest{{
 					ID: "owner/cached#7", Number: 7, Title: "Retained",
+					UnresolvedReviewThreads: &cachedReviewThreads,
 				}},
 			},
 			"owner/previous": {
@@ -126,7 +179,13 @@ func TestScannerPreservesCachedRowsAndMarksUnavailableProjects(t *testing.T) {
 		},
 	}}
 	client := &fakePullRequestClient{results: map[string]RepositoryResult{
-		"owner/cached":  {Error: "rate limit exceeded"},
+		"owner/cached": {
+			PullRequests: []model.ProjectPullRequest{{
+				ID: "owner/cached#7", Number: 7, Title: "Partial",
+				UnresolvedReviewThreads: &partialReviewThreads,
+			}},
+			Error: "review pagination failed",
+		},
 		"owner/missing": {Error: "repository unavailable"},
 	}}
 	scanner := Scanner{
@@ -148,7 +207,9 @@ func TestScannerPreservesCachedRowsAndMarksUnavailableProjects(t *testing.T) {
 	}
 	if result.Projects[0].Status != model.ProjectPullRequestsCached ||
 		len(result.Projects[0].PullRequests) != 1 ||
-		result.Projects[0].Message != "rate limit exceeded" {
+		result.Projects[0].Message != "review pagination failed" ||
+		result.Projects[0].PullRequests[0].UnresolvedReviewThreads == nil ||
+		*result.Projects[0].PullRequests[0].UnresolvedReviewThreads != 2 {
 		t.Fatalf("cached project = %#v", result.Projects[0])
 	}
 	if result.Projects[1].Status != model.ProjectPullRequestsUnavailable ||
@@ -169,7 +230,7 @@ func TestScannerPreservesCachedRowsAndMarksUnavailableProjects(t *testing.T) {
 		t.Fatal(err)
 	}
 	if client.calls != 1 || retried.CheckedAt == nil || !retried.CheckedAt.Equal(now) ||
-		retried.Projects[0].Message != "rate limit exceeded" {
+		retried.Projects[0].Message != "review pagination failed" {
 		t.Fatalf("calls=%d retried=%#v", client.calls, retried)
 	}
 }

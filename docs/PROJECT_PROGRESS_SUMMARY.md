@@ -84,9 +84,11 @@ changes that warrant human attention.
   private cache with a five-minute success and failure floor, and use current
   exact PR head branches to hide cached, unavailable, merged, or closed
   worktree lanes. Issue #17 gives Open PRs an equal independently scrollable
-  section and absolute freshness timestamp.
-- **OPEN ITEMS**: Issues #9, #11, #13, and #15 delivered the projection and
-  active-lane presentation; issue #17 owns the current layout follow-up.
+  section and absolute freshness timestamp. Issue #21 adds bounded actionable
+  review-thread counts beside each ready/draft state.
+- **OPEN ITEMS**: Issues #9, #11, #13, #15, #17, and #21 define the delivered
+  projection, layout, active-lane, and review-feedback scope. No additional
+  follow-up is defined in this spec.
 - **POINTERS**: `docs/specs/0004-open-pull-requests/SPEC.md`,
   `docs/specs/0005-dashboard-project-management/SPEC.md`
 

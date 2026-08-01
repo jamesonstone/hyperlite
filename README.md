@@ -77,7 +77,12 @@ minutes, and use bounded GraphQL batches instead of one `gh` process per
 repository. The existing Refresh action forces the index current. Failed checks
 retain visibly cached rows; a project with no usable GitHub identity or cache is
 shown as unavailable. Pagination fails safely on a repeated cursor or bounded
-page limit instead of risking an unbounded GitHub query loop.
+page limit instead of risking an unbounded GitHub query loop. Each row places an
+actionable review-feedback count after its ready/draft state: only unresolved,
+non-outdated GitHub review threads count. Nonzero counts use the orange attention
+color, confirmed zero uses a quiet dash, and unavailable legacy cache data uses
+`?` until a complete refresh supplies an exact count. The entire row remains a
+link to the pull request.
 
 Projects always shows every configured checkout. Registered subordinate
 worktrees appear only when their exact case-sensitive branch is the head branch

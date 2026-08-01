@@ -13,13 +13,14 @@ const (
 )
 
 type ProjectPullRequest struct {
-	ID          string    `json:"id"`
-	Number      int       `json:"number"`
-	Title       string    `json:"title"`
-	URL         string    `json:"url"`
-	HeadRefName string    `json:"head_ref_name"`
-	IsDraft     bool      `json:"is_draft"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID                      string    `json:"id"`
+	Number                  int       `json:"number"`
+	Title                   string    `json:"title"`
+	URL                     string    `json:"url"`
+	HeadRefName             string    `json:"head_ref_name"`
+	IsDraft                 bool      `json:"is_draft"`
+	UnresolvedReviewThreads *int      `json:"unresolved_review_threads,omitempty"`
+	UpdatedAt               time.Time `json:"updated_at"`
 }
 
 type ProjectPullRequests struct {
