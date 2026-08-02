@@ -60,6 +60,16 @@
   metadata rides with those same bounded GraphQL requests and is cached only as
   a complete observation; quota visibility never adds polling, changes refresh
   authority, or establishes attention.
+- Pinned Codex threads are a separate read-only operator projection, not
+  inferred Hyperlite threads, project evidence, lifecycle state, or attention.
+  A valid Desktop `pinned-thread-ids` array alone establishes membership;
+  read-only SQLite metadata may enrich those opaque IDs but may not add or
+  remove membership. Access is bounded and fail-closed, unavailable membership
+  removes every count and row, and incomplete metadata preserves the
+  authoritative count with explicit partial status. Refresh is limited to
+  startup, changed source signatures after foreground activation, and explicit
+  user action; Hyperlite does not poll, read transcripts, navigate, or mutate
+  Codex state.
 - Exact evidence owns thread membership. Semantic inference may relate
   separate threads, but it may not merge them, establish authoritative
   lifecycle state, suppress a thread, or close a goal.

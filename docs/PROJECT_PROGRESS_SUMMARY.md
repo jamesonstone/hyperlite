@@ -10,6 +10,7 @@
 | 0004 | open-pull-requests | `docs/specs/0004-open-pull-requests` | deliver | no | 2026-07-29 | Track every open pull request across configured projects through a separate rate-safe informational projection. |
 | 0005 | dashboard-project-management | `docs/specs/0005-dashboard-project-management` | deliver | no | 2026-07-31 | Give Notes, Open PRs, and Projects equal scrollable space and add searchable project configuration commands. |
 | 0006 | notepad-daily-notes | `docs/specs/0006-notepad-daily-notes` | deliver | no | 2026-08-02 | Replace the single scratch document with one permanent pinned note, chronological daily Markdown notes, and direct exact or semantic search. |
+| 0007 | pinned-codex-threads | `docs/specs/0007-pinned-codex-threads` | deliver | no | 2026-08-02 | Show pinned Codex Desktop tasks in a compact read-only header projection with fail-closed membership and partial metadata. |
 
 ## PROJECT INTENT
 
@@ -122,8 +123,25 @@ changes that warrant human attention.
   pull-request delivery remains for issue #24.
 - **POINTERS**: `docs/specs/0006-notepad-daily-notes/SPEC.md`
 
+### pinned-codex-threads
+
+- **STATUS**: deliver
+- **PAUSED**: no
+- **INTENT**: Keep the operator's explicitly pinned Codex tasks visible without
+  turning them into Hyperlite project threads or attention.
+- **APPROACH**: Treat valid Desktop global-state membership as authoritative,
+  enrich it through bounded read-only SQLite access, isolate refresh and
+  generation state, and render explicit current, partial, and unavailable
+  states in a compact header indicator and bounded popover.
+- **OPEN ITEMS**: Local implementation, fixture validation, and live Desktop
+  validation are complete; ready pull-request delivery remains for issue #25.
+- **POINTERS**: `docs/specs/0007-pinned-codex-threads/SPEC.md`
+
 ## LAST UPDATED
 
+- 2026-08-02: Added feature `0007-pinned-codex-threads` with authoritative
+  Desktop pin membership, optional SQLite metadata, changed-source activation
+  refresh, explicit forced refresh, and a compact non-navigating native view.
 - 2026-08-02: Added feature `0006-notepad-daily-notes` for permanent pinned
   context, chronological daily Markdown files, recent-date navigation, and
   local exact or semantic Command-K search.

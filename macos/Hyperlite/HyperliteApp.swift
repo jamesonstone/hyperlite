@@ -20,10 +20,15 @@ func openHyperliteSettings() {
 struct HyperliteApp: App {
     @NSApplicationDelegateAdaptor(HyperliteApplicationDelegate.self) private var applicationDelegate
     @StateObject private var state = HyperliteState.shared
+    @StateObject private var pinnedCodexThreads = HyperlitePinnedCodexThreadState.shared
 
     var body: some Scene {
         WindowGroup("Hyperlite", id: "hyperlite") {
-            HyperliteWindow(state: state, notepad: HyperliteNotepadState.shared)
+            HyperliteWindow(
+                state: state,
+                pinnedCodexThreads: pinnedCodexThreads,
+                notepad: HyperliteNotepadState.shared
+            )
                 .font(HyperliteTypography.regular(13))
                 .background(HyperliteSettingsActionInstaller())
                 .hyperliteTheme()
@@ -32,7 +37,7 @@ struct HyperliteApp: App {
         .windowResizability(.contentMinSize)
         .commands {
             CommandMenu("Navigate") {
-                Button("Refresh") { state.refresh() }
+                Button("Refresh") { state.refreshAll() }
                     .keyboardShortcut("r", modifiers: .command)
                 Divider()
                 Button("Command Palette") { state.showPalette(.commands) }
