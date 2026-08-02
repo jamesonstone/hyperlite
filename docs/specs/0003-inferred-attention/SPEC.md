@@ -301,6 +301,11 @@ or model-assisted note mutation.
   filename migrates from `notepad.md` to `notepad.txt` without rewriting
   existing content, and its editor uses the same application typography
   boundary as other Hyperlite-controlled text.
+- Issue #24 and `docs/specs/0006-notepad-daily-notes/SPEC.md` supersede that
+  single regular-text document with one permanent pinned Markdown note and
+  chronological daily Markdown notes. Existing `notepad.txt` or `notepad.md`
+  content is adopted losslessly as the pinned note; the private-memory and
+  no-project-evidence rationale remains unchanged.
 - The original notepad shipped with proportional system typography to
   emphasize its plain-text writing role. Issue #19 supersedes that presentation
   choice: consistent JetBrainsMono Nerd Font strengthens the editor identity

@@ -43,7 +43,7 @@ struct HyperliteMenu: View {
             NSApp.activate(ignoringOtherApps: true)
             NSApp.windows.first(where: { $0.title == "Hyperlite" })?.makeKeyAndOrderFront(nil)
         }
-        Button("Refresh") { state.refresh() }
+        Button("Refresh") { state.refreshAll() }
         Divider()
         Button("Settings…") { openHyperliteSettings() }
         Button("Quit Hyperlite") { NSApp.terminate(nil) }
@@ -52,6 +52,7 @@ struct HyperliteMenu: View {
 
 struct HyperliteWindow: View {
     @ObservedObject var state: HyperliteState
+    @ObservedObject var pinnedCodexThreads: HyperlitePinnedCodexThreadState
     let notepad: HyperliteNotepadState
     @State private var selectedThread: HyperliteThread?
     @State private var pendingProjectRemoval: HyperliteProjectLocation?
@@ -151,6 +152,7 @@ struct HyperliteWindow: View {
                             threads: HyperliteFeatureFlags.inferredAttentionPresentation ? active : [],
                             projects: paletteProjects,
                             pullRequests: pullRequests,
+                            notepad: notepad,
                             onAction: handlePaletteAction,
                             onDismiss: state.dismissPalette
                         )
@@ -213,11 +215,13 @@ struct HyperliteWindow: View {
                 .fixedSize(horizontal: true, vertical: false)
             }
             Spacer(minLength: 8)
-            Button { state.refresh() } label: { Image(systemName: "arrow.clockwise") }
+            HyperlitePinnedCodexThreadIndicator(state: pinnedCodexThreads)
+            HyperliteGitHubRateLimitIndicator(rateLimit: pullRequestScan?.rateLimit)
+            Button { state.refreshAll() } label: { Image(systemName: "arrow.clockwise") }
                 .buttonStyle(.bordered)
                 .tint(HyperliteTheme.orange.color.opacity(0.82))
                 .disabled(state.isRefreshing || state.isUpdatingProjects)
-                .help("Refresh projects and open pull requests (⌘R)")
+                .help("Refresh projects, open pull requests, and pinned Codex threads (⌘R)")
             Button(action: openHyperliteSettings) { Image(systemName: "gearshape.fill") }
                 .buttonStyle(.bordered)
                 .help("Hyperlite settings")
@@ -239,7 +243,7 @@ struct HyperliteWindow: View {
         state.dismissPalette()
         switch action {
         case .refresh:
-            state.refresh()
+            state.refreshAll()
         case .settings:
             openHyperliteSettings()
         case .addProject:
@@ -256,6 +260,10 @@ struct HyperliteWindow: View {
             NSWorkspace.shared.open(url)
         case let .revealPath(path):
             NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
+        case .focusPinnedNote:
+            notepad.focusPinned()
+        case let .openDailyNote(date):
+            Task { await notepad.selectDateIdentifier(date, focus: true) }
         }
     }
 }

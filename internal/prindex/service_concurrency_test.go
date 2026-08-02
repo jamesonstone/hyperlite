@@ -56,6 +56,7 @@ func TestScannerReturnsCacheSnapshotMutatedUnderStoreLock(t *testing.T) {
 func cloneCache(source cacheState) cacheState {
 	cloned := emptyCache()
 	cloned.UpdatedAt = source.UpdatedAt
+	cloned.RateLimit = cloneRateLimit(source.RateLimit)
 	for path, repository := range source.Projects {
 		cloned.Projects[filepath.Clean(path)] = repository
 	}

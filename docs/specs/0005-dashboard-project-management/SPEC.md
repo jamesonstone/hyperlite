@@ -130,6 +130,13 @@ Command-R/K/P hooks, direct Swift YAML mutation, repository deletion, worktree
 removal, branch deletion, automatic project discovery, or changing how PR data
 establishes visible project lanes.
 
+Issue #24 and `docs/specs/0006-notepad-daily-notes/SPEC.md` supersede the
+single Notepad body within the Notes third with permanent pinned and dated
+daily editors, plus a bounded asynchronous note index in Command-K. The
+equal-third workspace, native editor surfaces, and independent scrolling
+contracts remain current; normal daily navigation does not perform background
+file indexing.
+
 Observable acceptance:
 
 - Resizing the window preserves three equal-height independently scrollable

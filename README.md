@@ -30,9 +30,9 @@ directly with `hyperlite scan /path/to/projects`.
 
 ## Highlights
 
-- Native notes, open pull requests, and configured projects in one compact
-  macOS workspace
-- Cached, read-only GitHub visibility with explicit refresh controls
+- Pinned and daily notes, open pull requests, and configured projects in one
+  compact native workspace
+- Read-only GitHub quota, review-feedback, and pinned Codex task visibility
 - CLI and JSON interfaces for project scanning and inferred attention
 - Local, permission-restricted state with no external project-management system
 
