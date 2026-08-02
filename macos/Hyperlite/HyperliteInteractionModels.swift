@@ -63,7 +63,7 @@ enum HyperliteInteractionModel {
     static func commandEntries(threads: [HyperliteThread]) -> [HyperlitePaletteEntry] {
         var entries = [
             actionEntry(
-                "action:refresh", "Refresh", "Refresh projects and open pull requests",
+                "action:refresh", "Refresh", "Refresh projects, open pull requests, and pinned Codex threads",
                 "arrow.clockwise", .refresh
             ),
             actionEntry(

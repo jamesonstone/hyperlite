@@ -10,7 +10,7 @@ final class HyperliteApplicationDelegate: NSObject, NSApplicationDelegate, NSWin
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         hotKey = HyperliteHotKeyController { [weak self] in
-            HyperliteState.shared.refresh()
+            HyperliteState.shared.refreshAll()
             self?.showWindow()
         }
         hotKey?.start()
@@ -22,7 +22,7 @@ final class HyperliteApplicationDelegate: NSObject, NSApplicationDelegate, NSWin
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {
-        HyperliteState.shared.refreshIfStale()
+        HyperliteState.shared.refreshAllIfStale()
     }
 
     func applicationDidResignActive(_ notification: Notification) {

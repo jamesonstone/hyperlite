@@ -6,9 +6,11 @@ HYPERLITE_APP ?= $(CURDIR)/build/Hyperlite.app
 SWIFT_SOURCES := $(sort $(wildcard macos/Hyperlite/*.swift))
 SWIFT_MODEL_TEST_SOURCES := macos/Hyperlite/HyperliteModels.swift macos/Hyperlite/HyperliteProjectModels.swift macos/Hyperlite/HyperlitePullRequestModels.swift macos/Hyperlite/HyperlitePullRequestPanel.swift macos/Hyperlite/HyperlitePresentation.swift macos/Hyperlite/HyperliteInteractionModels.swift macos/Hyperlite/HyperlitePalettePresentation.swift macos/Hyperlite/HyperliteTheme.swift
 SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteProcess.swift macos/Hyperlite/HyperliteProcessSupport.swift macos/Hyperlite/HyperliteNotepadState.swift
+SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperlitePinnedCodexThreadModels.swift macos/Hyperlite/HyperlitePinnedCodexThreadClientModels.swift macos/Hyperlite/HyperlitePinnedCodexThreadClient.swift macos/Hyperlite/HyperlitePinnedCodexThreadState.swift
 SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteTypography.swift macos/HyperliteTests/HyperliteInteractionModelTests.swift macos/HyperliteTests/HyperliteProjectIndexTests.swift
 SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperlitePaletteTests.swift
-SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperliteNotepadTests.swift macos/HyperliteTests/HyperlitePullRequestTests.swift macos/HyperliteTests/HyperliteTypographyTests.swift macos/HyperliteTests/HyperliteWorkspaceSizingTests.swift
+SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperliteNotepadTests.swift macos/HyperliteTests/HyperlitePinnedCodexThreadTests.swift macos/HyperliteTests/HyperlitePinnedCodexThreadAdapterTests.swift
+SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperlitePinnedCodexThreadStateTests.swift macos/HyperliteTests/HyperlitePinnedCodexThreadTestSupport.swift macos/HyperliteTests/HyperlitePullRequestTests.swift macos/HyperliteTests/HyperliteTypographyTests.swift macos/HyperliteTests/HyperliteWorkspaceSizingTests.swift
 SWIFT_MODEL_TEST_BINARY := build/tests/HyperliteInteractionModelTests
 
 help:
@@ -49,9 +51,9 @@ macos-build:
 	HYPERLITE_APP="$(HYPERLITE_APP)" ./scripts/build-macos-app.sh
 
 macos-test:
-	xcrun swiftc -parse-as-library -typecheck -framework SwiftUI -framework AppKit -framework Carbon $(SWIFT_SOURCES)
+	xcrun swiftc -parse-as-library -typecheck -framework SwiftUI -framework AppKit -framework Carbon -lsqlite3 $(SWIFT_SOURCES)
 	mkdir -p "$(dir $(SWIFT_MODEL_TEST_BINARY))"
-	xcrun swiftc -parse-as-library -framework SwiftUI -framework AppKit $(SWIFT_MODEL_TEST_SOURCES) -o "$(SWIFT_MODEL_TEST_BINARY)"
+	xcrun swiftc -parse-as-library -framework SwiftUI -framework AppKit -lsqlite3 $(SWIFT_MODEL_TEST_SOURCES) -o "$(SWIFT_MODEL_TEST_BINARY)"
 	"$(SWIFT_MODEL_TEST_BINARY)"
 
 stop-hyper:

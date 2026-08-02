@@ -64,12 +64,22 @@ The current native presentation focuses on notes and open pull requests.
 Inferred attention remains available through CLI/JSON but is hidden behind a
 single native feature flag: the window, menu bar, and palettes show no thread
 or attention counts or entries, and the app skips remote attention enrichment.
-The fixed header contains the product name and ghost, a subtly orange Refresh
-action, and Settings. Notes, Open PRs, and the single-column Projects list each
-own one third of the content workspace. Every section has its own vertical
-scroll boundary, so long notes, a large pull-request index, and a dense project
-map remain independently usable. The pull-request index is informational only:
-it never establishes thread activity or attention.
+The fixed header contains the product name and ghost, a compact pinned Codex
+thread indicator, a subtly orange Refresh action, and Settings. Notes, Open
+PRs, and the single-column Projects list each own one third of the content
+workspace. Every section has its own vertical scroll boundary, so long notes,
+a large pull-request index, and a dense project map remain independently
+usable. The pull-request index is informational only: it never establishes
+thread activity or attention.
+
+Pinned Codex threads are a separate read-only operator projection. Hyperlite
+uses a valid Desktop `pinned-thread-ids` array as membership authority and
+enriches those opaque IDs from read-only SQLite metadata when available. The
+popover preserves the authoritative count when metadata is incomplete and
+shows unavailable instead of a stale or guessed count when membership cannot
+be read. It loads at startup, rechecks changed source signatures after
+foreground activation, and joins explicit Refresh actions; it does not poll,
+watch files, read transcripts, navigate to tasks, or mutate Codex state.
 
 Open PRs load from a separate private cache, refresh stale configured
 repositories on startup or foreground activation no more often than every five

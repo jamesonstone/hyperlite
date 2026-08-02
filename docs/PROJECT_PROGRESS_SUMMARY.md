@@ -9,6 +9,7 @@
 | 0003 | inferred-attention | `docs/specs/0003-inferred-attention` | deliver | no | 2026-07-28 | Reconstruct evidence-backed goal threads and surface only material coordination changes without user bookkeeping. |
 | 0004 | open-pull-requests | `docs/specs/0004-open-pull-requests` | deliver | no | 2026-07-29 | Track every open pull request across configured projects through a separate rate-safe informational projection. |
 | 0005 | dashboard-project-management | `docs/specs/0005-dashboard-project-management` | deliver | no | 2026-07-31 | Give Notes, Open PRs, and Projects equal scrollable space and add searchable project configuration commands. |
+| 0006 | pinned-codex-threads | `docs/specs/0006-pinned-codex-threads` | deliver | no | 2026-08-02 | Show pinned Codex Desktop tasks in a compact read-only header projection with fail-closed membership and partial metadata. |
 
 ## PROJECT INTENT
 
@@ -103,8 +104,25 @@ changes that warrant human attention.
   pull-request delivery remains for issue #17.
 - **POINTERS**: `docs/specs/0005-dashboard-project-management/SPEC.md`
 
+### pinned-codex-threads
+
+- **STATUS**: deliver
+- **PAUSED**: no
+- **INTENT**: Keep the operator's explicitly pinned Codex tasks visible without
+  turning them into Hyperlite project threads or attention.
+- **APPROACH**: Treat valid Desktop global-state membership as authoritative,
+  enrich it through bounded read-only SQLite access, isolate refresh and
+  generation state, and render explicit current, partial, and unavailable
+  states in a compact header indicator and bounded popover.
+- **OPEN ITEMS**: Local implementation, fixture validation, and live Desktop
+  validation are complete; ready pull-request delivery remains for issue #25.
+- **POINTERS**: `docs/specs/0006-pinned-codex-threads/SPEC.md`
+
 ## LAST UPDATED
 
+- 2026-08-02: Added feature `0006-pinned-codex-threads` with authoritative
+  Desktop pin membership, optional SQLite metadata, changed-source activation
+  refresh, explicit forced refresh, and a compact non-navigating native view.
 - 2026-07-31: Added feature `0005-dashboard-project-management` for the
   equal-third native workspace, searchable palettes, project configuration,
   and removal of worktree-prune functionality.
