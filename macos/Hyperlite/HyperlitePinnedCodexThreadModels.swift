@@ -143,7 +143,7 @@ enum HyperlitePinnedCodexThreadPresentation {
                 systemImage: "pin.slash",
                 countText: "—",
                 isMuted: true,
-                accessibilityLabel: "Pinned Codex threads unavailable",
+                accessibilityLabel: "Pinned Codex threads unavailable, \(help)",
                 help: help
             )
         }
@@ -214,6 +214,7 @@ struct HyperlitePinnedCodexThreadSourceSignature: Equatable, Sendable {
 
 enum HyperlitePinnedCodexThreadLoadResult: Equatable {
     case unchanged(HyperlitePinnedCodexThreadSourceSignature)
+    case retry(HyperlitePinnedCodexThreadSnapshot)
     case loaded(
         HyperlitePinnedCodexThreadSnapshot,
         HyperlitePinnedCodexThreadSourceSignature

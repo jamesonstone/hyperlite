@@ -115,6 +115,9 @@ writes to Codex state.
 - Retain no cached count or rows after authoritative failure. A last-available
   timestamp may explain the outage without representing stale membership as
   current.
+- A source that changes across both bounded read attempts publishes unavailable
+  without retaining a signature, so the next activation retries. Stable
+  unavailable input retains its signature and remains changed-source-only.
 
 ## DISCOVERIES
 
@@ -145,6 +148,9 @@ writes to Codex state.
   SQLite remained unchanged while Codex Desktop independently advanced WAL.
 - `make fmt-check vet test test-race build macos-test macos-build`; all tests
   and builds pass, with only the existing macOS 14 `onChange` deprecations.
+- Deterministic torn-read coverage verifies that repeated source mutation fails
+  closed and that the next ordinary activation can recover without a forced
+  refresh.
 - `kit check pinned-codex-threads` and
   `kit check dashboard-project-management`; both pass.
 - `kit check --project`; the 11 blocking findings exactly match `origin/main`

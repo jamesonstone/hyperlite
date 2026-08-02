@@ -12,7 +12,7 @@ protocol HyperlitePinnedCodexThreadClientProtocol: Sendable {
     ) async throws -> HyperlitePinnedCodexThreadLoadResult
 }
 
-struct HyperlitePinnedCodexThreadClient: HyperlitePinnedCodexThreadClientProtocol, @unchecked Sendable {
+struct HyperlitePinnedCodexThreadClient: HyperlitePinnedCodexThreadClientProtocol, Sendable {
     static let maxGlobalStateBytes = 16 * 1024 * 1024
     static let maxPinnedThreadCount = 10_000
 
@@ -99,12 +99,11 @@ struct HyperlitePinnedCodexThreadClient: HyperlitePinnedCodexThreadClientProtoco
                 before = after
                 continue
             }
-            return .loaded(
+            return .retry(
                 .unavailable(
                     checkedAt: checkedAt,
                     message: "Codex pinned-thread state changed during refresh"
-                ),
-                before
+                )
             )
         }
         preconditionFailure("bounded refresh loop must return")

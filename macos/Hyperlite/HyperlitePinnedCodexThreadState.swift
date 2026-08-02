@@ -61,6 +61,9 @@ final class HyperlitePinnedCodexThreadState: ObservableObject {
                 switch result {
                 case let .unchanged(signature):
                     sourceSignature = signature
+                case let .retry(loadedSnapshot):
+                    sourceSignature = nil
+                    snapshot = loadedSnapshot
                 case let .loaded(loadedSnapshot, signature):
                     sourceSignature = signature
                     snapshot = loadedSnapshot

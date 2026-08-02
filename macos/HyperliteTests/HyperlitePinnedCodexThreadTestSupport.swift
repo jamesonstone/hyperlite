@@ -31,6 +31,7 @@ func pinnedTestSnapshot(
 ) throws -> HyperlitePinnedCodexThreadSnapshot {
     switch result {
     case let .loaded(snapshot, _): return snapshot
+    case let .retry(snapshot): return snapshot
     case .unchanged: throw PinnedTestError("expected a loaded snapshot")
     }
 }

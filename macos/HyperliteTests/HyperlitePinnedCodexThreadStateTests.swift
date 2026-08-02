@@ -5,6 +5,7 @@ enum HyperlitePinnedCodexThreadStateTests {
     static func run() async throws {
         testPresentation()
         try await testRefreshModes()
+        try await testRetryResultClearsSignature()
         try await testOlderRefreshCannotOverwriteNewerSnapshot()
     }
 
@@ -50,12 +51,43 @@ enum HyperlitePinnedCodexThreadStateTests {
         )
         expectPinnedTest(unavailableIndicator.help.contains("last available 2026-08-02 10:59"),
                          "unavailable help should retain only the last observation time")
+        expectPinnedTest(unavailableIndicator.accessibilityLabel.contains("last available 2026-08-02 10:59"),
+                         "unavailable accessibility should include its reason and prior observation")
         expectPinnedTest(
             HyperlitePinnedCodexThreadPresentation.indicator(
                 snapshot: nil, lastAvailableAt: nil, timeZone: pinnedTestUTC
             ).accessibilityLabel == "Pinned Codex threads loading",
             "initial loading should be explicit"
         )
+    }
+
+    @MainActor
+    private static func testRetryResultClearsSignature() async throws {
+        let unavailable = HyperlitePinnedCodexThreadSnapshot.unavailable(
+            checkedAt: pinnedTestDate, message: "Source changed during refresh"
+        )
+        let recovered = HyperlitePinnedCodexThreadSnapshot.current(
+            threads: [pinnedTestThread(id: "recovered")], observedAt: pinnedTestDate
+        )
+        let client = PinnedTestSequenceClient(results: [
+            .retry(unavailable),
+            .loaded(recovered, pinnedTestSignature(2)),
+        ])
+        let state = HyperlitePinnedCodexThreadState(
+            client: client, now: { pinnedTestDate }, startImmediately: false
+        )
+        state.refresh(force: true)
+        try await waitForPinnedTest { !state.isRefreshing }
+        expectPinnedTest(state.snapshot?.availability == .unavailable,
+                         "a torn read should publish unavailable")
+
+        state.refreshIfSourceChanged()
+        try await waitForPinnedTest { !state.isRefreshing }
+        expectPinnedTest(state.snapshot?.threads.first?.id == "recovered",
+                         "the next activation should retry after a torn read")
+        let observedForces = await client.forces()
+        expectPinnedTest(observedForces == [true, false],
+                         "torn-read recovery should use the normal activation refresh")
     }
 
     @MainActor

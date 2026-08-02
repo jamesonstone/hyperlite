@@ -7,6 +7,7 @@ enum HyperlitePinnedCodexThreadAdapterTests {
         try await testEmptyAndUnavailableMembership()
         try await testMalformedBoundedAndUnreadableMembership()
         try await testPartialMetadata()
+        try await testTornReadRequestsRetry()
     }
 
     private static func testCodexHomeResolution() throws {
@@ -167,6 +168,30 @@ enum HyperlitePinnedCodexThreadAdapterTests {
                              "SQLite unavailability must preserve the authoritative count")
             expectPinnedTest(noDatabase.unresolvedMetadataCount == 3,
                              "all titles should be unresolved without SQLite")
+        }
+    }
+
+    private static func testTornReadRequestsRetry() async throws {
+        try await withPinnedTestDirectory { home in
+            try writePinnedGlobalState(home: home, text: "{\"pinned-thread-ids\":[]}")
+            let client = HyperlitePinnedCodexThreadClient(
+                environment: ["CODEX_HOME": home.path], defaultHome: home,
+                dataLoader: { url, limit in
+                    let data = try HyperlitePinnedCodexThreadClient.readBoundedFile(url, limit: limit)
+                    var changed = data
+                    changed.append(0x20)
+                    try changed.write(to: url)
+                    return data
+                }
+            )
+            let result = try await client.load(
+                previousSignature: nil, force: true, checkedAt: pinnedTestDate
+            )
+            guard case let .retry(snapshot) = result else {
+                throw PinnedTestError("a repeatedly changing source should request a retry")
+            }
+            expectPinnedTest(snapshot.availability == .unavailable,
+                             "a torn read should fail closed until the next activation")
         }
     }
 }
