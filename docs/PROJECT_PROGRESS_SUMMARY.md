@@ -9,7 +9,8 @@
 | 0003 | inferred-attention | `docs/specs/0003-inferred-attention` | deliver | no | 2026-07-28 | Reconstruct evidence-backed goal threads and surface only material coordination changes without user bookkeeping. |
 | 0004 | open-pull-requests | `docs/specs/0004-open-pull-requests` | deliver | no | 2026-07-29 | Track every open pull request across configured projects through a separate rate-safe informational projection. |
 | 0005 | dashboard-project-management | `docs/specs/0005-dashboard-project-management` | deliver | no | 2026-07-31 | Give Notes, Open PRs, and Projects equal scrollable space and add searchable project configuration commands. |
-| 0006 | pinned-codex-threads | `docs/specs/0006-pinned-codex-threads` | deliver | no | 2026-08-02 | Show pinned Codex Desktop tasks in a compact read-only header projection with fail-closed membership and partial metadata. |
+| 0006 | notepad-daily-notes | `docs/specs/0006-notepad-daily-notes` | deliver | no | 2026-08-02 | Replace the single scratch document with one permanent pinned note, chronological daily Markdown notes, and direct exact or semantic search. |
+| 0007 | pinned-codex-threads | `docs/specs/0007-pinned-codex-threads` | deliver | no | 2026-08-02 | Show pinned Codex Desktop tasks in a compact read-only header projection with fail-closed membership and partial metadata. |
 
 ## PROJECT INTENT
 
@@ -67,7 +68,7 @@ changes that warrant human attention.
   and closure conservatively, add cited bounded local-model synthesis, persist
   fail-soft presentation state, and preserve material Attention behind a
   native feature boundary. The current native surface disables that
-  presentation to focus on open PRs and a regular-text notepad. Keep a stable
+  presentation to focus on open PRs and private pinned/daily notes. Keep a stable
   project map with every configured checkout and only subordinate lanes whose
   exact branch has a current open PR.
 - **OPEN ITEMS**: Core inference merged through issue #7 and PR #8. Re-enabling
@@ -85,9 +86,13 @@ changes that warrant human attention.
   private cache with a five-minute success and failure floor, and use current
   exact PR head branches to hide cached, unavailable, merged, or closed
   worktree lanes. Issue #17 gives Open PRs an equal independently scrollable
-  section and absolute freshness timestamp.
-- **OPEN ITEMS**: Issues #9, #11, #13, and #15 delivered the projection and
-  active-lane presentation; issue #17 owns the current layout follow-up.
+  section and absolute freshness timestamp. Issue #21 adds bounded actionable
+  review-thread counts beside each ready/draft state. Issue #23 carries complete
+  caller rate-limit metadata on those same requests into a compact header
+  indicator without adding a GitHub call.
+- **OPEN ITEMS**: Issues #9, #11, #13, #15, #17, #21, and #23 define the
+  delivered projection, layout, active-lane, review-feedback, and quota
+  visibility scope. No additional follow-up is defined in this spec.
 - **POINTERS**: `docs/specs/0004-open-pull-requests/SPEC.md`,
   `docs/specs/0005-dashboard-project-management/SPEC.md`
 
@@ -104,6 +109,20 @@ changes that warrant human attention.
   pull-request delivery remains for issue #17.
 - **POINTERS**: `docs/specs/0005-dashboard-project-management/SPEC.md`
 
+### notepad-daily-notes
+
+- **STATUS**: deliver
+- **PAUSED**: no
+- **INTENT**: Keep durable reference material and chronological daily writing
+  immediately available without tabs, note-management state, or file concepts.
+- **APPROACH**: Persist one pinned Markdown note and ISO-dated daily Markdown
+  files through the Go storage authority, keep only the two active drafts in
+  editors, and derive recency plus asynchronous exact/semantic Command-K search
+  from those filesystem sources.
+- **OPEN ITEMS**: Local implementation and validation are complete; ready
+  pull-request delivery remains for issue #24.
+- **POINTERS**: `docs/specs/0006-notepad-daily-notes/SPEC.md`
+
 ### pinned-codex-threads
 
 - **STATUS**: deliver
@@ -116,13 +135,21 @@ changes that warrant human attention.
   states in a compact header indicator and bounded popover.
 - **OPEN ITEMS**: Local implementation, fixture validation, and live Desktop
   validation are complete; ready pull-request delivery remains for issue #25.
-- **POINTERS**: `docs/specs/0006-pinned-codex-threads/SPEC.md`
+- **POINTERS**: `docs/specs/0007-pinned-codex-threads/SPEC.md`
 
 ## LAST UPDATED
 
-- 2026-08-02: Added feature `0006-pinned-codex-threads` with authoritative
+- 2026-08-02: Added feature `0007-pinned-codex-threads` with authoritative
   Desktop pin membership, optional SQLite metadata, changed-source activation
   refresh, explicit forced refresh, and a compact non-navigating native view.
+- 2026-08-02: Added feature `0006-notepad-daily-notes` for permanent pinned
+  context, chronological daily Markdown files, recent-date navigation, and
+  local exact or semantic Command-K search.
+- 2026-08-02: Added a cached GitHub GraphQL used/limit indicator with complete
+  reset, remaining, query-cost, node-count, and observation metadata in a
+  styled JetBrainsMono hover popover that can be pinned and dismissed by click;
+  consecutive same-window samples now add burn rate, projected depletion time,
+  and an explicit before/after-reset comparison.
 - 2026-07-31: Added feature `0005-dashboard-project-management` for the
   equal-third native workspace, searchable palettes, project configuration,
   and removal of worktree-prune functionality.

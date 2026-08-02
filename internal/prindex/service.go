@@ -27,7 +27,7 @@ type RepositoryDiscoverer interface {
 }
 
 type PullRequestClient interface {
-	ListOpen(context.Context, []config.Repository) map[string]RepositoryResult
+	ListOpen(context.Context, []config.Repository) ClientResult
 }
 
 type Scanner struct {
@@ -69,6 +69,7 @@ func (s Scanner) Scan(
 	discovered := s.Discovery.Discover(ctx, sources)
 	resolved := repositoriesByPath(discovered.Repositories)
 	queryResults := map[string]RepositoryResult{}
+	var rateLimit *GitHubRateLimit
 
 	if mode != RefreshLocal {
 		if s.Client == nil {
@@ -76,7 +77,12 @@ func (s Scanner) Scan(
 		}
 		repositories := repositoriesToRefresh(sources, resolved, cache, mode, now)
 		if len(repositories) > 0 {
-			queryResults = s.Client.ListOpen(ctx, repositories)
+			clientResult := s.Client.ListOpen(ctx, repositories)
+			queryResults = clientResult.Repositories
+			if queryResults == nil {
+				queryResults = make(map[string]RepositoryResult, len(repositories))
+			}
+			rateLimit = clientResult.RateLimit
 			for _, repository := range repositories {
 				key := repositoryKey(repository.GitHub)
 				if _, found := queryResults[key]; !found {
@@ -89,6 +95,9 @@ func (s Scanner) Scan(
 		cache, err = s.Store.Update(func(current *cacheState) {
 			updateProjectMappings(current, sources, resolved)
 			applyQueryResults(current, repositories, queryResults, now)
+			if observed := observedRateLimit(rateLimit, now); observed != nil {
+				current.RateLimit = applyRateLimitBurnRate(observed, current.RateLimit)
+			}
 		})
 		if err != nil {
 			return model.ProjectPullRequestScan{}, err
@@ -98,8 +107,9 @@ func (s Scanner) Scan(
 	result := model.ProjectPullRequestScan{
 		SchemaVersion: model.ProjectPullRequestScanSchemaVersion,
 		GeneratedAt:   now, RefreshIntervalSeconds: int64(RefreshInterval / time.Second),
-		Projects: []model.ProjectPullRequests{},
-		Errors:   []model.ScanError{}, Warnings: []model.ScanError{},
+		RateLimit: cloneRateLimit(cache.RateLimit),
+		Projects:  []model.ProjectPullRequests{},
+		Errors:    []model.ScanError{}, Warnings: []model.ScanError{},
 	}
 	if cacheWarning != "" {
 		result.Warnings = append(result.Warnings, model.ScanError{
@@ -173,6 +183,9 @@ func repositoriesToRefresh(
 		if cached && entry.CheckedAt.IsZero() && cacheEntryNeedsHeadRefs(entry) {
 			cached = false
 		}
+		if cached && entry.LastError == "" && cacheEntryNeedsReviewCounts(entry) {
+			cached = false
+		}
 		lastCheck := entry.CheckedAt
 		if lastCheck.IsZero() {
 			lastCheck = entry.ObservedAt
@@ -190,6 +203,15 @@ func repositoriesToRefresh(
 func cacheEntryNeedsHeadRefs(entry cacheEntry) bool {
 	for _, pullRequest := range entry.PullRequests {
 		if pullRequest.HeadRefName == "" {
+			return true
+		}
+	}
+	return false
+}
+
+func cacheEntryNeedsReviewCounts(entry cacheEntry) bool {
+	for _, pullRequest := range entry.PullRequests {
+		if pullRequest.UnresolvedReviewThreads == nil {
 			return true
 		}
 	}

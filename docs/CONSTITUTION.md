@@ -54,7 +54,12 @@
   never by a continuous timer. A successful refresh is authoritative for
   removing merged or closed PR branches from the visible Projects map. Cached
   rows remain available in Open PRs during a failed refresh but are not
-  authoritative for active worktree visibility.
+  authoritative for active worktree visibility. Unresolved, non-outdated review
+  thread counts are informational metadata in this projection; they do not
+  establish inferred attention or thread lifecycle state. Caller rate-limit
+  metadata rides with those same bounded GraphQL requests and is cached only as
+  a complete observation; quota visibility never adds polling, changes refresh
+  authority, or establishes attention.
 - Pinned Codex threads are a separate read-only operator projection, not
   inferred Hyperlite threads, project evidence, lifecycle state, or attention.
   A valid Desktop `pinned-thread-ids` array alone establishes membership;
@@ -72,9 +77,10 @@
   order, advance, or complete project work.
 - The global notepad is private operator memory, not project evidence.
   Hyperlite never interprets it as a thread, relation, obligation, lifecycle
-  signal, or attention moment. It is a bounded regular-text document; the
-  default `.txt` store adopts the prior default `.md` file without rewriting
-  its content.
+  signal, or attention moment. Its bounded Markdown source of truth is one
+  permanent pinned note plus ISO-dated daily notes; derived recency and search
+  projections never become lifecycle authority. The pinned note safely adopts
+  the prior single-document store without rewriting its content.
 - Application-controlled native interface text, including editable notepad
   content, uses JetBrainsMono Nerd Font through one shared SwiftUI/AppKit
   resolver, with the system monospaced family as the unavailable-font fallback.

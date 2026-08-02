@@ -58,7 +58,7 @@ done
 
 swift_sources=("$repository_root"/macos/Hyperlite/*.swift)
 for architecture in arm64 x86_64; do
-  xcrun swiftc -parse-as-library -O -target "$architecture-apple-macos13.0" -framework SwiftUI -framework AppKit -framework Carbon -lsqlite3 \
+  xcrun swiftc -parse-as-library -O -target "$architecture-apple-macos13.0" -framework SwiftUI -framework AppKit -framework Carbon -framework NaturalLanguage -lsqlite3 \
     "${swift_sources[@]}" \
     -o "$repository_root/build/helpers/Hyperlite-$architecture"
 done

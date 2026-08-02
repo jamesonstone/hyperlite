@@ -1,6 +1,7 @@
 package prindex
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -15,10 +16,12 @@ import (
 )
 
 const (
-	githubTimeout      = 20 * time.Second
-	queryBatchSize     = 25
-	queryPageSize      = 100
-	maxRepositoryPages = 20
+	githubTimeout        = 20 * time.Second
+	queryBatchSize       = 25
+	queryPageSize        = 100
+	reviewThreadPageSize = 100
+	maxRepositoryPages   = 20
+	maxReviewThreadPages = 20
 )
 
 type RepositoryResult struct {
@@ -37,12 +40,13 @@ type pageRequest struct {
 }
 
 type rawPullRequest struct {
-	Number      int       `json:"number"`
-	Title       string    `json:"title"`
-	URL         string    `json:"url"`
-	HeadRefName string    `json:"headRefName"`
-	IsDraft     bool      `json:"isDraft"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	Number        int                        `json:"number"`
+	Title         string                     `json:"title"`
+	URL           string                     `json:"url"`
+	HeadRefName   string                     `json:"headRefName"`
+	IsDraft       bool                       `json:"isDraft"`
+	UpdatedAt     time.Time                  `json:"updatedAt"`
+	ReviewThreads *rawReviewThreadConnection `json:"reviewThreads"`
 }
 
 type rawRepository struct {
@@ -61,29 +65,32 @@ type rawGraphQLError struct {
 }
 
 type rawResponse struct {
-	Data   map[string]*rawRepository `json:"data"`
-	Errors []rawGraphQLError         `json:"errors"`
+	Data   map[string]json.RawMessage `json:"data"`
+	Errors []rawGraphQLError          `json:"errors"`
 }
 
 func (c GitHubClient) ListOpen(
 	ctx context.Context,
 	repositories []config.Repository,
-) map[string]RepositoryResult {
+) ClientResult {
 	unique := uniqueRepositories(repositories)
 	results := make(map[string]RepositoryResult, len(unique))
+	collector := rateLimitCollector{}
 	for start := 0; start < len(unique); start += queryBatchSize {
 		end := min(start+queryBatchSize, len(unique))
-		c.collectBatch(ctx, unique[start:end], results)
+		c.collectBatch(ctx, unique[start:end], results, &collector)
 	}
-	return results
+	return ClientResult{Repositories: results, RateLimit: collector.latest}
 }
 
 func (c GitHubClient) collectBatch(
 	ctx context.Context,
 	repositories []config.Repository,
 	results map[string]RepositoryResult,
+	collector *rateLimitCollector,
 ) {
 	pending := make([]pageRequest, 0, len(repositories))
+	var reviewThreadPages []reviewThreadPageRequest
 	for _, repository := range repositories {
 		pending = append(pending, pageRequest{repository: repository, page: 1})
 		results[repositoryKey(repository.GitHub)] = RepositoryResult{
@@ -98,7 +105,7 @@ func (c GitHubClient) collectBatch(
 			for _, request := range pending {
 				setResultError(results, request.repository.GitHub, err.Error())
 			}
-			return
+			break
 		}
 		var response rawResponse
 		if err := json.Unmarshal(output, &response); err != nil {
@@ -106,14 +113,22 @@ func (c GitHubClient) collectBatch(
 			for _, request := range pending {
 				setResultError(results, request.repository.GitHub, message)
 			}
-			return
+			break
 		}
+		collector.observe(response.Data)
 		errorsByAlias, globalErrors := graphQLErrors(response.Errors)
 		var next []pageRequest
 		for alias, request := range aliases {
-			raw, found := response.Data[alias]
+			raw, found, decodeErr := decodeGraphQLData[rawRepository](response.Data, alias)
 			messages := append([]string{}, globalErrors...)
 			messages = append(messages, errorsByAlias[alias]...)
+			if decodeErr != nil {
+				setResultError(
+					results, request.repository.GitHub,
+					"decode GitHub repository data: "+decodeErr.Error(),
+				)
+				continue
+			}
 			if !found || raw == nil {
 				if len(messages) == 0 {
 					messages = append(messages, "GitHub returned no repository data")
@@ -128,15 +143,47 @@ func (c GitHubClient) collectBatch(
 			key := repositoryKey(request.repository.GitHub)
 			result := results[key]
 			for _, pullRequest := range raw.PullRequests.Nodes {
+				if pullRequest.ReviewThreads == nil {
+					result.Error = "GitHub returned no review thread data"
+					continue
+				}
+				unresolvedReviewThreads := actionableReviewThreadCount(
+					pullRequest.ReviewThreads.Nodes,
+				)
 				result.PullRequests = append(result.PullRequests, model.ProjectPullRequest{
 					ID:     fmt.Sprintf("%s#%d", request.repository.GitHub, pullRequest.Number),
 					Number: pullRequest.Number, Title: pullRequest.Title,
 					URL: pullRequest.URL, HeadRefName: pullRequest.HeadRefName,
-					IsDraft:   pullRequest.IsDraft,
-					UpdatedAt: pullRequest.UpdatedAt.UTC(),
+					IsDraft:                 pullRequest.IsDraft,
+					UnresolvedReviewThreads: &unresolvedReviewThreads,
+					UpdatedAt:               pullRequest.UpdatedAt.UTC(),
 				})
+				if pullRequest.ReviewThreads.PageInfo.HasNextPage {
+					cursor := pullRequest.ReviewThreads.PageInfo.EndCursor
+					if cursor == "" {
+						result.Error = "GitHub review-thread pagination cursor is missing"
+						continue
+					}
+					if maxReviewThreadPages <= 1 {
+						result.Error = fmt.Sprintf(
+							"GitHub review-thread pagination exceeded %d pages",
+							maxReviewThreadPages,
+						)
+						continue
+					}
+					reviewThreadPages = append(
+						reviewThreadPages,
+						reviewThreadPageRequest{
+							repository: request.repository, pullRequestNumber: pullRequest.Number,
+							cursor: cursor, page: 2,
+						},
+					)
+				}
 			}
 			results[key] = result
+			if result.Error != "" {
+				continue
+			}
 			if raw.PullRequests.PageInfo.HasNextPage {
 				cursor := raw.PullRequests.PageInfo.EndCursor
 				if cursor == "" {
@@ -167,6 +214,7 @@ func (c GitHubClient) collectBatch(
 		}
 		pending = next
 	}
+	c.collectReviewThreadPages(ctx, reviewThreadPages, results, collector)
 	for key, result := range results {
 		sort.Slice(result.PullRequests, func(i, j int) bool {
 			if !result.PullRequests[i].UpdatedAt.Equal(result.PullRequests[j].UpdatedAt) {
@@ -228,4 +276,19 @@ func setResultError(results map[string]RepositoryResult, repository, message str
 
 func repositoryKey(repository string) string {
 	return strings.ToLower(strings.TrimSpace(repository))
+}
+
+func decodeGraphQLData[T any](
+	data map[string]json.RawMessage,
+	key string,
+) (*T, bool, error) {
+	encoded, found := data[key]
+	if !found || bytes.Equal(bytes.TrimSpace(encoded), []byte("null")) {
+		return nil, found, nil
+	}
+	var decoded T
+	if err := json.Unmarshal(encoded, &decoded); err != nil {
+		return nil, true, err
+	}
+	return &decoded, true, nil
 }

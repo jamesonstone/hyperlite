@@ -1,19 +1,19 @@
 import AppKit
 import SwiftUI
-
 struct HyperliteCommandPalette: View {
     let mode: HyperlitePaletteMode
     let threads: [HyperliteThread]
     let projects: [HyperliteProjectLocation]
     let pullRequests: HyperliteProjectPullRequestScan?
+    @ObservedObject var notepad: HyperliteNotepadState
     let onAction: (HyperlitePaletteAction) -> Void
     let onDismiss: () -> Void
 
     @State private var expandedProjects: Set<String> = []
     @State private var query = ""
     @State private var selection = 0
+    @State private var noteEntries: [HyperlitePaletteEntry] = []
     @FocusState private var searchFocused: Bool
-
     private var unfilteredEntries: [HyperlitePaletteEntry] {
         switch mode {
         case .commands:
@@ -35,9 +35,9 @@ struct HyperliteCommandPalette: View {
     }
 
     private var entries: [HyperlitePaletteEntry] {
-        HyperliteInteractionModel.filteredEntries(unfilteredEntries, query: query)
+        let filtered = HyperliteInteractionModel.filteredEntries(unfilteredEntries, query: query)
+        return mode == .commands ? filtered + noteEntries : filtered
     }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             paletteHeader
@@ -77,6 +77,7 @@ struct HyperliteCommandPalette: View {
         .onChange(of: entries.count) { count in
             selection = HyperliteInteractionModel.movedSelection(selection, by: 0, count: count)
         }
+        .task(id: "\(notepad.searchIndexRevision):\(query)") { await searchNotes() }
     }
 
     private var paletteHeader: some View {
@@ -154,7 +155,7 @@ struct HyperliteCommandPalette: View {
 
     private var searchPrompt: String {
         switch mode {
-        case .commands: "Search commands"
+        case .commands: "Search commands and notes"
         case .projects: "Search projects, PRs, and worktrees"
         case .removeProjects: "Search configured projects"
         }
@@ -228,7 +229,6 @@ struct HyperliteCommandPalette: View {
         }
         .buttonStyle(.plain)
     }
-
     private func handleKey(_ event: NSEvent) -> Bool {
         let disallowedModifiers: NSEvent.ModifierFlags = [.command, .control, .option]
         if !event.modifierFlags.isDisjoint(with: disallowedModifiers) { return false }
@@ -256,6 +256,26 @@ struct HyperliteCommandPalette: View {
         case let .project(project): toggleProject(project)
         case let .action(action): onAction(action)
         }
+    }
+    private func searchNotes() async {
+        guard mode == .commands else {
+            noteEntries = []
+            return
+        }
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            noteEntries = []
+            return
+        }
+        do {
+            try await Task.sleep(for: .milliseconds(120))
+        } catch {
+            return
+        }
+        guard !Task.isCancelled else { return }
+        let results = await notepad.searchNotes(trimmed)
+        guard !Task.isCancelled else { return }
+        noteEntries = HyperliteInteractionModel.noteEntries(results: results)
     }
 
     private func toggleProject(_ project: String) {

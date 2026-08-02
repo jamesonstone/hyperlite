@@ -152,6 +152,7 @@ struct HyperliteWindow: View {
                             threads: HyperliteFeatureFlags.inferredAttentionPresentation ? active : [],
                             projects: paletteProjects,
                             pullRequests: pullRequests,
+                            notepad: notepad,
                             onAction: handlePaletteAction,
                             onDismiss: state.dismissPalette
                         )
@@ -215,13 +216,11 @@ struct HyperliteWindow: View {
             }
             Spacer(minLength: 8)
             HyperlitePinnedCodexThreadIndicator(state: pinnedCodexThreads)
+            HyperliteGitHubRateLimitIndicator(rateLimit: pullRequestScan?.rateLimit)
             Button { state.refreshAll() } label: { Image(systemName: "arrow.clockwise") }
                 .buttonStyle(.bordered)
                 .tint(HyperliteTheme.orange.color.opacity(0.82))
-                .disabled(
-                    state.isRefreshing || state.isUpdatingProjects ||
-                        pinnedCodexThreads.isRefreshing
-                )
+                .disabled(state.isRefreshing || state.isUpdatingProjects)
                 .help("Refresh projects, open pull requests, and pinned Codex threads (⌘R)")
             Button(action: openHyperliteSettings) { Image(systemName: "gearshape.fill") }
                 .buttonStyle(.bordered)
@@ -261,6 +260,10 @@ struct HyperliteWindow: View {
             NSWorkspace.shared.open(url)
         case let .revealPath(path):
             NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
+        case .focusPinnedNote:
+            notepad.focusPinned()
+        case let .openDailyNote(date):
+            Task { await notepad.selectDateIdentifier(date, focus: true) }
         }
     }
 }

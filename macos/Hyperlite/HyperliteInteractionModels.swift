@@ -27,6 +27,8 @@ enum HyperlitePaletteAction: Equatable {
     case reveal(String)
     case openPullRequest(String)
     case revealPath(String)
+    case focusPinnedNote
+    case openDailyNote(String)
 }
 
 struct HyperlitePaletteEntry: Equatable, Identifiable {
@@ -168,6 +170,27 @@ enum HyperliteInteractionModel {
                 "minus.circle",
                 .removeProject(project.path)
             )
+        }
+    }
+
+    static func noteEntries(
+        results: [HyperliteNoteSearchResult]
+    ) -> [HyperlitePaletteEntry] {
+        results.map { result in
+            let match = result.matchKind == .exact ? "exact" : "semantic"
+            let subtitle = [match, result.filename, result.snippet]
+                .filter { !$0.isEmpty }
+                .joined(separator: " · ")
+            switch result.noteID {
+            case .pinned:
+                return actionEntry(
+                    result.id, "Pinned", subtitle, "pin.fill", .focusPinnedNote
+                )
+            case let .daily(date):
+                return actionEntry(
+                    result.id, date, subtitle, "calendar", .openDailyNote(date)
+                )
+            }
         }
     }
 

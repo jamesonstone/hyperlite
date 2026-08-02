@@ -65,12 +65,21 @@ Inferred attention remains available through CLI/JSON but is hidden behind a
 single native feature flag: the window, menu bar, and palettes show no thread
 or attention counts or entries, and the app skips remote attention enrichment.
 The fixed header contains the product name and ghost, a compact pinned Codex
-thread indicator, a subtly orange Refresh action, and Settings. Notes, Open
-PRs, and the single-column Projects list each own one third of the content
-workspace. Every section has its own vertical scroll boundary, so long notes,
-a large pull-request index, and a dense project map remain independently
-usable. The pull-request index is informational only: it never establishes
-thread activity or attention.
+thread indicator, a compact GitHub GraphQL rate-limit indicator, a subtly
+orange Refresh action, and Settings. The quota indicator shows calls used out
+of the caller's limit; hover exposes remaining capacity, the local reset and
+observation times, and the last query's cost and node count in a comfortably
+spaced, app-themed JetBrainsMono Nerd Font popover. Once two valid observations
+exist in the same reset window, the popover also shows the trailing quota-point
+burn rate, sample duration, projected depletion time, and whether depletion
+falls before or after reset. Clicking the indicator opens and pins the same
+details until another click or native dismissal.
+
+Notes, Open PRs, and the single-column Projects list each own one third of the
+content workspace. Every section has its own vertical scroll boundary, so long
+notes, a large pull-request index, and a dense project map remain independently
+usable. The pull-request index and header projections are informational only:
+none establishes thread activity or attention.
 
 Pinned Codex threads are a separate read-only operator projection. Hyperlite
 uses a valid Desktop `pinned-thread-ids` array as membership authority and
@@ -87,7 +96,19 @@ minutes, and use bounded GraphQL batches instead of one `gh` process per
 repository. The existing Refresh action forces the index current. Failed checks
 retain visibly cached rows; a project with no usable GitHub identity or cache is
 shown as unavailable. Pagination fails safely on a repeated cursor or bounded
-page limit instead of risking an unbounded GitHub query loop.
+page limit instead of risking an unbounded GitHub query loop. Every existing
+GraphQL request also returns the caller's quota metadata, so the header adds no
+request or `gh` process. Only complete observations replace the separately
+cached quota snapshot; healthy capacity stays quiet, while 20 percent remaining
+warns in orange and 10 percent remaining is critical in red. Burn rate compares
+consecutive complete observations only when the limit and reset window match;
+reset crossings, counter decreases, and samples shorter than one minute remain
+explicitly measuring instead of projecting. Each row places an actionable
+review-feedback count after its ready/draft state: only unresolved, non-outdated
+GitHub review threads count. Nonzero counts use the orange attention color,
+confirmed zero uses a quiet dash, and unavailable legacy cache data uses `?`
+until a complete refresh supplies an exact count. The entire row remains a link
+to the pull request.
 
 Projects always shows every configured checkout. Registered subordinate
 worktrees appear only when their exact case-sensitive branch is the head branch
@@ -97,17 +118,21 @@ unavailable pull-request data does not retain a subordinate worktree as active.
 After a successful refresh observes that pull request as merged or closed, its
 worktree row disappears; Hyperlite never deletes or prunes the local checkout.
 
-The global notepad directly beneath the header is a local scratch surface, not
-another source of project truth. Typing stays in memory, the latest edit saves
-after three idle seconds, and pending text flushes when the window or
-application yields. It is regular UTF-8 text rendered with JetBrainsMono Nerd
-Font through the shared application resolver and a system monospaced fallback,
-with no Markdown presentation. Its darker inset surface follows the existing
-Selenized theme, and its content never enters thread inference or attention.
+The Notepad directly beneath the header is private operator memory, not another
+source of project truth. One permanent Pinned editor is always visible beside
+one dated Daily editor, which opens today by default and creates a missing file
+only after the first edit. Previous, next, today, and date-picker controls open
+daily notes directly; the clickable Notepad title offers Today, Yesterday, and
+up to ten recently modified daily files. Typing stays in memory, the latest
+edit saves after three idle seconds, and pending text flushes when the window or
+application yields. Both editors use JetBrainsMono Nerd Font through the shared
+application resolver and never feed thread inference or attention.
 
 Command+R refreshes the focused Hyperlite application. Command+K opens a
-searchable command palette with Refresh, Settings, Add Project, and Remove
-Project. Command+P opens the same searchable surface in configured-project
+searchable command palette with Refresh, Settings, Add Project, Remove Project,
+and exact or on-device semantic matches from pinned and daily note filenames,
+dates, and contents. A selected note result focuses Pinned or opens the matching
+daily date. Command+P opens the same searchable surface in configured-project
 mode; projects start collapsed and expand to show their open pull requests and
 registered branch/worktree lanes. Add Project is also available from Settings.
 Project selection changes are written atomically by the bundled helper.
@@ -126,8 +151,10 @@ hyperlite projects
 hyperlite projects add /path/to/repository
 hyperlite projects remove /path/to/repository
 hyperlite notepad
-hyperlite notepad set --stdin
-hyperlite notepad path
+hyperlite notepad show [--date YYYY-MM-DD] [--json]
+hyperlite notepad set --stdin [--date YYYY-MM-DD] [--json]
+hyperlite notepad path [--date YYYY-MM-DD]
+hyperlite notepad index
 hyperlite thread seen <thread-id> --revision <digest>
 hyperlite thread note <thread-id> --stdin
 ```
@@ -141,11 +168,12 @@ The project pull-request cache is stored independently with user-only
 permissions at `$XDG_STATE_HOME/hyperlite/pull-requests.json`, or
 `~/.local/state/hyperlite/pull-requests.json` by default.
 
-The global notepad is stored separately with the same atomic, user-only
-boundary at `$XDG_DATA_HOME/hyperlite/notepad.txt`, or
-`~/.local/share/hyperlite/notepad.txt` by default. On first use, Hyperlite
-adopts the prior default `notepad.md` file without changing its content. The
-document is limited to 256 KiB.
+The Notepad is stored with the same atomic, user-only boundary beneath
+`$XDG_DATA_HOME/hyperlite/notes`, or `~/.local/share/hyperlite/notes` by
+default. The pinned note is `pinned.md`; daily notes are
+`daily/YYYY-MM-DD.md`. On first use, Hyperlite adopts the prior `notepad.txt`
+or default `notepad.md` document as the pinned note without changing its
+content. Every document is limited to 256 KiB.
 
 ## Development
 

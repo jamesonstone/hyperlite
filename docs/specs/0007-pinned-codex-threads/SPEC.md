@@ -5,9 +5,9 @@ workflow_version: 3
 phase: deliver
 delivery_intent: ready_pull_request
 feature:
-  id: "0006"
+  id: "0007"
   slug: pinned-codex-threads
-  dir: 0006-pinned-codex-threads
+  dir: 0007-pinned-codex-threads
 references:
   - id: issue-25
     name: Show pinned Codex threads in Hyperlite
@@ -175,5 +175,5 @@ informational and non-navigating.
   refresh consistency, and the future adapter boundary are material rationale
   not recoverable from UI code and tests alone. The validated separation of
   this projection from project evidence is also a durable project invariant.
-- Artifacts: `docs/specs/0006-pinned-codex-threads/SPEC.md`, `README.md`,
+- Artifacts: `docs/specs/0007-pinned-codex-threads/SPEC.md`, `README.md`,
   `docs/PROJECT_PROGRESS_SUMMARY.md`, `docs/CONSTITUTION.md`
