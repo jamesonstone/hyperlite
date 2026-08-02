@@ -56,7 +56,10 @@
   rows remain available in Open PRs during a failed refresh but are not
   authoritative for active worktree visibility. Unresolved, non-outdated review
   thread counts are informational metadata in this projection; they do not
-  establish inferred attention or thread lifecycle state.
+  establish inferred attention or thread lifecycle state. Caller rate-limit
+  metadata rides with those same bounded GraphQL requests and is cached only as
+  a complete observation; quota visibility never adds polling, changes refresh
+  authority, or establishes attention.
 - Exact evidence owns thread membership. Semantic inference may relate
   separate threads, but it may not merge them, establish authoritative
   lifecycle state, suppress a thread, or close a goal.

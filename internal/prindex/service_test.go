@@ -361,17 +361,18 @@ type fakePullRequestClient struct {
 	calls        int
 	repositories [][]config.Repository
 	results      map[string]RepositoryResult
+	rateLimit    *GitHubRateLimit
 }
 
 func (f *fakePullRequestClient) ListOpen(
 	_ context.Context,
 	repositories []config.Repository,
-) map[string]RepositoryResult {
+) ClientResult {
 	f.calls++
 	f.repositories = append(
 		f.repositories, append([]config.Repository(nil), repositories...),
 	)
-	return f.results
+	return ClientResult{Repositories: f.results, RateLimit: f.rateLimit}
 }
 
 type memoryCacheStore struct {

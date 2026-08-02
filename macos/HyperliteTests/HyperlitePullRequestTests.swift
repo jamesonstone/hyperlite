@@ -19,6 +19,15 @@ enum HyperlitePullRequestTests {
           "generated_at": "2026-07-29T16:06:00Z",
           "checked_at": "2026-07-29T16:05:00Z",
           "observed_at": "2026-07-29T15:55:00Z",
+          "rate_limit": {
+            "limit": 5000,
+            "used": 1551,
+            "remaining": 3449,
+            "reset_at": "2026-07-29T17:00:00Z",
+            "cost": 4,
+            "node_count": 12,
+            "observed_at": "2026-07-29T16:05:00Z"
+          },
           "refresh_interval_seconds": 300,
           "projects": [
             {
@@ -75,6 +84,11 @@ enum HyperlitePullRequestTests {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let scan = try decoder.decode(HyperliteProjectPullRequestScan.self, from: data)
+        expect(
+            scan.rateLimit?.used == 1551 && scan.rateLimit?.remaining == 3449 &&
+                scan.rateLimit?.cost == 4 && scan.rateLimit?.nodeCount == 12,
+            "complete GraphQL rate-limit metadata should decode"
+        )
         let rows = HyperlitePullRequestPresentation.rows(scan: scan)
         expect(rows.map(\.number) == [9, 7], "rows should be recent-first")
         expect(rows[0].repository == "owner/two" && !rows[0].isDraft,
@@ -120,6 +134,7 @@ enum HyperlitePullRequestTests {
             generatedAt: scan.generatedAt,
             checkedAt: checkedAt,
             observedAt: scan.observedAt,
+            rateLimit: scan.rateLimit,
             refreshIntervalSeconds: 30,
             projects: scan.projects,
             errors: [],
@@ -162,7 +177,7 @@ enum HyperlitePullRequestTests {
         {
             HyperliteProjectPullRequestScan(
                 schemaVersion: 1, generatedAt: checkedAt, checkedAt: checkedAt,
-                observedAt: checkedAt, refreshIntervalSeconds: 300,
+                observedAt: checkedAt, rateLimit: nil, refreshIntervalSeconds: 300,
                 projects: [HyperliteProjectPullRequests(
                     id: "/repo/one", name: "one", path: "/repo/one",
                     repository: "owner/one", status: status, message: nil,

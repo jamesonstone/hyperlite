@@ -35,11 +35,22 @@ type ProjectPullRequests struct {
 	PullRequests []ProjectPullRequest     `json:"pull_requests"`
 }
 
+type GitHubRateLimit struct {
+	Limit      int       `json:"limit"`
+	Used       int       `json:"used"`
+	Remaining  int       `json:"remaining"`
+	ResetAt    time.Time `json:"reset_at"`
+	Cost       int       `json:"cost"`
+	NodeCount  int       `json:"node_count"`
+	ObservedAt time.Time `json:"observed_at"`
+}
+
 type ProjectPullRequestScan struct {
 	SchemaVersion          int                   `json:"schema_version"`
 	GeneratedAt            time.Time             `json:"generated_at"`
 	CheckedAt              *time.Time            `json:"checked_at,omitempty"`
 	ObservedAt             *time.Time            `json:"observed_at,omitempty"`
+	RateLimit              *GitHubRateLimit      `json:"rate_limit,omitempty"`
 	RefreshIntervalSeconds int64                 `json:"refresh_interval_seconds"`
 	Projects               []ProjectPullRequests `json:"projects"`
 	Errors                 []ScanError           `json:"errors"`

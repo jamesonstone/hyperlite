@@ -85,10 +85,12 @@ changes that warrant human attention.
   exact PR head branches to hide cached, unavailable, merged, or closed
   worktree lanes. Issue #17 gives Open PRs an equal independently scrollable
   section and absolute freshness timestamp. Issue #21 adds bounded actionable
-  review-thread counts beside each ready/draft state.
-- **OPEN ITEMS**: Issues #9, #11, #13, #15, #17, and #21 define the delivered
-  projection, layout, active-lane, and review-feedback scope. No additional
-  follow-up is defined in this spec.
+  review-thread counts beside each ready/draft state. Issue #23 carries complete
+  caller rate-limit metadata on those same requests into a compact header
+  indicator without adding a GitHub call.
+- **OPEN ITEMS**: Issues #9, #11, #13, #15, #17, #21, and #23 define the
+  delivered projection, layout, active-lane, review-feedback, and quota
+  visibility scope. No additional follow-up is defined in this spec.
 - **POINTERS**: `docs/specs/0004-open-pull-requests/SPEC.md`,
   `docs/specs/0005-dashboard-project-management/SPEC.md`
 
@@ -107,6 +109,8 @@ changes that warrant human attention.
 
 ## LAST UPDATED
 
+- 2026-08-02: Added a cached GitHub GraphQL used/limit indicator with complete
+  reset, remaining, query-cost, node-count, and observation metadata on hover.
 - 2026-07-31: Added feature `0005-dashboard-project-management` for the
   equal-third native workspace, searchable palettes, project configuration,
   and removal of worktree-prune functionality.

@@ -5,6 +5,7 @@ struct HyperliteProjectPullRequestScan: Codable, Equatable {
     let generatedAt: Date
     let checkedAt: Date?
     let observedAt: Date?
+    let rateLimit: HyperliteGitHubRateLimit?
     let refreshIntervalSeconds: Int
     let projects: [HyperliteProjectPullRequests]
     let errors: [HyperliteDiagnostic]
@@ -16,6 +17,7 @@ struct HyperliteProjectPullRequestScan: Codable, Equatable {
         case generatedAt = "generated_at"
         case checkedAt = "checked_at"
         case observedAt = "observed_at"
+        case rateLimit = "rate_limit"
         case refreshIntervalSeconds = "refresh_interval_seconds"
     }
 }

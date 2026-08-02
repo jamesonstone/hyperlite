@@ -1,6 +1,7 @@
 package prindex
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -38,26 +39,6 @@ type pageRequest struct {
 	page       int
 }
 
-type reviewThreadPageRequest struct {
-	repository        config.Repository
-	pullRequestNumber int
-	cursor            string
-	page              int
-}
-
-type rawReviewThread struct {
-	IsResolved bool `json:"isResolved"`
-	IsOutdated bool `json:"isOutdated"`
-}
-
-type rawReviewThreadConnection struct {
-	Nodes    []rawReviewThread `json:"nodes"`
-	PageInfo struct {
-		HasNextPage bool   `json:"hasNextPage"`
-		EndCursor   string `json:"endCursor"`
-	} `json:"pageInfo"`
-}
-
 type rawPullRequest struct {
 	Number        int                        `json:"number"`
 	Title         string                     `json:"title"`
@@ -84,40 +65,29 @@ type rawGraphQLError struct {
 }
 
 type rawResponse struct {
-	Data   map[string]*rawRepository `json:"data"`
-	Errors []rawGraphQLError         `json:"errors"`
-}
-
-type rawReviewThreadPullRequest struct {
-	ReviewThreads *rawReviewThreadConnection `json:"reviewThreads"`
-}
-
-type rawReviewThreadRepository struct {
-	PullRequest *rawReviewThreadPullRequest `json:"pullRequest"`
-}
-
-type rawReviewThreadResponse struct {
-	Data   map[string]*rawReviewThreadRepository `json:"data"`
-	Errors []rawGraphQLError                     `json:"errors"`
+	Data   map[string]json.RawMessage `json:"data"`
+	Errors []rawGraphQLError          `json:"errors"`
 }
 
 func (c GitHubClient) ListOpen(
 	ctx context.Context,
 	repositories []config.Repository,
-) map[string]RepositoryResult {
+) ClientResult {
 	unique := uniqueRepositories(repositories)
 	results := make(map[string]RepositoryResult, len(unique))
+	collector := rateLimitCollector{}
 	for start := 0; start < len(unique); start += queryBatchSize {
 		end := min(start+queryBatchSize, len(unique))
-		c.collectBatch(ctx, unique[start:end], results)
+		c.collectBatch(ctx, unique[start:end], results, &collector)
 	}
-	return results
+	return ClientResult{Repositories: results, RateLimit: collector.latest}
 }
 
 func (c GitHubClient) collectBatch(
 	ctx context.Context,
 	repositories []config.Repository,
 	results map[string]RepositoryResult,
+	collector *rateLimitCollector,
 ) {
 	pending := make([]pageRequest, 0, len(repositories))
 	var reviewThreadPages []reviewThreadPageRequest
@@ -145,12 +115,20 @@ func (c GitHubClient) collectBatch(
 			}
 			break
 		}
+		collector.observe(response.Data)
 		errorsByAlias, globalErrors := graphQLErrors(response.Errors)
 		var next []pageRequest
 		for alias, request := range aliases {
-			raw, found := response.Data[alias]
+			raw, found, decodeErr := decodeGraphQLData[rawRepository](response.Data, alias)
 			messages := append([]string{}, globalErrors...)
 			messages = append(messages, errorsByAlias[alias]...)
+			if decodeErr != nil {
+				setResultError(
+					results, request.repository.GitHub,
+					"decode GitHub repository data: "+decodeErr.Error(),
+				)
+				continue
+			}
 			if !found || raw == nil {
 				if len(messages) == 0 {
 					messages = append(messages, "GitHub returned no repository data")
@@ -236,7 +214,7 @@ func (c GitHubClient) collectBatch(
 		}
 		pending = next
 	}
-	c.collectReviewThreadPages(ctx, reviewThreadPages, results)
+	c.collectReviewThreadPages(ctx, reviewThreadPages, results, collector)
 	for key, result := range results {
 		sort.Slice(result.PullRequests, func(i, j int) bool {
 			if !result.PullRequests[i].UpdatedAt.Equal(result.PullRequests[j].UpdatedAt) {
@@ -246,162 +224,6 @@ func (c GitHubClient) collectBatch(
 		})
 		results[key] = result
 	}
-}
-
-func (c GitHubClient) collectReviewThreadPages(
-	ctx context.Context,
-	pending []reviewThreadPageRequest,
-	results map[string]RepositoryResult,
-) {
-	seenCursors := make(map[string]map[string]struct{})
-	for _, request := range pending {
-		key := reviewThreadRequestKey(request)
-		if seenCursors[key] == nil {
-			seenCursors[key] = make(map[string]struct{})
-		}
-		seenCursors[key][request.cursor] = struct{}{}
-	}
-	for len(pending) > 0 {
-		pending = reviewThreadRequestsWithoutErrors(pending, results)
-		if len(pending) == 0 {
-			return
-		}
-		end := min(queryBatchSize, len(pending))
-		batch := pending[:end]
-		pending = pending[end:]
-		query, aliases := buildReviewThreadQuery(batch)
-		output, err := c.run(ctx, query)
-		if err != nil {
-			for _, request := range batch {
-				setResultError(results, request.repository.GitHub, err.Error())
-			}
-			continue
-		}
-		var response rawReviewThreadResponse
-		if err := json.Unmarshal(output, &response); err != nil {
-			message := "decode GraphQL response: " + err.Error()
-			for _, request := range batch {
-				setResultError(results, request.repository.GitHub, message)
-			}
-			continue
-		}
-		errorsByAlias, globalErrors := graphQLErrors(response.Errors)
-		for alias, request := range aliases {
-			key := repositoryKey(request.repository.GitHub)
-			if results[key].Error != "" {
-				continue
-			}
-			raw, found := response.Data[alias]
-			messages := append([]string{}, globalErrors...)
-			messages = append(messages, errorsByAlias[alias]...)
-			if !found || raw == nil || raw.PullRequest == nil {
-				if len(messages) == 0 {
-					messages = append(messages, "GitHub returned no pull request review data")
-				}
-				setResultError(results, request.repository.GitHub, strings.Join(messages, "; "))
-				continue
-			}
-			if len(messages) > 0 {
-				setResultError(results, request.repository.GitHub, strings.Join(messages, "; "))
-				continue
-			}
-			if raw.PullRequest.ReviewThreads == nil {
-				setResultError(results, request.repository.GitHub, "GitHub returned no review thread data")
-				continue
-			}
-			result := results[key]
-			count := actionableReviewThreadCount(raw.PullRequest.ReviewThreads.Nodes)
-			if !addReviewThreadCount(&result, request.pullRequestNumber, count) {
-				setResultError(
-					results,
-					request.repository.GitHub,
-					"GitHub returned review threads for an unknown pull request",
-				)
-				continue
-			}
-			results[key] = result
-			if !raw.PullRequest.ReviewThreads.PageInfo.HasNextPage {
-				continue
-			}
-			cursor := raw.PullRequest.ReviewThreads.PageInfo.EndCursor
-			if cursor == "" {
-				setResultError(
-					results,
-					request.repository.GitHub,
-					"GitHub review-thread pagination cursor is missing",
-				)
-				continue
-			}
-			requestKey := reviewThreadRequestKey(request)
-			if _, repeated := seenCursors[requestKey][cursor]; repeated {
-				setResultError(
-					results,
-					request.repository.GitHub,
-					"GitHub review-thread pagination cursor repeated",
-				)
-				continue
-			}
-			if request.page >= maxReviewThreadPages {
-				setResultError(
-					results,
-					request.repository.GitHub,
-					fmt.Sprintf(
-						"GitHub review-thread pagination exceeded %d pages",
-						maxReviewThreadPages,
-					),
-				)
-				continue
-			}
-			seenCursors[requestKey][cursor] = struct{}{}
-			request.cursor = cursor
-			request.page++
-			pending = append(pending, request)
-		}
-	}
-}
-
-func actionableReviewThreadCount(threads []rawReviewThread) int {
-	count := 0
-	for _, thread := range threads {
-		if !thread.IsResolved && !thread.IsOutdated {
-			count++
-		}
-	}
-	return count
-}
-
-func addReviewThreadCount(result *RepositoryResult, number, count int) bool {
-	for index := range result.PullRequests {
-		pullRequest := &result.PullRequests[index]
-		if pullRequest.Number != number || pullRequest.UnresolvedReviewThreads == nil {
-			continue
-		}
-		total := *pullRequest.UnresolvedReviewThreads + count
-		pullRequest.UnresolvedReviewThreads = &total
-		return true
-	}
-	return false
-}
-
-func reviewThreadRequestsWithoutErrors(
-	requests []reviewThreadPageRequest,
-	results map[string]RepositoryResult,
-) []reviewThreadPageRequest {
-	filtered := requests[:0]
-	for _, request := range requests {
-		if results[repositoryKey(request.repository.GitHub)].Error == "" {
-			filtered = append(filtered, request)
-		}
-	}
-	return filtered
-}
-
-func reviewThreadRequestKey(request reviewThreadPageRequest) string {
-	return fmt.Sprintf(
-		"%s#%d",
-		repositoryKey(request.repository.GitHub),
-		request.pullRequestNumber,
-	)
 }
 
 func (c GitHubClient) run(ctx context.Context, query string) ([]byte, error) {
@@ -454,4 +276,19 @@ func setResultError(results map[string]RepositoryResult, repository, message str
 
 func repositoryKey(repository string) string {
 	return strings.ToLower(strings.TrimSpace(repository))
+}
+
+func decodeGraphQLData[T any](
+	data map[string]json.RawMessage,
+	key string,
+) (*T, bool, error) {
+	encoded, found := data[key]
+	if !found || bytes.Equal(bytes.TrimSpace(encoded), []byte("null")) {
+		return nil, found, nil
+	}
+	var decoded T
+	if err := json.Unmarshal(encoded, &decoded); err != nil {
+		return nil, true, err
+	}
+	return &decoded, true, nil
 }

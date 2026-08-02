@@ -57,6 +57,14 @@ references:
     read_policy: must
     used_for: actionable review-feedback count and row presentation
     status: active
+  - id: issue-23
+    name: Show GitHub rate limit in the app header
+    type: github-issue
+    target: https://github.com/jamesonstone/hyperlite/issues/23
+    relation: implements
+    read_policy: must
+    used_for: caller quota observation and compact header presentation
+    status: active
 ---
 
 # Configured Project Pull Requests
@@ -137,11 +145,27 @@ thread scanner cadence or starting continuous background work.
 - R16: If review-thread pagination or decoding fails, do not cache or present a
   partial count as current. Preserve the last usable repository snapshot under
   the existing cached-fallback policy.
+- R17: Include GitHub's GraphQL `rateLimit` metadata in every existing bounded
+  pull-request query. Do not add a separate quota request, polling loop, timer,
+  or `gh` process to the normal refresh path.
+- R18: Retain only a complete caller quota observation containing `limit`,
+  `used`, `remaining`, `resetAt`, `cost`, and `nodeCount`. A malformed or
+  missing quota object must not replace the last complete cached observation
+  or invalidate otherwise usable pull-request results.
+- R19: Render a compact stacked `used` over `limit` indicator in the native
+  header immediately before Refresh and Settings. Keep healthy capacity quiet,
+  use warning and critical colors only when remaining capacity crosses bounded
+  percentage thresholds, and expose an explicit unknown state before any
+  complete observation exists.
+- R20: The indicator hover and accessibility text must identify the GraphQL
+  resource and include used, limit, remaining, local reset time, last-query
+  cost and node count, and observation time when available.
 
 Non-goals: CI or full review-detail hydration, authored-only filtering, turning
 open pull requests into inferred threads or attention moments, continuous
 timers, background indexing, pull-request actions, or configuration schema
-changes.
+changes. The rate indicator is informational; it does not predict future cost,
+change refresh authority, or mutate GitHub.
 
 ## ACCEPTED PLAN
 
@@ -170,6 +194,12 @@ changes.
     only unresolved non-outdated threads, and batch only the uncommon overflow
     pages. Carry an optional count through cache, JSON, and native presentation
     so legacy cached rows remain explicitly unknown.
+11. Add the top-level GraphQL `rateLimit` selection to the existing repository
+    and review-thread queries, keep the most recent complete response from the
+    scan, and cache that observation independently of per-repository success.
+12. Decode the optional quota observation natively and render a small stacked
+    header indicator with deterministic warning thresholds, complete hover
+    metadata, and one accessibility element.
 
 ## DECISIONS
 
@@ -208,6 +238,16 @@ changes.
   legacy cache is unknown rather than zero, while every successful fresh query
   supplies an exact count. Any incomplete review-thread traversal fails the
   repository refresh and retains its prior usable snapshot.
+- GitHub quota metadata belongs to the lightweight pull-request projection
+  because that adapter owns every GraphQL request shown by this surface. Each
+  query returns `rateLimit` alongside its existing data, so quota visibility
+  adds no request or process. The last complete response in a scan is the most
+  current caller observation and may update even when one repository result is
+  unavailable.
+- `used / limit` is the stable compact summary; `remaining` stays explicit in
+  hover and accessibility text. Remaining capacity at or below 20 percent is
+  a warning and at or below 10 percent is critical. The display does not
+  schedule refreshes or infer exhaustion from age.
 
 ## ACCEPTANCE CRITERIA
 
@@ -239,6 +279,14 @@ changes.
   threads across every bounded page. Zero, nonzero, and unavailable feedback
   states are visually and accessibly distinct, and selecting the row continues
   to open the pull request URL.
+- AC10: Every existing GraphQL request selects the complete GitHub rate-limit
+  fields without launching an additional request. The last complete quota
+  response is cached and projected in JSON; malformed or absent metadata leaves
+  the prior complete observation intact without failing repository data.
+- AC11: The header renders a compact stacked used/limit indicator immediately
+  before Refresh and Settings. Healthy, warning, critical, and unknown states
+  are visually distinct without competing with primary controls, and hover plus
+  accessibility expose the full available quota metadata and local timestamps.
 
 ## VALIDATION MAP
 
@@ -249,6 +297,8 @@ changes.
 | AC4, AC9 | Go partial-failure/cache tests and Swift availability decoding tests |
 | AC5 | Adapter command assertions and implementation self-review |
 | AC6 | Head-branch transport tests and Swift fresh project-lane projection tests |
+| AC10 | Go query, client, service, cache compatibility, and partial-response tests |
+| AC11 | Swift decoding and presentation tests plus packaged-app hover/accessibility inspection |
 
 ## DISCOVERIES
 
@@ -288,6 +338,13 @@ changes.
 - An optional count preserves additive compatibility with the prior cache and
   JSON schema. A current legacy row triggers one hydration attempt immediately,
   while a failed attempt remains subject to the five-minute failure floor.
+- GitHub's live GraphQL schema provides exactly `limit`, `used`, `remaining`,
+  `resetAt`, `cost`, and `nodeCount` on `RateLimit`; it does not provide a
+  resource-name field. The presentation identifies GraphQL from the adapter
+  boundary and otherwise exposes every returned field.
+- The existing top-level cache can add an optional quota observation without a
+  version migration. Legacy cache files decode with no observation, and an
+  incomplete response leaves the prior complete value unchanged.
 
 ## VALIDATION
 
@@ -312,6 +369,22 @@ changes.
   priority than the PR title. Project-lane and workspace-sizing coverage remain
   passing. Swift type-checking passed with only the three existing macOS 14
   `onChange` deprecation warnings in `HyperlitePaletteViews.swift`.
+- Focused quota coverage proves every bounded repository or review continuation
+  query selects all six GitHub fields, the final complete response wins,
+  malformed metadata cannot replace it, repository failures do not suppress a
+  valid observation, legacy caches remain compatible, and cached observations
+  survive later missing metadata. Native coverage proves decoding, unknown,
+  healthy, 20-percent warning, 10-percent critical, complete hover metadata,
+  and accessibility text.
+- An isolated live scan returned 16 configured projects, 10 open pull requests,
+  zero errors, zero warnings, and one complete rate-limit observation from the
+  existing batch. The observed sample was 1788 used of 5000, 3212 remaining,
+  cost 16, and node count 161600.
+- The signed packaged app first exposed an explicit unknown quota while its
+  cached-first refresh ran, then rendered `1812` over `5000` immediately before
+  Refresh. The accessibility tree exposed 3188 remaining, the local reset and
+  observation times, cost 16, and node count 161600; the healthy indicator
+  remained visually quieter than the adjacent controls.
 - One isolated-cache live validation queried all 16 configured projects in one
   GraphQL batch and returned 7 open pull requests, 0 unavailable projects, 0
   errors, and 0 warnings. It reported exactly 2 actionable threads for
@@ -364,6 +437,15 @@ repository batch, overflow pages are fetched in bounded batches, and an
 incomplete traversal retains the last complete cached snapshot. Confirmed zero
 is quiet, nonzero feedback is orange, legacy unavailable data is explicit, and
 the entire row continues to open GitHub for resolution.
+
+The header now includes a compact GitHub GraphQL quota fraction showing calls
+used over the caller's limit. Every existing bounded query selects the complete
+rate-limit object, so the display adds no request or process. The last complete
+observation is cached independently of repository success; missing or malformed
+metadata cannot erase it. Hover and accessibility expose remaining capacity,
+local reset and observation times, query cost, and node count. Healthy capacity
+stays subdued, with warning and critical color reserved for 20 and 10 percent
+remaining respectively.
 
 The notepad owns otherwise unused vertical space and scrolls natively for long
 notes. Open PRs and Projects remain bottom-pinned as one content-sized activity

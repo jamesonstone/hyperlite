@@ -213,7 +213,7 @@ enum HyperlitePaletteTests {
         ]
         let scan = HyperliteProjectPullRequestScan(
             schemaVersion: 1, generatedAt: Date(), checkedAt: Date(), observedAt: Date(),
-            refreshIntervalSeconds: 300,
+            rateLimit: nil, refreshIntervalSeconds: 300,
             projects: [HyperliteProjectPullRequests(
                 id: "/repo/kit", name: "kit", path: "/repo/kit", repository: "owner/kit",
                 status: .current, message: nil, checkedAt: Date(), observedAt: Date(),

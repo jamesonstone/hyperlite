@@ -42,7 +42,7 @@ func TestGitHubClientBatchesRepositoriesAndPaginatesOnlyWhenNeeded(t *testing.T)
 	results := client.ListOpen(context.Background(), []config.Repository{
 		{GitHub: "owner/one"},
 		{GitHub: "owner/two"},
-	})
+	}).Repositories
 	if runner.calls != 2 {
 		t.Fatalf("calls = %d", runner.calls)
 	}
@@ -76,7 +76,7 @@ func TestGitHubClientCountsOnlyActionableReviewThreads(t *testing.T) {
 	}}
 	result := (GitHubClient{Runner: runner}).ListOpen(
 		context.Background(), []config.Repository{{GitHub: "owner/one"}},
-	)["owner/one"]
+	).Repositories["owner/one"]
 	if result.Error != "" || len(result.PullRequests) != 1 ||
 		result.PullRequests[0].UnresolvedReviewThreads == nil ||
 		*result.PullRequests[0].UnresolvedReviewThreads != 1 {
@@ -98,7 +98,11 @@ func TestGitHubClientPaginatesReviewThreadsOnlyWhenNeeded(t *testing.T) {
 		case 2:
 			if !strings.Contains(query, `pullRequest(number: 1)`) ||
 				!strings.Contains(query, `after: "review-cursor-one"`) ||
-				strings.Contains(query, "pullRequests(states: OPEN") {
+				strings.Contains(query, "pullRequests(states: OPEN") ||
+				!strings.Contains(
+					query,
+					"rateLimit { limit used remaining resetAt cost nodeCount }",
+				) {
 				t.Fatalf("review pagination query = %s", query)
 			}
 			return responseJSON(map[string]any{
@@ -117,7 +121,7 @@ func TestGitHubClientPaginatesReviewThreadsOnlyWhenNeeded(t *testing.T) {
 	}}
 	result := (GitHubClient{Runner: runner}).ListOpen(
 		context.Background(), []config.Repository{{GitHub: "owner/one"}},
-	)["owner/one"]
+	).Repositories["owner/one"]
 	if runner.calls != 2 || result.Error != "" ||
 		result.PullRequests[0].UnresolvedReviewThreads == nil ||
 		*result.PullRequests[0].UnresolvedReviewThreads != 2 {
@@ -135,7 +139,7 @@ func TestGitHubClientRejectsMissingReviewThreadData(t *testing.T) {
 	}}
 	result := (GitHubClient{Runner: runner}).ListOpen(
 		context.Background(), []config.Repository{{GitHub: "owner/one"}},
-	)["owner/one"]
+	).Repositories["owner/one"]
 	if !strings.Contains(result.Error, "no review thread data") {
 		t.Fatalf("result = %#v", result)
 	}
@@ -156,7 +160,9 @@ func TestGitHubClientUsesBoundedBatches(t *testing.T) {
 			GitHub: fmt.Sprintf("owner/repository-%02d", index),
 		})
 	}
-	results := (GitHubClient{Runner: runner}).ListOpen(context.Background(), repositories)
+	results := (GitHubClient{Runner: runner}).ListOpen(
+		context.Background(), repositories,
+	).Repositories
 	if runner.calls != 2 || len(results) != len(repositories) {
 		t.Fatalf("calls=%d results=%d", runner.calls, len(results))
 	}
@@ -178,7 +184,7 @@ func TestGitHubClientKeepsPartialGraphQLFailureRepositoryScoped(t *testing.T) {
 	results := (GitHubClient{Runner: runner}).ListOpen(
 		context.Background(),
 		[]config.Repository{{GitHub: "owner/one"}, {GitHub: "owner/two"}},
-	)
+	).Repositories
 	if results["owner/one"].Error != "" || len(results["owner/one"].PullRequests) != 1 {
 		t.Fatalf("owner/one = %#v", results["owner/one"])
 	}
@@ -222,7 +228,7 @@ func TestGitHubClientCompletesReviewPaginationForUnaffectedRepository(t *testing
 	results := (GitHubClient{Runner: runner}).ListOpen(
 		context.Background(),
 		[]config.Repository{{GitHub: "owner/one"}, {GitHub: "owner/two"}},
-	)
+	).Repositories
 	if !strings.Contains(results["owner/one"].Error, "pagination failed") {
 		t.Fatalf("owner/one = %#v", results["owner/one"])
 	}
@@ -243,7 +249,7 @@ func TestGitHubClientDoesNotExposeGraphQLQueryOnCommandFailure(t *testing.T) {
 	}}
 	results := (GitHubClient{Runner: runner}).ListOpen(
 		context.Background(), []config.Repository{{GitHub: "owner/one"}},
-	)
+	).Repositories
 	if results["owner/one"].Error != "rate limit exceeded" ||
 		strings.Contains(results["owner/one"].Error, "pullRequests") {
 		t.Fatalf("result = %#v", results["owner/one"])
@@ -258,7 +264,7 @@ func TestGitHubClientStopsOnRepeatedPaginationCursor(t *testing.T) {
 	}}
 	results := (GitHubClient{Runner: runner}).ListOpen(
 		context.Background(), []config.Repository{{GitHub: "owner/one"}},
-	)
+	).Repositories
 	if runner.calls != 2 ||
 		!strings.Contains(results["owner/one"].Error, "cursor repeated") {
 		t.Fatalf("calls=%d result=%#v", runner.calls, results["owner/one"])
@@ -273,7 +279,7 @@ func TestGitHubClientStopsAtPaginationPageLimit(t *testing.T) {
 	}}
 	results := (GitHubClient{Runner: runner}).ListOpen(
 		context.Background(), []config.Repository{{GitHub: "owner/one"}},
-	)
+	).Repositories
 	if runner.calls != maxRepositoryPages ||
 		!strings.Contains(results["owner/one"].Error, "pagination exceeded") {
 		t.Fatalf("calls=%d result=%#v", runner.calls, results["owner/one"])
@@ -297,7 +303,7 @@ func TestGitHubClientStopsOnRepeatedReviewThreadCursor(t *testing.T) {
 	}}
 	result := (GitHubClient{Runner: runner}).ListOpen(
 		context.Background(), []config.Repository{{GitHub: "owner/one"}},
-	)["owner/one"]
+	).Repositories["owner/one"]
 	if runner.calls != 2 || !strings.Contains(result.Error, "cursor repeated") {
 		t.Fatalf("calls=%d result=%#v", runner.calls, result)
 	}
@@ -320,7 +326,7 @@ func TestGitHubClientStopsAtReviewThreadPageLimit(t *testing.T) {
 	}}
 	result := (GitHubClient{Runner: runner}).ListOpen(
 		context.Background(), []config.Repository{{GitHub: "owner/one"}},
-	)["owner/one"]
+	).Repositories["owner/one"]
 	if runner.calls != maxReviewThreadPages ||
 		!strings.Contains(result.Error, "pagination exceeded") {
 		t.Fatalf("calls=%d result=%#v", runner.calls, result)
@@ -415,6 +421,17 @@ func reviewThreadPage(
 }
 
 func responseJSON(data map[string]any, graphQLErrors []map[string]any) []byte {
+	return responseJSONWithRateLimit(data, graphQLErrors, nil)
+}
+
+func responseJSONWithRateLimit(
+	data map[string]any,
+	graphQLErrors []map[string]any,
+	rateLimit map[string]any,
+) []byte {
+	if rateLimit != nil {
+		data["rateLimit"] = rateLimit
+	}
 	value := map[string]any{"data": data}
 	if len(graphQLErrors) > 0 {
 		value["errors"] = graphQLErrors
@@ -424,4 +441,11 @@ func responseJSON(data map[string]any, graphQLErrors []map[string]any) []byte {
 		panic(err)
 	}
 	return output
+}
+
+func githubRateLimit(used, cost, nodeCount int) map[string]any {
+	return map[string]any{
+		"limit": 5000, "used": used, "remaining": 5000 - used,
+		"resetAt": "2026-08-02T12:00:00Z", "cost": cost, "nodeCount": nodeCount,
+	}
 }

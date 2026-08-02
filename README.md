@@ -64,12 +64,15 @@ The current native presentation focuses on notes and open pull requests.
 Inferred attention remains available through CLI/JSON but is hidden behind a
 single native feature flag: the window, menu bar, and palettes show no thread
 or attention counts or entries, and the app skips remote attention enrichment.
-The fixed header contains the product name and ghost, a subtly orange Refresh
-action, and Settings. Notes, Open PRs, and the single-column Projects list each
-own one third of the content workspace. Every section has its own vertical
-scroll boundary, so long notes, a large pull-request index, and a dense project
-map remain independently usable. The pull-request index is informational only:
-it never establishes thread activity or attention.
+The fixed header contains the product name and ghost, a compact GitHub GraphQL
+rate-limit indicator, a subtly orange Refresh action, and Settings. The
+indicator shows calls used over the caller's limit; hover exposes remaining
+capacity, the local reset and observation times, and the last query's cost and
+node count. Notes, Open PRs, and the single-column Projects list each own one
+third of the content workspace. Every section has its own vertical scroll
+boundary, so long notes, a large pull-request index, and a dense project map
+remain independently usable. The pull-request index and quota display are
+informational only: neither establishes thread activity or attention.
 
 Open PRs load from a separate private cache, refresh stale configured
 repositories on startup or foreground activation no more often than every five
@@ -77,7 +80,11 @@ minutes, and use bounded GraphQL batches instead of one `gh` process per
 repository. The existing Refresh action forces the index current. Failed checks
 retain visibly cached rows; a project with no usable GitHub identity or cache is
 shown as unavailable. Pagination fails safely on a repeated cursor or bounded
-page limit instead of risking an unbounded GitHub query loop. Each row places an
+page limit instead of risking an unbounded GitHub query loop. Every existing
+GraphQL request also returns the caller's quota metadata, so the header adds no
+request or `gh` process. Only complete observations replace the separately
+cached quota snapshot; healthy capacity stays quiet, while 20 percent remaining
+warns in orange and 10 percent remaining is critical in red. Each row places an
 actionable review-feedback count after its ready/draft state: only unresolved,
 non-outdated GitHub review threads count. Nonzero counts use the orange attention
 color, confirmed zero uses a quiet dash, and unavailable legacy cache data uses

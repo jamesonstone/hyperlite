@@ -106,7 +106,7 @@ enum HyperliteProjectIndexTests {
         )
         let scan = HyperliteProjectPullRequestScan(
             schemaVersion: 1, generatedAt: Date(), checkedAt: Date(),
-            observedAt: Date(), refreshIntervalSeconds: 300,
+            observedAt: Date(), rateLimit: nil, refreshIntervalSeconds: 300,
             projects: [HyperliteProjectPullRequests(
                 id: project.id, name: project.name, path: project.path,
                 repository: project.repository, status: .current, message: nil,
@@ -129,7 +129,7 @@ enum HyperliteProjectIndexTests {
 
         let cachedScan = HyperliteProjectPullRequestScan(
             schemaVersion: 1, generatedAt: Date(), checkedAt: Date(),
-            observedAt: Date(), refreshIntervalSeconds: 300,
+            observedAt: Date(), rateLimit: nil, refreshIntervalSeconds: 300,
             projects: [HyperliteProjectPullRequests(
                 id: project.id, name: project.name, path: project.path,
                 repository: project.repository, status: .cached,
@@ -146,7 +146,7 @@ enum HyperliteProjectIndexTests {
 
         let mergedScan = HyperliteProjectPullRequestScan(
             schemaVersion: 1, generatedAt: Date(), checkedAt: Date(),
-            observedAt: Date(), refreshIntervalSeconds: 300,
+            observedAt: Date(), rateLimit: nil, refreshIntervalSeconds: 300,
             projects: [HyperliteProjectPullRequests(
                 id: project.id, name: project.name, path: project.path,
                 repository: project.repository, status: .current, message: nil,

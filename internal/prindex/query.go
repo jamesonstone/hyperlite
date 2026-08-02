@@ -36,6 +36,7 @@ func buildQuery(requests []pageRequest) (string, map[string]pageRequest) {
 		query.WriteString("    }\n")
 		query.WriteString("  }\n")
 	}
+	writeRateLimit(&query)
 	query.WriteString("}\n")
 	return query.String(), aliases
 }
@@ -64,6 +65,7 @@ func buildReviewThreadQuery(
 		query.WriteString("    }\n")
 		query.WriteString("  }\n")
 	}
+	writeRateLimit(&query)
 	query.WriteString("}\n")
 	return query.String(), aliases
 }
@@ -83,6 +85,10 @@ func writeReviewThreadConnection(query *strings.Builder, indent, cursor string) 
 	query.WriteString("  pageInfo { hasNextPage endCursor }\n")
 	query.WriteString(indent)
 	query.WriteString("}\n")
+}
+
+func writeRateLimit(query *strings.Builder) {
+	query.WriteString("  rateLimit { limit used remaining resetAt cost nodeCount }\n")
 }
 
 func graphQLErrors(values []rawGraphQLError) (map[string][]string, []string) {

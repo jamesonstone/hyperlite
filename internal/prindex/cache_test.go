@@ -16,6 +16,11 @@ func TestStoreRoundTripUsesPrivateAtomicCache(t *testing.T) {
 	store := Store{Path: path, Now: func() time.Time { return now }}
 	updated, err := store.Update(func(state *cacheState) {
 		state.Projects["/repo/one"] = "owner/one"
+		state.RateLimit = &model.GitHubRateLimit{
+			Limit: 5000, Used: 125, Remaining: 4875,
+			ResetAt: now.Add(time.Hour), Cost: 4, NodeCount: 12,
+			ObservedAt: now,
+		}
 		state.Repositories["owner/one"] = cacheEntry{
 			Repository: "owner/one", ObservedAt: now,
 			PullRequests: []model.ProjectPullRequest{{
@@ -29,7 +34,8 @@ func TestStoreRoundTripUsesPrivateAtomicCache(t *testing.T) {
 	state, warning, err := store.Load()
 	if err != nil || warning != "" ||
 		state.Projects["/repo/one"] != "owner/one" ||
-		len(state.Repositories["owner/one"].PullRequests) != 1 {
+		len(state.Repositories["owner/one"].PullRequests) != 1 ||
+		state.RateLimit == nil || state.RateLimit.Used != 125 {
 		t.Fatalf("state=%#v warning=%q err=%v", state, warning, err)
 	}
 	if !updated.UpdatedAt.Equal(state.UpdatedAt) || !updated.UpdatedAt.Equal(now) {
@@ -41,6 +47,24 @@ func TestStoreRoundTripUsesPrivateAtomicCache(t *testing.T) {
 	}
 	if info.Mode().Perm() != 0o600 {
 		t.Fatalf("mode = %o", info.Mode().Perm())
+	}
+}
+
+func TestStoreLoadsLegacyCacheWithoutRateLimit(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "pull-requests.json")
+	contents := []byte(`{
+  "version": 1,
+  "projects": {},
+  "repositories": {},
+  "updated_at": "2026-07-29T16:00:00Z"
+}`)
+	if err := os.WriteFile(path, contents, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	state, warning, err := (Store{Path: path}).Load()
+	if err != nil || warning != "" || state.RateLimit != nil ||
+		state.Version != cacheVersion {
+		t.Fatalf("state=%#v warning=%q err=%v", state, warning, err)
 	}
 }
 
