@@ -66,7 +66,7 @@ single native feature flag: the window, menu bar, and palettes show no thread
 or attention counts or entries, and the app skips remote attention enrichment.
 The fixed header contains the product name and ghost, a compact GitHub GraphQL
 rate-limit indicator, a subtly orange Refresh action, and Settings. The
-indicator shows calls used over the caller's limit; hover exposes remaining
+indicator shows calls used out of the caller's limit; hover exposes remaining
 capacity, the local reset and observation times, and the last query's cost and
 node count. Notes, Open PRs, and the single-column Projects list each own one
 third of the content workspace. Every section has its own vertical scroll

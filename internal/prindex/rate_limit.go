@@ -30,6 +30,15 @@ type rawRateLimit struct {
 	NodeCount int       `json:"nodeCount"`
 }
 
+type rateLimitFields struct {
+	Limit     int
+	Used      int
+	Remaining int
+	ResetAt   time.Time
+	Cost      int
+	NodeCount int
+}
+
 type rateLimitCollector struct {
 	latest *GitHubRateLimit
 }
@@ -50,11 +59,10 @@ func (c *rateLimitCollector) observe(data map[string]json.RawMessage) {
 }
 
 func validRawRateLimit(value rawRateLimit) bool {
-	return value.Limit > 0 &&
-		value.Used >= 0 && value.Used <= value.Limit &&
-		value.Remaining >= 0 && value.Remaining <= value.Limit &&
-		value.Used == value.Limit-value.Remaining &&
-		!value.ResetAt.IsZero() && value.Cost >= 0 && value.NodeCount >= 0
+	return validRateLimitFields(rateLimitFields{
+		Limit: value.Limit, Used: value.Used, Remaining: value.Remaining,
+		ResetAt: value.ResetAt, Cost: value.Cost, NodeCount: value.NodeCount,
+	})
 }
 
 func observedRateLimit(value *GitHubRateLimit, observedAt time.Time) *model.GitHubRateLimit {
@@ -77,10 +85,16 @@ func cloneRateLimit(value *model.GitHubRateLimit) *model.GitHubRateLimit {
 }
 
 func validCachedRateLimit(value model.GitHubRateLimit) bool {
+	return validRateLimitFields(rateLimitFields{
+		Limit: value.Limit, Used: value.Used, Remaining: value.Remaining,
+		ResetAt: value.ResetAt, Cost: value.Cost, NodeCount: value.NodeCount,
+	}) && !value.ObservedAt.IsZero()
+}
+
+func validRateLimitFields(value rateLimitFields) bool {
 	return value.Limit > 0 &&
 		value.Used >= 0 && value.Used <= value.Limit &&
 		value.Remaining >= 0 && value.Remaining <= value.Limit &&
 		value.Used == value.Limit-value.Remaining &&
-		!value.ResetAt.IsZero() && value.Cost >= 0 && value.NodeCount >= 0 &&
-		!value.ObservedAt.IsZero()
+		!value.ResetAt.IsZero() && value.Cost >= 0 && value.NodeCount >= 0
 }
