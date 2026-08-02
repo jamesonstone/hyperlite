@@ -29,10 +29,11 @@ type cacheEntry struct {
 }
 
 type cacheState struct {
-	Version      int                   `json:"version"`
-	Projects     map[string]string     `json:"projects"`
-	Repositories map[string]cacheEntry `json:"repositories"`
-	UpdatedAt    time.Time             `json:"updated_at"`
+	Version      int                    `json:"version"`
+	Projects     map[string]string      `json:"projects"`
+	Repositories map[string]cacheEntry  `json:"repositories"`
+	RateLimit    *model.GitHubRateLimit `json:"rate_limit,omitempty"`
+	UpdatedAt    time.Time              `json:"updated_at"`
 }
 
 type CacheStore interface {
@@ -252,6 +253,9 @@ func validateCache(state *cacheState) error {
 	}
 	if state.Repositories == nil {
 		state.Repositories = map[string]cacheEntry{}
+	}
+	if state.RateLimit != nil && !validCachedRateLimit(*state.RateLimit) {
+		return errors.New("cached GitHub rate limit is incomplete or inconsistent")
 	}
 	for key, entry := range state.Repositories {
 		if strings.TrimSpace(key) == "" || strings.TrimSpace(entry.Repository) == "" {

@@ -5,6 +5,7 @@ struct HyperliteProjectPullRequestScan: Codable, Equatable {
     let generatedAt: Date
     let checkedAt: Date?
     let observedAt: Date?
+    let rateLimit: HyperliteGitHubRateLimit?
     let refreshIntervalSeconds: Int
     let projects: [HyperliteProjectPullRequests]
     let errors: [HyperliteDiagnostic]
@@ -16,6 +17,7 @@ struct HyperliteProjectPullRequestScan: Codable, Equatable {
         case generatedAt = "generated_at"
         case checkedAt = "checked_at"
         case observedAt = "observed_at"
+        case rateLimit = "rate_limit"
         case refreshIntervalSeconds = "refresh_interval_seconds"
     }
 }
@@ -52,12 +54,14 @@ struct HyperliteProjectPullRequest: Codable, Equatable, Identifiable {
     let url: String
     let headRefName: String
     let isDraft: Bool
+    let unresolvedReviewThreads: Int?
     let updatedAt: Date
 
     enum CodingKeys: String, CodingKey {
         case id, number, title, url
         case headRefName = "head_ref_name"
         case isDraft = "is_draft"
+        case unresolvedReviewThreads = "unresolved_review_threads"
         case updatedAt = "updated_at"
     }
 }
@@ -70,19 +74,30 @@ struct HyperlitePullRequestRow: Equatable, Identifiable {
     let title: String
     let url: URL?
     let isDraft: Bool
+    let unresolvedReviewThreads: Int?
     let updatedAt: Date
 }
 
 struct HyperlitePullRequestRowLayout: Equatable {
     let repositoryColumnWidth: CGFloat
+    let reviewFeedbackColumnWidth: CGFloat
+    let availabilityMetadataColumnWidth: CGFloat
     let repositoryLayoutPriority: Double
     let titleLayoutPriority: Double
 
     static let repositoryFirst = HyperlitePullRequestRowLayout(
         repositoryColumnWidth: 190,
+        reviewFeedbackColumnWidth: 28,
+        availabilityMetadataColumnWidth: 126,
         repositoryLayoutPriority: 1,
         titleLayoutPriority: -1
     )
+}
+
+struct HyperliteReviewFeedbackPresentation: Equatable {
+    let text: String
+    let accessibilityLabel: String
+    let needsAttention: Bool
 }
 
 enum HyperlitePullRequestPresentation {
@@ -97,6 +112,7 @@ enum HyperlitePullRequestPresentation {
                     title: pullRequest.title,
                     url: URL(string: pullRequest.url),
                     isDraft: pullRequest.isDraft,
+                    unresolvedReviewThreads: pullRequest.unresolvedReviewThreads,
                     updatedAt: pullRequest.updatedAt
                 )
             }
@@ -117,6 +133,13 @@ enum HyperlitePullRequestPresentation {
         scan: HyperliteProjectPullRequestScan,
         now: Date = Date()
     ) -> Bool {
+        if scan.projects.contains(where: { project in
+            project.status == .current && project.pullRequests.contains {
+                $0.unresolvedReviewThreads == nil
+            }
+        }) {
+            return true
+        }
         guard let checkedAt = scan.checkedAt else { return true }
         let interval = max(300, scan.refreshIntervalSeconds)
         return now.timeIntervalSince(checkedAt) >= Double(interval)
@@ -133,5 +156,30 @@ enum HyperlitePullRequestPresentation {
         formatter.timeZone = timeZone
         formatter.dateFormat = "yyyy-MM-dd HH:mm"
         return "Updated \(formatter.string(from: observedAt))"
+    }
+
+    static func reviewFeedback(
+        unresolvedThreads: Int?
+    ) -> HyperliteReviewFeedbackPresentation {
+        guard let unresolvedThreads else {
+            return HyperliteReviewFeedbackPresentation(
+                text: "?",
+                accessibilityLabel: "review feedback count unavailable",
+                needsAttention: false
+            )
+        }
+        guard unresolvedThreads > 0 else {
+            return HyperliteReviewFeedbackPresentation(
+                text: "—",
+                accessibilityLabel: "no unresolved review threads",
+                needsAttention: false
+            )
+        }
+        return HyperliteReviewFeedbackPresentation(
+            text: "\(unresolvedThreads)",
+            accessibilityLabel: "\(unresolvedThreads) unresolved review " +
+                "thread\(unresolvedThreads == 1 ? "" : "s")",
+            needsAttention: true
+        )
     }
 }

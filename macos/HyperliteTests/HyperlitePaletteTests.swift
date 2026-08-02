@@ -233,17 +233,17 @@ enum HyperlitePaletteTests {
             HyperliteProjectPullRequest(
                 id: "owner/kit#7", number: 7, title: "Ship feature",
                 url: "https://github.com/owner/kit/pull/7", headRefName: "GH-7",
-                isDraft: false, updatedAt: Date()
+                isDraft: false, unresolvedReviewThreads: 0, updatedAt: Date()
             ),
             HyperliteProjectPullRequest(
                 id: "owner/kit#8", number: 8, title: "Draft cleanup",
                 url: "https://github.com/owner/kit/pull/8", headRefName: "GH-8",
-                isDraft: true, updatedAt: Date()
+                isDraft: true, unresolvedReviewThreads: 0, updatedAt: Date()
             ),
         ]
         let scan = HyperliteProjectPullRequestScan(
             schemaVersion: 1, generatedAt: Date(), checkedAt: Date(), observedAt: Date(),
-            refreshIntervalSeconds: 300,
+            rateLimit: nil, refreshIntervalSeconds: 300,
             projects: [HyperliteProjectPullRequests(
                 id: "/repo/kit", name: "kit", path: "/repo/kit", repository: "owner/kit",
                 status: .current, message: nil, checkedAt: Date(), observedAt: Date(),
