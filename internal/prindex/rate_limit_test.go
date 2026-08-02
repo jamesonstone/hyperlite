@@ -108,6 +108,10 @@ func TestScannerCachesRateLimitIndependentlyOfRepositoryFailure(t *testing.T) {
 	}
 	if result.RateLimit == nil || result.RateLimit.Used != 125 ||
 		result.RateLimit.Cost != 4 || !result.RateLimit.ObservedAt.Equal(now) ||
+		result.RateLimit.BurnRate == nil ||
+		result.RateLimit.BurnRate.PointsPerHour != 35 ||
+		result.RateLimit.BurnRate.SampleSeconds != 3600 ||
+		result.RateLimit.BurnRate.ProjectedExhaustionAt == nil ||
 		result.Projects[0].Status != model.ProjectPullRequestsUnavailable {
 		t.Fatalf("result = %#v", result)
 	}
@@ -121,7 +125,108 @@ func TestScannerCachesRateLimitIndependentlyOfRepositoryFailure(t *testing.T) {
 		t.Fatal(err)
 	}
 	if preserved.RateLimit == nil || preserved.RateLimit.Used != 125 ||
-		!preserved.RateLimit.ObservedAt.Equal(now.Add(-time.Minute)) {
+		!preserved.RateLimit.ObservedAt.Equal(now.Add(-time.Minute)) ||
+		preserved.RateLimit.BurnRate == nil ||
+		preserved.RateLimit.BurnRate.PointsPerHour != 35 {
 		t.Fatalf("preserved = %#v", preserved.RateLimit)
+	}
+}
+
+func TestDeriveRateLimitBurnRateProjectsExhaustion(t *testing.T) {
+	observedAt := time.Date(2026, 8, 2, 12, 0, 0, 0, time.UTC)
+	resetAt := observedAt.Add(time.Hour)
+	previous := &model.GitHubRateLimit{
+		Limit: 5000, Used: 1000, Remaining: 4000,
+		ResetAt: resetAt, ObservedAt: observedAt.Add(-5 * time.Minute),
+	}
+	current := &model.GitHubRateLimit{
+		Limit: 5000, Used: 1500, Remaining: 3500,
+		ResetAt: resetAt, ObservedAt: observedAt,
+	}
+	derived := deriveRateLimitBurnRate(current, previous)
+	if derived.BurnRate == nil || derived.BurnRate.PointsPerHour != 6000 ||
+		derived.BurnRate.SampleSeconds != 300 ||
+		derived.BurnRate.ProjectedExhaustionAt == nil ||
+		!derived.BurnRate.ProjectedExhaustionAt.Equal(
+			observedAt.Add(35*time.Minute),
+		) {
+		t.Fatalf("derived = %#v", derived)
+	}
+}
+
+func TestDeriveRateLimitBurnRateHandlesZeroAndInvalidSamples(t *testing.T) {
+	observedAt := time.Date(2026, 8, 2, 12, 0, 0, 0, time.UTC)
+	resetAt := observedAt.Add(time.Hour)
+	base := model.GitHubRateLimit{
+		Limit: 5000, Used: 1000, Remaining: 4000,
+		ResetAt: resetAt, ObservedAt: observedAt.Add(-5 * time.Minute),
+	}
+	zero := base
+	zero.ObservedAt = observedAt
+	derived := deriveRateLimitBurnRate(&zero, &base)
+	if derived.BurnRate == nil || derived.BurnRate.PointsPerHour != 0 ||
+		derived.BurnRate.SampleSeconds != 300 ||
+		derived.BurnRate.ProjectedExhaustionAt != nil {
+		t.Fatalf("zero burn rate = %#v", derived.BurnRate)
+	}
+
+	tests := map[string]func(*model.GitHubRateLimit){
+		"new reset window": func(value *model.GitHubRateLimit) {
+			value.ResetAt = value.ResetAt.Add(time.Hour)
+		},
+		"changed limit": func(value *model.GitHubRateLimit) {
+			value.Limit = 6000
+			value.Remaining = 4900
+		},
+		"decreased counter": func(value *model.GitHubRateLimit) {
+			value.Used = 900
+			value.Remaining = 4100
+		},
+		"short sample": func(value *model.GitHubRateLimit) {
+			value.ObservedAt = base.ObservedAt.Add(30 * time.Second)
+		},
+	}
+	for name, mutate := range tests {
+		t.Run(name, func(t *testing.T) {
+			current := base
+			current.Used = 1100
+			current.Remaining = 3900
+			current.ObservedAt = observedAt
+			mutate(&current)
+			if result := deriveRateLimitBurnRate(&current, &base); result.BurnRate != nil {
+				t.Fatalf("burn rate = %#v", result.BurnRate)
+			}
+		})
+	}
+}
+
+func TestCloneRateLimitCopiesBurnRateProjection(t *testing.T) {
+	projected := time.Date(2026, 8, 2, 12, 35, 0, 0, time.UTC)
+	source := &model.GitHubRateLimit{BurnRate: &model.GitHubRateLimitBurnRate{
+		PointsPerHour: 6000, SampleSeconds: 300,
+		ProjectedExhaustionAt: &projected,
+	}}
+	cloned := cloneRateLimit(source)
+	*cloned.BurnRate.ProjectedExhaustionAt = projected.Add(time.Minute)
+	if source.BurnRate.ProjectedExhaustionAt.Equal(
+		*cloned.BurnRate.ProjectedExhaustionAt,
+	) {
+		t.Fatal("clone should not share burn-rate projection pointers")
+	}
+}
+
+func TestCachedBurnRateRejectsInconsistentProjection(t *testing.T) {
+	observedAt := time.Date(2026, 8, 2, 12, 0, 0, 0, time.UTC)
+	projected := observedAt.Add(time.Hour)
+	value := model.GitHubRateLimit{
+		Limit: 5000, Used: 1500, Remaining: 3500,
+		ResetAt: observedAt.Add(time.Hour), ObservedAt: observedAt,
+		BurnRate: &model.GitHubRateLimitBurnRate{
+			PointsPerHour: 6000, SampleSeconds: 300,
+			ProjectedExhaustionAt: &projected,
+		},
+	}
+	if validCachedBurnRate(value) {
+		t.Fatal("a cached projection inconsistent with remaining capacity should fail closed")
 	}
 }

@@ -96,7 +96,7 @@ func (s Scanner) Scan(
 			updateProjectMappings(current, sources, resolved)
 			applyQueryResults(current, repositories, queryResults, now)
 			if observed := observedRateLimit(rateLimit, now); observed != nil {
-				current.RateLimit = observed
+				current.RateLimit = deriveRateLimitBurnRate(observed, current.RateLimit)
 			}
 		})
 		if err != nil {

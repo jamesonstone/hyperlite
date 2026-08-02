@@ -5,6 +5,7 @@ enum HyperliteRateLimitTests {
         testUnknownAndInvalidStates()
         testCompleteMetadataPresentation()
         testWarningThresholds()
+        testBurnRatePresentation()
         testPopoverInteraction()
     }
 
@@ -21,7 +22,9 @@ enum HyperliteRateLimitTests {
         )
         expect(
             unknown.statusText == "Unavailable" && unknown.usageFraction == nil &&
-                unknown.remainingDetailText == "—",
+                unknown.remainingDetailText == "—" &&
+                unknown.burnRateText == "Measuring" &&
+                unknown.burnLevel == .measuring,
             "missing quota should provide an explicit empty popover state"
         )
 
@@ -50,7 +53,9 @@ enum HyperliteRateLimitTests {
                 presentation.resetText == "2026-08-02 13:00 GMT" &&
                 presentation.costText == "4" && presentation.nodeCountText == "12" &&
                 presentation.observedText == "2026-08-02 12:00 GMT" &&
-                presentation.usageFraction == 1_551.0 / 5_000.0,
+                presentation.usageFraction == 1_551.0 / 5_000.0 &&
+                presentation.burnRateText == "Measuring" &&
+                presentation.projectedExhaustionText == "—",
             "popover metadata should expose every formatted GitHub quota field"
         )
         expect(
@@ -58,6 +63,91 @@ enum HyperliteRateLimitTests {
                 presentation.accessibilityLabel.contains("3,449 remaining") &&
                 presentation.accessibilityLabel.contains("node count 12"),
             "accessibility should expose quota and last-query metadata"
+        )
+    }
+
+    private static func testBurnRatePresentation() {
+        let beforeReset = HyperliteRateLimitPresentation.make(
+            rateLimit: fixture(
+                used: 1_551,
+                remaining: 3_449,
+                burnRate: HyperliteGitHubRateLimitBurnRate(
+                    pointsPerHour: 4_000,
+                    sampleSeconds: 300,
+                    projectedExhaustionAt: Date(timeIntervalSince1970: 1_785_675_104.1)
+                )
+            ),
+            timeZone: TimeZone(secondsFromGMT: 0)!
+        )
+        expect(
+            beforeReset.burnRateText == "4,000 pts/hr" &&
+                beforeReset.burnSampleText == "5 min sample" &&
+                beforeReset.projectedExhaustionText == "2026-08-02 12:51 GMT" &&
+                beforeReset.burnComparisonText == "Before reset" &&
+                beforeReset.burnLevel == .risk,
+            "a depletion forecast before reset should be explicit and attention colored"
+        )
+        expect(
+            beforeReset.accessibilityLabel.contains("burn rate 4,000 pts/hr") &&
+                beforeReset.accessibilityLabel.contains("before reset"),
+            "accessibility should include the burn-rate forecast and comparison"
+        )
+
+        let afterReset = HyperliteRateLimitPresentation.make(
+            rateLimit: fixture(
+                used: 1_551,
+                remaining: 3_449,
+                burnRate: HyperliteGitHubRateLimitBurnRate(
+                    pointsPerHour: 1_000,
+                    sampleSeconds: 3_600,
+                    projectedExhaustionAt: Date(timeIntervalSince1970: 1_785_684_416.4)
+                )
+            ),
+            timeZone: TimeZone(secondsFromGMT: 0)!
+        )
+        expect(
+            afterReset.burnSampleText == "1 hr sample" &&
+                afterReset.projectedExhaustionText == "2026-08-02 15:26 GMT" &&
+                afterReset.burnComparisonText == "After reset" &&
+                afterReset.burnLevel == .sustainable,
+            "a depletion forecast after reset should remain visibly sustainable"
+        )
+
+        let zero = HyperliteRateLimitPresentation.make(
+            rateLimit: fixture(
+                used: 1_551,
+                remaining: 3_449,
+                burnRate: HyperliteGitHubRateLimitBurnRate(
+                    pointsPerHour: 0,
+                    sampleSeconds: 300,
+                    projectedExhaustionAt: nil
+                )
+            )
+        )
+        expect(
+            zero.burnRateText == "0 pts/hr" &&
+                zero.projectedExhaustionText == "No depletion projected" &&
+                zero.burnComparisonText == "Through reset" &&
+                zero.burnLevel == .sustainable,
+            "zero consumption should not invent an exhaustion timestamp"
+        )
+
+        let malformed = HyperliteRateLimitPresentation.make(
+            rateLimit: fixture(
+                used: 1_551,
+                remaining: 3_449,
+                burnRate: HyperliteGitHubRateLimitBurnRate(
+                    pointsPerHour: 1_000,
+                    sampleSeconds: 300,
+                    projectedExhaustionAt: Date(timeIntervalSince1970: 1_785_672_060)
+                )
+            )
+        )
+        expect(
+            malformed.burnRateText == "Measuring" &&
+                malformed.burnComparisonText == "Awaiting trend" &&
+                malformed.burnLevel == .measuring,
+            "invalid derived metadata should not hide otherwise valid quota data"
         )
     }
 
@@ -128,7 +218,8 @@ enum HyperliteRateLimitTests {
         used: Int,
         remaining: Int,
         cost: Int = 1,
-        nodes: Int = 0
+        nodes: Int = 0,
+        burnRate: HyperliteGitHubRateLimitBurnRate? = nil
     ) -> HyperliteGitHubRateLimit {
         HyperliteGitHubRateLimit(
             limit: 5_000,
@@ -137,7 +228,8 @@ enum HyperliteRateLimitTests {
             resetAt: Date(timeIntervalSince1970: 1_785_675_600),
             cost: cost,
             nodeCount: nodes,
-            observedAt: Date(timeIntervalSince1970: 1_785_672_000)
+            observedAt: Date(timeIntervalSince1970: 1_785_672_000),
+            burnRate: burnRate
         )
     }
 

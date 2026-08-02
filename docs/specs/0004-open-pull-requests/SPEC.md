@@ -165,6 +165,13 @@ thread scanner cadence or starting continuous background work.
   bounded delay; clicking the indicator opens it immediately and pins it until
   a second click or native dismissal. This interaction must not introduce a
   timer-driven refresh, animation loop, or broader application state.
+- R22: Derive a current GraphQL quota burn rate from consecutive complete
+  observations in the same reset window. Persist the rate, sample duration, and
+  projected exhaustion time with the latest observation; present the rate in
+  quota points per hour, the exhaustion timestamp in the same local format as
+  reset time, and whether exhaustion falls before or after reset. An invalid,
+  too-short, reset-crossing, or decreasing-counter sample remains explicitly in
+  a measuring state rather than producing a misleading forecast.
 
 Non-goals: CI or full review-detail hydration, authored-only filtering, turning
 open pull requests into inferred threads or attention moments, continuous
@@ -208,6 +215,11 @@ change refresh authority, or mutate GitHub.
 13. Replace the system help tooltip with a feature-local styled popover. Reuse
     the established delayed hover behavior, model click pinning as transient
     view state, and verify both activation paths in tests and the packaged app.
+14. Compare each new complete quota observation with the previous cached
+    observation. Within an unchanged reset window and limit, derive quota points
+    per hour over a minimum one-minute sample, project depletion from current
+    remaining capacity, persist the derived forecast, and add a grouped Burn
+    rate section to the existing popover and accessibility description.
 
 ## DECISIONS
 
@@ -261,6 +273,13 @@ change refresh authority, or mutate GitHub.
   intentionally pins the same popover for reading. The popover uses
   `HyperliteTypography` and existing palette tokens instead of native tooltip
   styling or a separate visual system.
+- Burn rate is a trailing estimate over the two latest complete observations,
+  not a promise or a new GitHub measurement. It uses consumed GraphQL quota
+  points because `used` reflects quota cost rather than raw HTTP request count.
+  A one-minute minimum rejects noisy rapid-force-refresh samples. Reset-window
+  changes, limit changes, counter decreases, non-forward time, and malformed
+  derived cache data clear the forecast while preserving the valid quota
+  observation. A zero delta is a valid zero burn with no depletion timestamp.
 
 ## ACCEPTANCE CRITERIA
 
@@ -304,6 +323,12 @@ change refresh authority, or mutate GitHub.
   quota popover in JetBrainsMono Nerd Font. Clicking opens the same popover
   immediately and keeps it visible until a second click or native dismissal;
   keyboard and accessibility users can identify and activate the indicator.
+- AC13: After two valid observations in one reset window, the popover shows a
+  Burn rate in quota points per hour, its sample duration, a projected depletion
+  timestamp formatted like reset time, and an explicit before/after-reset
+  comparison. A first, reset-crossing, too-short, decreasing, or malformed
+  sample shows a measuring state; a zero delta shows zero burn without inventing
+  an exhaustion date. The estimate adds no GitHub request or refresh timer.
 
 ## VALIDATION MAP
 
@@ -317,6 +342,7 @@ change refresh authority, or mutate GitHub.
 | AC10 | Go query, client, service, cache compatibility, and partial-response tests |
 | AC11 | Swift decoding and presentation tests plus packaged-app hover/accessibility inspection |
 | AC12 | Swift interaction-state tests plus packaged-app hover, click, visual, and accessibility inspection |
+| AC13 | Go derivation/cache compatibility tests, Swift forecast presentation tests, and packaged-app detail inspection |
 
 ## DISCOVERIES
 
@@ -363,6 +389,15 @@ change refresh authority, or mutate GitHub.
 - The existing top-level cache can add an optional quota observation without a
   version migration. Legacy cache files decode with no observation, and an
   incomplete response leaves the prior complete value unchanged.
+- A forecast needs no separate history collection: the cache transaction still
+  contains the previous complete observation when a new observation arrives.
+  Storing a validated optional burn-rate object on the replacement observation
+  supplies both the next baseline and cached-first native presentation without
+  changing the cache or scan schema version.
+- GraphQL `used` is consumed quota cost, so the meaningful depletion slope is
+  quota points per hour rather than raw HTTP calls per hour. Showing the sample
+  duration keeps a short trailing estimate distinguishable from a long-term
+  average, while the reset comparison communicates the actual operational risk.
 
 ## VALIDATION
 
@@ -394,6 +429,11 @@ change refresh authority, or mutate GitHub.
   survive later missing metadata. Native coverage proves decoding, unknown,
   healthy, 20-percent warning, 10-percent critical, complete hover metadata,
   and accessibility text.
+- Burn-rate coverage proves same-window point deltas and projected exhaustion,
+  a valid zero rate, a one-minute minimum, reset and limit changes, decreasing
+  counters, deep-copy isolation, cache round-trip and corruption rejection,
+  optional JSON compatibility, measuring fallback, before/after-reset styling,
+  timestamp formatting, and complete accessibility text.
 - Popover interaction coverage proves delayed hover opening, safe transfer from
   trigger to detail surface, idle dismissal, immediate click pinning,
   second-click dismissal, and native-dismissal cleanup. Packaged-app inspection
@@ -410,6 +450,12 @@ change refresh authority, or mutate GitHub.
   Refresh. The accessibility tree exposed 3188 remaining, the local reset and
   observation times, cost 16, and node count 161600; the healthy indicator
   remained visually quieter than the adjacent controls.
+- The rebuilt signed app first showed `Measuring` after the reset-window change,
+  then a bounded forced refresh more than one minute later produced a live
+  `1,616 pts/hr` estimate over a `1.2 min sample`. The popover projected empty
+  at `2026-08-02 12:08 EDT`, formatted like reset, and marked it `After reset`
+  against the `2026-08-02 09:56 EDT` reset. The same values and comparison were
+  present in the quota button's accessibility description.
 - One isolated-cache live validation queried all 16 configured projects in one
   GraphQL batch and returned 7 open pull requests, 0 unavailable projects, 0
   errors, and 0 warnings. It reported exactly 2 actionable threads for
@@ -470,9 +516,12 @@ observation is cached independently of repository success; missing or malformed
 metadata cannot erase it. A Hyperlite-themed, JetBrainsMono Nerd Font popover
 exposes remaining capacity, local reset and observation times, query cost, and
 node count with grouped spacing. Hover opens it transiently, while click pins
-the same detail surface for reading. Healthy capacity stays subdued, with
-warning and critical color reserved for 20 and 10 percent remaining
-respectively.
+the same detail surface for reading. Consecutive valid observations within one
+reset window add a trailing quota-point burn rate, its sample duration, a
+projected depletion timestamp, and an explicit before/after-reset comparison.
+Reset crossings and invalid samples return to a measuring state rather than
+retaining a stale forecast. Healthy capacity stays subdued, with warning and
+critical color reserved for 20 and 10 percent remaining respectively.
 
 The notepad owns otherwise unused vertical space and scrolls natively for long
 notes. Open PRs and Projects remain bottom-pinned as one content-sized activity

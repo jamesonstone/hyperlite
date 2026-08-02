@@ -1,5 +1,4 @@
 import Foundation
-import SwiftUI
 
 struct HyperliteGitHubRateLimit: Codable, Equatable {
     let limit: Int
@@ -9,12 +8,46 @@ struct HyperliteGitHubRateLimit: Codable, Equatable {
     let cost: Int
     let nodeCount: Int
     let observedAt: Date
+    let burnRate: HyperliteGitHubRateLimitBurnRate?
 
     enum CodingKeys: String, CodingKey {
         case limit, used, remaining, cost
         case resetAt = "reset_at"
         case nodeCount = "node_count"
         case observedAt = "observed_at"
+        case burnRate = "burn_rate"
+    }
+
+    init(
+        limit: Int,
+        used: Int,
+        remaining: Int,
+        resetAt: Date,
+        cost: Int,
+        nodeCount: Int,
+        observedAt: Date,
+        burnRate: HyperliteGitHubRateLimitBurnRate? = nil
+    ) {
+        self.limit = limit
+        self.used = used
+        self.remaining = remaining
+        self.resetAt = resetAt
+        self.cost = cost
+        self.nodeCount = nodeCount
+        self.observedAt = observedAt
+        self.burnRate = burnRate
+    }
+}
+
+struct HyperliteGitHubRateLimitBurnRate: Codable, Equatable {
+    let pointsPerHour: Double
+    let sampleSeconds: Int
+    let projectedExhaustionAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case pointsPerHour = "points_per_hour"
+        case sampleSeconds = "sample_seconds"
+        case projectedExhaustionAt = "projected_exhaustion_at"
     }
 }
 
@@ -23,6 +56,12 @@ enum HyperliteRateLimitLevel: Equatable {
     case healthy
     case warning
     case critical
+}
+
+enum HyperliteRateLimitBurnLevel: Equatable {
+    case measuring
+    case sustainable
+    case risk
 }
 
 struct HyperliteRateLimitPresentation: Equatable {
@@ -35,10 +74,15 @@ struct HyperliteRateLimitPresentation: Equatable {
     let costText: String
     let nodeCountText: String
     let observedText: String
+    let burnRateText: String
+    let burnSampleText: String
+    let projectedExhaustionText: String
+    let burnComparisonText: String
     let statusText: String
     let usageFraction: Double?
     let accessibilityLabel: String
     let level: HyperliteRateLimitLevel
+    let burnLevel: HyperliteRateLimitBurnLevel
 
     static func make(
         rateLimit: HyperliteGitHubRateLimit?,
@@ -55,10 +99,15 @@ struct HyperliteRateLimitPresentation: Equatable {
                 costText: "—",
                 nodeCountText: "—",
                 observedText: "—",
+                burnRateText: "Measuring",
+                burnSampleText: "Needs two observations",
+                projectedExhaustionText: "—",
+                burnComparisonText: "Awaiting trend",
                 statusText: "Unavailable",
                 usageFraction: nil,
                 accessibilityLabel: "GitHub GraphQL rate limit unavailable",
-                level: .unknown
+                level: .unknown,
+                burnLevel: .measuring
             )
         }
         let level = level(remaining: rateLimit.remaining, limit: rateLimit.limit)
@@ -70,6 +119,7 @@ struct HyperliteRateLimitPresentation: Equatable {
         let cost = formatted(rateLimit.cost)
         let nodes = formatted(rateLimit.nodeCount)
         let status = levelDescription(level)
+        let burn = burnRatePresentation(rateLimit: rateLimit, timeZone: timeZone)
         return HyperliteRateLimitPresentation(
             usedText: String(rateLimit.used),
             limitText: String(rateLimit.limit),
@@ -80,14 +130,101 @@ struct HyperliteRateLimitPresentation: Equatable {
             costText: cost,
             nodeCountText: nodes,
             observedText: observed,
+            burnRateText: burn.rateText,
+            burnSampleText: burn.sampleText,
+            projectedExhaustionText: burn.projectedExhaustionText,
+            burnComparisonText: burn.comparisonText,
             statusText: status,
             usageFraction: Double(rateLimit.used) / Double(rateLimit.limit),
             accessibilityLabel: "GitHub GraphQL rate limit, \(status.lowercased()), " +
                 "\(used) of \(limit) calls used, \(remaining) remaining, resets " +
                 "\(reset), last query cost \(cost), node count \(nodes), " +
-                "observed \(observed)",
-            level: level
+                "observed \(observed), \(burn.accessibilityText)",
+            level: level,
+            burnLevel: burn.level
         )
+    }
+
+    private struct BurnRatePresentation {
+        let rateText: String
+        let sampleText: String
+        let projectedExhaustionText: String
+        let comparisonText: String
+        let accessibilityText: String
+        let level: HyperliteRateLimitBurnLevel
+    }
+
+    private static func burnRatePresentation(
+        rateLimit: HyperliteGitHubRateLimit,
+        timeZone: TimeZone
+    ) -> BurnRatePresentation {
+        guard let burnRate = rateLimit.burnRate,
+              burnRate.pointsPerHour.isFinite,
+              burnRate.pointsPerHour >= 0,
+              burnRate.sampleSeconds >= 60
+        else {
+            return measuringBurnRate()
+        }
+        let sample = sampleDuration(burnRate.sampleSeconds)
+        if burnRate.pointsPerHour == 0,
+           burnRate.projectedExhaustionAt == nil {
+            return BurnRatePresentation(
+                rateText: "0 pts/hr",
+                sampleText: sample,
+                projectedExhaustionText: "No depletion projected",
+                comparisonText: "Through reset",
+                accessibilityText: "burn rate zero quota points per hour over " +
+                    "\(sample), no depletion projected before reset",
+                level: .sustainable
+            )
+        }
+        guard burnRate.pointsPerHour > 0,
+              let projectedAt = burnRate.projectedExhaustionAt,
+              projectedAt >= rateLimit.observedAt,
+              projectedExhaustionIsConsistent(
+                  projectedAt,
+                  observedAt: rateLimit.observedAt,
+                  remaining: rateLimit.remaining,
+                  pointsPerHour: burnRate.pointsPerHour
+              )
+        else {
+            return measuringBurnRate()
+        }
+        let projected = timestamp(projectedAt, timeZone: timeZone)
+        let beforeReset = projectedAt < rateLimit.resetAt
+        let comparison = beforeReset ? "Before reset" : "After reset"
+        let rate = "\(formatted(burnRate.pointsPerHour)) pts/hr"
+        return BurnRatePresentation(
+            rateText: rate,
+            sampleText: sample,
+            projectedExhaustionText: projected,
+            comparisonText: comparison,
+            accessibilityText: "burn rate \(rate) over \(sample), projected " +
+                "exhaustion \(projected), \(comparison.lowercased())",
+            level: beforeReset ? .risk : .sustainable
+        )
+    }
+
+    private static func measuringBurnRate() -> BurnRatePresentation {
+        BurnRatePresentation(
+            rateText: "Measuring",
+            sampleText: "Needs two observations",
+            projectedExhaustionText: "—",
+            comparisonText: "Awaiting trend",
+            accessibilityText: "burn rate measuring, needs two valid observations",
+            level: .measuring
+        )
+    }
+
+    private static func projectedExhaustionIsConsistent(
+        _ projectedAt: Date,
+        observedAt: Date,
+        remaining: Int,
+        pointsPerHour: Double
+    ) -> Bool {
+        let expectedSeconds = Double(remaining) / pointsPerHour * 3600
+        return expectedSeconds.isFinite &&
+            abs(projectedAt.timeIntervalSince(observedAt) - expectedSeconds) <= 1
     }
 
     private static func isComplete(_ rateLimit: HyperliteGitHubRateLimit) -> Bool {
@@ -125,6 +262,27 @@ struct HyperliteRateLimitPresentation: Equatable {
         return formatter.string(from: NSNumber(value: value)) ?? String(value)
     }
 
+    private static func formatted(_ value: Double) -> String {
+        let formatter = NumberFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.numberStyle = .decimal
+        formatter.usesGroupingSeparator = true
+        formatter.groupingSeparator = ","
+        formatter.groupingSize = 3
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 1
+        return formatter.string(from: NSNumber(value: value)) ?? String(value)
+    }
+
+    private static func sampleDuration(_ seconds: Int) -> String {
+        if seconds % 3600 == 0 {
+            let hours = seconds / 3600
+            return "\(hours) hr sample"
+        }
+        let minutes = Double(seconds) / 60
+        return "\(formatted(minutes)) min sample"
+    }
+
     private static func timestamp(_ date: Date, timeZone: TimeZone) -> String {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
@@ -132,161 +290,5 @@ struct HyperliteRateLimitPresentation: Equatable {
         formatter.timeZone = timeZone
         formatter.dateFormat = "yyyy-MM-dd HH:mm zzz"
         return formatter.string(from: date)
-    }
-}
-
-struct HyperliteRateLimitPopoverInteraction: Equatable {
-    private(set) var isPresented = false
-    private(set) var isPinned = false
-    private(set) var triggerHovered = false
-    private(set) var popoverHovered = false
-
-    mutating func setTriggerHovered(_ hovered: Bool) {
-        triggerHovered = hovered
-    }
-
-    mutating func setPopoverHovered(_ hovered: Bool) {
-        popoverHovered = hovered
-    }
-
-    mutating func openFromHoverIfNeeded() {
-        if triggerHovered {
-            isPresented = true
-        }
-    }
-
-    mutating func closeIfIdle() {
-        if !triggerHovered, !popoverHovered, !isPinned {
-            isPresented = false
-        }
-    }
-
-    mutating func togglePinned() {
-        if isPinned {
-            dismiss()
-        } else {
-            isPinned = true
-            isPresented = true
-        }
-    }
-
-    mutating func dismiss() {
-        isPresented = false
-        isPinned = false
-    }
-}
-
-private enum HyperliteRateLimitPopoverTiming {
-    static let openDelay: Duration = .milliseconds(350)
-    static let closeDelay: Duration = .milliseconds(200)
-}
-
-struct HyperliteGitHubRateLimitIndicator: View {
-    let rateLimit: HyperliteGitHubRateLimit?
-    @State private var interaction = HyperliteRateLimitPopoverInteraction()
-    @State private var pendingTask: Task<Void, Never>?
-
-    var body: some View {
-        let presentation = HyperliteRateLimitPresentation.make(rateLimit: rateLimit)
-        let color = indicatorColor(presentation.level)
-        return Button(action: togglePinned) {
-            VStack(spacing: 0) {
-                quotaText(presentation.usedText, color: color)
-                Rectangle()
-                    .fill(color.opacity(0.55))
-                    .frame(width: 24, height: 1)
-                quotaText(presentation.limitText, color: color)
-            }
-            .frame(width: 38, height: 30)
-            .background(
-                interaction.isPresented
-                    ? HyperliteTheme.elevatedSurface.color.opacity(0.9)
-                    : HyperliteTheme.surface.color.opacity(0.72)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .stroke(
-                        interaction.isPresented
-                            ? color.opacity(0.72)
-                            : HyperliteTheme.elevatedSurface.color.opacity(0.8),
-                        lineWidth: 1
-                    )
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .onHover { hovered in
-            interaction.setTriggerHovered(hovered)
-            hovered ? scheduleOpen() : scheduleClose()
-        }
-        .popover(isPresented: presentationBinding, arrowEdge: .top) {
-            HyperliteGitHubRateLimitPopover(presentation: presentation)
-                .onHover { hovered in
-                    interaction.setPopoverHovered(hovered)
-                    hovered ? pendingTask?.cancel() : scheduleClose()
-                }
-        }
-        .onDisappear {
-            pendingTask?.cancel()
-            pendingTask = nil
-        }
-        .accessibilityLabel(presentation.accessibilityLabel)
-        .accessibilityHint("Show GitHub rate limit details")
-    }
-
-    private func quotaText(_ text: String, color: Color) -> some View {
-        Text(text)
-            .font(HyperliteTypography.bold(8).monospacedDigit())
-            .foregroundStyle(color)
-            .lineLimit(1)
-            .minimumScaleFactor(0.65)
-            .frame(width: 34, height: 13)
-    }
-
-    private func indicatorColor(_ level: HyperliteRateLimitLevel) -> Color {
-        switch level {
-        case .unknown: return HyperliteTheme.mutedText.color
-        case .healthy: return HyperliteTheme.secondaryText.color
-        case .warning: return HyperliteTheme.orange.color
-        case .critical: return HyperliteTheme.red.color
-        }
-    }
-
-    private var presentationBinding: Binding<Bool> {
-        Binding(
-            get: { interaction.isPresented },
-            set: { presented in
-                if presented {
-                    interaction.openFromHoverIfNeeded()
-                } else {
-                    interaction.dismiss()
-                }
-            }
-        )
-    }
-
-    private func togglePinned() {
-        pendingTask?.cancel()
-        pendingTask = nil
-        interaction.togglePinned()
-    }
-
-    private func scheduleOpen() {
-        pendingTask?.cancel()
-        pendingTask = Task { @MainActor in
-            try? await Task.sleep(for: HyperliteRateLimitPopoverTiming.openDelay)
-            guard !Task.isCancelled else { return }
-            interaction.openFromHoverIfNeeded()
-        }
-    }
-
-    private func scheduleClose() {
-        pendingTask?.cancel()
-        pendingTask = Task { @MainActor in
-            try? await Task.sleep(for: HyperliteRateLimitPopoverTiming.closeDelay)
-            guard !Task.isCancelled else { return }
-            interaction.closeIfIdle()
-        }
     }
 }

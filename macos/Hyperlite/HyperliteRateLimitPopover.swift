@@ -56,6 +56,8 @@ struct HyperliteGitHubRateLimitPopover: View {
                         .stroke(HyperliteTheme.elevatedSurface.color.opacity(0.8), lineWidth: 1)
                 }
 
+                burnRatePanel
+
                 HStack(spacing: 8) {
                     compactDetail("LAST QUERY COST", presentation.costText)
                     compactDetail("NODE COUNT", presentation.nodeCountText)
@@ -90,6 +92,65 @@ struct HyperliteGitHubRateLimitPopover: View {
         case .healthy: return HyperliteTheme.green.color
         case .warning: return HyperliteTheme.orange.color
         case .critical: return HyperliteTheme.red.color
+        }
+    }
+
+    private var burnColor: Color {
+        switch presentation.burnLevel {
+        case .measuring: return HyperliteTheme.mutedText.color
+        case .sustainable: return HyperliteTheme.green.color
+        case .risk: return HyperliteTheme.orange.color
+        }
+    }
+
+    private var burnRatePanel: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Text("BURN RATE")
+                    .font(HyperliteTypography.semibold(8))
+                    .foregroundStyle(HyperliteTheme.mutedText.color)
+                Spacer(minLength: 6)
+                Text(presentation.burnRateText)
+                    .font(HyperliteTypography.bold(11).monospacedDigit())
+                    .foregroundStyle(HyperliteTheme.primaryText.color)
+                Text(presentation.burnComparisonText)
+                    .font(HyperliteTypography.semibold(8))
+                    .foregroundStyle(burnColor)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(burnColor.opacity(0.14))
+                    .clipShape(Capsule())
+            }
+            .padding(.horizontal, 11)
+            .padding(.vertical, 9)
+
+            Rectangle()
+                .fill(HyperliteTheme.elevatedSurface.color.opacity(0.72))
+                .frame(height: 1)
+
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("PROJECTED EMPTY")
+                        .font(HyperliteTypography.semibold(8))
+                        .foregroundStyle(HyperliteTheme.mutedText.color)
+                    Text(presentation.burnSampleText)
+                        .font(HyperliteTypography.regular(8))
+                        .foregroundStyle(HyperliteTheme.mutedText.color)
+                }
+                Spacer(minLength: 8)
+                Text(presentation.projectedExhaustionText)
+                    .font(HyperliteTypography.semibold(10).monospacedDigit())
+                    .foregroundStyle(HyperliteTheme.primaryText.color)
+                    .multilineTextAlignment(.trailing)
+            }
+            .padding(.horizontal, 11)
+            .padding(.vertical, 9)
+        }
+        .background(HyperliteTheme.surface.color.opacity(0.72))
+        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .stroke(burnColor.opacity(0.42), lineWidth: 1)
         }
     }
 

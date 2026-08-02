@@ -69,11 +69,14 @@ rate-limit indicator, a subtly orange Refresh action, and Settings. The
 indicator shows calls used out of the caller's limit; hover exposes remaining
 capacity, the local reset and observation times, and the last query's cost and
 node count in a comfortably spaced, app-themed JetBrainsMono Nerd Font
-popover. Clicking the indicator opens and pins the same details until another
-click or native dismissal. Notes, Open PRs, and the single-column Projects list
-each own one third of the content workspace. Every section has its own vertical
-scroll boundary, so long notes, a large pull-request index, and a dense project
-map remain independently usable. The pull-request index and quota display are
+popover. Once two valid observations exist in the same reset window, the
+popover also shows the trailing quota-point burn rate, sample duration,
+projected depletion time, and whether depletion falls before or after reset.
+Clicking the indicator opens and pins the same details until another click or
+native dismissal. Notes, Open PRs, and the single-column Projects list each own
+one third of the content workspace. Every section has its own vertical scroll
+boundary, so long notes, a large pull-request index, and a dense project map
+remain independently usable. The pull-request index and quota display are
 informational only: neither establishes thread activity or attention.
 
 Open PRs load from a separate private cache, refresh stale configured
@@ -86,12 +89,15 @@ page limit instead of risking an unbounded GitHub query loop. Every existing
 GraphQL request also returns the caller's quota metadata, so the header adds no
 request or `gh` process. Only complete observations replace the separately
 cached quota snapshot; healthy capacity stays quiet, while 20 percent remaining
-warns in orange and 10 percent remaining is critical in red. Each row places an
-actionable review-feedback count after its ready/draft state: only unresolved,
-non-outdated GitHub review threads count. Nonzero counts use the orange attention
-color, confirmed zero uses a quiet dash, and unavailable legacy cache data uses
-`?` until a complete refresh supplies an exact count. The entire row remains a
-link to the pull request.
+warns in orange and 10 percent remaining is critical in red. Burn rate compares
+consecutive complete observations only when the limit and reset window match;
+reset crossings, counter decreases, and samples shorter than one minute remain
+explicitly measuring instead of projecting. Each row places an actionable
+review-feedback count after its ready/draft state: only unresolved, non-outdated
+GitHub review threads count. Nonzero counts use the orange attention color,
+confirmed zero uses a quiet dash, and unavailable legacy cache data uses `?`
+until a complete refresh supplies an exact count. The entire row remains a link
+to the pull request.
 
 Projects always shows every configured checkout. Registered subordinate
 worktrees appear only when their exact case-sensitive branch is the head branch

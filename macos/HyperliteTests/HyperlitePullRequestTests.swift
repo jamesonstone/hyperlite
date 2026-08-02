@@ -26,7 +26,12 @@ enum HyperlitePullRequestTests {
             "reset_at": "2026-07-29T17:00:00Z",
             "cost": 4,
             "node_count": 12,
-            "observed_at": "2026-07-29T16:05:00Z"
+            "observed_at": "2026-07-29T16:05:00Z",
+            "burn_rate": {
+              "points_per_hour": 2400,
+              "sample_seconds": 300,
+              "projected_exhaustion_at": "2026-07-29T17:31:13Z"
+            }
           },
           "refresh_interval_seconds": 300,
           "projects": [
@@ -86,7 +91,9 @@ enum HyperlitePullRequestTests {
         let scan = try decoder.decode(HyperliteProjectPullRequestScan.self, from: data)
         expect(
             scan.rateLimit?.used == 1551 && scan.rateLimit?.remaining == 3449 &&
-                scan.rateLimit?.cost == 4 && scan.rateLimit?.nodeCount == 12,
+                scan.rateLimit?.cost == 4 && scan.rateLimit?.nodeCount == 12 &&
+                scan.rateLimit?.burnRate?.pointsPerHour == 2400 &&
+                scan.rateLimit?.burnRate?.sampleSeconds == 300,
             "complete GraphQL rate-limit metadata should decode"
         )
         let rows = HyperlitePullRequestPresentation.rows(scan: scan)
