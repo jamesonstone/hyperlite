@@ -4,7 +4,9 @@ enum HyperlitePullRequestTests {
     static func run() throws {
         let scan = try testSchemaDecodingAndPresentation()
         testFiveMinuteFreshnessFloor(scan: scan)
+        testLegacyFeedbackRefresh()
         testFreshnessTimestamp(scan: scan)
+        testReviewFeedbackPresentation()
         testRowLayoutPrioritizesRepositoryIdentity()
     }
 
@@ -17,6 +19,20 @@ enum HyperlitePullRequestTests {
           "generated_at": "2026-07-29T16:06:00Z",
           "checked_at": "2026-07-29T16:05:00Z",
           "observed_at": "2026-07-29T15:55:00Z",
+          "rate_limit": {
+            "limit": 5000,
+            "used": 1551,
+            "remaining": 3449,
+            "reset_at": "2026-07-29T17:00:00Z",
+            "cost": 4,
+            "node_count": 12,
+            "observed_at": "2026-07-29T16:05:00Z",
+            "burn_rate": {
+              "points_per_hour": 2400,
+              "sample_seconds": 300,
+              "projected_exhaustion_at": "2026-07-29T17:31:13Z"
+            }
+          },
           "refresh_interval_seconds": 300,
           "projects": [
             {
@@ -53,6 +69,7 @@ enum HyperlitePullRequestTests {
                 "url": "https://github.com/owner/two/pull/9",
                 "head_ref_name": "GH-9",
                 "is_draft": false,
+                "unresolved_review_threads": 3,
                 "updated_at": "2026-07-29T16:04:00Z"
               }]
             },
@@ -72,10 +89,21 @@ enum HyperlitePullRequestTests {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let scan = try decoder.decode(HyperliteProjectPullRequestScan.self, from: data)
+        expect(
+            scan.rateLimit?.used == 1551 && scan.rateLimit?.remaining == 3449 &&
+                scan.rateLimit?.cost == 4 && scan.rateLimit?.nodeCount == 12 &&
+                scan.rateLimit?.burnRate?.pointsPerHour == 2400 &&
+                scan.rateLimit?.burnRate?.sampleSeconds == 300,
+            "complete GraphQL rate-limit metadata should decode"
+        )
         let rows = HyperlitePullRequestPresentation.rows(scan: scan)
         expect(rows.map(\.number) == [9, 7], "rows should be recent-first")
         expect(rows[0].repository == "owner/two" && !rows[0].isDraft,
                "ready pull request metadata should decode")
+        expect(rows[0].unresolvedReviewThreads == 3,
+               "actionable review feedback should decode")
+        expect(rows[1].unresolvedReviewThreads == nil,
+               "legacy cached feedback should remain explicitly unavailable")
         expect(scan.projects[1].pullRequests[0].headRefName == "GH-9",
                "head branch should decode for project-lane projection")
         expect(rows[1].status == .cached && rows[1].isDraft,
@@ -113,6 +141,7 @@ enum HyperlitePullRequestTests {
             generatedAt: scan.generatedAt,
             checkedAt: checkedAt,
             observedAt: scan.observedAt,
+            rateLimit: scan.rateLimit,
             refreshIntervalSeconds: 30,
             projects: scan.projects,
             errors: [],
@@ -142,6 +171,77 @@ enum HyperlitePullRequestTests {
         )
     }
 
+    private static func testLegacyFeedbackRefresh() {
+        let checkedAt = Date(timeIntervalSince1970: 1_785_340_800)
+        let pullRequest = HyperliteProjectPullRequest(
+            id: "owner/one#1", number: 1, title: "Legacy",
+            url: "https://github.com/owner/one/pull/1",
+            headRefName: "GH-1", isDraft: false,
+            unresolvedReviewThreads: nil, updatedAt: checkedAt
+        )
+        func scan(status: HyperliteProjectPullRequestStatus)
+            -> HyperliteProjectPullRequestScan
+        {
+            HyperliteProjectPullRequestScan(
+                schemaVersion: 1, generatedAt: checkedAt, checkedAt: checkedAt,
+                observedAt: checkedAt, rateLimit: nil, refreshIntervalSeconds: 300,
+                projects: [HyperliteProjectPullRequests(
+                    id: "/repo/one", name: "one", path: "/repo/one",
+                    repository: "owner/one", status: status, message: nil,
+                    checkedAt: checkedAt, observedAt: checkedAt,
+                    pullRequests: [pullRequest]
+                )],
+                errors: [], warnings: []
+            )
+        }
+        expect(
+            HyperlitePullRequestPresentation.isStale(
+                scan: scan(status: .current), now: checkedAt
+            ),
+            "a legacy current row should trigger feedback-count hydration"
+        )
+        expect(
+            !HyperlitePullRequestPresentation.isStale(
+                scan: scan(status: .cached), now: checkedAt
+            ),
+            "a failed legacy hydration should retain the five-minute retry floor"
+        )
+    }
+
+    private static func testReviewFeedbackPresentation() {
+        let unavailable = HyperlitePullRequestPresentation.reviewFeedback(
+            unresolvedThreads: nil
+        )
+        expect(unavailable.text == "?" && !unavailable.needsAttention,
+               "unavailable feedback should not masquerade as zero or attention")
+        expect(unavailable.accessibilityLabel == "review feedback count unavailable",
+               "unavailable feedback should remain explicit to accessibility")
+
+        let none = HyperlitePullRequestPresentation.reviewFeedback(
+            unresolvedThreads: 0
+        )
+        expect(none.text == "—" && !none.needsAttention,
+               "a confirmed zero should remain visually quiet")
+        expect(none.accessibilityLabel == "no unresolved review threads",
+               "a confirmed zero should have a complete accessibility label")
+
+        let one = HyperlitePullRequestPresentation.reviewFeedback(
+            unresolvedThreads: 1
+        )
+        expect(one.text == "1" && one.needsAttention,
+               "one unresolved thread should request attention")
+        expect(one.accessibilityLabel == "1 unresolved review thread",
+               "one unresolved thread should use singular accessibility text")
+
+        let many = HyperlitePullRequestPresentation.reviewFeedback(
+            unresolvedThreads: 4
+        )
+        expect(many.text == "4" && many.needsAttention,
+               "multiple unresolved threads should request attention")
+        expect(many.accessibilityLabel == "4 unresolved review threads",
+               "multiple unresolved threads should use plural accessibility text")
+    }
+
     private static func testRowLayoutPrioritizesRepositoryIdentity() {
         let rowLayouts = [
             ("current", HyperlitePullRequestPanelRow.layout),
@@ -155,6 +255,14 @@ enum HyperlitePullRequestTests {
             expect(
                 layout.repositoryLayoutPriority > layout.titleLayoutPriority,
                 "\(rowKind) row title should yield space before repository identity"
+            )
+            expect(
+                layout.reviewFeedbackColumnWidth >= 24,
+                "\(rowKind) row should reserve an aligned feedback column"
+            )
+            expect(
+                layout.availabilityMetadataColumnWidth > 91,
+                "\(rowKind) availability text should align with the widened metadata"
             )
         }
     }

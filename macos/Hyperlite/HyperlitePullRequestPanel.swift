@@ -57,6 +57,12 @@ struct HyperlitePullRequestPanelRow: View {
 
     let row: HyperlitePullRequestRow
 
+    private var reviewFeedback: HyperliteReviewFeedbackPresentation {
+        HyperlitePullRequestPresentation.reviewFeedback(
+            unresolvedThreads: row.unresolvedReviewThreads
+        )
+    }
+
     var body: some View {
         Button(action: openPullRequest) {
             HStack(alignment: .firstTextBaseline, spacing: 7) {
@@ -79,6 +85,18 @@ struct HyperlitePullRequestPanelRow: View {
                             ? HyperliteTheme.mutedText.color
                             : HyperliteTheme.secondaryText.color
                     )
+                Text(reviewFeedback.text)
+                    .frame(
+                        width: Self.layout.reviewFeedbackColumnWidth,
+                        alignment: .leading
+                    )
+                    .foregroundStyle(
+                        reviewFeedback.needsAttention
+                            ? HyperliteTheme.orange.color
+                            : HyperliteTheme.mutedText.color
+                    )
+                    .monospacedDigit()
+                    .help(reviewFeedback.accessibilityLabel)
                 Text(row.title)
                     .foregroundStyle(
                         row.status == .current
@@ -101,7 +119,8 @@ struct HyperlitePullRequestPanelRow: View {
         .help(row.url?.absoluteString ?? "Pull request URL is unavailable")
         .accessibilityLabel(
             "\(row.repository) pull request \(row.number), " +
-                "\(row.isDraft ? "draft" : "ready"), \(row.title)"
+                "\(row.isDraft ? "draft" : "ready"), " +
+                "\(reviewFeedback.accessibilityLabel), \(row.title)"
         )
     }
 
@@ -127,7 +146,10 @@ struct HyperlitePullRequestAvailabilityRow: View {
                 .truncationMode(.tail)
                 .layoutPriority(Self.layout.repositoryLayoutPriority)
             Text(project.status == .cached ? "cached" : "unavailable")
-                .frame(width: 91, alignment: .leading)
+                .frame(
+                    width: Self.layout.availabilityMetadataColumnWidth,
+                    alignment: .leading
+                )
             Text(project.message ?? "GitHub data is unavailable")
                 .lineLimit(1)
                 .truncationMode(.tail)

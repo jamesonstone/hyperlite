@@ -213,6 +213,7 @@ struct HyperliteWindow: View {
                 .fixedSize(horizontal: true, vertical: false)
             }
             Spacer(minLength: 8)
+            HyperliteGitHubRateLimitIndicator(rateLimit: pullRequestScan?.rateLimit)
             Button { state.refresh() } label: { Image(systemName: "arrow.clockwise") }
                 .buttonStyle(.bordered)
                 .tint(HyperliteTheme.orange.color.opacity(0.82))
