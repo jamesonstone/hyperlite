@@ -2,6 +2,8 @@ import AppKit
 import SwiftUI
 
 struct HyperlitePlainTextEditor: NSViewRepresentable {
+    @Environment(\.isEnabled) private var isEnabled
+
     let text: String
     let maxBytes: Int
     let accessibilityLabel: String
@@ -22,6 +24,8 @@ struct HyperlitePlainTextEditor: NSViewRepresentable {
 
         textView.delegate = context.coordinator
         textView.string = text
+        textView.isEditable = isEnabled
+        textView.isSelectable = true
         textView.font = HyperliteTypography.plainTextAppKitFont(13)
         textView.textColor = HyperliteTheme.primaryText.appKitColor
         textView.insertionPointColor = HyperliteTheme.blue.appKitColor
@@ -56,6 +60,8 @@ struct HyperlitePlainTextEditor: NSViewRepresentable {
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         guard let textView = scrollView.documentView as? NSTextView else { return }
         context.coordinator.parent = self
+        textView.isEditable = isEnabled
+        textView.isSelectable = true
         textView.setAccessibilityLabel(accessibilityLabel)
         if textView.string != text {
             let selection = textView.selectedRange()
@@ -84,8 +90,12 @@ struct HyperlitePlainTextEditor: NSViewRepresentable {
             guard let generation = parent.focusGeneration,
                   generation != appliedFocusGeneration
             else { return }
-            appliedFocusGeneration = generation
-            DispatchQueue.main.async { textView.window?.makeFirstResponder(textView) }
+            DispatchQueue.main.async { [weak self, weak textView] in
+                guard let textView, let window = textView.window,
+                      window.makeFirstResponder(textView)
+                else { return }
+                self?.appliedFocusGeneration = generation
+            }
         }
 
         func textView(

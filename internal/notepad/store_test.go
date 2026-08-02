@@ -180,6 +180,13 @@ func TestDocumentsIncludesPinnedAndExistingDailyNotes(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, dailyDirectoryName, "README.md"), []byte("ignored"), 0o600); err != nil {
 		t.Fatal(err)
 	}
+	target := filepath.Join(t.TempDir(), "unusable.md")
+	if err := os.WriteFile(target, []byte("not indexed"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(target, filepath.Join(root, dailyDirectoryName, "2026-08-03.md")); err != nil {
+		t.Fatal(err)
+	}
 	documents, err := store.Documents()
 	if err != nil {
 		t.Fatal(err)

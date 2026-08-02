@@ -18,21 +18,25 @@ actor HyperliteNoteSearchIndex {
         let chunks: [Chunk]
     }
 
-    private let embedding: NLEmbedding?
+    private var embedding: NLEmbedding?
     private let vectorProvider: VectorProvider?
     private var notes: [HyperliteNoteID: IndexedNote] = [:]
     private(set) var isReady = false
 
     init(vectorProvider: VectorProvider? = nil) {
         self.vectorProvider = vectorProvider
-        embedding = vectorProvider == nil ? NLEmbedding.sentenceEmbedding(for: .english) : nil
+        embedding = nil
     }
 
     func replace(with documents: [HyperliteNoteDocument]) {
         var replacement: [HyperliteNoteID: IndexedNote] = [:]
         for document in documents where document.kind == .pinned || document.exists {
             guard !Task.isCancelled else { return }
-            replacement[document.id] = makeIndexedNote(document)
+            if let existing = notes[document.id], existing.document == document {
+                replacement[document.id] = existing
+            } else {
+                replacement[document.id] = makeIndexedNote(document)
+            }
         }
         notes = replacement
         isReady = true
@@ -40,6 +44,7 @@ actor HyperliteNoteSearchIndex {
 
     @discardableResult
     func upsert(_ document: HyperliteNoteDocument) -> Bool {
+        guard !Task.isCancelled else { return false }
         if document.kind == .daily, !document.exists {
             return notes.removeValue(forKey: document.id) != nil
         }
@@ -123,7 +128,9 @@ actor HyperliteNoteSearchIndex {
     }
 
     private func vector(for text: String) -> [Double]? {
-        vectorProvider?(text) ?? embedding?.vector(for: text)
+        if let vectorProvider { return vectorProvider(text) }
+        if embedding == nil { embedding = NLEmbedding.sentenceEmbedding(for: .english) }
+        return embedding?.vector(for: text)
     }
 
     private func chunks(for text: String, maximumLength: Int = 800) -> [String] {

@@ -222,6 +222,15 @@ or overwrite the new daily-note files.
 - Packaged-app interaction confirmed that focusing the palette must remain an
   explicit main-run-loop action, while selecting a note result can reuse the
   existing typed palette action boundary to open and focus the target editor.
+- Post-PR review exposed two fail-soft boundaries: a malformed date-named file
+  must not disable indexing of every healthy note, and a transient initial
+  index failure must release queued contents and permit a later rebuild.
+- SwiftUI's disabled environment does not automatically make a wrapped AppKit
+  text view non-editable. Navigation must project that state into `NSTextView`
+  so typing cannot race a direct date load, and focus intent remains pending
+  until the editor has a window and accepts first responder.
+- Loading the system sentence embedding belongs inside the search-index actor
+  on first use, not in the main-actor feature-state initializer.
 
 ## VALIDATION
 
@@ -231,7 +240,10 @@ or overwrite the new daily-note files.
 - Executable Swift tests and native type-checking pass for two-draft autosave,
   flush-before-navigation, single-read navigation, recent ordering, changed-note
   index updates, literal/semantic ranking, literal-noise suppression, and
-  palette activation.
+  palette activation. Post-review recovery coverage proves a failed initial
+  index can rebuild and clear its error without retaining queued note contents.
+- Go index coverage proves a date-shaped but unusable daily entry is skipped
+  while healthy pinned and daily documents remain searchable.
 - A packaged app using an isolated notes root confirmed that Pinned and Daily
   remain visible together; Today, Yesterday, previous, next, and date selection
   open the correct note; opening a missing day does not create a file; the first

@@ -11,6 +11,7 @@ enum HyperliteNotepadTests {
         try await testNavigationFlushesBeforeDirectLoad()
         try await testSearchIndexExactSemanticAndRecentOrdering()
         try await testDateAndSizeBoundaries()
+        await HyperliteNotepadRecoveryTests.run()
     }
 
     @MainActor

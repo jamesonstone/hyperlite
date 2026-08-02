@@ -120,7 +120,7 @@ hyperlite projects
 hyperlite projects add /path/to/repository
 hyperlite projects remove /path/to/repository
 hyperlite notepad
-hyperlite notepad show --date YYYY-MM-DD --json
+hyperlite notepad show [--date YYYY-MM-DD] [--json]
 hyperlite notepad set --stdin [--date YYYY-MM-DD] [--json]
 hyperlite notepad path [--date YYYY-MM-DD]
 hyperlite notepad index

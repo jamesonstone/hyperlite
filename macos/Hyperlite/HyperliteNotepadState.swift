@@ -48,7 +48,9 @@ final class HyperliteNotepadState: ObservableObject {
     private var hasDailyLocalEdits = false
     private var loadTask: Task<Void, Never>?
     private var indexTask: Task<Void, Never>?
+    private var recentRefreshTask: Task<Void, Never>?
     private var pendingIndexDocuments: [HyperliteNoteID: HyperliteNoteDocument] = [:]
+    private var indexErrorMessage: String?
     var autosaveTasks: [HyperliteNoteID: Task<Void, Never>] = [:]
     var saveTasks: [HyperliteNoteID: Task<Void, Never>] = [:]
     var saveQueued: Set<HyperliteNoteID> = []
@@ -77,6 +79,7 @@ final class HyperliteNotepadState: ObservableObject {
     deinit {
         loadTask?.cancel()
         indexTask?.cancel()
+        recentRefreshTask?.cancel()
         autosaveTasks.values.forEach { $0.cancel() }
         saveTasks.values.forEach { $0.cancel() }
     }
@@ -222,6 +225,7 @@ final class HyperliteNotepadState: ObservableObject {
     }
 
     private func buildSearchIndex() async {
+        defer { indexTask = nil }
         do {
             var documents = Dictionary(
                 uniqueKeysWithValues: try await client.indexDocuments().map { ($0.id, $0) }
@@ -239,13 +243,21 @@ final class HyperliteNotepadState: ObservableObject {
             recentDailyNotes = await searchIndex.recentDailyNotes(
                 limit: Self.maximumRecentNotes + 2
             )
+            if errorMessage == indexErrorMessage { errorMessage = nil }
+            indexErrorMessage = nil
             searchIndexRevision += 1
         } catch is CancellationError {
             return
         } catch {
-            errorMessage = error.localizedDescription
+            indexErrorMessage = error.localizedDescription
+            errorMessage = indexErrorMessage
+            pendingIndexDocuments.removeAll()
         }
-        indexTask = nil
+    }
+
+    func rebuildSearchIndex() {
+        guard indexTask == nil, !isIndexReady else { return }
+        indexTask = Task { [weak self] in await self?.buildSearchIndex() }
     }
 
     private func valid(_ content: String, byteCount: Int?) -> Bool {
@@ -264,11 +276,12 @@ final class HyperliteNotepadState: ObservableObject {
     func updateIndex(with document: HyperliteNoteDocument) {
         guard isIndexReady else {
             pendingIndexDocuments[document.id] = document
+            if indexTask == nil { rebuildSearchIndex() }
             return
         }
-        Task { [weak self, searchIndex] in
-            let changed = await searchIndex.upsert(document)
-            guard changed else { return }
+        recentRefreshTask?.cancel()
+        recentRefreshTask = Task { [weak self, searchIndex] in
+            _ = await searchIndex.upsert(document)
             let recent = await searchIndex.recentDailyNotes(
                 limit: Self.maximumRecentNotes + 2
             )

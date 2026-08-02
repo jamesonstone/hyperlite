@@ -172,5 +172,6 @@ struct HyperliteNotepadView: View {
         .controlSize(.small)
         .disabled(state.isNavigating)
         .help(help)
+        .accessibilityLabel(Text(help))
     }
 }

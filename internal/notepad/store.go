@@ -253,12 +253,12 @@ func loadDailyDocuments(root string) ([]Document, error) {
 	documents := make([]Document, 0, len(entries))
 	for _, entry := range entries {
 		date, ok := dateFromFilename(entry.Name())
-		if !ok {
+		if !ok || !entry.Type().IsRegular() {
 			continue
 		}
 		document, err := loadDocument(filepath.Join(directory, entry.Name()), KindDaily, date)
 		if err != nil {
-			return nil, err
+			continue
 		}
 		documents = append(documents, document)
 	}
