@@ -1,165 +1,176 @@
-import AppKit
 import SwiftUI
 
 struct HyperliteNotepadView: View {
     @ObservedObject var state: HyperliteNotepadState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack(spacing: 6) {
-                Text("Notepad")
-                    .font(HyperliteTypography.semibold(11))
-                    .foregroundStyle(HyperliteTheme.secondaryText.color)
-                Spacer()
-                if state.isSaving {
-                    ProgressView()
-                        .controlSize(.mini)
-                        .tint(HyperliteTheme.cyan.color)
-                        .accessibilityLabel("Saving notepad")
-                } else if let error = state.errorMessage {
-                    Label(error, systemImage: "exclamationmark.triangle.fill")
-                        .font(HyperliteTypography.regular(10))
-                        .foregroundStyle(HyperliteTheme.red.color)
-                        .lineLimit(1)
-                        .help(error)
-                }
-            }
-
-            ZStack(alignment: .topLeading) {
-                HyperlitePlainTextEditor(
-                    text: state.text,
-                    maxBytes: HyperliteNotepadState.maxBytes,
-                    onChange: { text, byteCount in
-                        _ = state.update(text, byteCount: byteCount)
-                    }
-                )
-                if state.text.isEmpty {
-                    Text("Write anything — local only")
-                        .font(HyperliteTypography.regular(13))
-                        .foregroundStyle(HyperliteTheme.mutedText.color)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 6)
-                        .allowsHitTesting(false)
-                }
-            }
-            .frame(
-                minHeight: HyperliteWorkspaceSizing.minimumNotepadEditorHeight,
-                maxHeight: .infinity
+        VStack(alignment: .leading, spacing: 4) {
+            notepadHeader
+            editorSurface(
+                text: state.pinnedText,
+                placeholder: "Project names, repository paths, commands, and identifiers",
+                accessibilityLabel: "Pinned note",
+                focusTarget: .pinned,
+                onChange: state.updatePinned
             )
-            .background(
-                HyperliteTheme.canvas.color,
-                in: RoundedRectangle(cornerRadius: 7, style: .continuous)
+            dailyHeader
+            editorSurface(
+                text: state.dailyText,
+                placeholder: "Write this daily note — created when you begin typing",
+                accessibilityLabel: "Daily note for \(state.selectedDateIdentifier)",
+                focusTarget: .daily,
+                onChange: state.updateDaily
             )
-            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .strokeBorder(HyperliteTheme.elevatedSurface.color, lineWidth: 1)
-            }
         }
         .frame(maxHeight: .infinity)
-        .padding(.vertical, 9)
+        .padding(.vertical, 5)
         .overlay(alignment: .top) { HyperliteThemeDivider() }
         .overlay(alignment: .bottom) { HyperliteThemeDivider() }
     }
-}
 
-private struct HyperlitePlainTextEditor: NSViewRepresentable {
-    let text: String
-    let maxBytes: Int
-    let onChange: (String, Int) -> Void
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(parent: self)
+    private var notepadHeader: some View {
+        HStack(spacing: 6) {
+            Menu {
+                recentButton("Today", date: state.todayIdentifier)
+                recentButton("Yesterday", date: state.yesterdayIdentifier)
+                let recent = Array(state.recentDailyNotes.filter {
+                    $0.date != state.todayIdentifier && $0.date != state.yesterdayIdentifier
+                }.prefix(HyperliteNotepadState.maximumRecentNotes))
+                if !recent.isEmpty {
+                    Divider()
+                    ForEach(recent) { note in
+                        recentButton(state.displayName(for: note.date), date: note.date)
+                    }
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Text("Notepad")
+                    Image(systemName: "chevron.down")
+                        .font(HyperliteTypography.semibold(8))
+                }
+                .font(HyperliteTypography.semibold(11))
+                .foregroundStyle(HyperliteTheme.secondaryText.color)
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .help("Open recent daily notes")
+            noteLabel("Pinned", symbol: "pin.fill")
+            Spacer()
+            saveStatus
+        }
     }
 
-    func makeNSView(context: Context) -> NSScrollView {
-        let scrollView = NSScrollView()
-        let textView = NSTextView(frame: .zero)
-        scrollView.documentView = textView
-        scrollView.hasVerticalScroller = true
-        scrollView.autohidesScrollers = true
-        scrollView.drawsBackground = false
+    @ViewBuilder
+    private var saveStatus: some View {
+        if state.isSaving {
+            ProgressView()
+                .controlSize(.mini)
+                .tint(HyperliteTheme.cyan.color)
+                .accessibilityLabel("Saving notes")
+        } else if let error = state.errorMessage {
+            Label(error, systemImage: "exclamationmark.triangle.fill")
+                .font(HyperliteTypography.regular(10))
+                .foregroundStyle(HyperliteTheme.red.color)
+                .lineLimit(1)
+                .help(error)
+        }
+    }
 
-        textView.delegate = context.coordinator
-        textView.string = text
-        textView.font = HyperliteTypography.plainTextAppKitFont(13)
-        textView.textColor = HyperliteTheme.primaryText.appKitColor
-        textView.insertionPointColor = HyperliteTheme.blue.appKitColor
-        textView.selectedTextAttributes = [
-            .backgroundColor: HyperliteTheme.blue.appKitColor.withAlphaComponent(0.53),
-            .foregroundColor: NSColor.white,
-        ]
-        textView.backgroundColor = .clear
-        textView.drawsBackground = false
-        textView.isRichText = false
-        textView.importsGraphics = false
-        textView.allowsUndo = true
-        textView.usesFindBar = true
-        textView.isVerticallyResizable = true
-        textView.isHorizontallyResizable = false
-        textView.autoresizingMask = [.width]
-        textView.textContainer?.widthTracksTextView = true
-        textView.textContainer?.containerSize = NSSize(
-            width: 0,
-            height: CGFloat.greatestFiniteMagnitude
+    private var dailyHeader: some View {
+        HStack(spacing: 5) {
+            noteLabel("Daily", symbol: "calendar")
+            Text(state.displayName(for: state.selectedDateIdentifier))
+                .font(HyperliteTypography.regular(10))
+                .foregroundStyle(HyperliteTheme.mutedText.color)
+                .lineLimit(1)
+            Spacer(minLength: 4)
+            navigationButton("chevron.left", help: "Previous day") {
+                await state.selectPreviousDay()
+            }
+            Button("Today") { Task { await state.selectToday() } }
+                .buttonStyle(.borderless)
+                .font(HyperliteTypography.semibold(9))
+                .disabled(state.isTodaySelected || state.isNavigating)
+                .help("Return to today")
+            navigationButton("chevron.right", help: "Next day") {
+                await state.selectNextDay()
+            }
+            DatePicker(
+                "Select daily note date",
+                selection: Binding(
+                    get: { state.selectedDate },
+                    set: { date in Task { await state.selectDate(date) } }
+                ),
+                displayedComponents: .date
+            )
+            .labelsHidden()
+            .datePickerStyle(.field)
+            .controlSize(.small)
+            .disabled(state.isNavigating)
+            .fixedSize()
+        }
+    }
+
+    private func noteLabel(_ title: String, symbol: String) -> some View {
+        Label(title, systemImage: symbol)
+            .font(HyperliteTypography.semibold(10))
+            .foregroundStyle(HyperliteTheme.secondaryText.color)
+    }
+
+    private func editorSurface(
+        text: String,
+        placeholder: String,
+        accessibilityLabel: String,
+        focusTarget: HyperliteNotepadFocusRequest.Target,
+        onChange: @escaping (String, Int?) -> Bool
+    ) -> some View {
+        ZStack(alignment: .topLeading) {
+            HyperlitePlainTextEditor(
+                text: text,
+                maxBytes: HyperliteNotepadState.maxBytes,
+                accessibilityLabel: accessibilityLabel,
+                focusGeneration: state.focusRequest?.target == focusTarget
+                    ? state.focusRequest?.generation
+                    : nil,
+                onChange: { content, byteCount in _ = onChange(content, byteCount) }
+            )
+            if text.isEmpty {
+                Text(placeholder)
+                    .font(HyperliteTypography.regular(11))
+                    .foregroundStyle(HyperliteTheme.mutedText.color)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 6)
+                    .allowsHitTesting(false)
+            }
+        }
+        .frame(minHeight: HyperliteWorkspaceSizing.minimumNotepadEditorHeight, maxHeight: .infinity)
+        .background(
+            HyperliteTheme.canvas.color,
+            in: RoundedRectangle(cornerRadius: 7, style: .continuous)
         )
-        textView.textContainerInset = NSSize(width: 3, height: 3)
-        textView.isContinuousSpellCheckingEnabled = true
-        textView.isAutomaticQuoteSubstitutionEnabled = false
-        textView.isAutomaticDashSubstitutionEnabled = false
-        textView.isAutomaticTextReplacementEnabled = false
-        textView.setAccessibilityLabel("Notepad")
-        return scrollView
+        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .strokeBorder(HyperliteTheme.elevatedSurface.color, lineWidth: 1)
+        }
+        .disabled(state.isNavigating)
     }
 
-    func updateNSView(_ scrollView: NSScrollView, context: Context) {
-        guard let textView = scrollView.documentView as? NSTextView else { return }
-        context.coordinator.parent = self
-        guard textView.string != text else { return }
-        let selection = textView.selectedRange()
-        textView.string = text
-        textView.setSelectedRange(NSRange(
-            location: min(selection.location, textView.string.utf16.count),
-            length: 0
-        ))
-        context.coordinator.byteCount = text.utf8.count
+    private func recentButton(_ title: String, date: String) -> some View {
+        Button(title) { Task { await state.selectDateIdentifier(date, focus: true) } }
     }
 
-    final class Coordinator: NSObject, NSTextViewDelegate {
-        var parent: HyperlitePlainTextEditor
-        var byteCount: Int
-        private var pendingByteCount: Int?
-
-        init(parent: HyperlitePlainTextEditor) {
-            self.parent = parent
-            byteCount = parent.text.utf8.count
+    private func navigationButton(
+        _ symbol: String,
+        help: String,
+        action: @escaping @MainActor () async -> Void
+    ) -> some View {
+        Button { Task { await action() } } label: {
+            Image(systemName: symbol)
         }
-
-        func textView(
-            _ textView: NSTextView,
-            shouldChangeTextIn affectedCharRange: NSRange,
-            replacementString: String?
-        ) -> Bool {
-            let source = textView.string as NSString
-            guard affectedCharRange.location + affectedCharRange.length <= source.length else {
-                return false
-            }
-            let removedBytes = source.substring(with: affectedCharRange).utf8.count
-            let insertedBytes = (replacementString ?? "").utf8.count
-            let candidateByteCount = byteCount - removedBytes + insertedBytes
-            guard candidateByteCount <= parent.maxBytes else {
-                NSSound.beep()
-                return false
-            }
-            pendingByteCount = candidateByteCount
-            return true
-        }
-
-        func textDidChange(_ notification: Notification) {
-            guard let textView = notification.object as? NSTextView else { return }
-            byteCount = pendingByteCount ?? textView.string.utf8.count
-            pendingByteCount = nil
-            parent.onChange(textView.string, byteCount)
-        }
+        .buttonStyle(.borderless)
+        .controlSize(.small)
+        .disabled(state.isNavigating)
+        .help(help)
     }
 }

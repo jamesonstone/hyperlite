@@ -216,6 +216,12 @@ surfaces, and uses atomic project add/remove commands instead. The original
 pruning rationale remains above as historical delivery context; it is no
 longer an active product or safety contract.
 
+Issue #24 and `docs/specs/0006-notepad-daily-notes/SPEC.md` extend Command-K
+with an asynchronously built, local note-search projection. This supersedes
+R8's blanket prohibition on background indexing only for the bounded Notepad
+index; command construction remains eager-free, no continuous timer exists,
+and normal date navigation never scans historical files.
+
 ## DELIVERY DECISION
 
 Implemented on issue #5 in branch and worktree `GH-5`. Ready pull request #6

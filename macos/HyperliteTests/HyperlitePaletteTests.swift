@@ -5,6 +5,7 @@ enum HyperlitePaletteTests {
         testCommandEntries()
         testProjectEntries()
         testSearchFiltering()
+        testNoteEntries()
         testRemoveProjectEntries()
         testSelenizedApplicationThemeTokens()
         testResponsivePaletteSizing()
@@ -137,6 +138,35 @@ enum HyperlitePaletteTests {
             if case .action(.removeProject(_)) = $0.kind { return true }
             return false
         }, "remove-project rows should carry only configuration actions")
+    }
+
+    private static func testNoteEntries() {
+        let entries = HyperliteInteractionModel.noteEntries(results: [
+            HyperliteNoteSearchResult(
+                noteID: .pinned,
+                filename: "pinned.md",
+                date: nil,
+                snippet: "Repository paths",
+                matchKind: .exact,
+                score: 2
+            ),
+            HyperliteNoteSearchResult(
+                noteID: .daily("2026-08-02"),
+                filename: "2026-08-02.md",
+                date: "2026-08-02",
+                snippet: "Related database work",
+                matchKind: .semantic,
+                score: 0.8
+            ),
+        ])
+        expect(entries.map(\.title) == ["Pinned", "2026-08-02"],
+               "note search entries should retain pinned and daily identities")
+        expect(entries[0].kind == .action(.focusPinnedNote),
+               "pinned result should focus the permanent editor")
+        expect(entries[1].kind == .action(.openDailyNote("2026-08-02")),
+               "daily result should open its date")
+        expect(entries[1].subtitle.contains("semantic"),
+               "semantic results should be identified in the shared palette")
     }
 
     private static func testSelenizedApplicationThemeTokens() {

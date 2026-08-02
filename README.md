@@ -87,17 +87,21 @@ unavailable pull-request data does not retain a subordinate worktree as active.
 After a successful refresh observes that pull request as merged or closed, its
 worktree row disappears; Hyperlite never deletes or prunes the local checkout.
 
-The global notepad directly beneath the header is a local scratch surface, not
-another source of project truth. Typing stays in memory, the latest edit saves
-after three idle seconds, and pending text flushes when the window or
-application yields. It is regular UTF-8 text rendered with JetBrainsMono Nerd
-Font through the shared application resolver and a system monospaced fallback,
-with no Markdown presentation. Its darker inset surface follows the existing
-Selenized theme, and its content never enters thread inference or attention.
+The Notepad directly beneath the header is private operator memory, not another
+source of project truth. One permanent Pinned editor is always visible beside
+one dated Daily editor, which opens today by default and creates a missing file
+only after the first edit. Previous, next, today, and date-picker controls open
+daily notes directly; the clickable Notepad title offers Today, Yesterday, and
+up to ten recently modified daily files. Typing stays in memory, the latest
+edit saves after three idle seconds, and pending text flushes when the window or
+application yields. Both editors use JetBrainsMono Nerd Font through the shared
+application resolver and never feed thread inference or attention.
 
 Command+R refreshes the focused Hyperlite application. Command+K opens a
-searchable command palette with Refresh, Settings, Add Project, and Remove
-Project. Command+P opens the same searchable surface in configured-project
+searchable command palette with Refresh, Settings, Add Project, Remove Project,
+and exact or on-device semantic matches from pinned and daily note filenames,
+dates, and contents. A selected note result focuses Pinned or opens the matching
+daily date. Command+P opens the same searchable surface in configured-project
 mode; projects start collapsed and expand to show their open pull requests and
 registered branch/worktree lanes. Add Project is also available from Settings.
 Project selection changes are written atomically by the bundled helper.
@@ -116,8 +120,10 @@ hyperlite projects
 hyperlite projects add /path/to/repository
 hyperlite projects remove /path/to/repository
 hyperlite notepad
-hyperlite notepad set --stdin
-hyperlite notepad path
+hyperlite notepad show --date YYYY-MM-DD --json
+hyperlite notepad set --stdin [--date YYYY-MM-DD] [--json]
+hyperlite notepad path [--date YYYY-MM-DD]
+hyperlite notepad index
 hyperlite thread seen <thread-id> --revision <digest>
 hyperlite thread note <thread-id> --stdin
 ```
@@ -131,11 +137,12 @@ The project pull-request cache is stored independently with user-only
 permissions at `$XDG_STATE_HOME/hyperlite/pull-requests.json`, or
 `~/.local/state/hyperlite/pull-requests.json` by default.
 
-The global notepad is stored separately with the same atomic, user-only
-boundary at `$XDG_DATA_HOME/hyperlite/notepad.txt`, or
-`~/.local/share/hyperlite/notepad.txt` by default. On first use, Hyperlite
-adopts the prior default `notepad.md` file without changing its content. The
-document is limited to 256 KiB.
+The Notepad is stored with the same atomic, user-only boundary beneath
+`$XDG_DATA_HOME/hyperlite/notes`, or `~/.local/share/hyperlite/notes` by
+default. The pinned note is `pinned.md`; daily notes are
+`daily/YYYY-MM-DD.md`. On first use, Hyperlite adopts the prior `notepad.txt`
+or default `notepad.md` document as the pinned note without changing its
+content. Every document is limited to 256 KiB.
 
 ## Development
 
