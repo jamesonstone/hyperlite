@@ -68,10 +68,12 @@ The fixed header contains the product name and ghost, a compact GitHub GraphQL
 rate-limit indicator, a subtly orange Refresh action, and Settings. The
 indicator shows calls used out of the caller's limit; hover exposes remaining
 capacity, the local reset and observation times, and the last query's cost and
-node count. Notes, Open PRs, and the single-column Projects list each own one
-third of the content workspace. Every section has its own vertical scroll
-boundary, so long notes, a large pull-request index, and a dense project map
-remain independently usable. The pull-request index and quota display are
+node count in a comfortably spaced, app-themed JetBrainsMono Nerd Font
+popover. Clicking the indicator opens and pins the same details until another
+click or native dismissal. Notes, Open PRs, and the single-column Projects list
+each own one third of the content workspace. Every section has its own vertical
+scroll boundary, so long notes, a large pull-request index, and a dense project
+map remain independently usable. The pull-request index and quota display are
 informational only: neither establishes thread activity or attention.
 
 Open PRs load from a separate private cache, refresh stale configured

@@ -110,7 +110,8 @@ changes that warrant human attention.
 ## LAST UPDATED
 
 - 2026-08-02: Added a cached GitHub GraphQL used/limit indicator with complete
-  reset, remaining, query-cost, node-count, and observation metadata on hover.
+  reset, remaining, query-cost, node-count, and observation metadata in a
+  styled JetBrainsMono hover popover that can be pinned and dismissed by click.
 - 2026-07-31: Added feature `0005-dashboard-project-management` for the
   equal-third native workspace, searchable palettes, project configuration,
   and removal of worktree-prune functionality.

@@ -4,7 +4,7 @@
 
 HYPERLITE_APP ?= $(CURDIR)/build/Hyperlite.app
 SWIFT_SOURCES := $(sort $(wildcard macos/Hyperlite/*.swift))
-SWIFT_MODEL_TEST_SOURCES := macos/Hyperlite/HyperliteModels.swift macos/Hyperlite/HyperliteProjectModels.swift macos/Hyperlite/HyperlitePullRequestModels.swift macos/Hyperlite/HyperlitePullRequestPanel.swift macos/Hyperlite/HyperliteRateLimit.swift macos/Hyperlite/HyperlitePresentation.swift macos/Hyperlite/HyperliteInteractionModels.swift macos/Hyperlite/HyperlitePalettePresentation.swift macos/Hyperlite/HyperliteTheme.swift
+SWIFT_MODEL_TEST_SOURCES := macos/Hyperlite/HyperliteModels.swift macos/Hyperlite/HyperliteProjectModels.swift macos/Hyperlite/HyperlitePullRequestModels.swift macos/Hyperlite/HyperlitePullRequestPanel.swift macos/Hyperlite/HyperliteRateLimit.swift macos/Hyperlite/HyperliteRateLimitPopover.swift macos/Hyperlite/HyperlitePresentation.swift macos/Hyperlite/HyperliteInteractionModels.swift macos/Hyperlite/HyperlitePalettePresentation.swift macos/Hyperlite/HyperliteTheme.swift
 SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteProcess.swift macos/Hyperlite/HyperliteProcessSupport.swift macos/Hyperlite/HyperliteNotepadState.swift
 SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteTypography.swift macos/HyperliteTests/HyperliteInteractionModelTests.swift macos/HyperliteTests/HyperliteProjectIndexTests.swift
 SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperlitePaletteTests.swift

@@ -5,6 +5,7 @@ enum HyperliteRateLimitTests {
         testUnknownAndInvalidStates()
         testCompleteMetadataPresentation()
         testWarningThresholds()
+        testPopoverInteraction()
     }
 
     private static func testUnknownAndInvalidStates() {
@@ -17,6 +18,11 @@ enum HyperliteRateLimitTests {
         expect(
             unknown.accessibilityLabel == "GitHub GraphQL rate limit unavailable",
             "missing quota should remain explicit to accessibility"
+        )
+        expect(
+            unknown.statusText == "Unavailable" && unknown.usageFraction == nil &&
+                unknown.remainingDetailText == "—",
+            "missing quota should provide an explicit empty popover state"
         )
 
         let invalid = fixture(used: 100, remaining: 4_899)
@@ -34,23 +40,19 @@ enum HyperliteRateLimitTests {
         expect(
             presentation.usedText == "1551" && presentation.limitText == "5000" &&
                 presentation.level == .healthy,
-            "healthy quota should render used over limit without decoration noise"
+            "healthy quota should render used out of limit without decoration noise"
         )
-        for metadata in [
-            "GitHub GraphQL rate limit",
-            "Status: Healthy capacity",
-            "Used: 1,551 of 5,000",
-            "Remaining: 3,449",
-            "Resets: 2026-08-02 13:00 GMT",
-            "Last query cost: 4",
-            "Last query nodes: 12",
-            "Observed: 2026-08-02 12:00 GMT",
-        ] {
-            expect(
-                presentation.helpText.contains(metadata),
-                "hover metadata should include \(metadata)"
-            )
-        }
+        expect(
+            presentation.statusText == "Healthy capacity" &&
+                presentation.usedDetailText == "1,551" &&
+                presentation.limitDetailText == "5,000" &&
+                presentation.remainingDetailText == "3,449" &&
+                presentation.resetText == "2026-08-02 13:00 GMT" &&
+                presentation.costText == "4" && presentation.nodeCountText == "12" &&
+                presentation.observedText == "2026-08-02 12:00 GMT" &&
+                presentation.usageFraction == 1_551.0 / 5_000.0,
+            "popover metadata should expose every formatted GitHub quota field"
+        )
         expect(
             presentation.accessibilityLabel.contains("healthy capacity") &&
                 presentation.accessibilityLabel.contains("3,449 remaining") &&
@@ -81,6 +83,44 @@ enum HyperliteRateLimitTests {
             critical.level == .critical &&
                 critical.accessibilityLabel.contains("critical capacity"),
             "ten percent remaining should be critical"
+        )
+    }
+
+    private static func testPopoverInteraction() {
+        var interaction = HyperliteRateLimitPopoverInteraction()
+        interaction.setTriggerHovered(true)
+        interaction.openFromHoverIfNeeded()
+        expect(
+            interaction.isPresented && !interaction.isPinned,
+            "hover should open a transient popover"
+        )
+
+        interaction.setTriggerHovered(false)
+        interaction.setPopoverHovered(true)
+        interaction.closeIfIdle()
+        expect(interaction.isPresented, "moving into the popover should keep it open")
+        interaction.setPopoverHovered(false)
+        interaction.closeIfIdle()
+        expect(!interaction.isPresented, "leaving an unpinned popover should close it")
+
+        interaction.togglePinned()
+        expect(
+            interaction.isPresented && interaction.isPinned,
+            "click should open and pin the popover immediately"
+        )
+        interaction.closeIfIdle()
+        expect(interaction.isPresented, "idle close should not dismiss a pinned popover")
+        interaction.togglePinned()
+        expect(
+            !interaction.isPresented && !interaction.isPinned,
+            "a second click should dismiss and unpin the popover"
+        )
+
+        interaction.togglePinned()
+        interaction.dismiss()
+        expect(
+            !interaction.isPresented && !interaction.isPinned,
+            "native dismissal should clear pinned interaction state"
         )
     }
 

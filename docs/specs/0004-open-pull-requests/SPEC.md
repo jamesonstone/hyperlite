@@ -160,6 +160,11 @@ thread scanner cadence or starting continuous background work.
 - R20: The indicator hover and accessibility text must identify the GraphQL
   resource and include used, limit, remaining, local reset time, last-query
   cost and node count, and observation time when available.
+- R21: Present quota details in a Hyperlite-themed popover with app typography
+  and comfortable grouped spacing. Hover opens the popover transiently after a
+  bounded delay; clicking the indicator opens it immediately and pins it until
+  a second click or native dismissal. This interaction must not introduce a
+  timer-driven refresh, animation loop, or broader application state.
 
 Non-goals: CI or full review-detail hydration, authored-only filtering, turning
 open pull requests into inferred threads or attention moments, continuous
@@ -200,6 +205,9 @@ change refresh authority, or mutate GitHub.
 12. Decode the optional quota observation natively and render a small stacked
     header indicator with deterministic warning thresholds, complete hover
     metadata, and one accessibility element.
+13. Replace the system help tooltip with a feature-local styled popover. Reuse
+    the established delayed hover behavior, model click pinning as transient
+    view state, and verify both activation paths in tests and the packaged app.
 
 ## DECISIONS
 
@@ -248,6 +256,11 @@ change refresh authority, or mutate GitHub.
   hover and accessibility text. Remaining capacity at or below 20 percent is
   a warning and at or below 10 percent is critical. The display does not
   schedule refreshes or infer exhaustion from age.
+- The quota detail surface is secondary context rather than a new window or
+  workflow. Hover should remain lightweight and self-closing, while click
+  intentionally pins the same popover for reading. The popover uses
+  `HyperliteTypography` and existing palette tokens instead of native tooltip
+  styling or a separate visual system.
 
 ## ACCEPTANCE CRITERIA
 
@@ -287,6 +300,10 @@ change refresh authority, or mutate GitHub.
   before Refresh and Settings. Healthy, warning, critical, and unknown states
   are visually distinct without competing with primary controls, and hover plus
   accessibility expose the full available quota metadata and local timestamps.
+- AC12: Hovering the indicator opens a comfortably spaced, Hyperlite-themed
+  quota popover in JetBrainsMono Nerd Font. Clicking opens the same popover
+  immediately and keeps it visible until a second click or native dismissal;
+  keyboard and accessibility users can identify and activate the indicator.
 
 ## VALIDATION MAP
 
@@ -299,6 +316,7 @@ change refresh authority, or mutate GitHub.
 | AC6 | Head-branch transport tests and Swift fresh project-lane projection tests |
 | AC10 | Go query, client, service, cache compatibility, and partial-response tests |
 | AC11 | Swift decoding and presentation tests plus packaged-app hover/accessibility inspection |
+| AC12 | Swift interaction-state tests plus packaged-app hover, click, visual, and accessibility inspection |
 
 ## DISCOVERIES
 
@@ -376,6 +394,13 @@ change refresh authority, or mutate GitHub.
   survive later missing metadata. Native coverage proves decoding, unknown,
   healthy, 20-percent warning, 10-percent critical, complete hover metadata,
   and accessibility text.
+- Popover interaction coverage proves delayed hover opening, safe transfer from
+  trigger to detail surface, idle dismissal, immediate click pinning,
+  second-click dismissal, and native-dismissal cleanup. Packaged-app inspection
+  confirmed the indicator is an accessible button; click rendered the styled
+  334-point popover with all quota fields, and a second click closed it. The
+  detail surface uses only `HyperliteTypography` and established palette tokens
+  with 16-point outer padding and grouped metric, time, and query sections.
 - An isolated live scan returned 16 configured projects, 10 open pull requests,
   zero errors, zero warnings, and one complete rate-limit observation from the
   existing batch. The observed sample was 1788 used of 5000, 3212 remaining,
@@ -439,13 +464,15 @@ is quiet, nonzero feedback is orange, legacy unavailable data is explicit, and
 the entire row continues to open GitHub for resolution.
 
 The header now includes a compact GitHub GraphQL quota fraction showing calls
-used over the caller's limit. Every existing bounded query selects the complete
+used out of the caller's limit. Every existing bounded query selects the complete
 rate-limit object, so the display adds no request or process. The last complete
 observation is cached independently of repository success; missing or malformed
-metadata cannot erase it. Hover and accessibility expose remaining capacity,
-local reset and observation times, query cost, and node count. Healthy capacity
-stays subdued, with warning and critical color reserved for 20 and 10 percent
-remaining respectively.
+metadata cannot erase it. A Hyperlite-themed, JetBrainsMono Nerd Font popover
+exposes remaining capacity, local reset and observation times, query cost, and
+node count with grouped spacing. Hover opens it transiently, while click pins
+the same detail surface for reading. Healthy capacity stays subdued, with
+warning and critical color reserved for 20 and 10 percent remaining
+respectively.
 
 The notepad owns otherwise unused vertical space and scrolls natively for long
 notes. Open PRs and Projects remain bottom-pinned as one content-sized activity

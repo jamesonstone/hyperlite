@@ -28,7 +28,15 @@ enum HyperliteRateLimitLevel: Equatable {
 struct HyperliteRateLimitPresentation: Equatable {
     let usedText: String
     let limitText: String
-    let helpText: String
+    let usedDetailText: String
+    let limitDetailText: String
+    let remainingDetailText: String
+    let resetText: String
+    let costText: String
+    let nodeCountText: String
+    let observedText: String
+    let statusText: String
+    let usageFraction: Double?
     let accessibilityLabel: String
     let level: HyperliteRateLimitLevel
 
@@ -40,7 +48,15 @@ struct HyperliteRateLimitPresentation: Equatable {
             return HyperliteRateLimitPresentation(
                 usedText: "?",
                 limitText: "?",
-                helpText: "GitHub GraphQL rate limit\nNo complete observation is available yet.",
+                usedDetailText: "—",
+                limitDetailText: "—",
+                remainingDetailText: "—",
+                resetText: "—",
+                costText: "—",
+                nodeCountText: "—",
+                observedText: "—",
+                statusText: "Unavailable",
+                usageFraction: nil,
                 accessibilityLabel: "GitHub GraphQL rate limit unavailable",
                 level: .unknown
             )
@@ -57,16 +73,15 @@ struct HyperliteRateLimitPresentation: Equatable {
         return HyperliteRateLimitPresentation(
             usedText: String(rateLimit.used),
             limitText: String(rateLimit.limit),
-            helpText: """
-            GitHub GraphQL rate limit
-            Status: \(status)
-            Used: \(used) of \(limit)
-            Remaining: \(remaining)
-            Resets: \(reset)
-            Last query cost: \(cost)
-            Last query nodes: \(nodes)
-            Observed: \(observed)
-            """,
+            usedDetailText: used,
+            limitDetailText: limit,
+            remainingDetailText: remaining,
+            resetText: reset,
+            costText: cost,
+            nodeCountText: nodes,
+            observedText: observed,
+            statusText: status,
+            usageFraction: Double(rateLimit.used) / Double(rateLimit.limit),
             accessibilityLabel: "GitHub GraphQL rate limit, \(status.lowercased()), " +
                 "\(used) of \(limit) calls used, \(remaining) remaining, resets " +
                 "\(reset), last query cost \(cost), node count \(nodes), " +
@@ -120,29 +135,104 @@ struct HyperliteRateLimitPresentation: Equatable {
     }
 }
 
+struct HyperliteRateLimitPopoverInteraction: Equatable {
+    private(set) var isPresented = false
+    private(set) var isPinned = false
+    private(set) var triggerHovered = false
+    private(set) var popoverHovered = false
+
+    mutating func setTriggerHovered(_ hovered: Bool) {
+        triggerHovered = hovered
+    }
+
+    mutating func setPopoverHovered(_ hovered: Bool) {
+        popoverHovered = hovered
+    }
+
+    mutating func openFromHoverIfNeeded() {
+        if triggerHovered {
+            isPresented = true
+        }
+    }
+
+    mutating func closeIfIdle() {
+        if !triggerHovered, !popoverHovered, !isPinned {
+            isPresented = false
+        }
+    }
+
+    mutating func togglePinned() {
+        if isPinned {
+            dismiss()
+        } else {
+            isPinned = true
+            isPresented = true
+        }
+    }
+
+    mutating func dismiss() {
+        isPresented = false
+        isPinned = false
+    }
+}
+
+private enum HyperliteRateLimitPopoverTiming {
+    static let openDelay: Duration = .milliseconds(350)
+    static let closeDelay: Duration = .milliseconds(200)
+}
+
 struct HyperliteGitHubRateLimitIndicator: View {
     let rateLimit: HyperliteGitHubRateLimit?
+    @State private var interaction = HyperliteRateLimitPopoverInteraction()
+    @State private var pendingTask: Task<Void, Never>?
 
     var body: some View {
         let presentation = HyperliteRateLimitPresentation.make(rateLimit: rateLimit)
         let color = indicatorColor(presentation.level)
-        VStack(spacing: 0) {
-            quotaText(presentation.usedText, color: color)
-            Rectangle()
-                .fill(color.opacity(0.55))
-                .frame(width: 24, height: 1)
-            quotaText(presentation.limitText, color: color)
+        return Button(action: togglePinned) {
+            VStack(spacing: 0) {
+                quotaText(presentation.usedText, color: color)
+                Rectangle()
+                    .fill(color.opacity(0.55))
+                    .frame(width: 24, height: 1)
+                quotaText(presentation.limitText, color: color)
+            }
+            .frame(width: 38, height: 30)
+            .background(
+                interaction.isPresented
+                    ? HyperliteTheme.elevatedSurface.color.opacity(0.9)
+                    : HyperliteTheme.surface.color.opacity(0.72)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .stroke(
+                        interaction.isPresented
+                            ? color.opacity(0.72)
+                            : HyperliteTheme.elevatedSurface.color.opacity(0.8),
+                        lineWidth: 1
+                    )
+            }
+            .contentShape(Rectangle())
         }
-        .frame(width: 38, height: 30)
-        .background(HyperliteTheme.surface.color.opacity(0.72))
-        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .stroke(HyperliteTheme.elevatedSurface.color.opacity(0.8), lineWidth: 1)
+        .buttonStyle(.plain)
+        .onHover { hovered in
+            interaction.setTriggerHovered(hovered)
+            hovered ? scheduleOpen() : scheduleClose()
         }
-        .help(presentation.helpText)
-        .accessibilityElement(children: .ignore)
+        .popover(isPresented: presentationBinding, arrowEdge: .top) {
+            HyperliteGitHubRateLimitPopover(presentation: presentation)
+                .onHover { hovered in
+                    interaction.setPopoverHovered(hovered)
+                    hovered ? pendingTask?.cancel() : scheduleClose()
+                }
+        }
+        .onDisappear {
+            pendingTask?.cancel()
+            pendingTask = nil
+        }
         .accessibilityLabel(presentation.accessibilityLabel)
+        .accessibilityHint("Show GitHub rate limit details")
     }
 
     private func quotaText(_ text: String, color: Color) -> some View {
@@ -160,6 +250,43 @@ struct HyperliteGitHubRateLimitIndicator: View {
         case .healthy: return HyperliteTheme.secondaryText.color
         case .warning: return HyperliteTheme.orange.color
         case .critical: return HyperliteTheme.red.color
+        }
+    }
+
+    private var presentationBinding: Binding<Bool> {
+        Binding(
+            get: { interaction.isPresented },
+            set: { presented in
+                if presented {
+                    interaction.openFromHoverIfNeeded()
+                } else {
+                    interaction.dismiss()
+                }
+            }
+        )
+    }
+
+    private func togglePinned() {
+        pendingTask?.cancel()
+        pendingTask = nil
+        interaction.togglePinned()
+    }
+
+    private func scheduleOpen() {
+        pendingTask?.cancel()
+        pendingTask = Task { @MainActor in
+            try? await Task.sleep(for: HyperliteRateLimitPopoverTiming.openDelay)
+            guard !Task.isCancelled else { return }
+            interaction.openFromHoverIfNeeded()
+        }
+    }
+
+    private func scheduleClose() {
+        pendingTask?.cancel()
+        pendingTask = Task { @MainActor in
+            try? await Task.sleep(for: HyperliteRateLimitPopoverTiming.closeDelay)
+            guard !Task.isCancelled else { return }
+            interaction.closeIfIdle()
         }
     }
 }
