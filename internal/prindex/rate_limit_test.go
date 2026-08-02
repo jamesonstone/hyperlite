@@ -132,7 +132,7 @@ func TestScannerCachesRateLimitIndependentlyOfRepositoryFailure(t *testing.T) {
 	}
 }
 
-func TestDeriveRateLimitBurnRateProjectsExhaustion(t *testing.T) {
+func TestApplyRateLimitBurnRateProjectsExhaustion(t *testing.T) {
 	observedAt := time.Date(2026, 8, 2, 12, 0, 0, 0, time.UTC)
 	resetAt := observedAt.Add(time.Hour)
 	previous := &model.GitHubRateLimit{
@@ -143,7 +143,7 @@ func TestDeriveRateLimitBurnRateProjectsExhaustion(t *testing.T) {
 		Limit: 5000, Used: 1500, Remaining: 3500,
 		ResetAt: resetAt, ObservedAt: observedAt,
 	}
-	derived := deriveRateLimitBurnRate(current, previous)
+	derived := applyRateLimitBurnRate(current, previous)
 	if derived.BurnRate == nil || derived.BurnRate.PointsPerHour != 6000 ||
 		derived.BurnRate.SampleSeconds != 300 ||
 		derived.BurnRate.ProjectedExhaustionAt == nil ||
@@ -154,7 +154,7 @@ func TestDeriveRateLimitBurnRateProjectsExhaustion(t *testing.T) {
 	}
 }
 
-func TestDeriveRateLimitBurnRateHandlesZeroAndInvalidSamples(t *testing.T) {
+func TestApplyRateLimitBurnRateHandlesZeroAndInvalidSamples(t *testing.T) {
 	observedAt := time.Date(2026, 8, 2, 12, 0, 0, 0, time.UTC)
 	resetAt := observedAt.Add(time.Hour)
 	base := model.GitHubRateLimit{
@@ -163,7 +163,7 @@ func TestDeriveRateLimitBurnRateHandlesZeroAndInvalidSamples(t *testing.T) {
 	}
 	zero := base
 	zero.ObservedAt = observedAt
-	derived := deriveRateLimitBurnRate(&zero, &base)
+	derived := applyRateLimitBurnRate(&zero, &base)
 	if derived.BurnRate == nil || derived.BurnRate.PointsPerHour != 0 ||
 		derived.BurnRate.SampleSeconds != 300 ||
 		derived.BurnRate.ProjectedExhaustionAt != nil {
@@ -193,7 +193,7 @@ func TestDeriveRateLimitBurnRateHandlesZeroAndInvalidSamples(t *testing.T) {
 			current.Remaining = 3900
 			current.ObservedAt = observedAt
 			mutate(&current)
-			if result := deriveRateLimitBurnRate(&current, &base); result.BurnRate != nil {
+			if result := applyRateLimitBurnRate(&current, &base); result.BurnRate != nil {
 				t.Fatalf("burn rate = %#v", result.BurnRate)
 			}
 		})

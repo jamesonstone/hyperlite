@@ -92,6 +92,10 @@ func TestStorePreservesCacheWithInvalidBurnRate(t *testing.T) {
 		!strings.Contains(warning, "cached GitHub rate limit is incomplete or inconsistent") {
 		t.Fatalf("state=%#v warning=%q err=%v", state, warning, err)
 	}
+	matches, err := filepath.Glob(path + ".corrupt-*")
+	if err != nil || len(matches) != 1 {
+		t.Fatalf("matches=%#v err=%v", matches, err)
+	}
 }
 
 func TestStoreLoadsLegacyCacheWithoutRateLimit(t *testing.T) {

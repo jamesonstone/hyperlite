@@ -149,6 +149,54 @@ enum HyperliteRateLimitTests {
                 malformed.burnLevel == .measuring,
             "invalid derived metadata should not hide otherwise valid quota data"
         )
+
+        let invalidBurnRates: [(String, HyperliteGitHubRateLimitBurnRate)] = [
+            (
+                "short sample",
+                HyperliteGitHubRateLimitBurnRate(
+                    pointsPerHour: 1_000,
+                    sampleSeconds: 59,
+                    projectedExhaustionAt: Date(timeIntervalSince1970: 1_785_684_416.4)
+                )
+            ),
+            (
+                "non-finite rate",
+                HyperliteGitHubRateLimitBurnRate(
+                    pointsPerHour: .infinity,
+                    sampleSeconds: 300,
+                    projectedExhaustionAt: Date(timeIntervalSince1970: 1_785_684_416.4)
+                )
+            ),
+            (
+                "negative rate",
+                HyperliteGitHubRateLimitBurnRate(
+                    pointsPerHour: -1,
+                    sampleSeconds: 300,
+                    projectedExhaustionAt: Date(timeIntervalSince1970: 1_785_684_416.4)
+                )
+            ),
+            (
+                "projection before observation",
+                HyperliteGitHubRateLimitBurnRate(
+                    pointsPerHour: 1_000,
+                    sampleSeconds: 300,
+                    projectedExhaustionAt: Date(timeIntervalSince1970: 1_785_671_999)
+                )
+            ),
+        ]
+        for (name, burnRate) in invalidBurnRates {
+            let presentation = HyperliteRateLimitPresentation.make(
+                rateLimit: fixture(used: 1_551, remaining: 3_449, burnRate: burnRate)
+            )
+            expect(
+                presentation.burnRateText == "Measuring" &&
+                    presentation.burnComparisonText == "Awaiting trend" &&
+                    presentation.burnLevel == .measuring &&
+                    presentation.usedDetailText == "1,551" &&
+                    presentation.usageFraction != nil,
+                "\(name) should fail closed without hiding valid quota data"
+            )
+        }
     }
 
     private static func testWarningThresholds() {

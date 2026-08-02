@@ -173,6 +173,8 @@ struct HyperliteGitHubRateLimitPopover: View {
             RoundedRectangle(cornerRadius: 7, style: .continuous)
                 .stroke(HyperliteTheme.elevatedSurface.color.opacity(0.8), lineWidth: 1)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text(accessibilityText(label, value)))
     }
 
     private func detailRow(_ label: String, _ value: String) -> some View {
@@ -187,6 +189,8 @@ struct HyperliteGitHubRateLimitPopover: View {
         }
         .padding(.horizontal, 11)
         .padding(.vertical, 9)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text(accessibilityText(label, value)))
     }
 
     private func compactDetail(_ label: String, _ value: String) -> some View {
@@ -204,5 +208,12 @@ struct HyperliteGitHubRateLimitPopover: View {
         .frame(maxWidth: .infinity)
         .background(HyperliteTheme.surface.color.opacity(0.5))
         .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text(accessibilityText(label, value)))
+    }
+
+    private func accessibilityText(_ label: String, _ value: String) -> String {
+        let sentenceLabel = label.prefix(1).uppercased() + label.dropFirst().lowercased()
+        return "\(sentenceLabel): \(value)"
     }
 }

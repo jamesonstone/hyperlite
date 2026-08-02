@@ -65,6 +65,61 @@ enum HyperliteRateLimitBurnLevel: Equatable {
 }
 
 struct HyperliteRateLimitPresentation: Equatable {
+    private final class FormatterCache: @unchecked Sendable {
+        private let lock = NSLock()
+        private let integerFormatter: NumberFormatter = {
+            let formatter = NumberFormatter()
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.numberStyle = .decimal
+            formatter.usesGroupingSeparator = true
+            formatter.groupingSeparator = ","
+            formatter.groupingSize = 3
+            formatter.maximumFractionDigits = 0
+            return formatter
+        }()
+        private let decimalFormatter: NumberFormatter = {
+            let formatter = NumberFormatter()
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.numberStyle = .decimal
+            formatter.usesGroupingSeparator = true
+            formatter.groupingSeparator = ","
+            formatter.groupingSize = 3
+            formatter.minimumFractionDigits = 0
+            formatter.maximumFractionDigits = 1
+            return formatter
+        }()
+        private let dateFormatter: DateFormatter = {
+            let formatter = DateFormatter()
+            formatter.calendar = Calendar(identifier: .gregorian)
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.dateFormat = "yyyy-MM-dd HH:mm zzz"
+            return formatter
+        }()
+
+        func format(_ value: Int) -> String? {
+            withLock { integerFormatter.string(from: NSNumber(value: value)) }
+        }
+
+        func format(_ value: Double) -> String? {
+            withLock { decimalFormatter.string(from: NSNumber(value: value)) }
+        }
+
+        func timestamp(_ date: Date, timeZone: TimeZone) -> String {
+            withLock {
+                dateFormatter.timeZone = timeZone
+                return dateFormatter.string(from: date)
+            }
+        }
+
+        private func withLock<T>(_ body: () -> T) -> T {
+            lock.lock()
+            defer { lock.unlock() }
+            return body()
+        }
+    }
+
+    private static let formatterCache = FormatterCache()
+
     let usedText: String
     let limitText: String
     let usedDetailText: String
@@ -252,26 +307,11 @@ struct HyperliteRateLimitPresentation: Equatable {
     }
 
     private static func formatted(_ value: Int) -> String {
-        let formatter = NumberFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.numberStyle = .decimal
-        formatter.usesGroupingSeparator = true
-        formatter.groupingSeparator = ","
-        formatter.groupingSize = 3
-        formatter.maximumFractionDigits = 0
-        return formatter.string(from: NSNumber(value: value)) ?? String(value)
+        formatterCache.format(value) ?? String(value)
     }
 
     private static func formatted(_ value: Double) -> String {
-        let formatter = NumberFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.numberStyle = .decimal
-        formatter.usesGroupingSeparator = true
-        formatter.groupingSeparator = ","
-        formatter.groupingSize = 3
-        formatter.minimumFractionDigits = 0
-        formatter.maximumFractionDigits = 1
-        return formatter.string(from: NSNumber(value: value)) ?? String(value)
+        formatterCache.format(value) ?? String(value)
     }
 
     private static func sampleDuration(_ seconds: Int) -> String {
@@ -284,11 +324,6 @@ struct HyperliteRateLimitPresentation: Equatable {
     }
 
     private static func timestamp(_ date: Date, timeZone: TimeZone) -> String {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = timeZone
-        formatter.dateFormat = "yyyy-MM-dd HH:mm zzz"
-        return formatter.string(from: date)
+        formatterCache.timestamp(date, timeZone: timeZone)
     }
 }

@@ -62,10 +62,7 @@ func (c *rateLimitCollector) observe(data map[string]json.RawMessage) {
 }
 
 func validRawRateLimit(value rawRateLimit) bool {
-	return validRateLimitFields(rateLimitFields{
-		Limit: value.Limit, Used: value.Used, Remaining: value.Remaining,
-		ResetAt: value.ResetAt, Cost: value.Cost, NodeCount: value.NodeCount,
-	})
+	return validRateLimitFields(rateLimitFields(value))
 }
 
 func observedRateLimit(value *GitHubRateLimit, observedAt time.Time) *model.GitHubRateLimit {
@@ -95,7 +92,7 @@ func cloneRateLimit(value *model.GitHubRateLimit) *model.GitHubRateLimit {
 	return &cloned
 }
 
-func deriveRateLimitBurnRate(
+func applyRateLimitBurnRate(
 	current *model.GitHubRateLimit,
 	previous *model.GitHubRateLimit,
 ) *model.GitHubRateLimit {

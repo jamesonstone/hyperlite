@@ -50,6 +50,12 @@ struct HyperliteGitHubRateLimitIndicator: View {
     let rateLimit: HyperliteGitHubRateLimit?
     @State private var interaction = HyperliteRateLimitPopoverInteraction()
     @State private var pendingTask: Task<Void, Never>?
+    @ScaledMetric(relativeTo: .caption2) private var indicatorWidth: CGFloat = 38
+    @ScaledMetric(relativeTo: .caption2) private var indicatorHeight: CGFloat = 30
+    @ScaledMetric(relativeTo: .caption2) private var dividerWidth: CGFloat = 24
+    @ScaledMetric(relativeTo: .caption2) private var quotaFontSize: CGFloat = 8
+    @ScaledMetric(relativeTo: .caption2) private var quotaTextWidth: CGFloat = 34
+    @ScaledMetric(relativeTo: .caption2) private var quotaTextHeight: CGFloat = 13
 
     var body: some View {
         let presentation = HyperliteRateLimitPresentation.make(rateLimit: rateLimit)
@@ -59,10 +65,10 @@ struct HyperliteGitHubRateLimitIndicator: View {
                 quotaText(presentation.usedText, color: color)
                 Rectangle()
                     .fill(color.opacity(0.55))
-                    .frame(width: 24, height: 1)
+                    .frame(width: dividerWidth, height: 1)
                 quotaText(presentation.limitText, color: color)
             }
-            .frame(width: 38, height: 30)
+            .frame(width: indicatorWidth, height: indicatorHeight)
             .background(
                 interaction.isPresented
                     ? HyperliteTheme.elevatedSurface.color.opacity(0.9)
@@ -89,7 +95,11 @@ struct HyperliteGitHubRateLimitIndicator: View {
             HyperliteGitHubRateLimitPopover(presentation: presentation)
                 .onHover { hovered in
                     interaction.setPopoverHovered(hovered)
-                    hovered ? pendingTask?.cancel() : scheduleClose()
+                    if hovered {
+                        pendingTask?.cancel()
+                    } else {
+                        scheduleClose()
+                    }
                 }
         }
         .onDisappear {
@@ -102,11 +112,11 @@ struct HyperliteGitHubRateLimitIndicator: View {
 
     private func quotaText(_ text: String, color: Color) -> some View {
         Text(text)
-            .font(HyperliteTypography.bold(8).monospacedDigit())
+            .font(HyperliteTypography.bold(quotaFontSize).monospacedDigit())
             .foregroundStyle(color)
             .lineLimit(1)
             .minimumScaleFactor(0.65)
-            .frame(width: 34, height: 13)
+            .frame(width: quotaTextWidth, height: quotaTextHeight)
     }
 
     private func indicatorColor(_ level: HyperliteRateLimitLevel) -> Color {
