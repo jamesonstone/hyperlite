@@ -151,6 +151,7 @@ struct HyperliteWindow: View {
                             threads: HyperliteFeatureFlags.inferredAttentionPresentation ? active : [],
                             projects: paletteProjects,
                             pullRequests: pullRequests,
+                            notepad: notepad,
                             onAction: handlePaletteAction,
                             onDismiss: state.dismissPalette
                         )
@@ -257,6 +258,10 @@ struct HyperliteWindow: View {
             NSWorkspace.shared.open(url)
         case let .revealPath(path):
             NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
+        case .focusPinnedNote:
+            notepad.focusPinned()
+        case let .openDailyNote(date):
+            Task { await notepad.selectDateIdentifier(date, focus: true) }
         }
     }
 }

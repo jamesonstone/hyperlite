@@ -1,86 +1,106 @@
 import Combine
 import Foundation
 
-protocol HyperliteNotepadClient: Sendable {
-    func load() async throws -> String
-    func save(_ content: String) async throws
-}
-
-struct HyperliteProcessNotepadClient: HyperliteNotepadClient {
-    func load() async throws -> String {
-        let data = try await HyperliteProcess.run(
-            arguments: ["notepad", "show"],
-            operation: "load notepad"
-        )
-        guard let content = String(data: data, encoding: .utf8) else {
-            throw HyperliteNotepadError.invalidUTF8
-        }
-        return content
-    }
-
-    func save(_ content: String) async throws {
-        _ = try await HyperliteProcess.run(
-            arguments: ["notepad", "set", "--stdin"],
-            operation: "save notepad",
-            standardInput: Data(content.utf8)
-        )
-    }
-}
-
 @MainActor
 final class HyperliteNotepadState: ObservableObject {
     static let shared = HyperliteNotepadState()
     nonisolated static let maxBytes = 256 * 1024
+    nonisolated static let maximumRecentNotes = 10
     nonisolated static let autosaveDelay: Duration = .seconds(3)
 
-    @Published private(set) var text = ""
+    @Published private(set) var pinnedText = ""
+    @Published private(set) var dailyText = ""
+    @Published private(set) var selectedDate: Date
+    @Published private(set) var recentDailyNotes: [HyperliteRecentDailyNote] = []
     @Published private(set) var isLoaded = false
-    @Published private(set) var isSaving = false
-    @Published private(set) var errorMessage: String?
+    @Published private(set) var isIndexReady = false
+    @Published private(set) var searchIndexRevision = 0
+    @Published var isSaving = false
+    @Published private(set) var isNavigating = false
+    @Published var errorMessage: String?
+    @Published private(set) var focusRequest: HyperliteNotepadFocusRequest?
 
-    var isDirty: Bool { text != savedText }
+    var selectedDateIdentifier: String {
+        HyperliteNoteDate.identifier(for: selectedDate, calendar: calendar)
+    }
 
-    private let client: any HyperliteNotepadClient
-    private let autosaveDelay: Duration
-    private var savedText = ""
-    private var hasLocalEdits = false
+    var todayIdentifier: String {
+        HyperliteNoteDate.identifier(for: calendar.startOfDay(for: now()), calendar: calendar)
+    }
+
+    var yesterdayIdentifier: String {
+        let today = calendar.startOfDay(for: now())
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: today) ?? today
+        return HyperliteNoteDate.identifier(for: yesterday, calendar: calendar)
+    }
+
+    var isTodaySelected: Bool { selectedDateIdentifier == todayIdentifier }
+    var isDirty: Bool { pinnedText != savedPinnedText || dailyText != savedDailyText }
+
+    let client: any HyperliteNotepadClient
+    private let searchIndex: HyperliteNoteSearchIndex
+    let autosaveDelay: Duration
+    private var calendar: Calendar
+    private let now: @Sendable () -> Date
+    var savedPinnedText = ""
+    var savedDailyText = ""
+    private var hasPinnedLocalEdits = false
+    private var hasDailyLocalEdits = false
     private var loadTask: Task<Void, Never>?
-    private var autosaveTask: Task<Void, Never>?
-    private var saveTask: Task<Void, Never>?
-    private var saveQueued = false
+    private var indexTask: Task<Void, Never>?
+    private var recentRefreshTask: Task<Void, Never>?
+    private var pendingIndexDocuments: [HyperliteNoteID: HyperliteNoteDocument] = [:]
+    private var indexErrorMessage: String?
+    var autosaveTasks: [HyperliteNoteID: Task<Void, Never>] = [:]
+    var saveTasks: [HyperliteNoteID: Task<Void, Never>] = [:]
+    var saveQueued: Set<HyperliteNoteID> = []
+    private var focusGeneration = 0
 
     init(
         client: any HyperliteNotepadClient = HyperliteProcessNotepadClient(),
+        searchIndex: HyperliteNoteSearchIndex = HyperliteNoteSearchIndex(),
         autosaveDelay: Duration = HyperliteNotepadState.autosaveDelay,
+        calendar: Calendar = .autoupdatingCurrent,
+        now: @escaping @Sendable () -> Date = { Date() },
         loadImmediately: Bool = true
     ) {
         self.client = client
+        self.searchIndex = searchIndex
         self.autosaveDelay = autosaveDelay
+        self.calendar = calendar
+        self.now = now
+        selectedDate = calendar.startOfDay(for: now())
         if loadImmediately {
-            loadTask = Task { [weak self] in
-                await self?.load()
-            }
+            loadTask = Task { [weak self] in await self?.loadInitialDocuments() }
+            indexTask = Task { [weak self] in await self?.buildSearchIndex() }
         }
     }
 
     deinit {
         loadTask?.cancel()
-        autosaveTask?.cancel()
-        saveTask?.cancel()
+        indexTask?.cancel()
+        recentRefreshTask?.cancel()
+        autosaveTasks.values.forEach { $0.cancel() }
+        saveTasks.values.forEach { $0.cancel() }
     }
 
     @discardableResult
-    func update(_ candidate: String, byteCount: Int? = nil) -> Bool {
-        guard (byteCount ?? candidate.utf8.count) <= Self.maxBytes else {
-            errorMessage = HyperliteNotepadError.tooLarge.localizedDescription
-            return false
-        }
-        guard candidate != text else { return true }
-        text = candidate
-        hasLocalEdits = true
-        if isLoaded {
-            scheduleAutosave()
-        }
+    func updatePinned(_ candidate: String, byteCount: Int? = nil) -> Bool {
+        guard valid(candidate, byteCount: byteCount) else { return false }
+        guard candidate != pinnedText else { return true }
+        pinnedText = candidate
+        hasPinnedLocalEdits = true
+        if isLoaded { scheduleAutosave(.pinned) }
+        return true
+    }
+
+    @discardableResult
+    func updateDaily(_ candidate: String, byteCount: Int? = nil) -> Bool {
+        guard valid(candidate, byteCount: byteCount) else { return false }
+        guard candidate != dailyText else { return true }
+        dailyText = candidate
+        hasDailyLocalEdits = true
+        if isLoaded { scheduleAutosave(.daily(selectedDateIdentifier)) }
         return true
     }
 
@@ -88,39 +108,66 @@ final class HyperliteNotepadState: ObservableObject {
         await loadTask?.value
     }
 
-    @discardableResult
-    func flush() async -> Bool {
-        autosaveTask?.cancel()
-        autosaveTask = nil
-        await loadTask?.value
-        autosaveTask?.cancel()
-        autosaveTask = nil
-        await saveTask?.value
-        if isDirty {
-            requestSave()
-            await saveTask?.value
-        }
-        return !isDirty && errorMessage == nil
+    func waitUntilIndexed() async {
+        await indexTask?.value
     }
 
-    private func load() async {
-        defer {
-            isLoaded = true
-            loadTask = nil
-            if isDirty {
-                scheduleAutosave()
-            }
+    func searchNotes(_ query: String) async -> [HyperliteNoteSearchResult] {
+        await searchIndex.search(query)
+    }
+
+    func displayName(for identifier: String) -> String {
+        guard let date = HyperliteNoteDate.date(from: identifier, calendar: calendar) else {
+            return identifier
         }
+        return date.formatted(.dateTime.year().month(.abbreviated).day())
+    }
+
+    func selectPreviousDay(focus: Bool = false) async {
+        guard let date = calendar.date(byAdding: .day, value: -1, to: selectedDate) else { return }
+        await selectDate(date, focus: focus)
+    }
+
+    func selectNextDay(focus: Bool = false) async {
+        guard let date = calendar.date(byAdding: .day, value: 1, to: selectedDate) else { return }
+        await selectDate(date, focus: focus)
+    }
+
+    func selectToday(focus: Bool = false) async {
+        await selectDate(calendar.startOfDay(for: now()), focus: focus)
+    }
+
+    func selectDateIdentifier(_ identifier: String, focus: Bool = false) async {
+        guard let date = HyperliteNoteDate.date(from: identifier, calendar: calendar) else {
+            errorMessage = HyperliteNotepadError.invalidDate(identifier).localizedDescription
+            return
+        }
+        await selectDate(date, focus: focus)
+    }
+
+    func selectDate(_ candidate: Date, focus: Bool = false) async {
+        let target = calendar.startOfDay(for: candidate)
+        let identifier = HyperliteNoteDate.identifier(for: target, calendar: calendar)
+        guard identifier != selectedDateIdentifier else {
+            if focus { requestFocus(.daily) }
+            return
+        }
+        guard !isNavigating else { return }
+        isNavigating = true
+        defer { isNavigating = false }
+        guard await flush(.daily(selectedDateIdentifier)) else { return }
         do {
-            let persisted = try await client.load()
-            guard persisted.utf8.count <= Self.maxBytes else {
+            let document = try await client.loadDaily(date: identifier)
+            guard document.content.utf8.count <= Self.maxBytes else {
                 throw HyperliteNotepadError.tooLarge
             }
-            savedText = persisted
-            if !hasLocalEdits {
-                text = persisted
-            }
+            selectedDate = target
+            savedDailyText = document.content
+            dailyText = document.content
+            hasDailyLocalEdits = false
             errorMessage = nil
+            if document.exists { updateIndex(with: document) }
+            if focus { requestFocus(.daily) }
         } catch is CancellationError {
             return
         } catch {
@@ -128,75 +175,119 @@ final class HyperliteNotepadState: ObservableObject {
         }
     }
 
-    private func scheduleAutosave() {
-        autosaveTask?.cancel()
-        guard isDirty else {
-            autosaveTask = nil
-            return
-        }
-        let delay = autosaveDelay
-        autosaveTask = Task { [weak self] in
-            do {
-                try await Task.sleep(for: delay)
-            } catch {
-                return
+    func focusPinned() {
+        requestFocus(.pinned)
+    }
+
+    @discardableResult
+    func flush() async -> Bool {
+        autosaveTasks.values.forEach { $0.cancel() }
+        autosaveTasks.removeAll()
+        await loadTask?.value
+        let pinnedSaved = await flush(.pinned)
+        let dailySaved = await flush(.daily(selectedDateIdentifier))
+        return pinnedSaved && dailySaved
+    }
+
+    private func loadInitialDocuments() async {
+        var observedError: Error?
+        do {
+            let document = try await client.loadPinned()
+            guard document.content.utf8.count <= Self.maxBytes else {
+                throw HyperliteNotepadError.tooLarge
             }
+            savedPinnedText = document.content
+            if !hasPinnedLocalEdits { pinnedText = document.content }
+        } catch is CancellationError {
+            return
+        } catch {
+            observedError = error
+        }
+        do {
+            let document = try await client.loadDaily(date: selectedDateIdentifier)
+            guard document.content.utf8.count <= Self.maxBytes else {
+                throw HyperliteNotepadError.tooLarge
+            }
+            savedDailyText = document.content
+            if !hasDailyLocalEdits { dailyText = document.content }
+        } catch is CancellationError {
+            return
+        } catch {
+            observedError = error
+        }
+        errorMessage = observedError?.localizedDescription
+        isLoaded = true
+        loadTask = nil
+        if isDirty {
+            scheduleAutosave(.pinned)
+            scheduleAutosave(.daily(selectedDateIdentifier))
+        }
+    }
+
+    private func buildSearchIndex() async {
+        defer { indexTask = nil }
+        do {
+            var documents = Dictionary(
+                uniqueKeysWithValues: try await client.indexDocuments().map { ($0.id, $0) }
+            )
             guard !Task.isCancelled else { return }
-            self?.autosaveTask = nil
-            self?.requestSave()
+            pendingIndexDocuments.forEach { documents[$0.key] = $0.value }
+            pendingIndexDocuments.removeAll()
+            await searchIndex.replace(with: Array(documents.values))
+            isIndexReady = true
+            let trailingDocuments = Array(pendingIndexDocuments.values)
+            pendingIndexDocuments.removeAll()
+            for document in trailingDocuments {
+                _ = await searchIndex.upsert(document)
+            }
+            recentDailyNotes = await searchIndex.recentDailyNotes(
+                limit: Self.maximumRecentNotes + 2
+            )
+            if errorMessage == indexErrorMessage { errorMessage = nil }
+            indexErrorMessage = nil
+            searchIndexRevision += 1
+        } catch is CancellationError {
+            return
+        } catch {
+            indexErrorMessage = error.localizedDescription
+            errorMessage = indexErrorMessage
+            pendingIndexDocuments.removeAll()
         }
     }
 
-    private func requestSave() {
-        guard isLoaded, isDirty else { return }
-        guard saveTask == nil else {
-            saveQueued = true
+    func rebuildSearchIndex() {
+        guard indexTask == nil, !isIndexReady else { return }
+        indexTask = Task { [weak self] in await self?.buildSearchIndex() }
+    }
+
+    private func valid(_ content: String, byteCount: Int?) -> Bool {
+        guard (byteCount ?? content.utf8.count) <= Self.maxBytes else {
+            errorMessage = HyperliteNotepadError.tooLarge.localizedDescription
+            return false
+        }
+        return true
+    }
+
+    private func requestFocus(_ target: HyperliteNotepadFocusRequest.Target) {
+        focusGeneration += 1
+        focusRequest = HyperliteNotepadFocusRequest(target: target, generation: focusGeneration)
+    }
+
+    func updateIndex(with document: HyperliteNoteDocument) {
+        guard isIndexReady else {
+            pendingIndexDocuments[document.id] = document
+            if indexTask == nil { rebuildSearchIndex() }
             return
         }
-        let candidate = text
-        let client = client
-        isSaving = true
-        saveTask = Task { [weak self] in
-            do {
-                try await client.save(candidate)
-                self?.finishSave(candidate: candidate, error: nil)
-            } catch is CancellationError {
-                self?.finishSave(candidate: candidate, error: nil, cancelled: true)
-            } catch {
-                self?.finishSave(candidate: candidate, error: error)
-            }
-        }
-    }
-
-    private func finishSave(
-        candidate: String,
-        error: Error?,
-        cancelled: Bool = false
-    ) {
-        if error == nil, !cancelled {
-            savedText = candidate
-            errorMessage = nil
-        } else if let error {
-            errorMessage = error.localizedDescription
-        }
-        isSaving = false
-        saveTask = nil
-        let shouldContinue = saveQueued && isDirty && !cancelled
-        saveQueued = false
-        if shouldContinue {
-            requestSave()
-        }
-    }
-}
-
-private enum HyperliteNotepadError: LocalizedError {
-    case invalidUTF8
-    case tooLarge
-
-    var errorDescription: String? {
-        switch self {
-        case .invalidUTF8: "Hyperlite's notepad is not valid UTF-8"
-        case .tooLarge: "Notepad is limited to 256 KiB"
+        recentRefreshTask?.cancel()
+        recentRefreshTask = Task { [weak self, searchIndex] in
+            _ = await searchIndex.upsert(document)
+            let recent = await searchIndex.recentDailyNotes(
+                limit: Self.maximumRecentNotes + 2
+            )
+            guard !Task.isCancelled else { return }
+            self?.recentDailyNotes = recent
+            self?.searchIndexRevision += 1
         }
     }
 }
