@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help build test test-race vet fmt fmt-check install scan scan-json macos-build macos-test stop-hyper hyper
+.PHONY: help build test test-race vet fmt fmt-check install scan scan-json macos-build macos-test stop-hyper hyper run
 
 HYPERLITE_APP ?= $(CURDIR)/build/Hyperlite.app
 SWIFT_SOURCES := $(sort $(wildcard macos/Hyperlite/*.swift))
@@ -70,6 +70,6 @@ stop-hyper:
 		fi; \
 	fi
 
-hyper: stop-hyper
+hyper run: stop-hyper
 	@$(MAKE) macos-build
 	open -n "$(HYPERLITE_APP)"
