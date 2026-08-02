@@ -70,6 +70,8 @@ stop-hyper:
 		fi; \
 	fi
 
-hyper run: stop-hyper
+hyper: stop-hyper
 	@$(MAKE) macos-build
 	open -n "$(HYPERLITE_APP)"
+
+run: hyper
