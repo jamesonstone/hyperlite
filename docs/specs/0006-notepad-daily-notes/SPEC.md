@@ -260,6 +260,9 @@ or overwrite the new daily-note files.
 - Fixed tab selection belongs in `HyperliteNotepadState`, not view-local state,
   because Command-K note actions must activate the otherwise hidden editor
   before forwarding the existing focus request.
+- Changed-note index tasks are isolated by note identifier. A newer update may
+  supersede the same note's pending work, but saving Notepad and Daily in quick
+  succession must never cancel either document's search-index update.
 - A graphical native DatePicker inside a popover provides the requested month
   calendar without retaining the prior field, day-stepping, Today, or recent
   menu controls. Calendar selection can reuse the existing flush-then-direct-load
@@ -275,9 +278,10 @@ or overwrite the new daily-note files.
   atomic concurrent writes, size/encoding/date rejection, and JSON output.
 - Executable Swift tests and native type-checking pass for two-draft autosave,
   Daily-by-default selection, Notepad/Daily tab switching, full ordinal date
-  labels, flush-before-calendar-navigation, single-read navigation, changed-note
-  index updates, literal/semantic ranking, literal-noise suppression, and
-  palette activation. Recovery coverage proves a failed initial index can
+  labels, flush-before-calendar-navigation, single-read navigation, isolated
+  consecutive Notepad/Daily index updates, literal/semantic ranking,
+  literal-noise suppression, and palette activation. Recovery coverage proves
+  a failed initial index can
   rebuild and clear its error without retaining queued note contents.
 - Go index coverage proves a date-shaped but unusable daily entry is skipped
   while healthy pinned and daily documents remain searchable.

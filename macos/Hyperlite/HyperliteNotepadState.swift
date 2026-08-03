@@ -36,7 +36,8 @@ final class HyperliteNotepadState: ObservableObject {
     private var hasDailyLocalEdits = false
     private var loadTask: Task<Void, Never>?
     private var indexTask: Task<Void, Never>?
-    private var indexUpdateTask: Task<Void, Never>?
+    private var indexUpdateTasks: [HyperliteNoteID: Task<Void, Never>] = [:]
+    private var indexUpdateGenerations: [HyperliteNoteID: Int] = [:]
     private var pendingIndexDocuments: [HyperliteNoteID: HyperliteNoteDocument] = [:]
     private var indexErrorMessage: String?
     var autosaveTasks: [HyperliteNoteID: Task<Void, Never>] = [:]
@@ -67,7 +68,7 @@ final class HyperliteNotepadState: ObservableObject {
     deinit {
         loadTask?.cancel()
         indexTask?.cancel()
-        indexUpdateTask?.cancel()
+        indexUpdateTasks.values.forEach { $0.cancel() }
         autosaveTasks.values.forEach { $0.cancel() }
         saveTasks.values.forEach { $0.cancel() }
     }
@@ -99,7 +100,9 @@ final class HyperliteNotepadState: ObservableObject {
     func waitUntilIndexed() async {
         await indexTask?.value
     }
-
+    func waitUntilIndexUpdates() async {
+        for task in Array(indexUpdateTasks.values) { await task.value }
+    }
     func searchNotes(_ query: String) async -> [HyperliteNoteSearchResult] {
         await searchIndex.search(query)
     }
@@ -264,12 +267,22 @@ final class HyperliteNotepadState: ObservableObject {
             if indexTask == nil { rebuildSearchIndex() }
             return
         }
-        indexUpdateTask?.cancel()
-        indexUpdateTask = Task { [weak self, searchIndex] in
+        let noteID = document.id
+        indexUpdateTasks[noteID]?.cancel()
+        let generation = (indexUpdateGenerations[noteID] ?? 0) + 1
+        indexUpdateGenerations[noteID] = generation
+        indexUpdateTasks[noteID] = Task { [weak self, searchIndex] in
             _ = await searchIndex.upsert(document)
             guard !Task.isCancelled else { return }
-            self?.searchIndexRevision += 1
+            self?.finishIndexUpdate(noteID, generation: generation)
         }
+    }
+
+    private func finishIndexUpdate(_ noteID: HyperliteNoteID, generation: Int) {
+        guard indexUpdateGenerations[noteID] == generation else { return }
+        indexUpdateTasks[noteID] = nil
+        indexUpdateGenerations[noteID] = nil
+        searchIndexRevision += 1
     }
 
     private static let ordinalFormatter: NumberFormatter = {
