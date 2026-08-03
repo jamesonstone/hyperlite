@@ -9,7 +9,7 @@ enum HyperliteNotepadTests {
         )
         try await testPinnedAndDailyAutosave()
         try await testNavigationFlushesBeforeDirectLoad()
-        try await testSearchIndexExactSemanticAndRecentOrdering()
+        try await testSearchIndexExactAndSemantic()
         try await testDateAndSizeBoundaries()
         await HyperliteNotepadRecoveryTests.run()
     }
@@ -30,6 +30,11 @@ enum HyperliteNotepadTests {
         expect(state.pinnedText == "Persisted context\n", "pinned note should load")
         expect(state.dailyText.isEmpty, "missing today's note should load as an empty draft")
         expect(state.selectedDateIdentifier == "2026-08-02", "today should open by default")
+        expect(state.activeTab == .daily, "Daily should be the default tab")
+        expect(
+            state.displayName(for: state.selectedDateIdentifier) == "August 2nd, 2026",
+            "the Daily tab should display the full selected date"
+        )
         let initialSaves = await client.savedValues()
         expect(initialSaves.isEmpty, "loading an empty day should not create its file")
 
@@ -68,9 +73,10 @@ enum HyperliteNotepadTests {
         await client.resetOperations()
 
         expect(state.updateDaily("unsaved today"), "daily edit should be accepted")
-        await state.selectNextDay(focus: true)
-        expect(state.selectedDateIdentifier == "2026-08-03", "next should open tomorrow")
+        await state.selectDateIdentifier("2026-08-03", focus: true)
+        expect(state.selectedDateIdentifier == "2026-08-03", "calendar selection should open its day")
         expect(state.dailyText == "tomorrow", "navigation should load the selected file")
+        expect(state.activeTab == .daily, "date selection should activate Daily")
         expect(state.focusRequest?.target == .daily, "requested result should focus daily editor")
         let operations = await client.recordedOperations()
         expect(
@@ -80,13 +86,22 @@ enum HyperliteNotepadTests {
         let indexRequests = await client.indexRequestCount()
         expect(indexRequests == 1, "navigation should not rescan historical notes")
 
-        await state.selectToday()
-        expect(state.selectedDateIdentifier == "2026-08-02", "today should restore today's note")
         state.focusPinned()
+        expect(state.activeTab == .notepad, "Notepad selection should show the durable note")
         expect(state.focusRequest?.target == .pinned, "pinned search result should request pinned focus")
+        state.focusDaily()
+        expect(state.activeTab == .daily, "Daily selection should restore the dated note")
+        expect(state.focusRequest?.target == .daily, "Daily selection should request daily focus")
+        state.focusPinned()
+        await state.selectDateIdentifier("2026-08-03", focus: true)
+        expect(state.activeTab == .daily, "selecting the current calendar date should activate Daily")
+        expect(
+            state.focusRequest?.target == .daily,
+            "selecting the current calendar date should focus Daily without reloading"
+        )
     }
 
-    private static func testSearchIndexExactSemanticAndRecentOrdering() async throws {
+    private static func testSearchIndexExactAndSemantic() async throws {
         let index = HyperliteNoteSearchIndex { text in
             let text = text.lowercased()
             if text.contains("storage") || text.contains("database") || text.contains("postgres") ||
@@ -126,23 +141,6 @@ enum HyperliteNotepadTests {
             semanticResults.first?.noteID == .daily("2026-08-01") &&
                 semanticResults.first?.matchKind == .semantic,
             "semantic search should retrieve related database content"
-        )
-        let recent = await index.recentDailyNotes()
-        expect(
-            recent.map(\.date) == ["2026-08-02", "2026-08-01"],
-            "recent notes should follow modification time"
-        )
-
-        let updatedDatabase = document(
-            .daily("2026-08-01"),
-            content: database.content,
-            updatedAt: Date(timeIntervalSince1970: 300)
-        )
-        await index.upsert(updatedDatabase)
-        let updatedRecent = await index.recentDailyNotes()
-        expect(
-            updatedRecent.first?.date == "2026-08-01",
-            "updating one note should refresh only that note's recent metadata"
         )
     }
 

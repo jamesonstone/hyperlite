@@ -78,9 +78,10 @@
 - The global notepad is private operator memory, not project evidence.
   Hyperlite never interprets it as a thread, relation, obligation, lifecycle
   signal, or attention moment. Its bounded Markdown source of truth is one
-  permanent pinned note plus ISO-dated daily notes; derived recency and search
-  projections never become lifecycle authority. The pinned note safely adopts
-  the prior single-document store without rewriting its content.
+  permanent pinned note plus ISO-dated daily notes; the fixed Notepad/Daily tab
+  selection and derived search projection never become lifecycle authority.
+  The pinned note safely adopts the prior single-document store without
+  rewriting its content.
 - Application-controlled native interface text, including editable notepad
   content, uses JetBrainsMono Nerd Font through one shared SwiftUI/AppKit
   resolver, with the system monospaced family as the unavailable-font fallback.

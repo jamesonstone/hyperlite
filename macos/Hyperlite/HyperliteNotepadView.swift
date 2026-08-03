@@ -2,25 +2,29 @@ import SwiftUI
 
 struct HyperliteNotepadView: View {
     @ObservedObject var state: HyperliteNotepadState
+    @State private var isCalendarPresented = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            notepadHeader
-            editorSurface(
-                text: state.pinnedText,
-                placeholder: "Project names, repository paths, commands, and identifiers",
-                accessibilityLabel: "Pinned note",
-                focusTarget: .pinned,
-                onChange: state.updatePinned
-            )
-            dailyHeader
-            editorSurface(
-                text: state.dailyText,
-                placeholder: "Write this daily note — created when you begin typing",
-                accessibilityLabel: "Daily note for \(state.selectedDateIdentifier)",
-                focusTarget: .daily,
-                onChange: state.updateDaily
-            )
+            tabHeader
+            switch state.activeTab {
+            case .notepad:
+                editorSurface(
+                    text: state.pinnedText,
+                    placeholder: "Project names, repository paths, commands, and identifiers",
+                    accessibilityLabel: "Notepad",
+                    focusTarget: .pinned,
+                    onChange: state.updatePinned
+                )
+            case .daily:
+                editorSurface(
+                    text: state.dailyText,
+                    placeholder: "Write this daily note — created when you begin typing",
+                    accessibilityLabel: "Daily note for \(state.selectedDateIdentifier)",
+                    focusTarget: .daily,
+                    onChange: state.updateDaily
+                )
+            }
         }
         .frame(maxHeight: .infinity)
         .padding(.vertical, 5)
@@ -28,36 +32,115 @@ struct HyperliteNotepadView: View {
         .overlay(alignment: .bottom) { HyperliteThemeDivider() }
     }
 
-    private var notepadHeader: some View {
-        HStack(spacing: 6) {
-            Menu {
-                recentButton("Today", date: state.todayIdentifier)
-                recentButton("Yesterday", date: state.yesterdayIdentifier)
-                let recent = Array(state.recentDailyNotes.filter {
-                    $0.date != state.todayIdentifier && $0.date != state.yesterdayIdentifier
-                }.prefix(HyperliteNotepadState.maximumRecentNotes))
-                if !recent.isEmpty {
-                    Divider()
-                    ForEach(recent) { note in
-                        recentButton(state.displayName(for: note.date), date: note.date)
-                    }
-                }
-            } label: {
-                HStack(spacing: 4) {
-                    Text("Notepad")
-                    Image(systemName: "chevron.down")
-                        .font(HyperliteTypography.semibold(8))
-                }
-                .font(HyperliteTypography.semibold(11))
-                .foregroundStyle(HyperliteTheme.secondaryText.color)
+    private var tabHeader: some View {
+        HStack(spacing: 4) {
+            calendarButton
+            tabButton(
+                isSelected: state.activeTab == .notepad,
+                accessibilityLabel: "Notepad",
+                action: state.focusPinned
+            ) {
+                Text("Notepad")
+                    .font(HyperliteTypography.semibold(11))
             }
-            .menuStyle(.borderlessButton)
-            .fixedSize()
-            .help("Open recent daily notes")
-            noteLabel("Pinned", symbol: "pin.fill")
-            Spacer()
+            Rectangle()
+                .fill(HyperliteTheme.elevatedSurface.color)
+                .frame(width: 1, height: 17)
+                .padding(.horizontal, 3)
+                .accessibilityHidden(true)
+            tabButton(
+                isSelected: state.activeTab == .daily,
+                accessibilityLabel: "Daily \(state.displayName(for: state.selectedDateIdentifier))",
+                action: state.focusDaily
+            ) {
+                HStack(spacing: 5) {
+                    Text("Daily")
+                        .font(HyperliteTypography.semibold(11))
+                    Text(state.displayName(for: state.selectedDateIdentifier))
+                        .font(HyperliteTypography.regular(10))
+                }
+            }
+            Spacer(minLength: 6)
             saveStatus
         }
+        .frame(minHeight: 24)
+    }
+
+    private var calendarButton: some View {
+        Button {
+            isCalendarPresented.toggle()
+        } label: {
+            Image(systemName: "chevron.down")
+                .font(HyperliteTypography.semibold(13))
+                .foregroundStyle(HyperliteTheme.blue.color)
+                .frame(width: 20, height: 20)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(state.isNavigating)
+        .help("Choose a daily note date")
+        .accessibilityLabel("Open daily note calendar")
+        .popover(isPresented: $isCalendarPresented, arrowEdge: .top) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Daily note date")
+                    .font(HyperliteTypography.semibold(11))
+                    .foregroundStyle(HyperliteTheme.primaryText.color)
+                DatePicker(
+                    "Select daily note date",
+                    selection: Binding(
+                        get: { state.selectedDate },
+                        set: { date in
+                            isCalendarPresented = false
+                            Task { await state.selectDate(date, focus: true) }
+                        }
+                    ),
+                    displayedComponents: .date
+                )
+                .labelsHidden()
+                .datePickerStyle(.graphical)
+                .disabled(state.isNavigating)
+            }
+            .padding(12)
+            .frame(width: 250)
+            .hyperliteTheme()
+        }
+    }
+
+    private func tabButton<Label: View>(
+        isSelected: Bool,
+        accessibilityLabel: String,
+        action: @escaping () -> Void,
+        @ViewBuilder label: () -> Label
+    ) -> some View {
+        Button(action: action) {
+            label()
+                .foregroundStyle(
+                    isSelected
+                        ? HyperliteTheme.primaryText.color
+                        : HyperliteTheme.secondaryText.color
+                )
+                .padding(.horizontal, 7)
+                .padding(.vertical, 4)
+                .background(
+                    isSelected
+                        ? HyperliteTheme.elevatedSurface.color.opacity(0.65)
+                        : Color.clear,
+                    in: RoundedRectangle(cornerRadius: 5, style: .continuous)
+                )
+                .overlay(alignment: .bottom) {
+                    if isSelected {
+                        Rectangle()
+                            .fill(HyperliteTheme.cyan.color)
+                            .frame(height: 2)
+                            .padding(.horizontal, 5)
+                    }
+                }
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(state.isNavigating)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 
     @ViewBuilder
@@ -74,47 +157,6 @@ struct HyperliteNotepadView: View {
                 .lineLimit(1)
                 .help(error)
         }
-    }
-
-    private var dailyHeader: some View {
-        HStack(spacing: 5) {
-            noteLabel("Daily", symbol: "calendar")
-            Text(state.displayName(for: state.selectedDateIdentifier))
-                .font(HyperliteTypography.regular(10))
-                .foregroundStyle(HyperliteTheme.mutedText.color)
-                .lineLimit(1)
-            Spacer(minLength: 4)
-            navigationButton("chevron.left", help: "Previous day") {
-                await state.selectPreviousDay()
-            }
-            Button("Today") { Task { await state.selectToday() } }
-                .buttonStyle(.borderless)
-                .font(HyperliteTypography.semibold(9))
-                .disabled(state.isTodaySelected || state.isNavigating)
-                .help("Return to today")
-            navigationButton("chevron.right", help: "Next day") {
-                await state.selectNextDay()
-            }
-            DatePicker(
-                "Select daily note date",
-                selection: Binding(
-                    get: { state.selectedDate },
-                    set: { date in Task { await state.selectDate(date) } }
-                ),
-                displayedComponents: .date
-            )
-            .labelsHidden()
-            .datePickerStyle(.field)
-            .controlSize(.small)
-            .disabled(state.isNavigating)
-            .fixedSize()
-        }
-    }
-
-    private func noteLabel(_ title: String, symbol: String) -> some View {
-        Label(title, systemImage: symbol)
-            .font(HyperliteTypography.semibold(10))
-            .foregroundStyle(HyperliteTheme.secondaryText.color)
     }
 
     private func editorSurface(
@@ -154,24 +196,5 @@ struct HyperliteNotepadView: View {
                 .strokeBorder(HyperliteTheme.elevatedSurface.color, lineWidth: 1)
         }
         .disabled(state.isNavigating)
-    }
-
-    private func recentButton(_ title: String, date: String) -> some View {
-        Button(title) { Task { await state.selectDateIdentifier(date, focus: true) } }
-    }
-
-    private func navigationButton(
-        _ symbol: String,
-        help: String,
-        action: @escaping @MainActor () async -> Void
-    ) -> some View {
-        Button { Task { await action() } } label: {
-            Image(systemName: symbol)
-        }
-        .buttonStyle(.borderless)
-        .controlSize(.small)
-        .disabled(state.isNavigating)
-        .help(help)
-        .accessibilityLabel(Text(help))
     }
 }

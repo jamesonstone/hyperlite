@@ -93,26 +93,30 @@ worktree row disappears. Hyperlite never deletes or prunes the local checkout.
 ### Notepad
 
 The Notepad directly beneath the header is private operator memory, not another
-source of project truth. One permanent Pinned editor is always visible beside
-one dated Daily editor. Daily opens today by default and creates a missing file
-only after the first edit.
+source of project truth. Its compact tab row keeps the permanent Notepad
+separate from `Daily <formatted date>` with both a vertical divider and active
+tab styling. Daily opens today by default; selecting Notepad opens the durable
+note, and selecting Daily returns to the current dated note.
 
-Previous, next, today, and date-picker controls open daily notes directly. The
-clickable Notepad title offers Today, Yesterday, and up to ten recently modified
-daily files. Typing stays in memory, the latest edit saves after three idle
-seconds, and pending text flushes when the window or application yields.
+The single larger chevron to the left of Notepad opens the native calendar.
+Selecting a date activates Daily and directly loads that note after safely
+flushing a pending daily edit. There are no previous/next, Today, right-side
+date-field, or recent-ten-days controls. A missing daily file is created only
+after the first edit.
 
-Both editors contain regular UTF-8 text rendered with JetBrainsMono Nerd Font
-through the shared application resolver and a system monospaced fallback. They
-do not render Markdown or feed content into thread inference or attention.
+The active editor contains regular UTF-8 text rendered with JetBrainsMono Nerd
+Font through the shared application resolver and a system monospaced fallback.
+It does not render Markdown or feed content into thread inference or attention.
+Typing stays in memory, the latest edit saves after three idle seconds, and
+pending text flushes when the window or application yields.
 
 ### Keyboard shortcuts
 
 - `Command+R` refreshes the focused Hyperlite application.
 - `Command+K` opens a searchable command palette with Refresh, Settings, Add
   Project, Remove Project, and exact or on-device semantic matches from pinned
-  and daily note filenames, dates, and contents. Selecting a note focuses
-  Pinned or opens the matching daily date.
+  and daily note filenames, dates, and contents. Selecting a pinned result opens
+  Notepad; selecting a daily result opens the matching Daily date.
 - `Command+P` opens the same searchable surface in configured-project mode.
   Projects start collapsed and expand to show their open pull requests and
   registered branch or worktree lanes.

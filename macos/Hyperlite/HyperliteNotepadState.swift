@@ -5,13 +5,12 @@ import Foundation
 final class HyperliteNotepadState: ObservableObject {
     static let shared = HyperliteNotepadState()
     nonisolated static let maxBytes = 256 * 1024
-    nonisolated static let maximumRecentNotes = 10
     nonisolated static let autosaveDelay: Duration = .seconds(3)
 
     @Published private(set) var pinnedText = ""
     @Published private(set) var dailyText = ""
     @Published private(set) var selectedDate: Date
-    @Published private(set) var recentDailyNotes: [HyperliteRecentDailyNote] = []
+    @Published private(set) var activeTab: HyperliteNotepadTab = .daily
     @Published private(set) var isLoaded = false
     @Published private(set) var isIndexReady = false
     @Published private(set) var searchIndexRevision = 0
@@ -24,17 +23,6 @@ final class HyperliteNotepadState: ObservableObject {
         HyperliteNoteDate.identifier(for: selectedDate, calendar: calendar)
     }
 
-    var todayIdentifier: String {
-        HyperliteNoteDate.identifier(for: calendar.startOfDay(for: now()), calendar: calendar)
-    }
-
-    var yesterdayIdentifier: String {
-        let today = calendar.startOfDay(for: now())
-        let yesterday = calendar.date(byAdding: .day, value: -1, to: today) ?? today
-        return HyperliteNoteDate.identifier(for: yesterday, calendar: calendar)
-    }
-
-    var isTodaySelected: Bool { selectedDateIdentifier == todayIdentifier }
     var isDirty: Bool { pinnedText != savedPinnedText || dailyText != savedDailyText }
 
     let client: any HyperliteNotepadClient
@@ -48,7 +36,7 @@ final class HyperliteNotepadState: ObservableObject {
     private var hasDailyLocalEdits = false
     private var loadTask: Task<Void, Never>?
     private var indexTask: Task<Void, Never>?
-    private var recentRefreshTask: Task<Void, Never>?
+    private var indexUpdateTask: Task<Void, Never>?
     private var pendingIndexDocuments: [HyperliteNoteID: HyperliteNoteDocument] = [:]
     private var indexErrorMessage: String?
     var autosaveTasks: [HyperliteNoteID: Task<Void, Never>] = [:]
@@ -79,7 +67,7 @@ final class HyperliteNotepadState: ObservableObject {
     deinit {
         loadTask?.cancel()
         indexTask?.cancel()
-        recentRefreshTask?.cancel()
+        indexUpdateTask?.cancel()
         autosaveTasks.values.forEach { $0.cancel() }
         saveTasks.values.forEach { $0.cancel() }
     }
@@ -120,21 +108,14 @@ final class HyperliteNotepadState: ObservableObject {
         guard let date = HyperliteNoteDate.date(from: identifier, calendar: calendar) else {
             return identifier
         }
-        return date.formatted(.dateTime.year().month(.abbreviated).day())
-    }
-
-    func selectPreviousDay(focus: Bool = false) async {
-        guard let date = calendar.date(byAdding: .day, value: -1, to: selectedDate) else { return }
-        await selectDate(date, focus: focus)
-    }
-
-    func selectNextDay(focus: Bool = false) async {
-        guard let date = calendar.date(byAdding: .day, value: 1, to: selectedDate) else { return }
-        await selectDate(date, focus: focus)
-    }
-
-    func selectToday(focus: Bool = false) async {
-        await selectDate(calendar.startOfDay(for: now()), focus: focus)
+        let day = calendar.component(.day, from: date)
+        let monthIndex = calendar.component(.month, from: date) - 1
+        let year = calendar.component(.year, from: date)
+        let ordinal = Self.ordinalFormatter.string(from: NSNumber(value: day)) ?? String(day)
+        let month = Self.monthNames.indices.contains(monthIndex)
+            ? Self.monthNames[monthIndex]
+            : String(monthIndex + 1)
+        return "\(month) \(ordinal), \(year)"
     }
 
     func selectDateIdentifier(_ identifier: String, focus: Bool = false) async {
@@ -148,6 +129,7 @@ final class HyperliteNotepadState: ObservableObject {
     func selectDate(_ candidate: Date, focus: Bool = false) async {
         let target = calendar.startOfDay(for: candidate)
         let identifier = HyperliteNoteDate.identifier(for: target, calendar: calendar)
+        activeTab = .daily
         guard identifier != selectedDateIdentifier else {
             if focus { requestFocus(.daily) }
             return
@@ -176,7 +158,13 @@ final class HyperliteNotepadState: ObservableObject {
     }
 
     func focusPinned() {
+        activeTab = .notepad
         requestFocus(.pinned)
+    }
+
+    func focusDaily() {
+        activeTab = .daily
+        requestFocus(.daily)
     }
 
     @discardableResult
@@ -240,9 +228,6 @@ final class HyperliteNotepadState: ObservableObject {
             for document in trailingDocuments {
                 _ = await searchIndex.upsert(document)
             }
-            recentDailyNotes = await searchIndex.recentDailyNotes(
-                limit: Self.maximumRecentNotes + 2
-            )
             if errorMessage == indexErrorMessage { errorMessage = nil }
             indexErrorMessage = nil
             searchIndexRevision += 1
@@ -279,15 +264,24 @@ final class HyperliteNotepadState: ObservableObject {
             if indexTask == nil { rebuildSearchIndex() }
             return
         }
-        recentRefreshTask?.cancel()
-        recentRefreshTask = Task { [weak self, searchIndex] in
+        indexUpdateTask?.cancel()
+        indexUpdateTask = Task { [weak self, searchIndex] in
             _ = await searchIndex.upsert(document)
-            let recent = await searchIndex.recentDailyNotes(
-                limit: Self.maximumRecentNotes + 2
-            )
             guard !Task.isCancelled else { return }
-            self?.recentDailyNotes = recent
             self?.searchIndexRevision += 1
         }
     }
+
+    private static let ordinalFormatter: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.locale = Locale(identifier: "en_US")
+        formatter.numberStyle = .ordinal
+        return formatter
+    }()
+
+    private static let monthNames: [String] = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US")
+        return formatter.monthSymbols
+    }()
 }
