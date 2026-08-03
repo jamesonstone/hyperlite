@@ -29,11 +29,9 @@ enum HyperliteNoteID: Hashable, Sendable {
     case daily(String)
 }
 
-struct HyperliteRecentDailyNote: Equatable, Identifiable, Sendable {
-    let date: String
-    let updatedAt: Date
-
-    var id: String { date }
+enum HyperliteNotepadTab: Equatable {
+    case notepad
+    case daily
 }
 
 struct HyperliteNoteSearchResult: Equatable, Identifiable, Sendable {

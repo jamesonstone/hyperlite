@@ -21,6 +21,22 @@ enum HyperliteNotepadRecoveryTests {
         expect(state.errorMessage == nil, "a successful rebuild should clear the index error")
         let results = await state.searchNotes("recovered")
         expect(results.first?.noteID == .pinned, "the rebuilt index should be searchable")
+
+        expect(state.updatePinned("pinned index update"), "the pinned update should be accepted")
+        expect(state.updateDaily("daily index update"), "the daily update should be accepted")
+        let didFlush = await state.flush()
+        expect(didFlush, "consecutive pinned and daily updates should flush")
+        await state.waitUntilIndexUpdates()
+        let pinnedResults = await state.searchNotes("pinned index update")
+        let dailyResults = await state.searchNotes("daily index update")
+        expect(
+            pinnedResults.first?.noteID == .pinned,
+            "a following daily save must not cancel the pinned index update"
+        )
+        expect(
+            dailyResults.first?.noteID == .daily("2026-08-02"),
+            "the daily index update should remain searchable"
+        )
     }
 
     private static func expect(_ condition: @autoclosure () -> Bool, _ message: String) {

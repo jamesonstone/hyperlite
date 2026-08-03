@@ -114,13 +114,14 @@ changes that warrant human attention.
 - **STATUS**: deliver
 - **PAUSED**: no
 - **INTENT**: Keep durable reference material and chronological daily writing
-  immediately available without tabs, note-management state, or file concepts.
+  immediately available through two fixed presentation tabs without
+  note-management state or file concepts.
 - **APPROACH**: Persist one pinned Markdown note and ISO-dated daily Markdown
   files through the Go storage authority, keep only the two active drafts in
-  editors, and derive recency plus asynchronous exact/semantic Command-K search
-  from those filesystem sources.
-- **OPEN ITEMS**: Local implementation and validation are complete; ready
-  pull-request delivery remains for issue #24.
+  state, render one selected editor, and derive asynchronous exact/semantic
+  Command-K search from those filesystem sources.
+- **OPEN ITEMS**: Issue #30 implementation and full local validation are
+  complete; ready pull-request delivery remains.
 - **POINTERS**: `docs/specs/0006-notepad-daily-notes/SPEC.md`
 
 ### pinned-codex-threads
@@ -139,6 +140,9 @@ changes that warrant human attention.
 
 ## LAST UPDATED
 
+- 2026-08-03: Replaced the simultaneous Notepad/Daily editors, recent-date
+  menu, and right-side date controls with visually delineated fixed tabs,
+  Daily-by-default presentation, and one leading native calendar disclosure.
 - 2026-08-02: Added feature `0007-pinned-codex-threads` with authoritative
   Desktop pin membership, optional SQLite metadata, changed-source activation
   refresh, explicit forced refresh, and a compact non-navigating native view.

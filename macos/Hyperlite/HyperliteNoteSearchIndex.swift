@@ -53,23 +53,6 @@ actor HyperliteNoteSearchIndex {
         return true
     }
 
-    func recentDailyNotes(limit: Int = maximumResults) -> [HyperliteRecentDailyNote] {
-        notes.values.compactMap { note -> HyperliteRecentDailyNote? in
-            guard note.document.kind == .daily,
-                  note.document.exists,
-                  let date = note.document.date,
-                  let updatedAt = note.document.updatedAt
-            else { return nil }
-            return HyperliteRecentDailyNote(date: date, updatedAt: updatedAt)
-        }
-        .sorted {
-            if $0.updatedAt != $1.updatedAt { return $0.updatedAt > $1.updatedAt }
-            return $0.date > $1.date
-        }
-        .prefix(max(0, limit))
-        .map { $0 }
-    }
-
     func search(_ rawQuery: String, limit: Int = maximumResults) -> [HyperliteNoteSearchResult] {
         let query = rawQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty, limit > 0 else { return [] }
