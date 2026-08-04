@@ -94,6 +94,32 @@ enum HyperliteNoteDate {
         else { return nil }
         return date
     }
+
+    @MainActor
+    static func displayName(for identifier: String, calendar: Calendar) -> String {
+        guard let date = date(from: identifier, calendar: calendar) else { return identifier }
+        let day = calendar.component(.day, from: date)
+        let monthIndex = calendar.component(.month, from: date) - 1
+        let year = calendar.component(.year, from: date)
+        let ordinal = ordinalFormatter.string(from: NSNumber(value: day)) ?? String(day)
+        let month = monthNames.indices.contains(monthIndex)
+            ? monthNames[monthIndex]
+            : String(monthIndex + 1)
+        return "\(month) \(ordinal), \(year)"
+    }
+
+    @MainActor private static let ordinalFormatter: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.locale = Locale(identifier: "en_US")
+        formatter.numberStyle = .ordinal
+        return formatter
+    }()
+
+    @MainActor private static let monthNames: [String] = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US")
+        return formatter.monthSymbols
+    }()
 }
 
 protocol HyperliteNotepadClient: Sendable {

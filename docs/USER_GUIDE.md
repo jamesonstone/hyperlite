@@ -94,9 +94,15 @@ worktree row disappears. Hyperlite never deletes or prunes the local checkout.
 
 The Notepad directly beneath the header is private operator memory, not another
 source of project truth. Its compact tab row keeps the permanent Notepad
-separate from `Daily <formatted date>` with both a vertical divider and active
+separate from `Daily: <formatted date>` with both a vertical divider and active
 tab styling. Daily opens today by default; selecting Notepad opens the durable
 note, and selecting Daily returns to the current dated note.
+
+Daily continues following the current calendar day while Hyperlite remains
+open. Calendar-day, system-clock, and time-zone changes move it without
+polling; foreground activation and explicit refresh recover a missed change.
+Choosing a historical date pauses that rollover until today is selected again
+from the calendar.
 
 The single larger chevron to the left of Notepad opens the native calendar.
 Selecting a date activates Daily and directly loads that note after safely

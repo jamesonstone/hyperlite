@@ -25,6 +25,22 @@ references:
     read_policy: must
     used_for: fixed tab presentation, calendar navigation, and observable acceptance
     status: active
+  - id: issue-32
+    name: Refresh the Daily note date automatically
+    type: github-issue
+    target: https://github.com/jamesonstone/hyperlite/issues/32
+    relation: implements
+    read_policy: must
+    used_for: current-day rollover and clarified Daily label
+    status: active
+  - id: issue-34
+    name: Enlarge the Daily calendar popover
+    type: github-issue
+    target: https://github.com/jamesonstone/hyperlite/issues/34
+    relation: implements
+    read_policy: must
+    used_for: graphical calendar and popover sizing
+    status: active
   - id: inferred-attention
     name: Inferred Attention
     type: specification
@@ -118,7 +134,7 @@ so the durable and dated notes read as one coherent Notepad feature.
 - R3: Show exactly one daily note, defaulting to today in the user's current
   calendar and active by default. Load a date by its exact ISO filename and
   create a missing daily file only after the user enters content.
-- R4: Present Notepad and `Daily <formatted date>` as two selectable,
+- R4: Present Notepad and `Daily: <formatted date>` as two selectable,
   visually delineated tabs in one compact left-aligned row. Render only the
   active editor while retaining both bounded drafts in feature state.
 - R5: Keep one larger disclosure chevron to the left of Notepad. It opens a
@@ -147,6 +163,20 @@ so the durable and dated notes read as one coherent Notepad feature.
   serialization, symlink rejection, NUL rejection, exact ISO-date validation,
   macOS 13 support, shared native typography, and the no-continuous-timer
   design.
+- R12: Keep a Daily selection that represents today following the user's
+  current calendar day across midnight, system-clock changes, time-zone
+  changes, application activation, and explicit refresh. Flush the prior
+  draft before directly loading the new day. Preserve an explicitly selected
+  historical date until the user selects today again.
+- R13: Keep the DatePicker date and stable daily identifier on the same
+  calendar day after a time-zone change. If a date refresh arrives while
+  navigation is awaiting persistence or a direct load, queue one refresh and
+  re-evaluate the current day after navigation completes instead of dropping
+  the event.
+- R14: Present the native graphical calendar at a comfortably readable size
+  that fills the available popover content width with balanced borders. Grow
+  the popover to fit the calendar without clipping or changing date-selection
+  behavior.
 
 Non-goals: arbitrary note tabs, an open-file collection, close buttons,
 recently viewed history, recently closed history, a recent-date menu, file
@@ -157,12 +187,21 @@ content as project evidence.
 Observable acceptance:
 
 - A clean launch selects the Daily tab for today without creating today's file.
-- The fixed tab row clearly separates Notepad from `Daily <formatted date>`;
+- The fixed tab row clearly separates Notepad from `Daily: <formatted date>`;
   Notepad opens the permanent durable note and Daily opens the selected date.
+- A Daily selection following today rolls forward without polling when the
+  calendar day changes and recovers on application activation or explicit
+  refresh; an explicitly selected historical day remains selected.
+- Historical selection remains visually aligned with its stable identifier
+  across a time-zone boundary, and a day change that arrives during an
+  in-flight load is applied immediately after that load completes.
 - Edits survive debounce, explicit navigation, and lifecycle flush at the
   exact Markdown paths.
 - The sole leading disclosure opens a calendar, and choosing a date activates
   Daily and opens the intended document without recent-date or close affordances.
+- The open calendar is substantially larger than the compact intrinsic control,
+  occupies the popover width beneath its title, and retains balanced outer
+  padding at the packaged application's normal display scale.
 - Command-K literal and semantic queries return pinned and daily results and
   activate the correct editor.
 - Navigating between dates issues only direct reads for the selected date;
@@ -197,6 +236,15 @@ Observable acceptance:
    draft/debounce/search ranking, and palette activation with focused tests
    before running the full Go and universal macOS validation gates and
    inspecting the packaged interaction.
+7. Keep current-day following state inside `HyperliteNotepadState`. React to
+   calendar, system-clock, and time-zone notifications, and route application
+   activation plus explicit refresh through the same flush-then-direct-load
+   transition without introducing polling. Rebase historical presentation from
+   its stable identifier when the current calendar changes, and serialize one
+   pending refresh behind in-flight navigation.
+8. Measure the native DatePicker's compact intrinsic presentation, enlarge it
+   with a matching reserved layout frame inside a wider popover, and validate
+   the actual packaged AppKit-hosted result rather than frame constants alone.
 
 Rollback is removal of the new note/index operations and restoration of the
 single-document Swift surface. Migrated content remains recoverable as the
@@ -215,6 +263,28 @@ or overwrite the new daily-note files.
   operator context; it does not become an arbitrary dated note.
 - Calendar navigation uses the current user calendar while filenames use the
   locale-independent `yyyy-MM-dd` representation of that calendar day.
+- The selected daily note retains its stable ISO identifier until navigation
+  succeeds. An autoupdating calendar may change how the associated `Date` is
+  interpreted after a time-zone change, but it must not redirect the prior
+  draft's flush to a different daily filename.
+- Daily follows the current day after launch or after selecting today. An
+  explicit historical selection suspends rollover until today is selected
+  again, so application lifecycle refresh cannot override deliberate history
+  navigation.
+- Calendar, system-clock, and time-zone notifications provide event-driven
+  rollover. Application activation and explicit refresh are recovery paths
+  for notifications missed while Hyperlite was inactive.
+- The macOS graphical DatePicker retains compact intrinsic metrics when given
+  a larger control size or width proposal. Enlarge the rendered native control
+  and reserve the same scaled layout space so its hit testing, accessibility,
+  and popover sizing remain aligned.
+- The current calendar and clock are main-actor dependencies because every
+  Notepad date transition is main-actor isolated. Reading them at each
+  transition keeps time-zone rebasing and post-navigation day checks testable
+  without weakening the serialized state boundary.
+- Date refresh coalesces while navigation is in flight. Navigation completion
+  consumes the pending marker and obtains a fresh current day; it never reuses
+  the possibly stale day that caused the earlier refresh.
 - Notepad and Daily are two fixed presentation modes over the existing durable
   document types, not an open-note collection. Their active selection is
   disposable and does not alter filesystem authority or create history.
@@ -267,6 +337,14 @@ or overwrite the new daily-note files.
   calendar without retaining the prior field, day-stepping, Today, or recent
   menu controls. Calendar selection can reuse the existing flush-then-direct-load
   boundary unchanged.
+- Packaged-app inspection showed that increasing only the popover width
+  exaggerates the compact calendar's unused border. A two-times presentation
+  scale with a 288-by-310-point reserved frame makes the native control readable,
+  while a 316-point popover leaves balanced 14-point outer padding.
+- Post-PR review exposed two serialized-state boundaries: an autoupdating
+  calendar can change the local day represented by a stored `Date`, and a
+  notification received while direct loading is suspended cannot safely be
+  discarded because the current day may change again before loading resumes.
 - A one-pixel divider plus selected pill and cyan underline keeps Notepad and
   Daily visually distinct at the minimum window width while preserving the
   compact header hierarchy.
@@ -300,6 +378,29 @@ or overwrite the new daily-note files.
 - `kit check --project` reports the same fourteen pre-existing main-branch
   findings in both the implementation worktree and untouched primary checkout;
   none are introduced or expanded by this feature.
+- Issue #32 Swift coverage proves a Daily selection following today flushes
+  the prior dirty draft, directly loads the new calendar day, preserves the
+  active Notepad tab, leaves explicit historical navigation untouched, and
+  resumes following after today is selected again.
+- The complete validation gate above passes for the rollover follow-up. Native
+  type-checking also covers the `Daily:` presentation and calendar, clock,
+  time-zone, activation, and explicit-refresh wiring. The only Swift
+  diagnostics remain the existing `onChange` deprecation warnings.
+- `kit check --all` passes all seven feature specifications. Strict deep code
+  signing passes, and both the packaged app and bundled helper contain
+  `x86_64` and `arm64` architectures.
+- Review-repair coverage rebases a deliberately historical selection across a
+  time-zone boundary while preserving its stable identifier and performing no
+  storage operation. A separately gated direct load advances the clock twice
+  before completion and proves the coalesced refresh loads the final day.
+- An independent read-only verification pass found no gaps in either review
+  acceptance criterion or its deterministic regression evidence.
+- Issue #34 packaged-app inspection confirms the native calendar renders at
+  twice its prior size and consumes the resized popover's content width without
+  clipping. Accessibility continues exposing one settable date control.
+- Setting the packaged control from August 4th to August 3rd closes the popover,
+  updates the Daily label, and loads the August 3rd editor. Selecting August 4th
+  again restores current-day following and the original editor state.
 
 ## OUTCOME
 
@@ -313,17 +414,32 @@ The Go helper remains the Markdown filesystem authority; Swift retains both
 bounded drafts and a disposable asynchronous search projection. Command-K opens
 exact and on-device semantic matches directly in the appropriate tab.
 
+Daily now remains aligned with the user's current calendar day while it is in
+current-day-following mode. System date-basis notifications perform rollover
+without polling, while activation and explicit refresh recover missed changes.
+Rollover preserves whichever tab is visible, flushes before direct loading,
+and does not override an explicitly selected historical note. The tab label is
+now rendered as `Daily: <formatted date>`.
+
+Time-zone refresh also rebuilds the DatePicker's presentation date from the
+stable daily identifier before returning, so historical selection cannot
+visually drift to an adjacent calendar day. Refresh events received during a
+load are coalesced and replayed after navigation with a fresh calendar and
+clock read, preventing a second day change from being dropped.
+
+The native month calendar now renders at twice its compact intrinsic size in a
+larger popover whose content frame matches the scaled control. The title and
+calendar retain balanced borders, and date selection keeps the existing close,
+activate, focus, and direct-load behavior.
+
 ## REPOSITORY MEMORY
 
 Decision: updated.
 
 Rationale: storage migration, source-of-truth ownership, two-document draft
-behavior, search-index authority, and the distinction between two fixed
-presentation tabs and arbitrary open-file state are consequential
-cross-component product contracts that code and tests alone cannot preserve.
+behavior, search-index authority, current-day following versus explicit
+historical navigation, and the distinction between two fixed presentation tabs
+and arbitrary open-file state are consequential cross-component product
+contracts that code and tests alone cannot preserve.
 
-Artifacts: `docs/specs/0006-notepad-daily-notes/SPEC.md`,
-`docs/specs/0002-command-palettes/SPEC.md`,
-`docs/specs/0005-dashboard-project-management/SPEC.md`,
-`docs/CONSTITUTION.md`, `docs/USER_GUIDE.md`, and
-`docs/PROJECT_PROGRESS_SUMMARY.md`.
+Artifacts: `docs/specs/0006-notepad-daily-notes/SPEC.md`.

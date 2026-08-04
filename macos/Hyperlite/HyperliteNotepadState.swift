@@ -20,7 +20,7 @@ final class HyperliteNotepadState: ObservableObject {
     @Published private(set) var focusRequest: HyperliteNotepadFocusRequest?
 
     var selectedDateIdentifier: String {
-        HyperliteNoteDate.identifier(for: selectedDate, calendar: calendar)
+        selectedDateID
     }
 
     var isDirty: Bool { pinnedText != savedPinnedText || dailyText != savedDailyText }
@@ -28,12 +28,15 @@ final class HyperliteNotepadState: ObservableObject {
     let client: any HyperliteNotepadClient
     private let searchIndex: HyperliteNoteSearchIndex
     let autosaveDelay: Duration
-    private var calendar: Calendar
-    private let now: @Sendable () -> Date
+    private let currentCalendar: () -> Calendar
+    private let now: () -> Date
+    private var selectedDateID: String
     var savedPinnedText = ""
     var savedDailyText = ""
     private var hasPinnedLocalEdits = false
     private var hasDailyLocalEdits = false
+    private var followsCurrentDate = true
+    private var dateRefreshPending = false
     private var loadTask: Task<Void, Never>?
     private var indexTask: Task<Void, Never>?
     private var indexUpdateTasks: [HyperliteNoteID: Task<Void, Never>] = [:]
@@ -49,16 +52,19 @@ final class HyperliteNotepadState: ObservableObject {
         client: any HyperliteNotepadClient = HyperliteProcessNotepadClient(),
         searchIndex: HyperliteNoteSearchIndex = HyperliteNoteSearchIndex(),
         autosaveDelay: Duration = HyperliteNotepadState.autosaveDelay,
-        calendar: Calendar = .autoupdatingCurrent,
-        now: @escaping @Sendable () -> Date = { Date() },
+        calendar: @escaping () -> Calendar = { .autoupdatingCurrent },
+        now: @escaping () -> Date = { Date() },
         loadImmediately: Bool = true
     ) {
         self.client = client
         self.searchIndex = searchIndex
         self.autosaveDelay = autosaveDelay
-        self.calendar = calendar
+        currentCalendar = calendar
         self.now = now
-        selectedDate = calendar.startOfDay(for: now())
+        let initialCalendar = calendar()
+        let initialDate = initialCalendar.startOfDay(for: now())
+        selectedDate = initialDate
+        selectedDateID = HyperliteNoteDate.identifier(for: initialDate, calendar: initialCalendar)
         if loadImmediately {
             loadTask = Task { [weak self] in await self?.loadInitialDocuments() }
             indexTask = Task { [weak self] in await self?.buildSearchIndex() }
@@ -108,17 +114,7 @@ final class HyperliteNotepadState: ObservableObject {
     }
 
     func displayName(for identifier: String) -> String {
-        guard let date = HyperliteNoteDate.date(from: identifier, calendar: calendar) else {
-            return identifier
-        }
-        let day = calendar.component(.day, from: date)
-        let monthIndex = calendar.component(.month, from: date) - 1
-        let year = calendar.component(.year, from: date)
-        let ordinal = Self.ordinalFormatter.string(from: NSNumber(value: day)) ?? String(day)
-        let month = Self.monthNames.indices.contains(monthIndex)
-            ? Self.monthNames[monthIndex]
-            : String(monthIndex + 1)
-        return "\(month) \(ordinal), \(year)"
+        HyperliteNoteDate.displayName(for: identifier, calendar: calendar)
     }
 
     func selectDateIdentifier(_ identifier: String, focus: Bool = false) async {
@@ -131,33 +127,78 @@ final class HyperliteNotepadState: ObservableObject {
 
     func selectDate(_ candidate: Date, focus: Bool = false) async {
         let target = calendar.startOfDay(for: candidate)
+        let currentDate = calendar.startOfDay(for: now())
+        await navigate(
+            to: target,
+            focus: focus,
+            activateDaily: true,
+            followCurrentDate: target == currentDate
+        )
+    }
+
+    func refreshDailyDateIfNeeded(now currentDate: Date? = nil) async {
+        guard !isNavigating else {
+            dateRefreshPending = true
+            return
+        }
+        let activeCalendar = calendar
+        if let rebasedDate = HyperliteNoteDate.date(
+            from: selectedDateID,
+            calendar: activeCalendar
+        ), rebasedDate != selectedDate {
+            selectedDate = rebasedDate
+        }
+        guard followsCurrentDate else { return }
+        let target = activeCalendar.startOfDay(for: currentDate ?? now())
+        let identifier = HyperliteNoteDate.identifier(for: target, calendar: activeCalendar)
+        guard identifier != selectedDateIdentifier else { return }
+        await navigate(to: target, focus: false, activateDaily: false, followCurrentDate: true)
+    }
+
+    private func navigate(
+        to target: Date,
+        focus: Bool,
+        activateDaily: Bool,
+        followCurrentDate: Bool
+    ) async {
         let identifier = HyperliteNoteDate.identifier(for: target, calendar: calendar)
-        activeTab = .daily
+        if activateDaily { activeTab = .daily }
         guard identifier != selectedDateIdentifier else {
+            followsCurrentDate = followCurrentDate
             if focus { requestFocus(.daily) }
             return
         }
         guard !isNavigating else { return }
         isNavigating = true
-        defer { isNavigating = false }
-        guard await flush(.daily(selectedDateIdentifier)) else { return }
-        do {
-            let document = try await client.loadDaily(date: identifier)
-            guard document.content.utf8.count <= Self.maxBytes else {
-                throw HyperliteNotepadError.tooLarge
+        if await flush(.daily(selectedDateIdentifier)) {
+            do {
+                let document = try await client.loadDaily(date: identifier)
+                guard document.content.utf8.count <= Self.maxBytes else {
+                    throw HyperliteNotepadError.tooLarge
+                }
+                selectedDateID = identifier
+                selectedDate = target
+                followsCurrentDate = followCurrentDate
+                savedDailyText = document.content
+                dailyText = document.content
+                hasDailyLocalEdits = false
+                errorMessage = nil
+                if document.exists { updateIndex(with: document) }
+                if focus { requestFocus(.daily) }
+            } catch is CancellationError {
+                // Cancellation leaves the existing daily selection intact.
+            } catch {
+                errorMessage = error.localizedDescription
             }
-            selectedDate = target
-            savedDailyText = document.content
-            dailyText = document.content
-            hasDailyLocalEdits = false
-            errorMessage = nil
-            if document.exists { updateIndex(with: document) }
-            if focus { requestFocus(.daily) }
-        } catch is CancellationError {
-            return
-        } catch {
-            errorMessage = error.localizedDescription
         }
+        isNavigating = false
+        await applyPendingDateRefreshIfNeeded()
+    }
+
+    private func applyPendingDateRefreshIfNeeded() async {
+        guard dateRefreshPending else { return }
+        dateRefreshPending = false
+        await refreshDailyDateIfNeeded()
     }
 
     func focusPinned() {
@@ -285,16 +326,5 @@ final class HyperliteNotepadState: ObservableObject {
         searchIndexRevision += 1
     }
 
-    private static let ordinalFormatter: NumberFormatter = {
-        let formatter = NumberFormatter()
-        formatter.locale = Locale(identifier: "en_US")
-        formatter.numberStyle = .ordinal
-        return formatter
-    }()
-
-    private static let monthNames: [String] = {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US")
-        return formatter.monthSymbols
-    }()
+    private var calendar: Calendar { currentCalendar() }
 }

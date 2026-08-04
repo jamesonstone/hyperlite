@@ -9,7 +9,7 @@ enum HyperliteNotepadRecoveryTests {
             client: IndexRecoveryClient(),
             searchIndex: HyperliteNoteSearchIndex(vectorProvider: { _ in nil }),
             autosaveDelay: .milliseconds(20),
-            calendar: calendar,
+            calendar: { calendar },
             now: { Date(timeIntervalSince1970: 1_785_672_000) }
         )
         await state.waitUntilLoaded()

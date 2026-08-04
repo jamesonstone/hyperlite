@@ -1,5 +1,14 @@
 import SwiftUI
 
+private enum HyperliteCalendarPopoverLayout {
+    // macOS keeps the graphical DatePicker compact, so scale it and reserve matching space.
+    static let contentPadding: CGFloat = 14
+    static let pickerScale: CGFloat = 2
+    static let pickerWidth: CGFloat = 288
+    static let pickerHeight: CGFloat = 310
+    static let popoverWidth = pickerWidth + contentPadding * 2
+}
+
 struct HyperliteNotepadView: View {
     @ObservedObject var state: HyperliteNotepadState
     @State private var isCalendarPresented = false
@@ -50,11 +59,11 @@ struct HyperliteNotepadView: View {
                 .accessibilityHidden(true)
             tabButton(
                 isSelected: state.activeTab == .daily,
-                accessibilityLabel: "Daily \(state.displayName(for: state.selectedDateIdentifier))",
+                accessibilityLabel: "Daily: \(state.displayName(for: state.selectedDateIdentifier))",
                 action: state.focusDaily
             ) {
                 HStack(spacing: 5) {
-                    Text("Daily")
+                    Text("Daily:")
                         .font(HyperliteTypography.semibold(11))
                     Text(state.displayName(for: state.selectedDateIdentifier))
                         .font(HyperliteTypography.regular(10))
@@ -98,10 +107,21 @@ struct HyperliteNotepadView: View {
                 )
                 .labelsHidden()
                 .datePickerStyle(.graphical)
+                .fixedSize()
+                .scaleEffect(
+                    HyperliteCalendarPopoverLayout.pickerScale,
+                    anchor: .topLeading
+                )
+                .frame(
+                    width: HyperliteCalendarPopoverLayout.pickerWidth,
+                    height: HyperliteCalendarPopoverLayout.pickerHeight,
+                    alignment: .topLeading
+                )
+                .frame(maxWidth: .infinity, alignment: .center)
                 .disabled(state.isNavigating)
             }
-            .padding(12)
-            .frame(width: 250)
+            .padding(HyperliteCalendarPopoverLayout.contentPadding)
+            .frame(width: HyperliteCalendarPopoverLayout.popoverWidth)
             .hyperliteTheme()
         }
     }
