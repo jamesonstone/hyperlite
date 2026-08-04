@@ -160,6 +160,11 @@ so the durable and dated notes read as one coherent Notepad feature.
   changes, application activation, and explicit refresh. Flush the prior
   draft before directly loading the new day. Preserve an explicitly selected
   historical date until the user selects today again.
+- R13: Keep the DatePicker date and stable daily identifier on the same
+  calendar day after a time-zone change. If a date refresh arrives while
+  navigation is awaiting persistence or a direct load, queue one refresh and
+  re-evaluate the current day after navigation completes instead of dropping
+  the event.
 
 Non-goals: arbitrary note tabs, an open-file collection, close buttons,
 recently viewed history, recently closed history, a recent-date menu, file
@@ -175,6 +180,9 @@ Observable acceptance:
 - A Daily selection following today rolls forward without polling when the
   calendar day changes and recovers on application activation or explicit
   refresh; an explicitly selected historical day remains selected.
+- Historical selection remains visually aligned with its stable identifier
+  across a time-zone boundary, and a day change that arrives during an
+  in-flight load is applied immediately after that load completes.
 - Edits survive debounce, explicit navigation, and lifecycle flush at the
   exact Markdown paths.
 - The sole leading disclosure opens a calendar, and choosing a date activates
@@ -216,7 +224,9 @@ Observable acceptance:
 7. Keep current-day following state inside `HyperliteNotepadState`. React to
    calendar, system-clock, and time-zone notifications, and route application
    activation plus explicit refresh through the same flush-then-direct-load
-   transition without introducing polling.
+   transition without introducing polling. Rebase historical presentation from
+   its stable identifier when the current calendar changes, and serialize one
+   pending refresh behind in-flight navigation.
 
 Rollback is removal of the new note/index operations and restoration of the
 single-document Swift surface. Migrated content remains recoverable as the
@@ -246,6 +256,13 @@ or overwrite the new daily-note files.
 - Calendar, system-clock, and time-zone notifications provide event-driven
   rollover. Application activation and explicit refresh are recovery paths
   for notifications missed while Hyperlite was inactive.
+- The current calendar and clock are main-actor dependencies because every
+  Notepad date transition is main-actor isolated. Reading them at each
+  transition keeps time-zone rebasing and post-navigation day checks testable
+  without weakening the serialized state boundary.
+- Date refresh coalesces while navigation is in flight. Navigation completion
+  consumes the pending marker and obtains a fresh current day; it never reuses
+  the possibly stale day that caused the earlier refresh.
 - Notepad and Daily are two fixed presentation modes over the existing durable
   document types, not an open-note collection. Their active selection is
   disposable and does not alter filesystem authority or create history.
@@ -298,6 +315,10 @@ or overwrite the new daily-note files.
   calendar without retaining the prior field, day-stepping, Today, or recent
   menu controls. Calendar selection can reuse the existing flush-then-direct-load
   boundary unchanged.
+- Post-PR review exposed two serialized-state boundaries: an autoupdating
+  calendar can change the local day represented by a stored `Date`, and a
+  notification received while direct loading is suspended cannot safely be
+  discarded because the current day may change again before loading resumes.
 - A one-pixel divider plus selected pill and cyan underline keeps Notepad and
   Daily visually distinct at the minimum window width while preserving the
   compact header hierarchy.
@@ -342,6 +363,12 @@ or overwrite the new daily-note files.
 - `kit check --all` passes all seven feature specifications. Strict deep code
   signing passes, and both the packaged app and bundled helper contain
   `x86_64` and `arm64` architectures.
+- Review-repair coverage rebases a deliberately historical selection across a
+  time-zone boundary while preserving its stable identifier and performing no
+  storage operation. A separately gated direct load advances the clock twice
+  before completion and proves the coalesced refresh loads the final day.
+- An independent read-only verification pass found no gaps in either review
+  acceptance criterion or its deterministic regression evidence.
 
 ## OUTCOME
 
@@ -362,6 +389,12 @@ Rollover preserves whichever tab is visible, flushes before direct loading,
 and does not override an explicitly selected historical note. The tab label is
 now rendered as `Daily: <formatted date>`.
 
+Time-zone refresh also rebuilds the DatePicker's presentation date from the
+stable daily identifier before returning, so historical selection cannot
+visually drift to an adjacent calendar day. Refresh events received during a
+load are coalesced and replayed after navigation with a fresh calendar and
+clock read, preventing a second day change from being dropped.
+
 ## REPOSITORY MEMORY
 
 Decision: updated.
@@ -372,8 +405,4 @@ historical navigation, and the distinction between two fixed presentation tabs
 and arbitrary open-file state are consequential cross-component product
 contracts that code and tests alone cannot preserve.
 
-Artifacts: `docs/specs/0006-notepad-daily-notes/SPEC.md`,
-`docs/specs/0002-command-palettes/SPEC.md`,
-`docs/specs/0005-dashboard-project-management/SPEC.md`,
-`docs/CONSTITUTION.md`, `docs/USER_GUIDE.md`, and
-`docs/PROJECT_PROGRESS_SUMMARY.md`.
+Artifacts: `docs/specs/0006-notepad-daily-notes/SPEC.md`.
