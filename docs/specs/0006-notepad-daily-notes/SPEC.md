@@ -33,6 +33,14 @@ references:
     read_policy: must
     used_for: current-day rollover and clarified Daily label
     status: active
+  - id: issue-34
+    name: Enlarge the Daily calendar popover
+    type: github-issue
+    target: https://github.com/jamesonstone/hyperlite/issues/34
+    relation: implements
+    read_policy: must
+    used_for: graphical calendar and popover sizing
+    status: active
   - id: inferred-attention
     name: Inferred Attention
     type: specification
@@ -165,6 +173,10 @@ so the durable and dated notes read as one coherent Notepad feature.
   navigation is awaiting persistence or a direct load, queue one refresh and
   re-evaluate the current day after navigation completes instead of dropping
   the event.
+- R14: Present the native graphical calendar at a comfortably readable size
+  that fills the available popover content width with balanced borders. Grow
+  the popover to fit the calendar without clipping or changing date-selection
+  behavior.
 
 Non-goals: arbitrary note tabs, an open-file collection, close buttons,
 recently viewed history, recently closed history, a recent-date menu, file
@@ -187,6 +199,9 @@ Observable acceptance:
   exact Markdown paths.
 - The sole leading disclosure opens a calendar, and choosing a date activates
   Daily and opens the intended document without recent-date or close affordances.
+- The open calendar is substantially larger than the compact intrinsic control,
+  occupies the popover width beneath its title, and retains balanced outer
+  padding at the packaged application's normal display scale.
 - Command-K literal and semantic queries return pinned and daily results and
   activate the correct editor.
 - Navigating between dates issues only direct reads for the selected date;
@@ -227,6 +242,9 @@ Observable acceptance:
    transition without introducing polling. Rebase historical presentation from
    its stable identifier when the current calendar changes, and serialize one
    pending refresh behind in-flight navigation.
+8. Measure the native DatePicker's compact intrinsic presentation, enlarge it
+   with a matching reserved layout frame inside a wider popover, and validate
+   the actual packaged AppKit-hosted result rather than frame constants alone.
 
 Rollback is removal of the new note/index operations and restoration of the
 single-document Swift surface. Migrated content remains recoverable as the
@@ -256,6 +274,10 @@ or overwrite the new daily-note files.
 - Calendar, system-clock, and time-zone notifications provide event-driven
   rollover. Application activation and explicit refresh are recovery paths
   for notifications missed while Hyperlite was inactive.
+- The macOS graphical DatePicker retains compact intrinsic metrics when given
+  a larger control size or width proposal. Enlarge the rendered native control
+  and reserve the same scaled layout space so its hit testing, accessibility,
+  and popover sizing remain aligned.
 - The current calendar and clock are main-actor dependencies because every
   Notepad date transition is main-actor isolated. Reading them at each
   transition keeps time-zone rebasing and post-navigation day checks testable
@@ -315,6 +337,10 @@ or overwrite the new daily-note files.
   calendar without retaining the prior field, day-stepping, Today, or recent
   menu controls. Calendar selection can reuse the existing flush-then-direct-load
   boundary unchanged.
+- Packaged-app inspection showed that increasing only the popover width
+  exaggerates the compact calendar's unused border. A two-times presentation
+  scale with a 288-by-310-point reserved frame makes the native control readable,
+  while a 316-point popover leaves balanced 14-point outer padding.
 - Post-PR review exposed two serialized-state boundaries: an autoupdating
   calendar can change the local day represented by a stored `Date`, and a
   notification received while direct loading is suspended cannot safely be
@@ -369,6 +395,12 @@ or overwrite the new daily-note files.
   before completion and proves the coalesced refresh loads the final day.
 - An independent read-only verification pass found no gaps in either review
   acceptance criterion or its deterministic regression evidence.
+- Issue #34 packaged-app inspection confirms the native calendar renders at
+  twice its prior size and consumes the resized popover's content width without
+  clipping. Accessibility continues exposing one settable date control.
+- Setting the packaged control from August 4th to August 3rd closes the popover,
+  updates the Daily label, and loads the August 3rd editor. Selecting August 4th
+  again restores current-day following and the original editor state.
 
 ## OUTCOME
 
@@ -394,6 +426,11 @@ stable daily identifier before returning, so historical selection cannot
 visually drift to an adjacent calendar day. Refresh events received during a
 load are coalesced and replayed after navigation with a fresh calendar and
 clock read, preventing a second day change from being dropped.
+
+The native month calendar now renders at twice its compact intrinsic size in a
+larger popover whose content frame matches the scaled control. The title and
+calendar retain balanced borders, and date selection keeps the existing close,
+activate, focus, and direct-load behavior.
 
 ## REPOSITORY MEMORY
 
