@@ -112,7 +112,7 @@ enum HyperliteDashboardListPresentation {
         sort: HyperlitePullRequestSort,
         customOrder: [String]
     ) -> [HyperlitePullRequestRow] {
-        let query = normalized(filter.query)
+        let query = normalized(filter.query.trimmingCharacters(in: .whitespacesAndNewlines))
         let filtered = rows.filter { row in
             let queryMatches = query.isEmpty || [
                 row.repository, row.title, "#\(row.number)", "\(row.number)",
@@ -141,7 +141,7 @@ enum HyperliteDashboardListPresentation {
         filter: HyperlitePullRequestFilter
     ) -> [HyperliteProjectPullRequests] {
         guard filter.state == .all, filter.review == .all else { return [] }
-        let query = normalized(filter.query)
+        let query = normalized(filter.query.trimmingCharacters(in: .whitespacesAndNewlines))
         return projects.filter { project in
             let identity = project.repository ?? project.name
             let queryMatches = query.isEmpty || normalized(identity).contains(query)
@@ -158,7 +158,7 @@ enum HyperliteDashboardListPresentation {
         sort: HyperliteProjectSort,
         customOrder: [String]
     ) -> [HyperliteProjectLocation] {
-        let query = normalized(filter.query)
+        let query = normalized(filter.query.trimmingCharacters(in: .whitespacesAndNewlines))
         let worktreeCounts = Dictionary(uniqueKeysWithValues: projects.map {
             ($0.id, $0.lanes.filter { !$0.primary }.count)
         })
@@ -236,7 +236,9 @@ enum HyperliteDashboardListPresentation {
             case .recent:
                 if lhs.updatedAt != rhs.updatedAt { return lhs.updatedAt > rhs.updatedAt }
             case .repository:
-                if lhs.repository != rhs.repository { return normalized(lhs.repository) < normalized(rhs.repository) }
+                let left = normalized(lhs.repository)
+                let right = normalized(rhs.repository)
+                if left != right { return left < right }
             case .review:
                 let left = lhs.unresolvedReviewThreads ?? -1
                 let right = rhs.unresolvedReviewThreads ?? -1

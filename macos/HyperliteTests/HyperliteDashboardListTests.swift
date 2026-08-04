@@ -14,6 +14,12 @@ enum HyperliteDashboardListTests {
         filter.query = "brace"
         expect(present(rows, filter: filter).map(\.number) == [12],
                "PR text filtering should match titles case-insensitively")
+        filter.query = "  brace\n"
+        expect(present(rows, filter: filter).map(\.number) == [12],
+               "PR text filtering should ignore surrounding whitespace")
+        filter.query = " \n "
+        expect(!filter.isActive && present(rows, filter: filter).count == rows.count,
+               "whitespace-only PR queries should remain inactive")
 
         filter = HyperlitePullRequestFilter()
         filter.repository = "owner/two"
@@ -52,6 +58,9 @@ enum HyperliteDashboardListTests {
 
         expect(present(rows, sort: .repository).map(\.number) == [12, 3, 8],
                "repository sorting should be deterministic")
+        expect(present(caseVariantPullRequestRows(), sort: .repository).map(\.id) ==
+            ["newest", "middle", "oldest"],
+            "repository sorting should apply tie-breakers to case variants")
         expect(present(rows, sort: .review).map(\.number) == [12, 8, 3],
                "review sorting should rank attention before clear and unavailable")
         expect(present(rows, sort: .state).map(\.number) == [8, 3, 12],
@@ -72,6 +81,13 @@ enum HyperliteDashboardListTests {
         expect(branchMatch.map(\.name) == ["zeta"] &&
             branchMatch[0].lanes.map(\.branch) == ["GH-2"],
             "project filtering should preserve the parent and matching lane")
+        filter.query = "  gh-2\n"
+        expect(present(projects, counts: counts, filter: filter).map(\.name) == ["zeta"],
+               "project filtering should ignore surrounding whitespace")
+        filter.query = " \n "
+        expect(!filter.isActive &&
+            present(projects, counts: counts, filter: filter).count == projects.count,
+            "whitespace-only project queries should remain inactive")
 
         filter = HyperliteProjectFilter()
         filter.lane = .worktree
@@ -109,6 +125,12 @@ enum HyperliteDashboardListTests {
         let state = HyperliteDashboardListState(defaults: defaults)
         state.setPullRequestSort(.repository)
         state.beginPullRequestReordering(currentIDs: ["one", "two", "three"])
+        state.movePullRequest("one", over: "three")
+        expect(state.orderedPullRequestIDs(["one", "two", "three"]) == ["two", "three", "one"],
+               "forward PR drag should move beyond the crossed target")
+        state.finishPullRequestReordering(commit: false)
+
+        state.beginPullRequestReordering(currentIDs: ["one", "two", "three"])
         state.movePullRequest("three", over: "one")
         expect(state.orderedPullRequestIDs(["one", "two", "three"]) == ["three", "one", "two"],
                "PR reorder draft should move without persistence")
@@ -124,6 +146,13 @@ enum HyperliteDashboardListTests {
             state.orderedPullRequestIDs(["new", "one", "two", "three"]) ==
                 ["new", "three", "one", "two"],
             "committed PR order should persist and put new PRs first")
+
+        state.beginProjectReordering(currentIDs: ["alpha", "beta", "gamma"])
+        state.moveProject("alpha", over: "gamma")
+        expect(state.orderedProjectIDs(["alpha", "beta", "gamma"]) ==
+            ["beta", "gamma", "alpha"],
+            "forward project drag should move beyond the crossed target")
+        state.finishProjectReordering(commit: false)
 
         state.beginProjectReordering(currentIDs: ["alpha", "beta"])
         state.moveProject("beta", over: "alpha")
@@ -186,6 +215,27 @@ enum HyperliteDashboardListTests {
                 id: "two#8", repository: "owner/two", status: .current,
                 number: 8, title: "Ready change", url: nil, isDraft: false,
                 unresolvedReviewThreads: 0, updatedAt: now.addingTimeInterval(-10)
+            ),
+        ]
+    }
+
+    private static func caseVariantPullRequestRows() -> [HyperlitePullRequestRow] {
+        let now = Date(timeIntervalSince1970: 1_785_850_000)
+        return [
+            HyperlitePullRequestRow(
+                id: "oldest", repository: "Owner/Repo", status: .current,
+                number: 1, title: "Oldest", url: nil, isDraft: false,
+                unresolvedReviewThreads: 0, updatedAt: now.addingTimeInterval(-20)
+            ),
+            HyperlitePullRequestRow(
+                id: "middle", repository: "owner/repo", status: .current,
+                number: 2, title: "Middle", url: nil, isDraft: false,
+                unresolvedReviewThreads: 0, updatedAt: now.addingTimeInterval(-10)
+            ),
+            HyperlitePullRequestRow(
+                id: "newest", repository: "Owner/Repo", status: .current,
+                number: 3, title: "Newest", url: nil, isDraft: false,
+                unresolvedReviewThreads: 0, updatedAt: now
             ),
         ]
     }

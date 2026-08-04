@@ -43,24 +43,36 @@ struct HyperlitePullRequestFilterPopover: View {
                 .font(HyperliteTypography.semibold(11))
             TextField("Repository, title, or number", text: $filter.query)
                 .textFieldStyle(.roundedBorder)
-            Picker("Repository", selection: $filter.repository) {
-                Text("All repositories").tag("")
-                ForEach(repositories, id: \.self) { Text($0).tag($0) }
-            }
-            Picker("State", selection: $filter.state) {
-                ForEach(HyperlitePullRequestStateFilter.allCases) {
-                    Text($0.title).tag($0)
+            HyperliteDashboardFilterRow("Repository") {
+                Picker("Repository", selection: $filter.repository) {
+                    Text("All repositories").tag("")
+                    ForEach(repositories, id: \.self) { Text($0).tag($0) }
                 }
+                .labelsHidden()
             }
-            Picker("Review", selection: $filter.review) {
-                ForEach(HyperlitePullRequestReviewFilter.allCases) {
-                    Text($0.title).tag($0)
+            HyperliteDashboardFilterRow("State") {
+                Picker("State", selection: $filter.state) {
+                    ForEach(HyperlitePullRequestStateFilter.allCases) {
+                        Text($0.title).tag($0)
+                    }
                 }
+                .labelsHidden()
             }
-            Picker("Data", selection: $filter.data) {
-                ForEach(HyperlitePullRequestDataFilter.allCases) {
-                    Text($0.title).tag($0)
+            HyperliteDashboardFilterRow("Review") {
+                Picker("Review", selection: $filter.review) {
+                    ForEach(HyperlitePullRequestReviewFilter.allCases) {
+                        Text($0.title).tag($0)
+                    }
                 }
+                .labelsHidden()
+            }
+            HyperliteDashboardFilterRow("Data") {
+                Picker("Data", selection: $filter.data) {
+                    ForEach(HyperlitePullRequestDataFilter.allCases) {
+                        Text($0.title).tag($0)
+                    }
+                }
+                .labelsHidden()
             }
             HStack {
                 Spacer()
@@ -85,15 +97,21 @@ struct HyperliteProjectFilterPopover: View {
                 .font(HyperliteTypography.semibold(11))
             TextField("Project, branch, or path", text: $filter.query)
                 .textFieldStyle(.roundedBorder)
-            Picker("Lane", selection: $filter.lane) {
-                ForEach(HyperliteProjectLaneFilter.allCases) {
-                    Text($0.title).tag($0)
+            HyperliteDashboardFilterRow("Lane") {
+                Picker("Lane", selection: $filter.lane) {
+                    ForEach(HyperliteProjectLaneFilter.allCases) {
+                        Text($0.title).tag($0)
+                    }
                 }
+                .labelsHidden()
             }
-            Picker("Activity", selection: $filter.activity) {
-                ForEach(HyperliteProjectActivityFilter.allCases) {
-                    Text($0.title).tag($0)
+            HyperliteDashboardFilterRow("Activity") {
+                Picker("Activity", selection: $filter.activity) {
+                    ForEach(HyperliteProjectActivityFilter.allCases) {
+                        Text($0.title).tag($0)
+                    }
                 }
+                .labelsHidden()
             }
             HStack {
                 Spacer()
@@ -106,6 +124,26 @@ struct HyperliteProjectFilterPopover: View {
         .padding(12)
         .frame(width: 300)
         .hyperliteTheme()
+    }
+}
+
+private struct HyperliteDashboardFilterRow<Control: View>: View {
+    let title: String
+    let control: Control
+
+    init(_ title: String, @ViewBuilder control: () -> Control) {
+        self.title = title
+        self.control = control()
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text(title)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            control
+                .fixedSize(horizontal: true, vertical: false)
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 

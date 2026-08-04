@@ -192,6 +192,8 @@ final class HyperliteDashboardListState: ObservableObject {
               let source = order.firstIndex(of: id),
               let target = order.firstIndex(of: targetID)
         else { return }
+        // Keep the dragged row beyond the row it crossed so adjacent rows swap
+        // in either direction. The target index intentionally predates removal.
         let value = order.remove(at: source)
         order.insert(value, at: target)
     }

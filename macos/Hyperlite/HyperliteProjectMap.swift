@@ -15,6 +15,12 @@ struct HyperliteProjectMap: View {
         )
     }
 
+    private var worktreeCounts: [String: Int] {
+        Dictionary(uniqueKeysWithValues: projects.map {
+            ($0.id, $0.lanes.filter { !$0.primary }.count)
+        })
+    }
+
     private var presentedProjects: [HyperliteProjectLocation] {
         let filter = organization.isReorderingProjects
             ? HyperliteProjectFilter() : organization.projectFilter
@@ -41,7 +47,7 @@ struct HyperliteProjectMap: View {
     }
 
     private var allPresentedProjectsCollapsed: Bool {
-        !presentedProjects.isEmpty && presentedProjects.allSatisfy {
+        !filterIsEffective && !presentedProjects.isEmpty && presentedProjects.allSatisfy {
             organization.collapsedProjectIDs.contains($0.id)
         }
     }
@@ -60,6 +66,7 @@ struct HyperliteProjectMap: View {
                     ForEach(presentedProjects) { project in
                         HyperliteProjectMapEntry(
                             project: project,
+                            worktreeCount: worktreeCounts[project.id] ?? 0,
                             openPullRequestCount: pullRequestCounts[project.id] ?? 0,
                             collapsed: organization.isProjectCollapsed(
                                 project.id,
@@ -172,6 +179,7 @@ struct HyperliteProjectMap: View {
 
 private struct HyperliteProjectMapEntry: View {
     let project: HyperliteProjectLocation
+    let worktreeCount: Int
     let openPullRequestCount: Int
     let collapsed: Bool
     let collapseDisabled: Bool
@@ -183,7 +191,6 @@ private struct HyperliteProjectMapEntry: View {
 
     private var firstLane: HyperliteProjectLane? { project.lanes.first }
     private var remainingLanes: [HyperliteProjectLane] { Array(project.lanes.dropFirst()) }
-    private var worktreeCount: Int { project.lanes.filter { !$0.primary }.count }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -249,7 +256,9 @@ private struct HyperliteProjectMapEntry: View {
             .disabled(collapseDisabled)
             .help(collapseDisabled ? "Clear filters to collapse projects" :
                 (collapsed ? "Expand \(project.name)" : "Collapse \(project.name)"))
-            .accessibilityLabel(collapsed ? "Expand \(project.name)" : "Collapse \(project.name)")
+            .accessibilityLabel(collapseDisabled
+                ? "Clear filters to collapse \(project.name)"
+                : (collapsed ? "Expand \(project.name)" : "Collapse \(project.name)"))
             Text(project.name)
                 .font(HyperliteTypography.medium(10))
                 .lineLimit(1)

@@ -93,7 +93,9 @@ rows remain visible and closed rows may disappear without corrupting settings.
   collapse-all, filter, sort, and reorder controls to the Projects header.
 - R2: Keep controls visible, muted, keyboard reachable, fully labeled for
   accessibility, and highlighted with the existing cyan accent only while
-  active. Preserve the current freshness and Projects context labels.
+  active. Preserve the current freshness and Projects context labels. In filter
+  popovers, align attribute labels to the left and their menu controls to a
+  shared trailing edge.
 - R3: Filter Open PRs by case-insensitive repository/title/number text,
   repository, ready/draft state, review status, and current/cached/unavailable
   data status. Show a filtered count without changing the source projection.
@@ -245,6 +247,13 @@ button presentation outside reorder, and removal of move actions outside reorder
 mode.
 The final dashboard screenshot is stored as local delivery evidence at
 `/Users/jamesonstone/.codex/visualizations/2026/08/04/019fcd0a-08ab-73c2-9516-2cd5919611fb/hyperlite-dashboard-list-controls.png`.
+
+Follow-up packaged-app inspection confirms that both filter popovers render
+attribute labels as one left-aligned column and menu controls against one shared
+trailing edge. The same pass verified trimmed and whitespace-only queries,
+source-derived worktree counts under lane filtering, filter-time collapse-all
+state, and disabled collapse accessibility labels. Evidence is stored at
+`/Users/jamesonstone/.codex/visualizations/2026/08/04/019fcd0a-08ab-73c2-9516-2cd5919611fb/hyperlite-filter-popover-alignment.png`.
 
 `kit reconcile --all --output-only` confirms all new source and test files are
 below 300 physical lines. It also reports six unrelated pre-existing oversized
