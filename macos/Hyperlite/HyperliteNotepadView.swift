@@ -50,11 +50,11 @@ struct HyperliteNotepadView: View {
                 .accessibilityHidden(true)
             tabButton(
                 isSelected: state.activeTab == .daily,
-                accessibilityLabel: "Daily \(state.displayName(for: state.selectedDateIdentifier))",
+                accessibilityLabel: "Daily: \(state.displayName(for: state.selectedDateIdentifier))",
                 action: state.focusDaily
             ) {
                 HStack(spacing: 5) {
-                    Text("Daily")
+                    Text("Daily:")
                         .font(HyperliteTypography.semibold(11))
                     Text(state.displayName(for: state.selectedDateIdentifier))
                         .font(HyperliteTypography.regular(10))

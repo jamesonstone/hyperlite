@@ -9,9 +9,62 @@ enum HyperliteNotepadTests {
         )
         try await testPinnedAndDailyAutosave()
         try await testNavigationFlushesBeforeDirectLoad()
+        try await testCurrentDateRolloverPreservesHistoricalSelection()
         try await testSearchIndexExactAndSemantic()
         try await testDateAndSizeBoundaries()
         await HyperliteNotepadRecoveryTests.run()
+    }
+
+    @MainActor
+    private static func testCurrentDateRolloverPreservesHistoricalSelection() async throws {
+        let client = NotepadClient(documents: [
+            .pinned: document(.pinned, content: "Pinned"),
+            .daily("2026-08-01"): document(.daily("2026-08-01"), content: "history"),
+            .daily("2026-08-02"): document(.daily("2026-08-02"), content: "today"),
+            .daily("2026-08-03"): document(.daily("2026-08-03"), content: "next day"),
+        ])
+        let state = makeState(client: client)
+        await state.waitUntilLoaded()
+        await client.resetOperations()
+
+        state.focusPinned()
+        expect(state.updateDaily("unsaved today"), "the prior daily draft should accept edits")
+        await state.refreshDailyDateIfNeeded(
+            now: Date(timeIntervalSince1970: 1_785_672_000 + 86_400)
+        )
+        expect(state.selectedDateIdentifier == "2026-08-03", "today should roll to the new day")
+        expect(state.dailyText == "next day", "rollover should load the new day's content")
+        expect(state.activeTab == .notepad, "rollover should preserve the active Notepad tab")
+        let rolloverOperations = await client.recordedOperations()
+        expect(
+            Array(rolloverOperations.prefix(2)) == ["save:2026-08-02", "load:2026-08-03"],
+            "rollover should flush the prior day before one direct load"
+        )
+
+        await state.selectDateIdentifier("2026-08-01")
+        await client.resetOperations()
+        await state.refreshDailyDateIfNeeded(
+            now: Date(timeIntervalSince1970: 1_785_672_000 + 172_800)
+        )
+        expect(
+            state.selectedDateIdentifier == "2026-08-01",
+            "refresh should preserve an explicitly selected historical day"
+        )
+        let historicalOperations = await client.recordedOperations()
+        expect(
+            historicalOperations.isEmpty,
+            "preserving historical navigation should not touch storage"
+        )
+
+        await state.selectDateIdentifier("2026-08-02")
+        await client.resetOperations()
+        await state.refreshDailyDateIfNeeded(
+            now: Date(timeIntervalSince1970: 1_785_672_000 + 172_800)
+        )
+        expect(
+            state.selectedDateIdentifier == "2026-08-04",
+            "selecting today should restore current-day following"
+        )
     }
 
     @MainActor
