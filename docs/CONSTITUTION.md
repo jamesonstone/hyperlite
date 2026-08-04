@@ -34,8 +34,11 @@
   thread and attention counts, rows, palette entries, and remote enrichment so
   notes and open pull requests own the interface.
 - The configured-project map is a stable spatial reference, not a work-state
-  or attention projection. Every configured project remains present; its
-  configured checkout is always visible, and a subordinate registered
+  or attention projection. Every configured project remains in the source
+  projection; local filtering may temporarily hide a project, and clearing the
+  filter restores it without changing configuration. A presented project's
+  configured checkout is always identifiable, even when its subordinate lanes
+  are collapsed. A subordinate registered
   worktree is visible only while its exact case-sensitive branch appears as an
   open pull-request head in current project evidence. Cached or unavailable
   pull-request data cannot retain a subordinate lane as active. No lane

@@ -54,6 +54,7 @@ struct HyperliteWindow: View {
     @ObservedObject var state: HyperliteState
     @ObservedObject var pinnedCodexThreads: HyperlitePinnedCodexThreadState
     let notepad: HyperliteNotepadState
+    @StateObject private var dashboardLists = HyperliteDashboardListState()
     @State private var selectedThread: HyperliteThread?
     @State private var pendingProjectRemoval: HyperliteProjectLocation?
 
@@ -98,7 +99,10 @@ struct HyperliteWindow: View {
                                         .foregroundStyle(HyperliteTheme.red.color)
                                 }
                                 if let pullRequests {
-                                    HyperlitePullRequestPanel(scan: pullRequests)
+                                    HyperlitePullRequestPanel(
+                                        scan: pullRequests,
+                                        organization: dashboardLists
+                                    )
                                 } else {
                                     ProgressView("Loading open pull requests…")
                                         .controlSize(.small)
@@ -121,7 +125,11 @@ struct HyperliteWindow: View {
                                         .font(HyperliteTypography.regular(10))
                                         .foregroundStyle(HyperliteTheme.mutedText.color)
                                 } else if !projects.isEmpty {
-                                    HyperliteProjectMap(projects: projects)
+                                    HyperliteProjectMap(
+                                        projects: projects,
+                                        pullRequests: pullRequests,
+                                        organization: dashboardLists
+                                    )
                                 }
                             }
                             .frame(maxWidth: .infinity, alignment: .topLeading)

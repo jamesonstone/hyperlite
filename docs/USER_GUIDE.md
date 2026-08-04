@@ -79,6 +79,12 @@ use the orange attention color, confirmed zero uses a quiet dash, and
 unavailable legacy cache data uses `?` until a complete refresh supplies an
 exact count. The entire row remains a link to the pull request.
 
+The quiet icons on the Open PRs title line filter the loaded index, choose a
+sort order, or enter reorder mode. Filters are temporary and never refresh
+GitHub. Sort choices persist. Reorder shows every loaded row with drag handles;
+Done saves a custom order, while Cancel restores the previous order. Accessible
+Move up and Move down actions provide the same control without dragging.
+
 ### Projects and worktrees
 
 Projects always shows every configured checkout. Registered subordinate
@@ -89,6 +95,13 @@ unavailable pull-request data does not retain a subordinate worktree as active.
 
 After a successful refresh observes that pull request as merged or closed, its
 worktree row disappears. Hyperlite never deletes or prunes the local checkout.
+
+Each project can collapse to a primary-branch summary. The quiet title-line
+controls collapse or expand the presented projects, filter the loaded map,
+choose a sort, or enter reorder mode. Filters temporarily expand matches without
+erasing saved collapse state. Sort, collapse, and committed custom order persist
+locally; they never rewrite project configuration. Reorder uses the same
+drag-handle, Done/Cancel, and accessible Move action model as Open PRs.
 
 ### Notepad
 
