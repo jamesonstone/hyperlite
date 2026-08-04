@@ -1,43 +1,72 @@
-import AppKit
 import SwiftUI
 
 struct HyperlitePullRequestPanel: View {
     let scan: HyperliteProjectPullRequestScan
+    @ObservedObject var organization: HyperliteDashboardListState
+    @State private var isFilterPresented = false
+    @State private var draggedRowID: String?
 
-    private var rows: [HyperlitePullRequestRow] {
+    private var sourceRows: [HyperlitePullRequestRow] {
         HyperlitePullRequestPresentation.rows(scan: scan)
     }
 
+    private var rows: [HyperlitePullRequestRow] {
+        let filter = organization.isReorderingPullRequests
+            ? HyperlitePullRequestFilter() : organization.pullRequestFilter
+        let sort = organization.isReorderingPullRequests
+            ? HyperlitePullRequestSort.custom : organization.pullRequestSort
+        return HyperliteDashboardListPresentation.pullRequests(
+            sourceRows,
+            filter: filter,
+            sort: sort,
+            customOrder: organization.orderedPullRequestIDs(sourceRows.map(\.id))
+        )
+    }
+
     private var availability: [HyperliteProjectPullRequests] {
-        HyperlitePullRequestPresentation.availability(scan: scan)
+        let source = HyperlitePullRequestPresentation.availability(scan: scan)
+        guard !organization.isReorderingPullRequests else { return source }
+        return HyperliteDashboardListPresentation.availability(
+            source,
+            filter: organization.pullRequestFilter
+        )
+    }
+
+    private var repositories: [String] {
+        Array(Set(sourceRows.map(\.repository))).sorted()
+    }
+
+    private var countLabel: String {
+        if organization.pullRequestFilter.isActive,
+           !organization.isReorderingPullRequests
+        {
+            return "\(rows.count)/\(sourceRows.count)"
+        }
+        return "\(sourceRows.count)"
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text("Open PRs")
-                    .font(HyperliteTypography.semibold(11))
-                    .foregroundStyle(HyperliteTheme.secondaryText.color)
-                Text("\(rows.count)")
-                    .font(HyperliteTypography.bold(10).monospacedDigit())
-                    .foregroundStyle(HyperliteTheme.mutedText.color)
-                Spacer()
-                Text(HyperlitePullRequestPresentation.freshnessLabel(
-                    observedAt: scan.observedAt
-                ))
-                    .font(HyperliteTypography.regular(10))
-                    .foregroundStyle(HyperliteTheme.mutedText.color)
-            }
-
+            header
             if rows.isEmpty && availability.isEmpty {
-                Text("No open pull requests")
+                Text(organization.pullRequestFilter.isActive
+                    ? "No matching pull requests" : "No open pull requests")
                     .font(HyperliteTypography.regular(10))
                     .foregroundStyle(HyperliteTheme.mutedText.color)
                     .padding(.vertical, 2)
             } else {
                 LazyVStack(alignment: .leading, spacing: 3) {
                     ForEach(rows) { row in
-                        HyperlitePullRequestPanelRow(row: row)
+                        if organization.isReorderingPullRequests {
+                            HyperlitePullRequestReorderRow(
+                                row: row,
+                                draggedRowID: $draggedRowID,
+                                move: organization.movePullRequest,
+                                moveBy: organization.movePullRequest
+                            )
+                        } else {
+                            HyperlitePullRequestPanelRow(row: row)
+                        }
                     }
                     ForEach(availability) { project in
                         HyperlitePullRequestAvailabilityRow(project: project)
@@ -50,119 +79,87 @@ struct HyperlitePullRequestPanel: View {
         .accessibilityLabel("Open pull requests across configured projects")
     }
 
-}
-
-struct HyperlitePullRequestPanelRow: View {
-    static let layout = HyperlitePullRequestRowLayout.repositoryFirst
-
-    let row: HyperlitePullRequestRow
-
-    private var reviewFeedback: HyperliteReviewFeedbackPresentation {
-        HyperlitePullRequestPresentation.reviewFeedback(
-            unresolvedThreads: row.unresolvedReviewThreads
-        )
-    }
-
-    var body: some View {
-        Button(action: openPullRequest) {
-            HStack(alignment: .firstTextBaseline, spacing: 7) {
-                Text(row.repository)
-                    .frame(
-                        width: Self.layout.repositoryColumnWidth,
-                        alignment: .leading
+    private var header: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 3) {
+            Text("Open PRs")
+                .font(HyperliteTypography.semibold(11))
+                .foregroundStyle(HyperliteTheme.secondaryText.color)
+            Text(countLabel)
+                .font(HyperliteTypography.bold(10).monospacedDigit())
+                .foregroundStyle(HyperliteTheme.mutedText.color)
+            Spacer()
+            if organization.isReorderingPullRequests {
+                Text("Reordering all")
+                    .font(HyperliteTypography.regular(10))
+                    .foregroundStyle(HyperliteTheme.cyan.color)
+                Button("Cancel") {
+                    draggedRowID = nil
+                    organization.finishPullRequestReordering(commit: false)
+                }
+                Button("Done") {
+                    draggedRowID = nil
+                    organization.finishPullRequestReordering(commit: true)
+                }
+            } else {
+                HyperliteDashboardControlButton(
+                    systemName: "line.3.horizontal.decrease",
+                    active: organization.pullRequestFilter.isActive,
+                    label: "Filter open pull requests"
+                ) { isFilterPresented.toggle() }
+                .popover(isPresented: $isFilterPresented, arrowEdge: .top) {
+                    HyperlitePullRequestFilterPopover(
+                        filter: pullRequestFilterBinding,
+                        repositories: repositories
                     )
-                    .foregroundStyle(HyperliteTheme.mutedText.color)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .layoutPriority(Self.layout.repositoryLayoutPriority)
-                Text("#\(row.number)")
-                    .frame(width: 42, alignment: .leading)
-                    .foregroundStyle(HyperliteTheme.secondaryText.color)
-                Text(row.isDraft ? "draft" : "ready")
-                    .frame(width: 42, alignment: .leading)
-                    .foregroundStyle(
-                        row.isDraft
-                            ? HyperliteTheme.mutedText.color
-                            : HyperliteTheme.secondaryText.color
-                    )
-                Text(reviewFeedback.text)
-                    .frame(
-                        width: Self.layout.reviewFeedbackColumnWidth,
-                        alignment: .leading
-                    )
-                    .foregroundStyle(
-                        reviewFeedback.needsAttention
-                            ? HyperliteTheme.orange.color
-                            : HyperliteTheme.mutedText.color
-                    )
-                    .monospacedDigit()
-                    .help(reviewFeedback.accessibilityLabel)
-                Text(row.title)
-                    .foregroundStyle(
-                        row.status == .current
-                            ? HyperliteTheme.secondaryText.color
-                            : HyperliteTheme.mutedText.color
-                    )
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .layoutPriority(Self.layout.titleLayoutPriority)
-                Spacer(minLength: 6)
-                Text(HyperlitePresentation.ageLabel(for: row.updatedAt))
-                    .foregroundStyle(HyperliteTheme.mutedText.color)
-                    .monospacedDigit()
+                }
+                pullRequestSortMenu
+                HyperliteDashboardControlButton(
+                    systemName: "line.3.horizontal",
+                    active: organization.pullRequestSort == .custom,
+                    label: "Reorder open pull requests",
+                    disabled: sourceRows.count < 2
+                ) {
+                    organization.beginPullRequestReordering(currentIDs: sourceRows.map(\.id))
+                }
             }
-            .font(HyperliteTypography.regular(10))
-            .contentShape(Rectangle())
+            Text(HyperlitePullRequestPresentation.freshnessLabel(
+                observedAt: scan.observedAt
+            ))
+                .font(HyperliteTypography.regular(10))
+                .foregroundStyle(HyperliteTheme.mutedText.color)
         }
-        .buttonStyle(.plain)
-        .disabled(row.url == nil)
-        .help(row.url?.absoluteString ?? "Pull request URL is unavailable")
-        .accessibilityLabel(
-            "\(row.repository) pull request \(row.number), " +
-                "\(row.isDraft ? "draft" : "ready"), " +
-                "\(reviewFeedback.accessibilityLabel), \(row.title)"
-        )
     }
 
-    private func openPullRequest() {
-        guard let url = row.url else { return }
-        NSWorkspace.shared.open(url)
-    }
-}
-
-struct HyperlitePullRequestAvailabilityRow: View {
-    static let layout = HyperlitePullRequestRowLayout.repositoryFirst
-
-    let project: HyperliteProjectPullRequests
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 7) {
-            Text(project.repository ?? project.name)
-                .frame(
-                    width: Self.layout.repositoryColumnWidth,
-                    alignment: .leading
-                )
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .layoutPriority(Self.layout.repositoryLayoutPriority)
-            Text(project.status == .cached ? "cached" : "unavailable")
-                .frame(
-                    width: Self.layout.availabilityMetadataColumnWidth,
-                    alignment: .leading
-                )
-            Text(project.message ?? "GitHub data is unavailable")
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .layoutPriority(Self.layout.titleLayoutPriority)
-            Spacer(minLength: 0)
+    private var pullRequestSortMenu: some View {
+        Menu {
+            ForEach(HyperlitePullRequestSort.allCases) { sort in
+                Button {
+                    organization.setPullRequestSort(sort)
+                } label: {
+                    if organization.pullRequestSort == sort {
+                        Label(sort.title, systemImage: "checkmark")
+                    } else {
+                        Text(sort.title)
+                    }
+                }
+            }
+        } label: {
+            HyperliteDashboardHeaderIcon(
+                systemName: "arrow.up.arrow.down",
+                active: organization.pullRequestSort != .recent
+            )
         }
-        .font(HyperliteTypography.regular(10))
-        .foregroundStyle(HyperliteTheme.mutedText.color)
-        .help(project.message ?? "GitHub data is unavailable")
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(
-            "\(project.name), \(project.status.rawValue), " +
-                "\(project.message ?? "GitHub data is unavailable")"
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help("Sort open pull requests")
+        .accessibilityLabel("Sort open pull requests")
+    }
+
+    private var pullRequestFilterBinding: Binding<HyperlitePullRequestFilter> {
+        Binding(
+            get: { organization.pullRequestFilter },
+            set: organization.setPullRequestFilter
         )
     }
 }

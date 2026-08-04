@@ -11,6 +11,7 @@
 | 0005 | dashboard-project-management | `docs/specs/0005-dashboard-project-management` | deliver | no | 2026-07-31 | Give Notes, Open PRs, and Projects equal scrollable space and add searchable project configuration commands. |
 | 0006 | notepad-daily-notes | `docs/specs/0006-notepad-daily-notes` | deliver | no | 2026-08-02 | Replace the single scratch document with one permanent pinned note, chronological daily Markdown notes, and direct exact or semantic search. |
 | 0007 | pinned-codex-threads | `docs/specs/0007-pinned-codex-threads` | deliver | no | 2026-08-02 | Show pinned Codex Desktop tasks in a compact read-only header projection with fail-closed membership and partial metadata. |
+| 0008 | dashboard-list-organization | `docs/specs/0008-dashboard-list-organization` | deliver | no | 2026-08-04 | Add quiet local filtering, sorting, transactional reordering, and project collapse controls to the dashboard lists. |
 
 ## PROJECT INTENT
 
@@ -138,8 +139,24 @@ changes that warrant human attention.
   validation are complete; ready pull-request delivery remains for issue #25.
 - **POINTERS**: `docs/specs/0007-pinned-codex-threads/SPEC.md`
 
+### dashboard-list-organization
+
+- **STATUS**: deliver
+- **PAUSED**: no
+- **INTENT**: Make dense Open PRs and Projects projections easier to reduce,
+  prioritize, and arrange without turning their title lines into toolbars.
+- **APPROACH**: Derive local deterministic filters and sorts from the loaded
+  projections, persist only sort/custom-order/collapse preferences, and use an
+  explicit transactional reorder mode with drag and accessible move actions.
+- **OPEN ITEMS**: Implementation and full local/package validation are
+  complete; ready pull-request delivery remains for issue #35.
+- **POINTERS**: `docs/specs/0008-dashboard-list-organization/SPEC.md`
+
 ## LAST UPDATED
 
+- 2026-08-04: Added feature `0008-dashboard-list-organization` with compact
+  title-line controls, transient local filters, persisted sorts and custom
+  orders, transactional reordering, and persistent project collapse state.
 - 2026-08-03: Replaced the simultaneous Notepad/Daily editors, recent-date
   menu, and right-side date controls with visually delineated fixed tabs,
   Daily-by-default presentation, and one leading native calendar disclosure.
