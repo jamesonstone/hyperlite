@@ -25,6 +25,7 @@ func TestScannerHonorsFiveMinuteFloorAndForceRefresh(t *testing.T) {
 				PullRequests: []model.ProjectPullRequest{{
 					ID: "owner/one#1", Number: 1, Title: "Cached",
 					HeadRefName:             "GH-1",
+					HeadRefOID:              "head-1",
 					UnresolvedReviewThreads: &cachedReviewThreads,
 				}},
 			},
@@ -64,7 +65,7 @@ func TestScannerHonorsFiveMinuteFloorAndForceRefresh(t *testing.T) {
 	}
 }
 
-func TestScannerRefreshesLegacyReviewCountsInsideFiveMinuteFloor(t *testing.T) {
+func TestScannerRefreshesLegacyProjectionFieldsInsideFiveMinuteFloor(t *testing.T) {
 	now := time.Date(2026, 7, 29, 16, 0, 0, 0, time.UTC)
 	freshReviewThreads := 0
 	source := config.Source{Path: "/repo/one"}
@@ -88,6 +89,7 @@ func TestScannerRefreshesLegacyReviewCountsInsideFiveMinuteFloor(t *testing.T) {
 		"owner/one": {PullRequests: []model.ProjectPullRequest{{
 			ID: "owner/one#1", Number: 1, Title: "Fresh",
 			HeadRefName:             "GH-1",
+			HeadRefOID:              "head-1",
 			UnresolvedReviewThreads: &freshReviewThreads,
 		}}},
 	}}
@@ -106,6 +108,7 @@ func TestScannerRefreshesLegacyReviewCountsInsideFiveMinuteFloor(t *testing.T) {
 		t.Fatal(err)
 	}
 	if client.calls != 1 ||
+		result.Projects[0].PullRequests[0].HeadRefOID != "head-1" ||
 		result.Projects[0].PullRequests[0].UnresolvedReviewThreads == nil ||
 		*result.Projects[0].PullRequests[0].UnresolvedReviewThreads != 0 {
 		t.Fatalf("calls=%d result=%#v", client.calls, result)
@@ -134,6 +137,7 @@ func TestScannerThrottlesFailedLegacyReviewCountHydration(t *testing.T) {
 					PullRequests: []model.ProjectPullRequest{{
 						ID: "owner/one#1", Number: 1, Title: "Legacy",
 						HeadRefName: "GH-1",
+						HeadRefOID:  "head-1",
 					}},
 				},
 			},

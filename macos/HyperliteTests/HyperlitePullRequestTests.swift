@@ -50,6 +50,7 @@ enum HyperlitePullRequestTests {
                 "title": "Draft change",
                 "url": "https://github.com/owner/one/pull/7",
                 "head_ref_name": "GH-7",
+                "head_ref_oid": "head-7",
                 "is_draft": true,
                 "updated_at": "2026-07-29T15:58:00Z"
               }]
@@ -68,6 +69,7 @@ enum HyperlitePullRequestTests {
                 "title": "Ready change",
                 "url": "https://github.com/owner/two/pull/9",
                 "head_ref_name": "GH-9",
+                "head_ref_oid": "head-9",
                 "is_draft": false,
                 "unresolved_review_threads": 3,
                 "updated_at": "2026-07-29T16:04:00Z"
@@ -106,6 +108,8 @@ enum HyperlitePullRequestTests {
                "legacy cached feedback should remain explicitly unavailable")
         expect(scan.projects[1].pullRequests[0].headRefName == "GH-9",
                "head branch should decode for project-lane projection")
+        expect(rows[0].headRefOID == "head-9",
+               "head commit should decode for revision-aware review markers")
         expect(rows[1].status == .cached && rows[1].isDraft,
                "cached draft metadata should remain visible")
         expect(rows[0].url?.absoluteString == "https://github.com/owner/two/pull/9",
@@ -176,7 +180,7 @@ enum HyperlitePullRequestTests {
         let pullRequest = HyperliteProjectPullRequest(
             id: "owner/one#1", number: 1, title: "Legacy",
             url: "https://github.com/owner/one/pull/1",
-            headRefName: "GH-1", isDraft: false,
+            headRefName: "GH-1", headRefOID: "head-1", isDraft: false,
             unresolvedReviewThreads: nil, updatedAt: checkedAt
         )
         func scan(status: HyperliteProjectPullRequestStatus)

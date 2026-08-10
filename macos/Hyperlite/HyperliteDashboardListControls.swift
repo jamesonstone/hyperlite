@@ -58,9 +58,17 @@ struct HyperlitePullRequestFilterPopover: View {
                 }
                 .labelsHidden()
             }
-            HyperliteDashboardFilterRow("Review") {
-                Picker("Review", selection: $filter.review) {
+            HyperliteDashboardFilterRow("Feedback") {
+                Picker("Review feedback", selection: $filter.review) {
                     ForEach(HyperlitePullRequestReviewFilter.allCases) {
+                        Text($0.title).tag($0)
+                    }
+                }
+                .labelsHidden()
+            }
+            HyperliteDashboardFilterRow("My review") {
+                Picker("My review", selection: $filter.localReview) {
+                    ForEach(HyperlitePullRequestLocalReviewFilter.allCases) {
                         Text($0.title).tag($0)
                     }
                 }

@@ -18,6 +18,7 @@ type ProjectPullRequest struct {
 	Title                   string    `json:"title"`
 	URL                     string    `json:"url"`
 	HeadRefName             string    `json:"head_ref_name"`
+	HeadRefOID              string    `json:"head_ref_oid"`
 	IsDraft                 bool      `json:"is_draft"`
 	UnresolvedReviewThreads *int      `json:"unresolved_review_threads,omitempty"`
 	UpdatedAt               time.Time `json:"updated_at"`

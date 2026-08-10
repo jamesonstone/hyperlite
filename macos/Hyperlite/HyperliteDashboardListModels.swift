@@ -31,47 +31,6 @@ enum HyperliteProjectSort: String, CaseIterable, Identifiable {
     }
 }
 
-enum HyperlitePullRequestStateFilter: String, CaseIterable, Identifiable {
-    case all, ready, draft
-
-    var id: String { rawValue }
-    var title: String { rawValue.capitalized }
-}
-
-enum HyperlitePullRequestReviewFilter: String, CaseIterable, Identifiable {
-    case all, attention, clear, unavailable
-
-    var id: String { rawValue }
-    var title: String {
-        switch self {
-        case .all: "All review states"
-        case .attention: "Needs attention"
-        case .clear: "No unresolved feedback"
-        case .unavailable: "Feedback unavailable"
-        }
-    }
-}
-
-enum HyperlitePullRequestDataFilter: String, CaseIterable, Identifiable {
-    case all, current, cached, unavailable
-
-    var id: String { rawValue }
-    var title: String { rawValue == "all" ? "All data states" : rawValue.capitalized }
-}
-
-struct HyperlitePullRequestFilter: Equatable {
-    var query = ""
-    var repository = ""
-    var state: HyperlitePullRequestStateFilter = .all
-    var review: HyperlitePullRequestReviewFilter = .all
-    var data: HyperlitePullRequestDataFilter = .all
-
-    var isActive: Bool {
-        !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-            !repository.isEmpty || state != .all || review != .all || data != .all
-    }
-}
-
 enum HyperliteProjectLaneFilter: String, CaseIterable, Identifiable {
     case all, branch, worktree
 
@@ -110,7 +69,8 @@ enum HyperliteDashboardListPresentation {
         _ rows: [HyperlitePullRequestRow],
         filter: HyperlitePullRequestFilter,
         sort: HyperlitePullRequestSort,
-        customOrder: [String]
+        customOrder: [String],
+        reviewStatuses: [String: HyperlitePullRequestReviewStatus] = [:]
     ) -> [HyperlitePullRequestRow] {
         let query = normalized(filter.query.trimmingCharacters(in: .whitespacesAndNewlines))
         let filtered = rows.filter { row in
@@ -130,8 +90,16 @@ enum HyperliteDashboardListPresentation {
             case .clear: row.unresolvedReviewThreads == 0
             case .unavailable: row.unresolvedReviewThreads == nil
             }
+            let localReviewStatus = reviewStatuses[row.id] ?? .unreviewed
+            let localReviewMatches = switch filter.localReview {
+            case .all: true
+            case .unreviewed: localReviewStatus == .unreviewed
+            case .reviewed: localReviewStatus == .reviewed
+            case .stale: localReviewStatus == .stale
+            }
             let dataMatches = filter.data == .all || row.status.rawValue == filter.data.rawValue
-            return queryMatches && repositoryMatches && stateMatches && reviewMatches && dataMatches
+            return queryMatches && repositoryMatches && stateMatches && reviewMatches &&
+                localReviewMatches && dataMatches
         }
         return sortedPullRequests(filtered, sort: sort, customOrder: customOrder)
     }
@@ -140,7 +108,9 @@ enum HyperliteDashboardListPresentation {
         _ projects: [HyperliteProjectPullRequests],
         filter: HyperlitePullRequestFilter
     ) -> [HyperliteProjectPullRequests] {
-        guard filter.state == .all, filter.review == .all else { return [] }
+        guard filter.state == .all, filter.review == .all,
+              filter.localReview == .all
+        else { return [] }
         let query = normalized(filter.query.trimmingCharacters(in: .whitespacesAndNewlines))
         return projects.filter { project in
             let identity = project.repository ?? project.name

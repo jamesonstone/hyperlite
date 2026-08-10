@@ -8,6 +8,7 @@ final class HyperliteDashboardListState: ObservableObject {
     @Published private(set) var pullRequestFilter = HyperlitePullRequestFilter()
     @Published private(set) var projectFilter = HyperliteProjectFilter()
     @Published private(set) var collapsedProjectIDs: Set<String>
+    @Published private(set) var pullRequestReviewMarks: [String: HyperlitePullRequestReviewMark]
     @Published private(set) var isReorderingPullRequests = false
     @Published private(set) var isReorderingProjects = false
 
@@ -30,6 +31,7 @@ final class HyperliteDashboardListState: ObservableObject {
         pullRequestOrder = defaults.stringArray(forKey: Keys.pullRequestOrder) ?? []
         projectOrder = defaults.stringArray(forKey: Keys.projectOrder) ?? []
         collapsedProjectIDs = Set(defaults.stringArray(forKey: Keys.collapsedProjects) ?? [])
+        pullRequestReviewMarks = Self.decodePullRequestReviewMarks(defaults: defaults)
     }
 
     func setPullRequestFilter(_ filter: HyperlitePullRequestFilter) {
@@ -38,6 +40,55 @@ final class HyperliteDashboardListState: ObservableObject {
 
     func clearPullRequestFilter() {
         pullRequestFilter = HyperlitePullRequestFilter()
+    }
+
+    var pullRequestReviewMarkCount: Int { pullRequestReviewMarks.count }
+
+    func pullRequestReviewStatus(
+        for row: HyperlitePullRequestRow
+    ) -> HyperlitePullRequestReviewStatus {
+        HyperlitePullRequestReviewPresentation.status(
+            for: row,
+            mark: pullRequestReviewMarks[row.reviewID]
+        )
+    }
+
+    func togglePullRequestReviewed(_ row: HyperlitePullRequestRow, now: Date = Date()) {
+        if pullRequestReviewStatus(for: row) == .reviewed {
+            pullRequestReviewMarks.removeValue(forKey: row.reviewID)
+        } else {
+            let headRefOID = row.headRefOID.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard row.status == .current, !headRefOID.isEmpty else { return }
+            pullRequestReviewMarks[row.reviewID] = HyperlitePullRequestReviewMark(
+                repository: row.repository,
+                headRefOID: headRefOID,
+                markedAt: now
+            )
+        }
+        persistPullRequestReviewMarks()
+    }
+
+    func clearPullRequestReviewMarks() {
+        guard !pullRequestReviewMarks.isEmpty else { return }
+        pullRequestReviewMarks.removeAll()
+        persistPullRequestReviewMarks()
+    }
+
+    func reconcilePullRequestReviewMarks(scan: HyperliteProjectPullRequestScan) {
+        var currentReviewIDs: [String: Set<String>] = [:]
+        for project in scan.projects where project.status == .current {
+            guard let repository = project.repository else { continue }
+            currentReviewIDs[Self.normalizedRepository(repository), default: []]
+                .formUnion(project.pullRequests.map(\.id))
+        }
+        let retained = pullRequestReviewMarks.filter { reviewID, mark in
+            guard let current = currentReviewIDs[Self.normalizedRepository(mark.repository)]
+            else { return true }
+            return current.contains(reviewID)
+        }
+        guard retained != pullRequestReviewMarks else { return }
+        pullRequestReviewMarks = retained
+        persistPullRequestReviewMarks()
     }
 
     func setProjectFilter(_ filter: HyperliteProjectFilter) {
@@ -187,6 +238,31 @@ final class HyperliteDashboardListState: ObservableObject {
         defaults.set(collapsedProjectIDs.sorted(), forKey: Keys.collapsedProjects)
     }
 
+    private func persistPullRequestReviewMarks() {
+        guard let data = try? JSONEncoder().encode(pullRequestReviewMarks) else { return }
+        defaults.set(data, forKey: Keys.pullRequestReviewMarks)
+    }
+
+    private static func decodePullRequestReviewMarks(
+        defaults: UserDefaults
+    ) -> [String: HyperlitePullRequestReviewMark] {
+        guard let data = defaults.data(forKey: Keys.pullRequestReviewMarks),
+              let decoded = try? JSONDecoder().decode(
+                  [String: HyperlitePullRequestReviewMark].self,
+                  from: data
+              )
+        else { return [:] }
+        return decoded.filter { reviewID, mark in
+            !reviewID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+                !mark.repository.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+                !mark.headRefOID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+    }
+
+    private static func normalizedRepository(_ repository: String) -> String {
+        repository.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
     private func move(_ id: String, over targetID: String, in order: inout [String]) {
         guard id != targetID,
               let source = order.firstIndex(of: id),
@@ -212,5 +288,6 @@ final class HyperliteDashboardListState: ObservableObject {
         static let pullRequestOrder = "hyperlite.dashboard.open-pr-order"
         static let projectOrder = "hyperlite.dashboard.project-order"
         static let collapsedProjects = "hyperlite.dashboard.collapsed-projects"
+        static let pullRequestReviewMarks = "hyperlite.dashboard.open-pr-review-marks"
     }
 }

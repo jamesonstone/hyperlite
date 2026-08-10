@@ -240,11 +240,13 @@ enum HyperlitePaletteTests {
             HyperliteProjectPullRequest(
                 id: "owner/kit#7", number: 7, title: "Ship feature",
                 url: "https://github.com/owner/kit/pull/7", headRefName: "GH-7",
+                headRefOID: "head-7",
                 isDraft: false, unresolvedReviewThreads: 0, updatedAt: Date()
             ),
             HyperliteProjectPullRequest(
                 id: "owner/kit#8", number: 8, title: "Draft cleanup",
                 url: "https://github.com/owner/kit/pull/8", headRefName: "GH-8",
+                headRefOID: "head-8",
                 isDraft: true, unresolvedReviewThreads: 0, updatedAt: Date()
             ),
         ]

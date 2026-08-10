@@ -24,6 +24,7 @@ func TestScannerReturnsCacheSnapshotMutatedUnderStoreLock(t *testing.T) {
 				PullRequests: []model.ProjectPullRequest{{
 					ID: "owner/two#2", Number: 2, Title: "Before",
 					HeadRefName: "GH-2",
+					HeadRefOID:  "head-2",
 				}},
 			},
 		},

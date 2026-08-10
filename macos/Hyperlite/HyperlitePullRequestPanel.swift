@@ -19,8 +19,15 @@ struct HyperlitePullRequestPanel: View {
             sourceRows,
             filter: filter,
             sort: sort,
-            customOrder: organization.orderedPullRequestIDs(sourceRows.map(\.id))
+            customOrder: organization.orderedPullRequestIDs(sourceRows.map(\.id)),
+            reviewStatuses: reviewStatuses
         )
+    }
+
+    private var reviewStatuses: [String: HyperlitePullRequestReviewStatus] {
+        sourceRows.reduce(into: [:]) { values, row in
+            values[row.id] = organization.pullRequestReviewStatus(for: row)
+        }
     }
 
     private var availability: [HyperliteProjectPullRequests] {
@@ -45,6 +52,12 @@ struct HyperlitePullRequestPanel: View {
         return "\(sourceRows.count)"
     }
 
+    private var reviewedCount: Int {
+        Set(sourceRows.filter {
+            organization.pullRequestReviewStatus(for: $0) == .reviewed
+        }.map(\.reviewID)).count
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             header
@@ -60,12 +73,17 @@ struct HyperlitePullRequestPanel: View {
                         if organization.isReorderingPullRequests {
                             HyperlitePullRequestReorderRow(
                                 row: row,
+                                reviewStatus: organization.pullRequestReviewStatus(for: row),
                                 draggedRowID: $draggedRowID,
                                 move: organization.movePullRequest,
                                 moveBy: organization.movePullRequest
                             )
                         } else {
-                            HyperlitePullRequestPanelRow(row: row)
+                            HyperlitePullRequestPanelRow(
+                                row: row,
+                                reviewStatus: organization.pullRequestReviewStatus(for: row),
+                                toggleReview: { organization.togglePullRequestReviewed(row) }
+                            )
                         }
                     }
                     ForEach(availability) { project in
@@ -77,6 +95,9 @@ struct HyperlitePullRequestPanel: View {
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Open pull requests across configured projects")
+        .task(id: scan.generatedAt) {
+            organization.reconcilePullRequestReviewMarks(scan: scan)
+        }
     }
 
     private var header: some View {
@@ -86,6 +107,9 @@ struct HyperlitePullRequestPanel: View {
                 .foregroundStyle(HyperliteTheme.secondaryText.color)
             Text(countLabel)
                 .font(HyperliteTypography.bold(10).monospacedDigit())
+                .foregroundStyle(HyperliteTheme.mutedText.color)
+            Text("\(reviewedCount) reviewed")
+                .font(HyperliteTypography.regular(10).monospacedDigit())
                 .foregroundStyle(HyperliteTheme.mutedText.color)
             Spacer()
             if organization.isReorderingPullRequests {
@@ -101,6 +125,12 @@ struct HyperlitePullRequestPanel: View {
                     organization.finishPullRequestReordering(commit: true)
                 }
             } else {
+                HyperliteDashboardControlButton(
+                    systemName: "xmark.square",
+                    active: organization.pullRequestReviewMarkCount > 0,
+                    label: "Clear all reviewed pull request marks",
+                    disabled: organization.pullRequestReviewMarkCount == 0
+                ) { organization.clearPullRequestReviewMarks() }
                 HyperliteDashboardControlButton(
                     systemName: "line.3.horizontal.decrease",
                     active: organization.pullRequestFilter.isActive,

@@ -81,13 +81,30 @@ Each row places an actionable review-feedback count after its ready or draft
 state. Only unresolved, non-outdated GitHub review threads count. Nonzero counts
 use the orange attention color, confirmed zero uses a quiet dash, and
 unavailable legacy cache data uses `?` until a complete refresh supplies an
-exact count. The entire row remains a link to the pull request.
+exact count. The row content opens the pull request; its separate leading
+checkbox, immediately before the repository name, changes only the private
+`Reviewed by me` marker.
+
+A review mark is stored locally for the exact observed head commit and survives
+relaunches. Marked rows stay in place and become subtly muted. When current
+GitHub evidence reports a new head commit, Hyperlite restores normal emphasis
+and shows an orange stale marker until the new revision is reviewed or the mark
+is cleared. Cached or unavailable evidence preserves the last mark; a cached
+row may clear that mark but cannot create or replace one.
 
 The quiet icons on the Open PRs title line filter the loaded index, choose a
-sort order, or enter reorder mode. Filters are temporary and never refresh
-GitHub. Sort choices persist. Reorder shows every loaded row with drag handles;
-Done saves a custom order, while Cancel restores the previous order. Accessible
-Move up and Move down actions provide the same control without dragging.
+sort order, clear all local review marks, or enter reorder mode. The title shows
+the count currently reviewed. Filters include local Unreviewed, Reviewed, and
+Stale states; they are temporary and never refresh GitHub. Sort choices persist.
+Reorder shows every loaded row with drag handles; Done saves a custom order,
+while Cancel restores the previous order. Accessible Move up and Move down
+actions provide the same control without dragging.
+
+`Reviewed by me` is organization metadata, not GitHub approval, review-feedback
+resolution, passing checks, mergeability, or permission to merge. Hyperlite
+does not post a comment, label, or review. A merge operator or coding agent must
+still refresh and verify the exact head, feedback, checks, conflicts, protection
+rules, and final merged state.
 
 ### Projects and worktrees
 

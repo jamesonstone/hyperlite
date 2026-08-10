@@ -44,6 +44,7 @@ type rawPullRequest struct {
 	Title         string                     `json:"title"`
 	URL           string                     `json:"url"`
 	HeadRefName   string                     `json:"headRefName"`
+	HeadRefOID    string                     `json:"headRefOid"`
 	IsDraft       bool                       `json:"isDraft"`
 	UpdatedAt     time.Time                  `json:"updatedAt"`
 	ReviewThreads *rawReviewThreadConnection `json:"reviewThreads"`
@@ -143,6 +144,10 @@ func (c GitHubClient) collectBatch(
 			key := repositoryKey(request.repository.GitHub)
 			result := results[key]
 			for _, pullRequest := range raw.PullRequests.Nodes {
+				if strings.TrimSpace(pullRequest.HeadRefOID) == "" {
+					result.Error = "GitHub returned no pull request head commit"
+					continue
+				}
 				if pullRequest.ReviewThreads == nil {
 					result.Error = "GitHub returned no review thread data"
 					continue
@@ -154,6 +159,7 @@ func (c GitHubClient) collectBatch(
 					ID:     fmt.Sprintf("%s#%d", request.repository.GitHub, pullRequest.Number),
 					Number: pullRequest.Number, Title: pullRequest.Title,
 					URL: pullRequest.URL, HeadRefName: pullRequest.HeadRefName,
+					HeadRefOID:              pullRequest.HeadRefOID,
 					IsDraft:                 pullRequest.IsDraft,
 					UnresolvedReviewThreads: &unresolvedReviewThreads,
 					UpdatedAt:               pullRequest.UpdatedAt.UTC(),

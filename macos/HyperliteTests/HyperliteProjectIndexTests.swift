@@ -101,7 +101,7 @@ enum HyperliteProjectIndexTests {
         let pullRequest = HyperliteProjectPullRequest(
             id: "owner/hyperlite#10", number: 10, title: "Open",
             url: "https://github.com/owner/hyperlite/pull/10",
-            headRefName: "GH-9", isDraft: false,
+            headRefName: "GH-9", headRefOID: "head-9", isDraft: false,
             unresolvedReviewThreads: 0, updatedAt: Date()
         )
         let scan = HyperliteProjectPullRequestScan(

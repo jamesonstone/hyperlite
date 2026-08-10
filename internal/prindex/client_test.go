@@ -18,6 +18,7 @@ func TestGitHubClientBatchesRepositoriesAndPaginatesOnlyWhenNeeded(t *testing.T)
 		case 1:
 			if !strings.Contains(query, `name: "one"`) ||
 				!strings.Contains(query, `name: "two"`) ||
+				!strings.Contains(query, "headRefOid") ||
 				!strings.Contains(query, `nodes { isResolved isOutdated }`) {
 				t.Fatalf("first query = %s", query)
 			}
@@ -50,6 +51,7 @@ func TestGitHubClientBatchesRepositoriesAndPaginatesOnlyWhenNeeded(t *testing.T)
 		len(got.PullRequests) != 2 ||
 		got.PullRequests[0].Number != 3 ||
 		got.PullRequests[0].HeadRefName != "GH-3" ||
+		got.PullRequests[0].HeadRefOID != "head-3" ||
 		got.PullRequests[1].Number != 1 {
 		t.Fatalf("owner/one = %#v", got)
 	}
@@ -80,6 +82,23 @@ func TestGitHubClientCountsOnlyActionableReviewThreads(t *testing.T) {
 	if result.Error != "" || len(result.PullRequests) != 1 ||
 		result.PullRequests[0].UnresolvedReviewThreads == nil ||
 		*result.PullRequests[0].UnresolvedReviewThreads != 1 {
+		t.Fatalf("result = %#v", result)
+	}
+}
+
+func TestGitHubClientRejectsMissingHeadCommit(t *testing.T) {
+	runner := &graphQLRunner{respond: func(_ string, _ int) ([]byte, error) {
+		page := repositoryPage(1, false, "")
+		pullRequests := page["pullRequests"].(map[string]any)
+		nodes := pullRequests["nodes"].([]map[string]any)
+		delete(nodes[0], "headRefOid")
+		return responseJSON(map[string]any{"repository0": page}, nil), nil
+	}}
+	result := (GitHubClient{Runner: runner}).ListOpen(
+		context.Background(), []config.Repository{{GitHub: "owner/one"}},
+	).Repositories["owner/one"]
+	if result.Error != "GitHub returned no pull request head commit" ||
+		len(result.PullRequests) != 0 {
 		t.Fatalf("result = %#v", result)
 	}
 }
@@ -377,6 +396,7 @@ func repositoryPageWithReviewThreads(
 				"title":       fmt.Sprintf("Pull request %d", number),
 				"url":         fmt.Sprintf("https://github.com/owner/repo/pull/%d", number),
 				"headRefName": fmt.Sprintf("GH-%d", number),
+				"headRefOid":  fmt.Sprintf("head-%d", number),
 				"isDraft":     number%2 == 0,
 				"updatedAt":   fmt.Sprintf("2026-07-29T12:%02d:00Z", number),
 				"reviewThreads": reviewThreadPage(
