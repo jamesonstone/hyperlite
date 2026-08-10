@@ -201,19 +201,19 @@ enum HyperliteDashboardListTests {
     private static func pullRequestRows() -> [HyperlitePullRequestRow] {
         let now = Date(timeIntervalSince1970: 1_785_850_000)
         return [
-            HyperlitePullRequestRow(
-                id: "one#12", repository: "owner/one", status: .current,
-                number: 12, title: "Bump brace expansion", url: nil, isDraft: true,
+            HyperlitePullRequestRow(id: "one#12", reviewID: "owner/one#12",
+                repository: "owner/one", status: .current, number: 12,
+                title: "Bump brace expansion", url: nil, headRefOID: "head-12", isDraft: true,
                 unresolvedReviewThreads: 2, updatedAt: now
             ),
-            HyperlitePullRequestRow(
-                id: "one#3", repository: "owner/one", status: .cached,
-                number: 3, title: "Cached repair", url: nil, isDraft: false,
+            HyperlitePullRequestRow(id: "one#3", reviewID: "owner/one#3",
+                repository: "owner/one", status: .cached, number: 3,
+                title: "Cached repair", url: nil, headRefOID: "head-3", isDraft: false,
                 unresolvedReviewThreads: nil, updatedAt: now.addingTimeInterval(-20)
             ),
-            HyperlitePullRequestRow(
-                id: "two#8", repository: "owner/two", status: .current,
-                number: 8, title: "Ready change", url: nil, isDraft: false,
+            HyperlitePullRequestRow(id: "two#8", reviewID: "owner/two#8",
+                repository: "owner/two", status: .current, number: 8,
+                title: "Ready change", url: nil, headRefOID: "head-8", isDraft: false,
                 unresolvedReviewThreads: 0, updatedAt: now.addingTimeInterval(-10)
             ),
         ]
@@ -222,19 +222,19 @@ enum HyperliteDashboardListTests {
     private static func caseVariantPullRequestRows() -> [HyperlitePullRequestRow] {
         let now = Date(timeIntervalSince1970: 1_785_850_000)
         return [
-            HyperlitePullRequestRow(
-                id: "oldest", repository: "Owner/Repo", status: .current,
-                number: 1, title: "Oldest", url: nil, isDraft: false,
+            HyperlitePullRequestRow(id: "oldest", reviewID: "owner/repo#1",
+                repository: "Owner/Repo", status: .current, number: 1,
+                title: "Oldest", url: nil, headRefOID: "head-1", isDraft: false,
                 unresolvedReviewThreads: 0, updatedAt: now.addingTimeInterval(-20)
             ),
-            HyperlitePullRequestRow(
-                id: "middle", repository: "owner/repo", status: .current,
-                number: 2, title: "Middle", url: nil, isDraft: false,
+            HyperlitePullRequestRow(id: "middle", reviewID: "owner/repo#2",
+                repository: "owner/repo", status: .current, number: 2,
+                title: "Middle", url: nil, headRefOID: "head-2", isDraft: false,
                 unresolvedReviewThreads: 0, updatedAt: now.addingTimeInterval(-10)
             ),
-            HyperlitePullRequestRow(
-                id: "newest", repository: "Owner/Repo", status: .current,
-                number: 3, title: "Newest", url: nil, isDraft: false,
+            HyperlitePullRequestRow(id: "newest", reviewID: "owner/repo#3",
+                repository: "Owner/Repo", status: .current, number: 3,
+                title: "Newest", url: nil, headRefOID: "head-3", isDraft: false,
                 unresolvedReviewThreads: 0, updatedAt: now
             ),
         ]

@@ -53,6 +53,7 @@ struct HyperliteProjectPullRequest: Codable, Equatable, Identifiable {
     let title: String
     let url: String
     let headRefName: String
+    let headRefOID: String
     let isDraft: Bool
     let unresolvedReviewThreads: Int?
     let updatedAt: Date
@@ -60,6 +61,7 @@ struct HyperliteProjectPullRequest: Codable, Equatable, Identifiable {
     enum CodingKeys: String, CodingKey {
         case id, number, title, url
         case headRefName = "head_ref_name"
+        case headRefOID = "head_ref_oid"
         case isDraft = "is_draft"
         case unresolvedReviewThreads = "unresolved_review_threads"
         case updatedAt = "updated_at"
@@ -68,11 +70,13 @@ struct HyperliteProjectPullRequest: Codable, Equatable, Identifiable {
 
 struct HyperlitePullRequestRow: Equatable, Identifiable {
     let id: String
+    let reviewID: String
     let repository: String
     let status: HyperliteProjectPullRequestStatus
     let number: Int
     let title: String
     let url: URL?
+    let headRefOID: String
     let isDraft: Bool
     let unresolvedReviewThreads: Int?
     let updatedAt: Date
@@ -106,11 +110,13 @@ enum HyperlitePullRequestPresentation {
             project.pullRequests.map { pullRequest in
                 HyperlitePullRequestRow(
                     id: "\(project.id)\u{1F}\(pullRequest.id)",
+                    reviewID: pullRequest.id,
                     repository: project.repository ?? project.name,
                     status: project.status,
                     number: pullRequest.number,
                     title: pullRequest.title,
                     url: URL(string: pullRequest.url),
+                    headRefOID: pullRequest.headRefOID,
                     isDraft: pullRequest.isDraft,
                     unresolvedReviewThreads: pullRequest.unresolvedReviewThreads,
                     updatedAt: pullRequest.updatedAt
@@ -135,7 +141,7 @@ enum HyperlitePullRequestPresentation {
     ) -> Bool {
         if scan.projects.contains(where: { project in
             project.status == .current && project.pullRequests.contains {
-                $0.unresolvedReviewThreads == nil
+                $0.unresolvedReviewThreads == nil || $0.headRefOID.isEmpty
             }
         }) {
             return true

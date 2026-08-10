@@ -62,7 +62,12 @@
   establish inferred attention or thread lifecycle state. Caller rate-limit
   metadata rides with those same bounded GraphQL requests and is cached only as
   a complete observation; quota visibility never adds polling, changes refresh
-  authority, or establishes attention.
+  authority, or establishes attention. A local `Reviewed by me` marker is
+  private presentation metadata bound to the exact observed pull-request head
+  commit. A new current head invalidates that review, and only current
+  repository evidence may prune a marker; cached or unavailable evidence
+  preserves it. The marker never publishes GitHub state or establishes
+  approval, attention, readiness, merge order, or merge authorization.
 - Pinned Codex threads are a separate read-only operator projection, not
   inferred Hyperlite threads, project evidence, lifecycle state, or attention.
   A valid Desktop `pinned-thread-ids` array alone establishes membership;

@@ -12,6 +12,7 @@
 | 0006 | notepad-daily-notes | `docs/specs/0006-notepad-daily-notes` | deliver | no | 2026-08-02 | Replace the single scratch document with one permanent pinned note, chronological daily Markdown notes, and direct exact or semantic search. |
 | 0007 | pinned-codex-threads | `docs/specs/0007-pinned-codex-threads` | deliver | no | 2026-08-02 | Show pinned Codex Desktop tasks in a compact read-only header projection with fail-closed membership and partial metadata. |
 | 0008 | dashboard-list-organization | `docs/specs/0008-dashboard-list-organization` | deliver | no | 2026-08-04 | Add quiet local filtering, sorting, transactional reordering, and project collapse controls to the dashboard lists. |
+| 0009 | reviewed-pull-request-markers | `docs/specs/0009-reviewed-pull-request-markers` | deliver | no | 2026-08-10 | Add private exact-head review markers, local review filtering, stale-state presentation, and bulk clear to Open PRs. |
 
 ## PROJECT INTENT
 
@@ -152,8 +153,25 @@ changes that warrant human attention.
   complete; ready pull-request delivery remains for issue #35.
 - **POINTERS**: `docs/specs/0008-dashboard-list-organization/SPEC.md`
 
+### reviewed-pull-request-markers
+
+- **STATUS**: deliver
+- **PAUSED**: no
+- **INTENT**: Let the operator privately mark which exact Open PR revisions
+  have already received their review before organizing a merge-order train.
+- **APPROACH**: Carry each PR head commit through the existing bounded
+  projection, persist exact-head marks as app-local presentation metadata,
+  preserve them during non-authoritative observations, and provide reviewed,
+  stale, and unreviewed filtering plus one complete bulk-clear action.
+- **OPEN ITEMS**: Issue #39 owns ready pull-request delivery; no additional
+  feature work is defined.
+- **POINTERS**: `docs/specs/0009-reviewed-pull-request-markers/SPEC.md`
+
 ## LAST UPDATED
 
+- 2026-08-10: Added feature `0009-reviewed-pull-request-markers` with private
+  exact-head review state, authoritative invalidation and pruning, local
+  filters, reviewed counts, and complete bulk clearing without GitHub mutation.
 - 2026-08-04: Added feature `0008-dashboard-list-organization` with compact
   title-line controls, transient local filters, persisted sorts and custom
   orders, transactional reordering, and persistent project collapse state.

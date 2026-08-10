@@ -5,15 +5,31 @@ import UniformTypeIdentifiers
 struct HyperlitePullRequestPanelRow: View {
     static let layout = HyperlitePullRequestRowLayout.repositoryFirst
     let row: HyperlitePullRequestRow
+    let reviewStatus: HyperlitePullRequestReviewStatus
+    let toggleReview: () -> Void
 
     var body: some View {
-        Button(action: openPullRequest) {
-            HyperlitePullRequestRowContent(row: row)
+        HStack(spacing: 4) {
+            Button(action: openPullRequest) {
+                HyperlitePullRequestRowContent(
+                    row: row,
+                    reviewStatus: reviewStatus
+                )
+            }
+            .buttonStyle(.plain)
+            .disabled(row.url == nil)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .help(row.url?.absoluteString ?? "Pull request URL is unavailable")
+            .accessibilityLabel(HyperlitePullRequestRowContent.accessibilityLabel(
+                for: row,
+                reviewStatus: reviewStatus
+            ))
+            HyperlitePullRequestReviewToggle(
+                row: row,
+                status: reviewStatus,
+                action: toggleReview
+            )
         }
-        .buttonStyle(.plain)
-        .disabled(row.url == nil)
-        .help(row.url?.absoluteString ?? "Pull request URL is unavailable")
-        .accessibilityLabel(HyperlitePullRequestRowContent.accessibilityLabel(for: row))
     }
 
     private func openPullRequest() {
@@ -24,9 +40,17 @@ struct HyperlitePullRequestPanelRow: View {
 
 struct HyperlitePullRequestReorderRow: View {
     let row: HyperlitePullRequestRow
+    let reviewStatus: HyperlitePullRequestReviewStatus
     @Binding var draggedRowID: String?
     let move: (String, String) -> Void
     let moveBy: (String, Int) -> Void
+
+    private var rowAccessibilityLabel: String {
+        HyperlitePullRequestRowContent.accessibilityLabel(
+            for: row,
+            reviewStatus: reviewStatus
+        )
+    }
 
     var body: some View {
         HStack(spacing: 4) {
@@ -39,7 +63,7 @@ struct HyperlitePullRequestReorderRow: View {
                     draggedRowID = row.id
                     return NSItemProvider(object: row.id as NSString)
                 }
-            HyperlitePullRequestRowContent(row: row)
+            HyperlitePullRequestRowContent(row: row, reviewStatus: reviewStatus)
         }
         .contentShape(Rectangle())
         .onDrop(
@@ -51,7 +75,7 @@ struct HyperlitePullRequestReorderRow: View {
             )
         )
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Reorder \(HyperlitePullRequestRowContent.accessibilityLabel(for: row))")
+        .accessibilityLabel("Reorder \(rowAccessibilityLabel)")
         .accessibilityAction(named: "Move up") { moveBy(row.id, -1) }
         .accessibilityAction(named: "Move down") { moveBy(row.id, 1) }
     }
@@ -59,6 +83,7 @@ struct HyperlitePullRequestReorderRow: View {
 
 private struct HyperlitePullRequestRowContent: View {
     let row: HyperlitePullRequestRow
+    let reviewStatus: HyperlitePullRequestReviewStatus
 
     private var review: HyperliteReviewFeedbackPresentation {
         HyperlitePullRequestPresentation.reviewFeedback(
@@ -98,14 +123,78 @@ private struct HyperlitePullRequestRowContent: View {
         .font(HyperliteTypography.regular(10))
         .foregroundStyle(HyperliteTheme.secondaryText.color)
         .contentShape(Rectangle())
+        .opacity(reviewStatus == .reviewed ? 0.62 : 1)
     }
 
-    static func accessibilityLabel(for row: HyperlitePullRequestRow) -> String {
+    static func accessibilityLabel(
+        for row: HyperlitePullRequestRow,
+        reviewStatus: HyperlitePullRequestReviewStatus
+    ) -> String {
         let review = HyperlitePullRequestPresentation.reviewFeedback(
             unresolvedThreads: row.unresolvedReviewThreads
         )
         return "\(row.repository) pull request \(row.number), " +
-            "\(row.isDraft ? "draft" : "ready"), \(review.accessibilityLabel), \(row.title)"
+            "\(row.isDraft ? "draft" : "ready"), \(review.accessibilityLabel), " +
+            "\(reviewStatus.accessibilityLabel), \(row.title)"
+    }
+}
+
+private struct HyperlitePullRequestReviewToggle: View {
+    let row: HyperlitePullRequestRow
+    let status: HyperlitePullRequestReviewStatus
+    let action: () -> Void
+
+    private var canToggle: Bool {
+        status == .reviewed || !row.headRefOID.isEmpty
+    }
+
+    private var icon: String {
+        switch status {
+        case .unreviewed: "square"
+        case .reviewed: "checkmark.square.fill"
+        case .stale: "exclamationmark.square.fill"
+        }
+    }
+
+    private var color: Color {
+        switch status {
+        case .unreviewed: HyperliteTheme.mutedText.color
+        case .reviewed: HyperliteTheme.cyan.color
+        case .stale: HyperliteTheme.orange.color
+        }
+    }
+
+    private var help: String {
+        switch status {
+        case .unreviewed where row.headRefOID.isEmpty:
+            "Refresh GitHub data before marking this pull request reviewed"
+        case .unreviewed:
+            "Mark reviewed by me for head \(shortHead)"
+        case .reviewed:
+            "Clear reviewed-by-me mark"
+        case .stale:
+            "Review mark is stale; mark head \(shortHead) reviewed"
+        }
+    }
+
+    private var shortHead: String {
+        String(row.headRefOID.prefix(7))
+    }
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(color)
+                .frame(width: 20, height: 18)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!canToggle)
+        .help(help)
+        .accessibilityLabel("Reviewed by me")
+        .accessibilityValue(status.accessibilityLabel)
+        .accessibilityHint(help)
     }
 }
 

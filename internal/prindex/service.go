@@ -180,7 +180,7 @@ func repositoriesToRefresh(
 			continue
 		}
 		entry, cached := cache.Repositories[key]
-		if cached && entry.CheckedAt.IsZero() && cacheEntryNeedsHeadRefs(entry) {
+		if cached && entry.LastError == "" && cacheEntryNeedsHeadRefs(entry) {
 			cached = false
 		}
 		if cached && entry.LastError == "" && cacheEntryNeedsReviewCounts(entry) {
@@ -202,7 +202,7 @@ func repositoriesToRefresh(
 
 func cacheEntryNeedsHeadRefs(entry cacheEntry) bool {
 	for _, pullRequest := range entry.PullRequests {
-		if pullRequest.HeadRefName == "" {
+		if pullRequest.HeadRefName == "" || pullRequest.HeadRefOID == "" {
 			return true
 		}
 	}

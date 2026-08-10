@@ -30,6 +30,7 @@ func TestStoreRoundTripUsesPrivateAtomicCache(t *testing.T) {
 			Repository: "owner/one", ObservedAt: now,
 			PullRequests: []model.ProjectPullRequest{{
 				ID: "owner/one#1", Number: 1, Title: "One",
+				HeadRefName: "GH-1", HeadRefOID: "head-1",
 			}},
 		}
 	})
@@ -40,6 +41,7 @@ func TestStoreRoundTripUsesPrivateAtomicCache(t *testing.T) {
 	if err != nil || warning != "" ||
 		state.Projects["/repo/one"] != "owner/one" ||
 		len(state.Repositories["owner/one"].PullRequests) != 1 ||
+		state.Repositories["owner/one"].PullRequests[0].HeadRefOID != "head-1" ||
 		state.RateLimit == nil || state.RateLimit.Used != 125 ||
 		state.RateLimit.BurnRate == nil ||
 		state.RateLimit.BurnRate.PointsPerHour != 2400 ||
