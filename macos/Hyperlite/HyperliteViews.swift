@@ -252,6 +252,8 @@ struct HyperliteWindow: View {
         switch action {
         case .refresh:
             state.refreshAll()
+        case .forceCacheRefresh:
+            state.forceCacheRefresh()
         case .settings:
             openHyperliteSettings()
         case .addProject:

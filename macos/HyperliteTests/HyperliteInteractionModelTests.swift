@@ -11,6 +11,7 @@ struct HyperliteInteractionModelTests {
         HyperlitePaletteTests.run()
         testSelectionClamping()
         testHoverSummaryLimit()
+        testProcessEnvironment()
         HyperliteWorkspaceSizingTests.run()
         HyperliteTypographyTests.run()
         try HyperliteProjectIndexTests.run()
@@ -20,6 +21,27 @@ struct HyperliteInteractionModelTests {
         try await HyperlitePinnedCodexThreadTests.run()
         try await HyperliteNotepadTests.run()
         print("Hyperlite interaction model tests passed")
+    }
+
+    private static func testProcessEnvironment() {
+        let inherited = HyperliteProcessEnvironment.inheriting([
+            "PATH": "/custom/bin:/opt/homebrew/bin:/usr/bin",
+            "HYPERLITE_TEST": "preserved",
+        ])
+        expect(
+            inherited["PATH"] ==
+                "/custom/bin:/opt/homebrew/bin:/usr/bin:/usr/local/bin",
+            "helper PATH should preserve order, avoid duplicates, and add the Intel Homebrew root"
+        )
+        expect(inherited["HYPERLITE_TEST"] == "preserved",
+               "helper environment should preserve unrelated inherited values")
+
+        let fallback = HyperliteProcessEnvironment.inheriting([:])
+        expect(
+            fallback["PATH"] ==
+                "/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin:/usr/local/bin",
+            "helper PATH should include system and Homebrew roots when PATH is absent"
+        )
     }
 
     private static func testSchemaV2Decoding() throws {

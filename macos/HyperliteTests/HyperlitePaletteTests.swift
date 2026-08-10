@@ -15,6 +15,13 @@ enum HyperlitePaletteTests {
         let entries = HyperliteInteractionModel.commandEntries(threads: [])
         let ids = Set(entries.map(\.id))
         expect(ids.contains("action:refresh"), "commands should include refresh")
+        expect(ids.contains("action:force-cache-refresh"),
+               "commands should include forced cache refresh")
+        let forceRefresh = entries.first { $0.id == "action:force-cache-refresh" }
+        expect(forceRefresh?.kind == .action(.forceCacheRefresh),
+               "forced cache refresh should dispatch its dedicated action")
+        expect(forceRefresh?.subtitle.localizedCaseInsensitiveContains("cached errors") == true,
+               "forced cache refresh should explain stale error recovery")
         expect(ids.contains("action:settings"), "commands should include settings")
         expect(ids.contains("action:add-project"), "commands should include add project")
         expect(ids.contains("action:remove-project"), "commands should include remove project")

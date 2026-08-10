@@ -66,7 +66,11 @@ minute remain explicitly measuring rather than projecting.
 Open PRs load from a separate private cache. Hyperlite refreshes stale
 configured repositories on startup or foreground activation no more often than
 every five minutes and uses bounded GraphQL batches instead of one `gh` process
-per repository. Refresh forces the index current.
+per repository. Refresh forces the index current; Force Cache Refresh in
+Command-K retries only this cache without refreshing unrelated projections.
+The packaged app preserves its inherited executable search path and adds the
+standard Apple Silicon and Intel Homebrew binary directories so Finder launches
+can resolve an installed `gh` executable.
 
 Failed checks retain visibly cached rows. A project with no usable GitHub
 identity or cache is shown as unavailable. Pagination fails safely on a
@@ -132,10 +136,13 @@ pending text flushes when the window or application yields.
 ### Keyboard shortcuts
 
 - `Command+R` refreshes the focused Hyperlite application.
-- `Command+K` opens a searchable command palette with Refresh, Settings, Add
-  Project, Remove Project, and exact or on-device semantic matches from pinned
-  and daily note filenames, dates, and contents. Selecting a pinned result opens
-  Notepad; selecting a daily result opens the matching Daily date.
+- `Command+K` opens a searchable command palette with Refresh, Force Cache
+  Refresh, Settings, Add Project, Remove Project, and exact or on-device
+  semantic matches from pinned and daily note filenames, dates, and contents.
+  Force Cache Refresh retries every configured GitHub repository regardless of
+  cache age so a successful check replaces stale cached errors. Selecting a
+  pinned result opens Notepad; selecting a daily result opens the matching
+  Daily date.
 - `Command+P` opens the same searchable surface in configured-project mode.
   Projects start collapsed and expand to show their open pull requests and
   registered branch or worktree lanes.

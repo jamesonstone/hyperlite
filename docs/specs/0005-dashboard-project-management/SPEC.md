@@ -41,6 +41,14 @@ references:
     read_policy: evidence
     used_for: command-palette presentation tokens
     status: active
+  - id: issue-37
+    name: Add forced cache refresh to the command palette
+    type: github-issue
+    target: https://github.com/jamesonstone/hyperlite/issues/37
+    relation: implements
+    read_policy: must
+    used_for: Command-K cache recovery action
+    status: active
 skills: []
 ---
 
@@ -98,8 +106,9 @@ intentionally deferred so GH-17 remains reviewable and reversible.
 - Command-R refreshes Hyperlite's thread, pull-request, and project data only
   while Hyperlite is the focused macOS application.
 - Command-K opens a searchable palette of current commands. It includes
-  Refresh, Settings, Add Project, and Remove Project and contains no prune
-  action.
+  Refresh, Force Cache Refresh, Settings, Add Project, and Remove Project and
+  contains no prune action. Force Cache Refresh retries the pull-request cache
+  regardless of freshness without refreshing unrelated projections.
 - Every palette floats at the center of the Hyperlite window with responsive
   margins at the minimum window size. Its surface, search field, selection,
   text, focus, and backdrop colors use the Selene Selenized Dark workbench
@@ -149,6 +158,8 @@ Observable acceptance:
 - Command-K, Command-P, and Remove Project share the same centered floating
   presentation, remain fully visible at the minimum window size, and retain
   their existing keyboard and outside-click dismissal behavior.
+- Force Cache Refresh is searchable in Command-K, dismisses the palette when
+  selected, and immediately starts a force-mode pull-request cache refresh.
 - Adding and removing a temporary repository changes only the project
   selection in a loadable configuration and preserves settings/inventory.
 - No `prune-worktree` command or native prune action remains.
@@ -176,6 +187,9 @@ Observable acceptance:
 6. Add focused Go and executable Swift tests, update the README and superseded
    feature specs, then run the full repository validation gate and packaged-app
    inspection before delivery.
+7. Add the focused Force Cache Refresh palette action and dispatch it through
+   the existing pull-request force mode without changing normal Refresh,
+   keyboard navigation, or dismissal behavior.
 
 ## DECISIONS
 
@@ -194,6 +208,9 @@ Observable acceptance:
   controls keep their macOS behavior, while the palette uses elevated surfaces
   and a dim backdrop to distinguish its modal layer from the themed dashboard.
 - Defer unrelated Kit-managed refresh output observed during preflight.
+- Keep Force Cache Refresh narrower than the generic Refresh action: it retries
+  only the separately owned pull-request cache and does not delete cache files,
+  refresh notes or pinned tasks, or alter the five-minute automatic floor.
 
 ## DISCOVERIES
 
@@ -224,6 +241,10 @@ Observable acceptance:
   dark dashboard as soon as the palette closed. The requested theme is an
   application appearance, so its semantic colors must be installed at every
   native scene root and at the AppKit notepad boundary.
+- The existing generic Refresh command already forced the pull-request cache.
+  The dedicated recovery action is therefore a discoverability and scoping
+  improvement, while the screenshot's repeated `gh` errors required the native
+  helper process to include standard Homebrew roots in its executable path.
 
 ## VALIDATION
 
@@ -254,6 +275,9 @@ Observable acceptance:
   registered lanes, the Remove Project chooser, and Settings → Add Project.
   The live inspection stopped before mutating the user's project configuration;
   isolated temporary-config tests cover both atomic write paths.
+- GH-37 executable Swift tests verified the Force Cache Refresh command entry
+  and action mapping. Packaged-app Command-K inspection confirmed its label,
+  explanatory subtitle, keyboard selection, dismissal, and live dispatch.
 
 ## OUTCOME
 
@@ -269,6 +293,10 @@ flow through explicit serialized, atomic Go helper commands, with native
 picking and removal confirmation. Native and helper worktree-prune actions are
 removed, while read-only diagnostic evidence remains available.
 
+Command-K now also provides Force Cache Refresh as a focused recovery action for
+stale Open PR errors. It preserves the established palette navigation and
+dismissal behavior while retrying only the separately owned GitHub cache.
+
 ## REPOSITORY MEMORY
 
 - Created this specification for the durable cross-feature interaction,
@@ -282,3 +310,5 @@ removed, while read-only diagnostic evidence remains available.
   serialized atomic project-selection safety boundaries.
 - Updated `README.md` and `docs/PROJECT_PROGRESS_SUMMARY.md` to describe the
   current operator interface and feature state.
+- Issue #37 updated this specification and the Open PR specification with the
+  focused cache-recovery command and packaged-app executable-path rationale.

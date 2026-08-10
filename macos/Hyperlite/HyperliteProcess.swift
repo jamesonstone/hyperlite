@@ -1,6 +1,26 @@
 import Darwin
 import Foundation
 
+enum HyperliteProcessEnvironment {
+    private static let fallbackPath = ["/usr/bin", "/bin", "/usr/sbin", "/sbin"]
+    private static let supplementalPaths = ["/opt/homebrew/bin", "/usr/local/bin"]
+
+    static func inheriting(_ environment: [String: String]) -> [String: String] {
+        var result = environment
+        var paths = (environment["PATH"] ?? "")
+            .split(separator: ":", omittingEmptySubsequences: true)
+            .map(String.init)
+        if paths.isEmpty {
+            paths = fallbackPath
+        }
+        for path in supplementalPaths where !paths.contains(path) {
+            paths.append(path)
+        }
+        result["PATH"] = paths.joined(separator: ":")
+        return result
+    }
+}
+
 enum HyperliteProcess {
     static func run(
         arguments: [String],
@@ -30,6 +50,9 @@ enum HyperliteProcess {
                 }
                 process.executableURL = executable
                 process.arguments = arguments
+                process.environment = HyperliteProcessEnvironment.inheriting(
+                    ProcessInfo.processInfo.environment
+                )
                 process.standardOutput = output
                 process.standardError = errors
                 if let input { process.standardInput = input }

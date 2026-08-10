@@ -37,6 +37,10 @@ final class HyperliteState: ObservableObject {
     func refresh() {
         refresh(localOnly: !HyperliteFeatureFlags.inferredAttentionPresentation,
                 continueIfRemoteStale: false, supersedeExisting: true)
+        forceCacheRefresh()
+    }
+
+    func forceCacheRefresh() {
         refreshPullRequests(mode: .force, continueIfStale: false, supersedeExisting: true)
     }
 
