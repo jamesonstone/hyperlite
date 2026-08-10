@@ -65,6 +65,14 @@ references:
     read_policy: must
     used_for: caller quota observation and compact header presentation
     status: active
+  - id: issue-37
+    name: Add forced cache refresh to the command palette
+    type: github-issue
+    target: https://github.com/jamesonstone/hyperlite/issues/37
+    relation: implements
+    read_policy: must
+    used_for: explicit cache recovery and packaged-app GitHub executable discovery
+    status: active
 ---
 
 # Configured Project Pull Requests
@@ -106,7 +114,9 @@ thread scanner cadence or starting continuous background work.
   in the background.
 - R5: Treat five minutes as the minimum automatic refresh interval. Startup and
   application-foreground events may refresh stale data; the existing explicit
-  Refresh action bypasses freshness.
+  Refresh action and the Command-K Force Cache Refresh action bypass freshness.
+  The latter retries only the configured-project pull-request cache so stale
+  repository errors can be replaced without running unrelated projections.
 - R6: Fetch configured repositories in bounded GraphQL batches, paginate only
   repositories or review-thread connections that exceed one page, and never
   launch one `gh` process per configured repository or pull request in the
@@ -172,6 +182,11 @@ thread scanner cadence or starting continuous background work.
   reset time, and whether exhaustion falls before or after reset. An invalid,
   too-short, reset-crossing, or decreasing-counter sample remains explicitly in
   a measuring state rather than producing a misleading forecast.
+- R23: When the native app starts its bundled helper, preserve the inherited
+  process environment and add the standard Apple Silicon and Intel Homebrew
+  binary directories to `PATH` when absent. A Finder-launched app must be able
+  to resolve an installed `gh` executable without replacing caller-defined
+  path order or introducing shell evaluation.
 
 Non-goals: CI or full review-detail hydration, authored-only filtering, turning
 open pull requests into inferred threads or attention moments, continuous
@@ -220,14 +235,19 @@ change refresh authority, or mutate GitHub.
     per hour over a minimum one-minute sample, project depletion from current
     remaining capacity, persist the derived forecast, and add a grouped Burn
     rate section to the existing popover and accessibility description.
+15. Add a distinct Command-K Force Cache Refresh entry that dispatches the
+    existing force-mode pull-request scan, and make the bundled helper inherit
+    a deterministic executable search path that includes both Homebrew roots.
+    Cover the palette contract and path construction with executable Swift
+    regression tests.
 
 ## DECISIONS
 
 - The pull-request index is a separate informational projection, not inferred
   coordination state or human attention.
 - Event-driven startup and application-foreground refreshes honor a five-minute
-  cache floor. Explicit refresh is the only force path; Hyperlite does not add
-  a timer.
+  cache floor. Explicit Refresh and Force Cache Refresh are the only force
+  paths; Hyperlite does not add a timer.
 - The lightweight GraphQL adapter requests only list fields and batches
   repositories, while the existing thread scanner retains ownership of rich
   issue, check, and review evidence.
@@ -329,6 +349,11 @@ change refresh authority, or mutate GitHub.
   comparison. A first, reset-crossing, too-short, decreasing, or malformed
   sample shows a measuring state; a zero delta shows zero burn without inventing
   an exhaustion date. The estimate adds no GitHub request or refresh timer.
+- AC14: Command-K exposes a searchable Force Cache Refresh action that dismisses
+  the palette and retries every resolved repository through force mode without
+  refreshing unrelated projections. A packaged app launched without Homebrew
+  in its inherited `PATH` still resolves an installed Homebrew `gh`; a successful
+  retry replaces cached executable-resolution errors.
 
 ## VALIDATION MAP
 
@@ -343,6 +368,7 @@ change refresh authority, or mutate GitHub.
 | AC11 | Swift decoding and presentation tests plus packaged-app hover/accessibility inspection |
 | AC12 | Swift interaction-state tests plus packaged-app hover, click, visual, and accessibility inspection |
 | AC13 | Go derivation/cache compatibility tests, Swift forecast presentation tests, and packaged-app detail inspection |
+| AC14 | Swift command/path tests plus restricted-PATH packaged-app refresh and Command-K dispatch inspection |
 
 ## DISCOVERIES
 
@@ -398,10 +424,23 @@ change refresh authority, or mutate GitHub.
   quota points per hour rather than raw HTTP calls per hour. Showing the sample
   duration keeps a short trailing estimate distinguishable from a long-term
   average, while the reset comparison communicates the actual operational risk.
+- The generic Refresh action already invoked pull-request force mode, so a new
+  cache recovery command needs no second cache authority or deletion path. The
+  screenshot's persistent failures came from the Finder-launched app inheriting
+  no Homebrew binary directory while `gh` was installed at `/opt/homebrew/bin`.
+  Extending only the bundled helper's process environment preserves shell-free
+  execution and lets the existing successful-cache replacement clear the rows.
 
 ## VALIDATION
 
 - `make fmt-check vet test test-race build macos-test macos-build` passed.
+- GH-37 added executable Swift coverage for the Force Cache Refresh entry,
+  dedicated action mapping, and inherited/fallback executable search paths. A
+  signed packaged app launched with `PATH=/usr/bin:/bin` refreshed all 22
+  configured repositories into an isolated cache with 22 observations, zero
+  remaining errors, and zero `executable file not found` messages. Native
+  Command-K inspection showed the new action and selecting it dismissed the
+  palette and refreshed the current rows.
 - `kit check 0004-open-pull-requests` passed. `kit check --project` remains
   blocked by the same six unrelated V3 support-document drift findings already
   reproduced on untouched `main`; none is in this feature's changed paths.
@@ -543,6 +582,13 @@ replaces relative Open PR freshness text with a local `yyyy-MM-dd HH:mm`
 timestamp. The cache, five-minute automatic refresh floor, PR row projection,
 and active-lane rules remain unchanged.
 
+Issue #37 adds a focused Force Cache Refresh command to Command-K. It reuses the
+pull-request force mode to retry all resolved repositories without deleting
+cache files or refreshing unrelated projections. The packaged app also extends
+its bundled helper's inherited executable path with the standard Apple Silicon
+and Intel Homebrew roots, allowing a corrected `gh` installation to replace
+previously cached executable-resolution failures.
+
 ## REPOSITORY MEMORY
 
 Decision: updated.
@@ -553,3 +599,6 @@ alone do not fully explain.
 
 Artifacts: `docs/specs/0004-open-pull-requests/SPEC.md`,
 `docs/CONSTITUTION.md`, `docs/PROJECT_PROGRESS_SUMMARY.md`, and `README.md`.
+
+Issue #37 curation updated this specification and `docs/USER_GUIDE.md`; no new
+project-wide Constitution invariant was warranted.

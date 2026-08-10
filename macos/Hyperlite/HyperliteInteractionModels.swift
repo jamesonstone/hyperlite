@@ -20,6 +20,7 @@ enum HyperlitePaletteMode: String, Hashable, Identifiable {
 
 enum HyperlitePaletteAction: Equatable {
     case refresh
+    case forceCacheRefresh
     case settings
     case addProject
     case chooseProjectToRemove
@@ -67,6 +68,11 @@ enum HyperliteInteractionModel {
             actionEntry(
                 "action:refresh", "Refresh", "Refresh projects, open pull requests, and pinned Codex threads",
                 "arrow.clockwise", .refresh
+            ),
+            actionEntry(
+                "action:force-cache-refresh", "Force Cache Refresh",
+                "Retry GitHub data and replace cached errors",
+                "arrow.triangle.2.circlepath", .forceCacheRefresh
             ),
             actionEntry(
                 "action:add-project", "Add Project", "Choose a Git repository to configure",
