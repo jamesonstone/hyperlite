@@ -10,6 +10,11 @@ struct HyperlitePullRequestPanelRow: View {
 
     var body: some View {
         HStack(spacing: 4) {
+            HyperlitePullRequestReviewToggle(
+                row: row,
+                status: reviewStatus,
+                action: toggleReview
+            )
             Button(action: openPullRequest) {
                 HyperlitePullRequestRowContent(
                     row: row,
@@ -24,11 +29,6 @@ struct HyperlitePullRequestPanelRow: View {
                 for: row,
                 reviewStatus: reviewStatus
             ))
-            HyperlitePullRequestReviewToggle(
-                row: row,
-                status: reviewStatus,
-                action: toggleReview
-            )
         }
     }
 

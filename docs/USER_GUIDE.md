@@ -81,8 +81,9 @@ Each row places an actionable review-feedback count after its ready or draft
 state. Only unresolved, non-outdated GitHub review threads count. Nonzero counts
 use the orange attention color, confirmed zero uses a quiet dash, and
 unavailable legacy cache data uses `?` until a complete refresh supplies an
-exact count. The row content opens the pull request; its separate trailing
-checkbox changes only the private `Reviewed by me` marker.
+exact count. The row content opens the pull request; its separate leading
+checkbox, immediately before the repository name, changes only the private
+`Reviewed by me` marker.
 
 A review mark is stored locally for the exact observed head commit and survives
 relaunches. Marked rows stay in place and become subtly muted. When current

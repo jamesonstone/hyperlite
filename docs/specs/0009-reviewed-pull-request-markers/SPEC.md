@@ -74,9 +74,9 @@ mark to the exact observed head commit while keeping GitHub untouched.
 
 ## REQUIREMENTS
 
-- R1: Add an accessible trailing `Reviewed by me` checkbox to every Open PR
-  row. Checking it must not open the pull request; the remainder of the row
-  retains existing GitHub navigation.
+- R1: Add an accessible leading `Reviewed by me` checkbox immediately before
+  the repository name in every Open PR row. Checking it must not open the pull
+  request; the remainder of the row retains existing GitHub navigation.
 - R2: Persist each mark locally by stable project/pull-request identity with
   the reviewed head commit and mark time. Never write the mark into scan cache,
   project configuration, a repository, or GitHub.
@@ -111,7 +111,7 @@ or treating a review mark as proof that a pull request is safe to merge.
    organization state and persist records through app-local preferences.
 3. Reconcile stored records against each scan, invalidating only on current
    head changes and pruning only from authoritative current repository results.
-4. Split ordinary row navigation from the trailing checkbox, render reviewed
+4. Split ordinary row navigation from the leading checkbox, render reviewed
    and stale states, add the header count/bulk clear action, and extend the
    existing filter popover.
 5. Cover state transitions, persistence, pruning, filtering, accessibility
@@ -165,10 +165,13 @@ or treating a review mark as proof that a pull request is safe to merge.
   set of over-limit Swift test files.
 - The packaged universal app passed strict deep code-signature verification;
   both the app and bundled helper contain `x86_64` and `arm64` slices.
-- Packaged-app interaction verified that the trailing checkbox does not
-  navigate, reviewed rows remain ordered and muted, the local review filter
-  reduces the list, bulk clear removes hidden marks, and a mark survives quit
-  and relaunch before being cleared.
+- Packaged-app interaction verified that the checkbox does not navigate,
+  reviewed rows remain ordered and muted, the local review filter reduces the
+  list, bulk clear removes hidden marks, and a mark survives quit and relaunch
+  before being cleared.
+- Follow-up packaged-app inspection verified that each checkbox leads its row
+  immediately before the repository name and precedes PR navigation in the
+  accessibility order.
 
 ## OUTCOME
 
