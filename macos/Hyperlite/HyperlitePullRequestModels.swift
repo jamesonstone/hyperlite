@@ -68,6 +68,24 @@ struct HyperliteProjectPullRequest: Codable, Equatable, Identifiable {
     }
 }
 
+extension HyperliteProjectPullRequest {
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        number = try container.decode(Int.self, forKey: .number)
+        title = try container.decode(String.self, forKey: .title)
+        url = try container.decode(String.self, forKey: .url)
+        headRefName = try container.decode(String.self, forKey: .headRefName)
+        headRefOID = try container.decodeIfPresent(String.self, forKey: .headRefOID) ?? ""
+        isDraft = try container.decode(Bool.self, forKey: .isDraft)
+        unresolvedReviewThreads = try container.decodeIfPresent(
+            Int.self,
+            forKey: .unresolvedReviewThreads
+        )
+        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+    }
+}
+
 struct HyperlitePullRequestRow: Equatable, Identifiable {
     let id: String
     let reviewID: String

@@ -145,7 +145,10 @@ private struct HyperlitePullRequestReviewToggle: View {
     let action: () -> Void
 
     private var canToggle: Bool {
-        status == .reviewed || !row.headRefOID.isEmpty
+        status == .reviewed || (
+            row.status == .current &&
+                !row.headRefOID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        )
     }
 
     private var icon: String {
@@ -166,8 +169,9 @@ private struct HyperlitePullRequestReviewToggle: View {
 
     private var help: String {
         switch status {
-        case .unreviewed where row.headRefOID.isEmpty:
-            "Refresh GitHub data before marking this pull request reviewed"
+        case .unreviewed where row.status != .current ||
+            row.headRefOID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty:
+            "Refresh current GitHub data before marking this pull request reviewed"
         case .unreviewed:
             "Mark reviewed by me for head \(shortHead)"
         case .reviewed:

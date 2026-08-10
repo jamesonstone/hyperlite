@@ -89,8 +89,8 @@ A review mark is stored locally for the exact observed head commit and survives
 relaunches. Marked rows stay in place and become subtly muted. When current
 GitHub evidence reports a new head commit, Hyperlite restores normal emphasis
 and shows an orange stale marker until the new revision is reviewed or the mark
-is cleared. Cached or unavailable evidence preserves the last mark and cannot
-invalidate or remove it.
+is cleared. Cached or unavailable evidence preserves the last mark; a cached
+row may clear that mark but cannot create or replace one.
 
 The quiet icons on the Open PRs title line filter the loaded index, choose a
 sort order, clear all local review marks, or enter reorder mode. The title shows

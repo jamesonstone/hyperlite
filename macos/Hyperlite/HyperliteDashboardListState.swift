@@ -58,7 +58,7 @@ final class HyperliteDashboardListState: ObservableObject {
             pullRequestReviewMarks.removeValue(forKey: row.reviewID)
         } else {
             let headRefOID = row.headRefOID.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !headRefOID.isEmpty else { return }
+            guard row.status == .current, !headRefOID.isEmpty else { return }
             pullRequestReviewMarks[row.reviewID] = HyperlitePullRequestReviewMark(
                 repository: row.repository,
                 headRefOID: headRefOID,

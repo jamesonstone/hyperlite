@@ -5,42 +5,65 @@ enum HyperlitePullRequestReviewMarkerTests {
     static func run() throws {
         try testRevisionAwarePersistence()
         try testAuthoritativePruningAndBulkClear()
-        testLegacyHeadCommitRefresh()
+        try testLegacyHeadCommitRefresh()
         testLocalReviewFiltering()
     }
 
-    private static func testLegacyHeadCommitRefresh() {
-        let checkedAt = Date(timeIntervalSince1970: 1_785_340_800)
-        let pullRequest = HyperliteProjectPullRequest(
-            id: "owner/one#1", number: 1, title: "Legacy",
-            url: "https://github.com/owner/one/pull/1",
-            headRefName: "GH-1", headRefOID: "", isDraft: false,
-            unresolvedReviewThreads: 0, updatedAt: checkedAt
-        )
-        func scan(status: HyperliteProjectPullRequestStatus)
-            -> HyperliteProjectPullRequestScan
+    private static func testLegacyHeadCommitRefresh() throws {
+        let data = Data("""
         {
-            HyperliteProjectPullRequestScan(
-                schemaVersion: 1, generatedAt: checkedAt, checkedAt: checkedAt,
-                observedAt: checkedAt, rateLimit: nil, refreshIntervalSeconds: 300,
-                projects: [HyperliteProjectPullRequests(
-                    id: "/repo/one", name: "one", path: "/repo/one",
-                    repository: "owner/one", status: status, message: nil,
-                    checkedAt: checkedAt, observedAt: checkedAt,
-                    pullRequests: [pullRequest]
-                )],
-                errors: [], warnings: []
-            )
+          "schema_version": 1,
+          "generated_at": "2026-07-29T16:06:00Z",
+          "checked_at": "2026-07-29T16:05:00Z",
+          "observed_at": "2026-07-29T16:05:00Z",
+          "refresh_interval_seconds": 300,
+          "projects": [{
+            "id": "/repo/one",
+            "name": "one",
+            "path": "/repo/one",
+            "repository": "owner/one",
+            "status": "current",
+            "checked_at": "2026-07-29T16:05:00Z",
+            "observed_at": "2026-07-29T16:05:00Z",
+            "pull_requests": [{
+              "id": "owner/one#1",
+              "number": 1,
+              "title": "Legacy",
+              "url": "https://github.com/owner/one/pull/1",
+              "head_ref_name": "GH-1",
+              "is_draft": false,
+              "unresolved_review_threads": 0,
+              "updated_at": "2026-07-29T16:04:00Z"
+            }]
+          }],
+          "errors": [],
+          "warnings": []
         }
+        """.utf8)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let scan = try decoder.decode(HyperliteProjectPullRequestScan.self, from: data)
+        let checkedAt = try require(scan.checkedAt, "legacy checked time should decode")
+        expect(scan.projects[0].pullRequests[0].headRefOID.isEmpty,
+               "a missing legacy head commit should decode as empty")
         expect(
             HyperlitePullRequestPresentation.isStale(
-                scan: scan(status: .current), now: checkedAt
+                scan: scan, now: checkedAt
             ),
             "a legacy current row should trigger head-commit hydration"
         )
+        let cachedScan = Self.scan(projects: [Self.project(
+            repository: "owner/one",
+            status: .cached,
+            pullRequests: scan.projects[0].pullRequests
+        )])
+        let cachedCheckedAt = try require(
+            cachedScan.checkedAt,
+            "cached checked time should exist"
+        )
         expect(
             !HyperlitePullRequestPresentation.isStale(
-                scan: scan(status: .cached), now: checkedAt
+                scan: cachedScan, now: cachedCheckedAt
             ),
             "failed head-commit hydration should retain the five-minute retry floor"
         )
@@ -81,12 +104,26 @@ enum HyperlitePullRequestReviewMarkerTests {
         expect(restored.pullRequestReviewStatus(for: cached) == .reviewed,
                "cached evidence should not invalidate a local review mark")
 
-        restored.togglePullRequestReviewed(changed, now: markedAt.addingTimeInterval(60))
-        expect(restored.pullRequestReviewStatus(for: changed) == .reviewed &&
-            restored.pullRequestReviewMarks[changed.reviewID]?.headRefOID == "head-2",
+        restored.togglePullRequestReviewed(cached)
+        expect(restored.pullRequestReviewStatus(for: cached) == .unreviewed,
+               "a cached reviewed row should remain clearable")
+        restored.togglePullRequestReviewed(cached)
+        expect(restored.pullRequestReviewMarkCount == 0,
+               "cached evidence should not create a review mark")
+        let afterCachedAttempt = HyperliteDashboardListState(defaults: defaults)
+        expect(afterCachedAttempt.pullRequestReviewMarkCount == 0,
+               "a cached unreviewed row should not persist a review mark")
+
+        afterCachedAttempt.togglePullRequestReviewed(original, now: markedAt)
+        afterCachedAttempt.togglePullRequestReviewed(
+            changed,
+            now: markedAt.addingTimeInterval(60)
+        )
+        expect(afterCachedAttempt.pullRequestReviewStatus(for: changed) == .reviewed &&
+            afterCachedAttempt.pullRequestReviewMarks[changed.reviewID]?.headRefOID == "head-2",
             "checking a stale PR should bind the mark to its new head")
-        restored.togglePullRequestReviewed(changed)
-        expect(restored.pullRequestReviewStatus(for: changed) == .unreviewed,
+        afterCachedAttempt.togglePullRequestReviewed(changed)
+        expect(afterCachedAttempt.pullRequestReviewStatus(for: changed) == .unreviewed,
                "checking a reviewed PR should clear its mark")
 
         let missingHead = row(
@@ -94,8 +131,8 @@ enum HyperlitePullRequestReviewMarkerTests {
             repository: "owner/one",
             head: ""
         )
-        restored.togglePullRequestReviewed(missingHead)
-        expect(restored.pullRequestReviewMarkCount == 0,
+        afterCachedAttempt.togglePullRequestReviewed(missingHead)
+        expect(afterCachedAttempt.pullRequestReviewMarkCount == 0,
                "a PR without a head commit should not acquire a review mark")
     }
 

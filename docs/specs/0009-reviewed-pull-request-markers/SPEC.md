@@ -78,15 +78,17 @@ mark to the exact observed head commit while keeping GitHub untouched.
   the repository name in every Open PR row. Checking it must not open the pull
   request; the remainder of the row retains existing GitHub navigation.
 - R2: Persist each mark locally by stable project/pull-request identity with
-  the reviewed head commit and mark time. Never write the mark into scan cache,
-  project configuration, a repository, or GitHub.
+  the reviewed head commit and mark time. Create or replace a mark only from a
+  current row with a nonempty head commit. Never write the mark into scan
+  cache, project configuration, a repository, or GitHub.
 - R3: Keep reviewed rows in their current order and subtly mute their content.
   When current GitHub evidence reports a different nonempty head commit, make
   the prior mark visibly stale, restore normal row emphasis, and allow one
   action to review the new head.
 - R4: Preserve marks while repository data is cached or unavailable. Prune a
   marker for a closed or merged pull request only when a successful current
-  repository result authoritatively omits that pull request.
+  repository result authoritatively omits that pull request. Cached rows may
+  clear an existing mark but cannot create or replace one.
 - R5: Show the reviewed count in the Open PRs header and provide one bulk action
   that clears all reviewed and stale markers, independent of the active filter.
 - R6: Extend the existing Open PR filter with All, Unreviewed, Reviewed, and
@@ -128,7 +130,9 @@ or treating a review mark as proof that a pull request is safe to merge.
 - A stale mark is retained as useful context until rechecked or bulk-cleared;
   it is not counted as currently reviewed.
 - Cached or unavailable data may display the last known mark but cannot expire
-  or prune it. Current repository evidence is the only invalidation authority.
+  or prune it. Cached data may clear an existing human-selected mark but cannot
+  create or replace one. Current repository evidence is the only creation,
+  replacement, and invalidation authority.
 - Bulk clear applies to every stored review marker so an active filter cannot
   leave hidden train state behind.
 - The local marker remains human-facing. A later merge agent must receive an
@@ -148,6 +152,9 @@ or treating a review mark as proof that a pull request is safe to merge.
   without the additive head-commit field. Treating that incomplete projection
   as stale makes the current helper hydrate exact heads immediately instead of
   leaving checkboxes disabled until the ordinary freshness floor expires.
+- Legacy schema-version-1 native payloads may omit the additive head-commit
+  field, so native decoding defaults that field to empty and lets the existing
+  staleness path request authoritative hydration.
 
 ## VALIDATION
 
@@ -156,6 +163,9 @@ or treating a review mark as proof that a pull request is safe to merge.
   cache round trips, and legacy-cache hydration.
 - Native marker, list, state, persistence, filter, accessibility, and existing
   interaction tests passed with `make macos-test`.
+- Review-repair coverage confirms cached rows cannot create or replace marks,
+  cached reviewed rows remain clearable, and schema-version-1 payloads without
+  `head_ref_oid` decode and trigger current-data hydration.
 - The complete repository gate passed with `make fmt-check vet test test-race
   build macos-test macos-build`; only the three pre-existing macOS 14 palette
   deprecation warnings remained.
