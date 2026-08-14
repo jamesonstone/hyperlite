@@ -9,20 +9,28 @@ import (
 	"strings"
 )
 
-func loadArchive(root string) ([]Note, error) {
+func loadArchive(root string, activePlacements map[string]struct{}) ([]Note, error) {
 	ids, err := listNoteIDs(root, archiveDirectory, MaxArchivedNotes)
 	if err != nil {
 		return nil, err
 	}
 	notes := make([]Note, 0, len(ids))
 	for _, id := range ids {
+		if _, active := activePlacements[id]; active {
+			continue
+		}
 		note, loadErr := loadNoteFile(root, id, true)
 		if loadErr != nil {
 			return nil, loadErr
 		}
 		notes = append(notes, note)
 	}
-	sort.Slice(notes, func(i, j int) bool { return notes[i].ArchivedAt.After(*notes[j].ArchivedAt) })
+	sort.Slice(notes, func(i, j int) bool {
+		if notes[i].ArchivedAt.Equal(*notes[j].ArchivedAt) {
+			return notes[i].ID < notes[j].ID
+		}
+		return notes[i].ArchivedAt.After(*notes[j].ArchivedAt)
+	})
 	return notes, nil
 }
 

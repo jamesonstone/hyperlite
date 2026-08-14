@@ -124,7 +124,7 @@ func loadNoteFile(root, id string, archived bool) (Note, error) {
 		directory = archiveDirectory
 	}
 	path := filepath.Join(root, directory, id+".md")
-	contents, exists, err := readRegular(path, MaxDescriptionBytes+16*1024)
+	contents, exists, err := readRegular(path, MaxMutationBytes)
 	if err != nil {
 		return Note{}, err
 	}
@@ -194,7 +194,7 @@ func readRegular(path string, limit int64) ([]byte, bool, error) {
 	if err != nil {
 		return nil, false, fmt.Errorf("open %s: %w", path, err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	contents, err := io.ReadAll(io.LimitReader(file, limit+1))
 	if err != nil {
 		return nil, false, fmt.Errorf("read %s: %w", path, err)

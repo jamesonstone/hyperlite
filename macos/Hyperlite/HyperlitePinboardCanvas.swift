@@ -10,8 +10,8 @@ struct HyperlitePinboardCanvas: View {
     let onArchiveNote: (String) -> Void
     let onRenameSection: (HyperlitePinboardSection) -> Void
     let onDeleteSection: (HyperlitePinboardSection) -> Void
-    let onMoveSection: (String, HyperlitePinboardFrame) -> Void
-    let onMoveNote: (String, String, HyperlitePinboardFrame) -> Void
+    let onMoveSection: (String, HyperlitePinboardFrame) async -> Bool
+    let onMoveNote: (String, String, HyperlitePinboardFrame) async -> Bool
 
     var body: some View {
         ScrollView([.horizontal, .vertical], showsIndicators: true) {
@@ -30,15 +30,15 @@ struct HyperlitePinboardCanvas: View {
                         onArchiveNote: onArchiveNote,
                         onRename: { onRenameSection(section) },
                         onDelete: { onDeleteSection(section) },
-                        onMoveSection: { frame in onMoveSection(section.id, frame) },
+                        onMoveSection: { frame in await onMoveSection(section.id, frame) },
                         onMoveNote: { layout, x, y in
                             guard let destination = HyperlitePinboardGeometry.noteDestination(
                                 layout: layout,
                                 translationX: x,
                                 translationY: y,
                                 sections: snapshot.board.sections
-                            ) else { return }
-                            onMoveNote(
+                            ) else { return false }
+                            return await onMoveNote(
                                 destination.noteID,
                                 destination.sectionID,
                                 destination.frame
@@ -70,15 +70,16 @@ private struct HyperlitePinboardSectionRegion: View {
     let onArchiveNote: (String) -> Void
     let onRename: () -> Void
     let onDelete: () -> Void
-    let onMoveSection: (HyperlitePinboardFrame) -> Void
-    let onMoveNote: (HyperlitePinboardNoteLayout, Double, Double) -> Void
+    let onMoveSection: (HyperlitePinboardFrame) async -> Bool
+    let onMoveNote: (HyperlitePinboardNoteLayout, Double, Double) async -> Bool
 
     @State private var moveTranslation = CGSize.zero
     @State private var resizeTranslation = CGSize.zero
+    @State private var pendingFrame: HyperlitePinboardFrame?
 
     private var displayedFrame: HyperlitePinboardFrame {
         let moved = HyperlitePinboardGeometry.movedSection(
-            section.frame,
+            pendingFrame ?? section.frame,
             translationX: moveTranslation.width,
             translationY: moveTranslation.height,
             board: board.size
@@ -110,7 +111,7 @@ private struct HyperlitePinboardSectionRegion: View {
                             onEdit: { onEditNote(note) },
                             onFork: { onForkNote(note.id) },
                             onArchive: { onArchiveNote(note.id) },
-                            onMove: { x, y in onMoveNote(layout, x, y) }
+                            onMove: { x, y in await onMoveNote(layout, x, y) }
                         )
                     }
                 }
@@ -160,6 +161,11 @@ private struct HyperlitePinboardSectionRegion: View {
                 .help("Move section")
                 .gesture(moveGesture)
                 .accessibilityLabel("Move section")
+                .pinboardDirectionalActions(
+                    leftLabel: "Move left", rightLabel: "Move right",
+                    upLabel: "Move up", downLabel: "Move down",
+                    perform: nudgeSection
+                )
         }
         .padding(.horizontal, 10)
         .background(HyperliteTheme.elevatedSurface.color.opacity(0.82))
@@ -167,16 +173,17 @@ private struct HyperlitePinboardSectionRegion: View {
 
     private var moveGesture: some Gesture {
         DragGesture()
-            .onChanged { moveTranslation = $0.translation }
+            .onChanged { if pendingFrame == nil { moveTranslation = $0.translation } }
             .onEnded { value in
+                defer { moveTranslation = .zero }
+                guard pendingFrame == nil else { return }
                 let frame = HyperlitePinboardGeometry.movedSection(
                     section.frame,
                     translationX: value.translation.width,
                     translationY: value.translation.height,
                     board: board.size
                 )
-                moveTranslation = .zero
-                onMoveSection(frame)
+                commit(frame)
             }
     }
 
@@ -189,93 +196,53 @@ private struct HyperlitePinboardSectionRegion: View {
             .help("Resize section")
             .gesture(
                 DragGesture()
-                    .onChanged { resizeTranslation = $0.translation }
+                    .onChanged { if pendingFrame == nil { resizeTranslation = $0.translation } }
                     .onEnded { value in
+                        defer { resizeTranslation = .zero }
+                        guard pendingFrame == nil else { return }
                         let frame = HyperlitePinboardGeometry.resizedSection(
                             section.frame,
                             translationX: value.translation.width,
                             translationY: value.translation.height,
                             board: board.size
                         )
-                        resizeTranslation = .zero
-                        onMoveSection(frame)
+                        commit(frame)
                     }
             )
             .accessibilityLabel("Resize section")
-    }
-}
-
-private struct HyperlitePinboardNoteCard: View {
-    let note: HyperlitePinboardNote
-    let layout: HyperlitePinboardNoteLayout
-    let onEdit: () -> Void
-    let onFork: () -> Void
-    let onArchive: () -> Void
-    let onMove: (Double, Double) -> Void
-
-    @State private var translation = CGSize.zero
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .top, spacing: 6) {
-                Text(note.title)
-                    .font(HyperliteTypography.semibold(12))
-                    .lineLimit(2)
-                Spacer(minLength: 4)
-                Image(systemName: "line.3.horizontal")
-                    .foregroundStyle(HyperliteTheme.mutedText.color)
-                    .padding(3)
-                    .contentShape(Rectangle())
-                    .help("Move note")
-                    .gesture(dragGesture)
-                    .accessibilityLabel("Move note")
-            }
-            Text(note.description.isEmpty ? "No description" : note.description)
-                .font(HyperliteTypography.regular(10))
-                .foregroundStyle(
-                    note.description.isEmpty
-                        ? HyperliteTheme.mutedText.color
-                        : HyperliteTheme.secondaryText.color
-                )
-                .lineLimit(5)
-            Spacer(minLength: 2)
-            Text(note.updatedAt, format: .dateTime.month(.abbreviated).day().hour().minute())
-                .font(HyperliteTypography.regular(9).monospacedDigit())
-                .foregroundStyle(HyperliteTheme.mutedText.color)
-        }
-        .padding(10)
-        .frame(width: layout.frame.width, height: layout.frame.height, alignment: .topLeading)
-        .background(
-            HyperliteTheme.elevatedSurface.color,
-            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .strokeBorder(HyperliteTheme.mutedText.color.opacity(0.35), lineWidth: 1)
-        }
-        .position(
-            x: layout.frame.x + layout.frame.width / 2 + translation.width,
-            y: layout.frame.y + layout.frame.height / 2 + translation.height
-        )
-        .onTapGesture(perform: onEdit)
-        .contextMenu {
-            Button("Edit", action: onEdit)
-            Button("Fork", action: onFork)
-            Button("Delete", role: .destructive, action: onArchive)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(note.title), updated \(note.updatedAt.formatted())")
-        .accessibilityAction(named: "Edit", onEdit)
-        .accessibilityAction(named: "Fork", onFork)
-        .accessibilityAction(named: "Delete", onArchive)
+            .pinboardDirectionalActions(
+                leftLabel: "Make narrower", rightLabel: "Make wider",
+                upLabel: "Make shorter", downLabel: "Make taller",
+                perform: resizeSection
+            )
     }
 
-    private var dragGesture: some Gesture {
-        DragGesture()
-            .onChanged { translation = $0.translation }
-            .onEnded { value in
-                translation = .zero
-                onMove(value.translation.width, value.translation.height)
-            }
+    private func nudgeSection(_ direction: MoveCommandDirection) {
+        let delta = direction.pinboardDelta
+        commit(HyperlitePinboardGeometry.movedSection(
+            pendingFrame ?? section.frame,
+            translationX: delta.width,
+            translationY: delta.height,
+            board: board.size
+        ))
+    }
+
+    private func resizeSection(_ direction: MoveCommandDirection) {
+        let delta = direction.pinboardDelta
+        commit(HyperlitePinboardGeometry.resizedSection(
+            pendingFrame ?? section.frame,
+            translationX: delta.width,
+            translationY: delta.height,
+            board: board.size
+        ))
+    }
+
+    private func commit(_ frame: HyperlitePinboardFrame) {
+        guard pendingFrame == nil else { return }
+        pendingFrame = frame
+        Task {
+            _ = await onMoveSection(frame)
+            pendingFrame = nil
+        }
     }
 }

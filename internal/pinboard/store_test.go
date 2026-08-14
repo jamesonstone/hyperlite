@@ -135,6 +135,54 @@ func TestForkArchiveRestoreAndSectionDeletionAreRecoverable(t *testing.T) {
 	if len(snapshot.Board.Sections) != 0 || len(snapshot.Notes) != 0 || len(snapshot.Archive) != 2 {
 		t.Fatalf("archive-and-delete snapshot = %#v", snapshot)
 	}
+	if snapshot.Archive[0].ID != noteOneID || snapshot.Archive[1].ID != noteTwoID {
+		t.Fatalf("equal-time archive order = %#v", snapshot.Archive)
+	}
+}
+
+func TestMoveAcrossSectionsAndRestoreToExplicitDestination(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "board")
+	now := time.Date(2026, 8, 14, 12, 0, 0, 0, time.UTC)
+	store := deterministicStore(root, &now, sectionOneID, sectionTwoID, noteOneID)
+	first := mustMutate(t, store, Mutation{Kind: MutationAddSection, Title: "First"}).Board.Sections[0]
+	snapshot := mustMutate(t, store, Mutation{Kind: MutationAddSection, Title: "Second"})
+	second := snapshot.Board.Sections[1]
+	snapshot = mustMutate(t, store, Mutation{
+		Kind: MutationAddNote, SectionID: first.ID, Title: "Move me",
+	})
+
+	outside := Frame{X: 900, Y: 900, Width: NoteWidth, Height: NoteHeight}
+	snapshot = mustMutate(t, store, Mutation{
+		Kind: MutationMoveNote, NoteID: noteOneID, SectionID: second.ID, Frame: &outside,
+	})
+	layout := snapshot.Board.Notes[0]
+	if layout.SectionID != second.ID || layout.Frame.X != 100 || layout.Frame.Y != 374 {
+		t.Fatalf("cross-section layout = %#v", layout)
+	}
+
+	snapshot = mustMutate(t, store, Mutation{Kind: MutationArchiveNote, NoteID: noteOneID})
+	if snapshot.Archive[0].ArchivedFromSectionID != second.ID {
+		t.Fatalf("archive origin = %#v", snapshot.Archive[0])
+	}
+	mustMutate(t, store, Mutation{Kind: MutationDeleteSection, SectionID: second.ID})
+	snapshot = mustMutate(t, store, Mutation{
+		Kind: MutationRestoreNote, NoteID: noteOneID, SectionID: first.ID,
+	})
+	if len(snapshot.Notes) != 1 || len(snapshot.Archive) != 0 ||
+		snapshot.Board.Notes[0].SectionID != first.ID {
+		t.Fatalf("explicit restore destination = %#v", snapshot)
+	}
+}
+
+func TestAddSectionRejectsCallerFrameDirectly(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "board")
+	now := time.Date(2026, 8, 14, 12, 0, 0, 0, time.UTC)
+	store := deterministicStore(root, &now, sectionOneID)
+	invalid := Frame{X: 0, Y: 0, Width: MinimumSectionWidth - 1, Height: MinimumSectionHeight}
+	_, err := store.Mutate(Mutation{Kind: MutationAddSection, Title: "Invalid", Frame: &invalid})
+	if err == nil || err.Error() != "frame is outside pinboard bounds" {
+		t.Fatalf("caller frame error = %v", err)
+	}
 }
 
 func TestMalformedLayoutFailsClosedWithoutOverwrite(t *testing.T) {
@@ -190,52 +238,6 @@ func TestStoreUsesPrivateRegularFilesAndRejectsUnsafeSources(t *testing.T) {
 	if _, err := store.Load(); err == nil || !strings.Contains(err.Error(), "regular file") {
 		t.Fatalf("symlink load error = %v", err)
 	}
-}
-
-func TestStoreRejectsOrphanActiveNotesAndArchivedIDReuse(t *testing.T) {
-	t.Run("orphan active note", func(t *testing.T) {
-		root := filepath.Join(t.TempDir(), "board")
-		store := Store{Root: root}
-		if _, err := store.Load(); err != nil {
-			t.Fatal(err)
-		}
-		now := time.Date(2026, 8, 14, 12, 0, 0, 0, time.UTC)
-		orphan := Note{
-			ID: noteOneID, Title: "Recoverable orphan", CreatedAt: now, UpdatedAt: now,
-		}
-		if err := writeNoteFile(root, orphan, false, true); err != nil {
-			t.Fatal(err)
-		}
-		if _, err := store.Load(); err == nil || !strings.Contains(err.Error(), "do not match layout membership") {
-			t.Fatalf("orphan load error = %v", err)
-		}
-		if _, err := os.Stat(filepath.Join(root, notesDirectory, noteOneID+".md")); err != nil {
-			t.Fatalf("recoverable orphan was not preserved: %v", err)
-		}
-	})
-
-	t.Run("archived id reuse", func(t *testing.T) {
-		root := filepath.Join(t.TempDir(), "board")
-		now := time.Date(2026, 8, 14, 12, 0, 0, 0, time.UTC)
-		store := deterministicStore(root, &now, sectionOneID, noteOneID, noteOneID)
-		snapshot := mustMutate(t, store, Mutation{Kind: MutationAddSection, Title: "Ideas"})
-		sectionID := snapshot.Board.Sections[0].ID
-		mustMutate(t, store, Mutation{Kind: MutationAddNote, SectionID: sectionID, Title: "Original"})
-		mustMutate(t, store, Mutation{Kind: MutationArchiveNote, NoteID: noteOneID})
-
-		if _, err := store.Mutate(Mutation{
-			Kind: MutationAddNote, SectionID: sectionID, Title: "Collision",
-		}); err == nil || !strings.Contains(err.Error(), "already exists") {
-			t.Fatalf("archived id collision error = %v", err)
-		}
-		snapshot, err := store.Load()
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(snapshot.Notes) != 0 || len(snapshot.Archive) != 1 || snapshot.Archive[0].Title != "Original" {
-			t.Fatalf("collision changed state: %#v", snapshot)
-		}
-	})
 }
 
 func deterministicStore(root string, now *time.Time, ids ...string) Store {

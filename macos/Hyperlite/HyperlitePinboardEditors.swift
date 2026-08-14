@@ -120,6 +120,8 @@ struct HyperlitePinboardSectionEditor: View {
     let onCancel: () -> Void
     @State private var title: String
 
+    private var trimmedTitle: String { title.trimmingCharacters(in: .whitespacesAndNewlines) }
+
     init(
         context: HyperlitePinboardSectionEditorContext,
         onSave: @escaping (String) -> Void,
@@ -141,11 +143,11 @@ struct HyperlitePinboardSectionEditor: View {
             HStack {
                 Spacer()
                 Button("Cancel", action: onCancel).keyboardShortcut(.cancelAction)
-                Button("Save") { onSave(title.trimmingCharacters(in: .whitespacesAndNewlines)) }
+                Button("Save") { onSave(trimmedTitle) }
                     .keyboardShortcut(.defaultAction)
                     .disabled(
-                        title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-                            title.contains("\n") || title.utf8.count > 256
+                        trimmedTitle.isEmpty || trimmedTitle.contains("\n") ||
+                            trimmedTitle.utf8.count > 256
                     )
             }
         }

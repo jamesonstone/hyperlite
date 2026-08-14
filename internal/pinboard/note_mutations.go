@@ -133,7 +133,7 @@ func (s Store) archiveNote(root string, snapshot *Snapshot, noteID string) error
 	archivedAt := s.now()
 	note.ArchivedAt = &archivedAt
 	note.ArchivedFromSectionID, note.ArchivedFromSectionTitle = section.ID, section.Title
-	if err := writeNoteFile(root, note, true, true); err != nil {
+	if err := writeNoteFile(root, note, true, false); err != nil {
 		return err
 	}
 	snapshot.Board.Notes = append(snapshot.Board.Notes[:index], snapshot.Board.Notes[index+1:]...)
@@ -162,7 +162,7 @@ func (s Store) restoreNote(root string, snapshot *Snapshot, mutation Mutation) e
 	}
 	note.ArchivedAt = nil
 	note.ArchivedFromSectionID, note.ArchivedFromSectionTitle = "", ""
-	if err := writeNoteFile(root, note, false, true); err != nil {
+	if err := writeNoteFile(root, note, false, false); err != nil {
 		return err
 	}
 	frame := defaultNoteFrame(noteCountInSection(snapshot.Board, section.ID), section.Frame)

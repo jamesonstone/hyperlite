@@ -151,26 +151,26 @@ struct HyperlitePinboardView: View {
         Task { await state.apply(HyperlitePinboardMutation(kind: .archiveNote, noteID: noteID)) }
     }
 
-    private func moveSection(_ sectionID: String, _ frame: HyperlitePinboardFrame) {
-        Task {
-            await state.apply(HyperlitePinboardMutation(
-                kind: .updateSectionFrame,
-                sectionID: sectionID,
-                frame: frame
-            ))
-        }
+    private func moveSection(_ sectionID: String, _ frame: HyperlitePinboardFrame) async -> Bool {
+        await state.apply(HyperlitePinboardMutation(
+            kind: .updateSectionFrame,
+            sectionID: sectionID,
+            frame: frame
+        )) != nil
     }
 
-    private func moveNote(_ noteID: String, _ sectionID: String, _ frame: HyperlitePinboardFrame) {
-        selectedSectionID = sectionID
-        Task {
-            await state.apply(HyperlitePinboardMutation(
-                kind: .moveNote,
-                sectionID: sectionID,
-                noteID: noteID,
-                frame: frame
-            ))
+    private func moveNote(_ noteID: String, _ sectionID: String, _ frame: HyperlitePinboardFrame) async -> Bool {
+        let updated = await state.apply(HyperlitePinboardMutation(
+            kind: .moveNote,
+            sectionID: sectionID,
+            noteID: noteID,
+            frame: frame
+        ))
+        if updated != nil {
+            selectedSectionID = sectionID
+            return true
         }
+        return false
     }
 
     private func deleteSection(_ section: HyperlitePinboardSection, archive: Bool) {

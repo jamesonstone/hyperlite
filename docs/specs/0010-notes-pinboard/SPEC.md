@@ -146,10 +146,11 @@ coordination role.
   titles, descriptions, metadata, and total board data; require regular files,
   valid UTF-8 without NUL, finite numbers, known IDs, and user-only
   permissions. Serialize mutations and replace files atomically.
-- R16: Malformed, oversized, unsafe, or internally inconsistent board state
+- R16: Malformed, oversized, unsafe, or canonically incomplete board state
   fails closed. A failed load or mutation must not overwrite recoverable source
-  files; surface an explicit unavailable/error state instead of publishing a
-  plausible empty board.
+  files. Residual counterpart files from an interrupted archive or restore are
+  preserved but excluded according to `board.json` membership so the canonical
+  board remains loadable and the explicit mutation can be retried.
 - R17: Pinboard is private graphical working memory only. It never becomes
   project evidence, inferred thread or attention state, PR state, project
   configuration, Notepad/Daily content, task synchronization, or agent input.
@@ -213,6 +214,13 @@ files remain recoverable unless the user removes them separately.
 - The existing generic Refresh does not refresh Pinboard because Pinboard has
   no remote or scanned source. Each successful local mutation returns current
   state directly.
+- `board.json` membership chooses which note copy is active during interrupted
+  cross-file archive transitions. An unplaced active file and an archived copy
+  of a placed active note remain preserved on disk but are noncanonical; retrying
+  archive or restore may replace only that known counterpart.
+- Note actions retain the requested user-facing `Delete` label even though the
+  implementation is recoverable archive. The Archive toolbar and archive sheet
+  make the recovery model visible without changing the confirmed action name.
 
 ## DISCOVERIES
 
@@ -227,21 +235,32 @@ files remain recoverable unless the user removes them separately.
 - Swift sources are globbed into application builds, while executable model
   tests use an explicit source list that must include new non-view Pinboard
   models and tests.
+- PR review exposed that per-file atomic replacement does not make a multi-file
+  archive transition atomic. Choosing active authority from layout membership,
+  preserving noncanonical residuals, and permitting idempotent counterpart
+  replacement keeps interrupted operations loadable and retryable without
+  erasing the only canonical note copy.
+- Spatial mutations return their authoritative snapshots asynchronously. The
+  native canvas therefore retains the resolved section frame or note offset
+  until that bounded mutation finishes, avoiding visual snap-back while still
+  reverting immediately when persistence fails.
 
 ## VALIDATION
 
 - `go test ./internal/pinboard ./internal/cli` passed focused storage and helper
   coverage for content/layout separation, timestamp semantics, fork lineage,
-  archive/restore, nonempty-section deletion safety, private regular files,
-  archived-ID collision, orphan detection, malformed-source preservation, and
-  strict mutation decoding.
+  cross-section movement, explicit restore destinations, deterministic archive
+  order, interrupted archive/restore reconciliation, nonempty-section deletion
+  safety, private regular files, archived-ID collision, residual preservation,
+  malformed-source preservation, and strict mutation decoding.
 - `make macos-test` passed Swift typechecking and executable interaction-model
   tests for snapshot coding, workspace commands, state publication, finite
-  section geometry, fixed note size, clamping, and cross-section reparenting.
+  section geometry, non-finite defensive clamping, duplicate-ID degradation,
+  fixed note size, clamping, and cross-section reparenting.
 - `make fmt-check vet test test-race build macos-test macos-build` passed the
-  complete local validation gate. The Swift compiler reported only three
-  pre-existing macOS 14 `onChange` deprecation warnings in
-  `HyperlitePaletteViews.swift`.
+  complete local validation gate before delivery and again after PR review
+  repair. The Swift compiler reported only three pre-existing macOS 14
+  `onChange` deprecation warnings in `HyperlitePaletteViews.swift`.
 - `kit check --all` passed all ten feature artifacts. `kit check --project`
   still reports 18 pre-existing instruction-contract and unrelated legacy
   source-size findings; no Pinboard source or artifact remains in that list.
@@ -250,9 +269,11 @@ files remain recoverable unless the user removes them separately.
 - Direct packaged-app inspection passed Command-1/2 workspace replacement,
   all five Command-K actions, section create/rename/move/resize, note
   edit/fork/cross-section drag, accessibility Edit/Fork/Delete actions,
-  archive/restore, Dashboard preservation, and relaunch reconstruction. The
-  journey used an isolated Pinboard data root and left the normal private board
-  root absent.
+  archive/restore, Dashboard preservation, and relaunch reconstruction. After
+  review repair, focused arrow-key actions persisted exact 20-point section
+  movement, section resizing, and note movement, while the accessibility tree
+  exposed all matching directional actions. The journeys used isolated
+  Pinboard data roots and left the normal private board root absent.
 
 ## OUTCOME
 

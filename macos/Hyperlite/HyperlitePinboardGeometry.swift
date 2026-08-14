@@ -91,11 +91,17 @@ enum HyperlitePinboardGeometry {
         _ frame: HyperlitePinboardFrame,
         board: HyperlitePinboardSize
     ) -> HyperlitePinboardFrame {
-        let width = min(max(frame.width, minimumSectionWidth), min(maximumSectionWidth, board.width))
-        let height = min(max(frame.height, minimumSectionHeight), min(maximumSectionHeight, board.height))
+        let requestedWidth = frame.width.isFinite ? frame.width : minimumSectionWidth
+        let requestedHeight = frame.height.isFinite ? frame.height : minimumSectionHeight
+        let boardWidth = board.width.isFinite ? board.width : minimumSectionWidth
+        let boardHeight = board.height.isFinite ? board.height : minimumSectionHeight
+        let width = max(min(requestedWidth, min(maximumSectionWidth, boardWidth)), minimumSectionWidth)
+        let height = max(min(requestedHeight, min(maximumSectionHeight, boardHeight)), minimumSectionHeight)
+        let x = frame.x.isFinite ? frame.x : 0
+        let y = frame.y.isFinite ? frame.y : 0
         return HyperlitePinboardFrame(
-            x: min(max(frame.x, 0), max(board.width - width, 0)),
-            y: min(max(frame.y, 0), max(board.height - height, 0)),
+            x: min(max(x, 0), max(boardWidth - width, 0)),
+            y: min(max(y, 0), max(boardHeight - height, 0)),
             width: width,
             height: height
         )

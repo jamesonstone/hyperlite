@@ -19,6 +19,9 @@ func (s Store) addSection(root string, snapshot *Snapshot, mutation Mutation) er
 	}
 	frame := defaultSectionFrame(len(snapshot.Board.Sections), snapshot.Board.Size)
 	if mutation.Frame != nil {
+		if err := validateSectionFrame(*mutation.Frame, snapshot.Board.Size); err != nil {
+			return err
+		}
 		frame = *mutation.Frame
 	}
 	snapshot.Board.Sections = append(snapshot.Board.Sections, Section{ID: id, Title: title, Frame: frame})
@@ -83,7 +86,7 @@ func (s Store) deleteSection(root string, snapshot *Snapshot, mutation Mutation)
 			}
 			note.ArchivedAt = &archivedAt
 			note.ArchivedFromSectionID, note.ArchivedFromSectionTitle = section.ID, section.Title
-			if writeErr := writeNoteFile(root, note, true, true); writeErr != nil {
+			if writeErr := writeNoteFile(root, note, true, false); writeErr != nil {
 				rollbackArchives(root, createdArchives)
 				return writeErr
 			}

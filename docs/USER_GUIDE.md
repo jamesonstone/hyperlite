@@ -167,7 +167,10 @@ auto-layout, collaboration, background indexing, or automatic status changes.
 
 A section is a titled rectangular region with a stable identity. Use its title
 or context menu to rename it, its header handle to move it, and its lower-right
-handle to resize it within the board. The section `+` creates a note directly
+handle to resize it within the board. Both handles are keyboard focusable;
+arrow keys nudge the focused move handle or adjust the focused resize handle,
+and the same directions are available as accessibility actions. The section
+`+` creates a note directly
 inside that section. Adding a note without a focused section uses the sole
 section or presents a destination chooser. An empty section requires
 confirmation before deletion. A nonempty section can be cancelled, emptied
@@ -179,7 +182,9 @@ Markdown-compatible description. Clicking the card opens an explicit
 Save/Cancel editor with read-only Created and Updated timestamps. Use the quiet
 card context menu or accessibility actions to Edit, Fork, or Delete. The small
 header grip drags a card freely inside its section; crossing another section
-reparents and clamps it there. Moving or resizing layout never changes Updated.
+reparents and clamps it there. Focus a card and use the arrow keys or its
+directional accessibility actions to nudge it without a pointer. Moving or
+resizing layout never changes Updated.
 
 Fork creates an independent note with copied content, a new opaque identity,
 new Created and Updated timestamps, retained source lineage, and a visible

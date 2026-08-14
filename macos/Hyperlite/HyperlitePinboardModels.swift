@@ -79,7 +79,7 @@ struct HyperlitePinboardSnapshot: Codable, Equatable, Sendable {
     let archive: [HyperlitePinboardNote]
 
     var notesByID: [String: HyperlitePinboardNote] {
-        Dictionary(uniqueKeysWithValues: notes.map { ($0.id, $0) })
+        Dictionary(notes.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
     }
 }
 

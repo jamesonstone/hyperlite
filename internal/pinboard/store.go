@@ -54,21 +54,12 @@ func loadSnapshot(root string) (Snapshot, error) {
 	if err != nil {
 		return Snapshot{}, err
 	}
-	activeIDs, err := listNoteIDs(root, notesDirectory, MaxActiveNotes)
-	if err != nil {
+	if _, err := listNoteIDs(root, notesDirectory, MaxActiveNotes); err != nil {
 		return Snapshot{}, err
 	}
 	placements := make(map[string]struct{}, len(board.Notes))
 	for _, placement := range board.Notes {
 		placements[placement.NoteID] = struct{}{}
-	}
-	if len(activeIDs) != len(placements) {
-		return Snapshot{}, fmt.Errorf("pinboard active note files do not match layout membership")
-	}
-	for _, id := range activeIDs {
-		if _, exists := placements[id]; !exists {
-			return Snapshot{}, fmt.Errorf("pinboard active note %s has no layout membership", id)
-		}
 	}
 	notes := make([]Note, 0, len(board.Notes))
 	for _, placement := range board.Notes {
@@ -78,14 +69,9 @@ func loadSnapshot(root string) (Snapshot, error) {
 		}
 		notes = append(notes, note)
 	}
-	archive, err := loadArchive(root)
+	archive, err := loadArchive(root, placements)
 	if err != nil {
 		return Snapshot{}, err
-	}
-	for _, note := range archive {
-		if _, active := placements[note.ID]; active {
-			return Snapshot{}, fmt.Errorf("pinboard note %s exists in both active storage and archive", note.ID)
-		}
 	}
 	return Snapshot{Board: board, Notes: notes, Archive: archive}, nil
 }

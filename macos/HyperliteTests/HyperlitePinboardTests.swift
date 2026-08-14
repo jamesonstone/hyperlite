@@ -53,6 +53,25 @@ enum HyperlitePinboardTests {
         expect(encoded.contains("\"section_id\""), "mutations should encode section_id")
         expect(encoded.contains("\"note_id\""), "mutations should encode note_id")
         expect(!encoded.contains("sectionID"), "mutations should not leak Swift key casing")
+
+        let duplicate = HyperlitePinboardNote(
+            id: snapshot.notes[0].id,
+            title: "Duplicate",
+            description: "Malformed helper output",
+            createdAt: snapshot.notes[0].createdAt,
+            updatedAt: snapshot.notes[0].updatedAt,
+            forkedFrom: nil,
+            archivedAt: nil,
+            archivedFromSectionID: nil,
+            archivedFromSectionTitle: nil
+        )
+        let malformed = HyperlitePinboardSnapshot(
+            board: snapshot.board,
+            notes: snapshot.notes + [duplicate],
+            archive: []
+        )
+        expect(malformed.notesByID[snapshot.notes[0].id]?.title == "Spatial note",
+               "duplicate helper IDs should keep the first note without trapping")
     }
 
     private static func testBoundedSectionGeometry() {
@@ -74,6 +93,23 @@ enum HyperlitePinboardTests {
         )
         expect(resized.width == 260 && resized.height == 950,
                "section resizing should preserve conservative bounds")
+
+        let nonfinite = HyperlitePinboardGeometry.movedSection(
+            HyperlitePinboardFrame(x: .nan, y: .infinity, width: .nan, height: .infinity),
+            translationX: 0,
+            translationY: 0,
+            board: board
+        )
+        expect(nonfinite == HyperlitePinboardFrame(x: 0, y: 0, width: 260, height: 300),
+               "section geometry should sanitize non-finite frame input")
+        let undersizedBoard = HyperlitePinboardGeometry.resizedSection(
+            source,
+            translationX: 0,
+            translationY: 0,
+            board: HyperlitePinboardSize(width: 100, height: 200)
+        )
+        expect(undersizedBoard.width == 260 && undersizedBoard.height == 300,
+               "declared section minimums should win for rejected undersized boards")
     }
 
     private static func testNoteClampingAndCrossSectionReparenting() {
