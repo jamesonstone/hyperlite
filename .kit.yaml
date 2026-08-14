@@ -97,8 +97,8 @@ registry:
           source_branch: main
           source_commit: 78228da330fbc4ec411431c4858c8d819523ecb1
           source_path: docs/references/rules/github-pr-delivery.md
-          installed_hash: sha256:db7bb5a91acca0ab15af5b52d079df9698ad5dc410003823c69799393d59b7af
-          state: managed
+          installed_hash: sha256:d80c50aa859cbd6866f7b216632be8c11821d5a507929c2feb5c0d0d20c7895e
+          state: local-custom
         - kind: ruleset
           slug: github-pr-merge
           path: docs/references/rules/github-pr-merge.md
