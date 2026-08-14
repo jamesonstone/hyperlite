@@ -16,6 +16,8 @@ applies_to:
   - production
   - end-to-end
   - live-integration
+  - browser-automation
+  - browser-testing
 read_policy_default: must
 ---
 
@@ -103,6 +105,31 @@ deployment environment or external integration for a project that has none.
   Never commit raw run evidence or let CI automatically edit the tracked
   status map.
 
+### Merge Readiness
+
+Classify each authorized pull-request node from exact current-head evidence:
+
+- `MERGE_READY`: every required pre-merge gate has acceptable, attributable
+  evidence for the expected head, base, target, actor, and repository policy;
+- `BLOCKED`: a required gate failed or an explicit dependency or approval is
+  unmet; or
+- `UNKNOWN`: evidence is missing, stale, unavailable, ambiguous, or cannot be
+  attributed to the current head or target.
+
+Only `MERGE_READY` may enter a merge frontier. Never treat these as passing:
+
+- pending checks;
+- missing expected checks;
+- skipped checks without verified policy eligibility;
+- checks from an earlier head;
+- local tests substituted for required hosted checks; or
+- successful merge as deployment, runtime, integration, or production
+  evidence.
+
+Head or base drift invalidates readiness and requires revalidation. Preserve
+local, hosted, merge, deployment, runtime, and production results as separate
+claims.
+
 ### High-Level Suite Layout
 
 - Put high-level executable suites under the repository-root `tests`
@@ -133,6 +160,46 @@ tests/
   purpose.
 - Do not relabel a narrow health probe or mocked component test as
   end-to-end.
+
+### Browser Automation Lifecycle
+
+- For interactive browser work in Codex, follow the managed `AGENTS.md`
+  Browser policy: use `@Browser`; do not use `@Chrome`, control the user's
+  active Chrome profile, or launch external Chrome or Chromium through
+  Playwright, Selenium, Cypress, or browser MCP tools unless the user explicitly
+  requests it.
+- If `@Browser` is unavailable, report the limitation instead of silently
+  falling back to an external browser.
+- Treat explicit authorization for an external browser as bounded to the
+  requested task-owned run. Use an isolated automation-managed browser unless
+  the user explicitly requests their installed browser or profile.
+- Create one uniquely named browser session per task or test run. Reuse that
+  session for repeated operations instead of opening a new browser instance on
+  each step or attempt. Bound retries and never let a retry loop create
+  unbounded browser instances.
+- Record enough ownership information to distinguish the current task's
+  session, browser process, and automation daemon from an existing user-owned
+  browser or another task's automation. Process discovery alone does not grant
+  ownership.
+- Close every task-owned browser session, browser process, and automation
+  daemon during cleanup. When attaching to a user-owned browser, detach from
+  the automation connection without closing the browser or its user-owned
+  tabs, profiles, or processes.
+- Put browser and session cleanup in `finally`, `defer`, teardown hooks, or an
+  equivalent unconditional lifecycle mechanism. Cleanup must run on success,
+  failure, cancellation, timeout, and interrupted validation. A final `close`
+  command at the end of a linear script is insufficient.
+- Terminate only sessions and processes proven to be owned by the current task.
+  Never use broad cleanup such as `pkill Chrome`, `killall`, “close all
+  sessions,” or deletion of shared temporary directories during normal
+  validation.
+- Before claiming browser validation complete, verify that the task-owned
+  session, browser process, and automation daemon have exited. Treat any
+  cleanup or exit-verification failure as a validation failure, preserve the
+  original test result, and report the cleanup failure explicitly.
+- Do not disable or weaken macOS code-signing protections. Do not routinely
+  delete Chrome code-sign clone directories as a substitute for hermetic
+  browser selection, scoped ownership, and correct lifecycle cleanup.
 
 ### Local And Production Execution
 
@@ -264,6 +331,8 @@ kit-e2e-<project>-<environment>-<run-id>-<resource>[-<ordinal>]
   `tests/live-integration`.
 - Claiming 100 percent correctness, production validation, or hosted CI success
   from partial or unobserved evidence.
+- Treating pending, missing, stale-head, or policy-ineligible skipped checks as
+  merge-ready, or substituting local tests for required hosted checks.
 - Running only happy paths or using line coverage as the sole quality signal.
 - Hiding flaky tests with retries, long sleeps, weak assertions, or permanent
   skips.
@@ -300,6 +369,8 @@ kit-e2e-<project>-<environment>-<run-id>-<resource>[-<ordinal>]
   cleanup proof.
 - Confirm unavailable safe production writes produce read-only `PARTIAL`
   evidence and non-deployable projects use `NOT_APPLICABLE`.
+- Before merge, confirm only exact current-head `MERGE_READY` nodes enter the
+  frontier and that `BLOCKED` and `UNKNOWN` remain distinct.
 - Run the project commands documented in `docs/references/testing.md` and
   record any skipped or blocked validation.
 

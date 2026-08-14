@@ -3,11 +3,9 @@
 ## Policy Authority
 
 Native `git worktree` commands and ordinary filesystem operations define this
-portable workflow. No Kit-managed rule depends on `git-wt`, `git wt`, a shell
-alias, an editor integration, or another wrapper.
-
-Optional helpers may make the same workflow more convenient for manual use,
-but they must preserve every path, environment, and safety invariant here.
+portable workflow. Kit prepares writable repair lanes through the same native
+operations, but worktree lifecycle policy never depends on an external wrapper,
+alias, editor integration, or plugin.
 
 ## Mental Model
 
@@ -19,9 +17,9 @@ stash entries. A worktree protects one checkout from unrelated file and branch
 changes; it is not a second clone or an isolation boundary for shared Git
 state.
 
-Keep the primary checkout on the protected default branch. Agents develop and
-test inside assigned durable lanes, and the same branch must never be checked
-out in two worktrees at once.
+Keep the primary checkout on the protected default branch. Develop and test in
+assigned durable lanes, and never check one branch out in two worktrees at
+once.
 
 ## Canonical Hierarchy
 
@@ -36,8 +34,8 @@ uppercase `GH-<number>`. Detached pull-request inspection lanes use exact
 uppercase `PR-<number>`.
 
 Do not put linked worktrees inside a repository, including under
-`.worktrees/`. External placement prevents recursive tooling, watchers, search,
-backup rules, builds, and cleanup from treating one checkout as another
+`.worktrees/`. External placement prevents recursive tooling, watchers,
+search, backup rules, builds, and cleanup from treating one checkout as another
 checkout's content.
 
 ## Portable Native Git Workflow
@@ -97,19 +95,44 @@ git fetch origin "pull/77/head"
 git worktree add --detach "$PR_PATH" FETCH_HEAD
 ```
 
-Detached `PR-<number>` lanes are inspection-only. For repair, resolve the
-pull request's same-repository head branch and reuse or attach that durable
-branch instead.
+Detached `PR-<number>` lanes are inspection-only. For repair, resolve the pull
+request's same-repository head branch and reuse or attach that durable branch
+instead.
 
-## Writable-Lane Environment Link
+## Target-Aware Kit Repair Commands
 
-The clone's primary checkout owns the shared repository-root `.env`. Link that
-stable source into writable lanes by default when it exists:
+When a Kit command already identifies a pull request or failed branch, use that
+target to resolve the writable lane automatically. The user does not need to
+navigate to a worktree before running `kit pr fix` or PR-backed `kit dispatch`.
+
+Resolution proves the current clone owns the requested repository, uses the
+exact same-repository PR head or exact diagnosed branch, and consults
+`git worktree list --porcelain` for registered ownership. It may fetch
+`origin` and add or attach the canonical writable lane, but it must not choose
+by recency, substring, fuzzy matching, or interactive selection.
+
+Before generating or running repair instructions, record the remote target
+head, local `HEAD`, exact worktree path, and push target. If the worktree is
+dirty, show `git status --porcelain` and ask whether the existing changes
+belong in the repair:
+
+- `include` makes the existing diff part of the full repair review and
+  validation scope.
+- `exclude` requires preserving those paths, avoiding staging or modification,
+  and stopping when the requested repair overlaps them.
+
+Neither choice authorizes stash, reset, clean, rebase, force operations, or
+discarding user work. Prompt-producing commands remain prompt-producing after
+lane preparation; staging, commits, pushes, comments, review-thread resolution,
+and PR delivery retain their explicit gates.
+
+## Writable-Lane Environment Links
+
+The clone's primary checkout owns the shared repository-root `.env` and
+`.envrc`. Link each stable source into writable lanes by default when it
+exists:
 
 ```bash
-SOURCE_ENV="$PRIMARY_ROOT/.env"
-DEST_ENV="$WORKTREE_PATH/.env"
-
 resolve_link_target() {
   link_text="$(readlink "$1")" || return 1
   case "$link_text" in
@@ -121,39 +144,57 @@ resolve_link_target() {
   printf '%s/%s\n' "$target_dir" "$(basename "$target_path")"
 }
 
-if [ -L "$DEST_ENV" ]; then
-  if [ ! -e "$DEST_ENV" ]; then
-    echo "ABORT: destination .env is a broken link" >&2
+ensure_environment_link() {
+  name="$1"
+  source_path="$PRIMARY_ROOT/$name"
+  destination_path="$WORKTREE_PATH/$name"
+
+  if [ -L "$destination_path" ]; then
+    if [ ! -e "$destination_path" ]; then
+      echo "ABORT: destination $name is a broken link" >&2
+      exit 1
+    fi
+    resolved_target="$(resolve_link_target "$destination_path")" || {
+      echo "ABORT: destination $name is unreadable" >&2
+      exit 1
+    }
+    if [ "$resolved_target" != "$source_path" ]; then
+      echo "ABORT: destination $name points to an unexpected target" >&2
+      exit 1
+    fi
+  elif [ -e "$destination_path" ]; then
+    if [ "$name" = ".envrc" ]; then
+      echo "Preserving existing destination .envrc: $destination_path"
+      return
+    fi
+    echo "ABORT: destination $name already exists: $destination_path" >&2
     exit 1
+  elif [ -f "$source_path" ]; then
+    ln -s "$source_path" "$destination_path"
+  else
+    echo "No primary-checkout $name exists; no $name link was created."
   fi
-  RESOLVED_TARGET="$(resolve_link_target "$DEST_ENV")" || {
-    echo "ABORT: destination .env is unreadable" >&2
-    exit 1
-  }
-  if [ "$RESOLVED_TARGET" != "$SOURCE_ENV" ]; then
-    echo "ABORT: destination .env points to an unexpected target" >&2
-    exit 1
-  fi
-elif [ -e "$DEST_ENV" ]; then
-  echo "ABORT: destination .env already exists: $DEST_ENV" >&2
-  exit 1
-elif [ -f "$SOURCE_ENV" ]; then
-  ln -s "$SOURCE_ENV" "$DEST_ENV"
-else
-  echo "No primary-checkout .env exists; no environment file was linked."
-fi
+}
+
+ensure_environment_link ".env"
+ensure_environment_link ".envrc"
 ```
 
-Reusing a writable lane must repeat the exact source and destination
-validation and create the link when missing. Omit the link intentionally when
-isolation is required.
+Reusing a writable lane repeats each exact source and destination validation and
+creates missing links. Omit both links intentionally when isolation is
+required.
 
-Never copy `.env`, overwrite a destination `.env`, or automatically share
-`.envrc`; `.envrc` is executable shell configuration. A regular destination,
-broken link, or unexpected symlink is a collision and must stop the operation.
-Detached PR inspection and migration do not create environment links.
+Never copy environment contents or overwrite destination material. A regular
+destination `.env` and any broken or unexpected environment symlink are
+collisions that stop the operation. Preserve a regular destination `.envrc`,
+which may be tracked by Git or owned by the user.
 
-## Inspection, Migration, and Removal
+`.envrc` is executable shell configuration. Review the primary source before
+sharing it, and retain direnv's separate path-specific approval by running
+`direnv allow "$WORKTREE_PATH"` after inspecting a newly linked lane. Detached
+PR inspection and migration do not create environment links.
+
+## Inspection, Pruning, And Removal
 
 Listing is read-only:
 
@@ -179,24 +220,25 @@ git worktree move "/exact/registered/source" \
 Migration preserves dirty contents and existing environment files or links.
 Never use ordinary `mv`, stash, reset, clean, or force.
 
-Before removal, prove the target is an exact registered path, is not the
-current checkout, has no tracked, untracked, ignored, dirty, or unpublished
-state, and has no unsafe `.env`. A verified `.env` symlink to the primary
-checkout's exact source is the sole narrow exception:
+Before removal, prove the target is an exact registered path, is not the current
+checkout, has no tracked, untracked, ignored, dirty, or unpublished state, and
+has no unsafe environment material. Verified `.env` and `.envrc` symlinks
+to matching primary-checkout sources are the sole narrow exceptions:
 
-1. Verify the destination is a symlink whose target matches
-   `$PRIMARY_ROOT/.env`.
-2. Unlink only that destination symlink.
+1. Verify each environment destination is a symlink whose target matches the
+   same name beneath `$PRIMARY_ROOT`.
+2. Unlink only those verified destination symlinks.
 3. Run ordinary non-force `git worktree remove "/exact/registered/path"`.
-4. If Git removal fails, restore the same symlink.
+4. If Git removal fails, restore every removed symlink.
 
-Refuse regular `.env` files, unexpected symlinks, and every other dirty,
-ignored, or unpublished item. Never use `--force`, reset, clean, stash, or
-branch deletion.
+Refuse regular ignored environment files, unexpected symlinks, and every other
+dirty, ignored, or unpublished item. A clean tracked `.envrc` remains ordinary
+Git-managed content. Never use `--force`, reset, clean, stash, or branch deletion
+as part of worktree removal.
 
 ## Scope Boundary
 
-Worktree tooling manages checkout paths, branches, native Git operations, and
-the narrow writable-lane `.env` link. Runtime services, databases, ports,
+Worktree preparation manages checkout paths, branches, native Git operations,
+and the narrow writable-lane environment links. Runtime services, databases, ports,
 Temporal state, process supervision, application startup, and sibling
 repositories remain outside its scope.

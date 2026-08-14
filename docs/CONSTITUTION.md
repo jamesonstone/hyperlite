@@ -92,6 +92,15 @@
   selection and derived search projection never become lifecycle authority.
   The pinned note safely adopts the prior single-document store without
   rewriting its content.
+- The global Pinboard is private graphical working memory, not project
+  evidence, Notepad/Daily content, task state, lifecycle state, attention, or
+  agent input. It remains one finite bounded board whose stable-ID sections own
+  every active note. Canonical Markdown content and timestamps are separate
+  from JSON geometry and membership so layout changes cannot falsify content
+  recency. Deletion is recoverable archive by default, and no section operation
+  may silently destroy contained notes. Pinboard access is local, bounded,
+  user-only, atomic, and fail-closed; it adds no network, repository scan,
+  polling, watcher, notification, or automatic movement behavior.
 - Application-controlled native interface text, including editable notepad
   content, uses JetBrainsMono Nerd Font through one shared SwiftUI/AppKit
   resolver, with the system monospaced family as the unavailable-font fallback.
@@ -103,14 +112,14 @@
 <!-- BEGIN KIT-MANAGED BASELINE RULES -->
 - Treat `docs/CONSTITUTION.md` as the canonical project contract.
 - Keep `AGENTS.md`, `CLAUDE.md`, and `.github/copilot-instructions.md` aligned with the repo-local docs tree.
-- Treat `docs/notes/<feature>` as optional source material, not canonical truth; promote durable decisions into `SPEC.md`, `docs/CONSTITUTION.md`, or durable references.
 - Use native agent planning for research, clarification, design, and implementation planning.
 - Before implementation, inspect code and repository memory; create or adopt `SPEC.md` when material rationale exists.
 - After validation, curate feature rationale, project invariants, reusable practices, and domain knowledge into their scope-appropriate canonical documents.
 - Allow a justified `not required` repository-memory decision when code and tests preserve the complete durable truth.
-- Prefer implementation/source code files around 300 lines or less when splitting improves clarity and ownership.
-- Do not apply the code-file size guideline to documentation files, all `docs/**`, all `.kit/**`, or `.kit.yaml`.
-- Do not split or rewrite docs, generated state, or Kit config artifacts solely because they exceed 300 lines.
+- Keep every version-control-eligible handwritten implementation/source and test file at 300 physical lines or less.
+- Before delivery, audit the complete affected source/test scope; whole-project reconcile and scheduled maintenance audit the entire repository.
+- Exclude documentation files, all `docs/**`, all `.kit/**`, `.kit.yaml`, ignored files, vendored dependencies, and proven generated files.
+- Split oversized files by semantic responsibility while preserving stable public entry points and behavior; never use minification or arbitrary numbered chunks to claim compliance.
 <!-- END KIT-MANAGED BASELINE RULES -->
 
 ## CHANGE CLASSIFICATION

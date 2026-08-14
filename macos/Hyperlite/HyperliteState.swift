@@ -12,14 +12,13 @@ final class HyperliteState: ObservableObject {
     @Published private(set) var isUpdatingProjects = false
     @Published private(set) var errorMessage: String?
     @Published private(set) var paletteMode: HyperlitePaletteMode?
+    @Published private(set) var workspace: HyperliteWorkspace = .dashboard
     private var refreshTask: Task<Void, Never>?
     private var pullRequestRefreshTask: Task<Void, Never>?
     private var projectMutationTask: Task<Void, Never>?
     private var mutationTasks: [String: Task<Void, Never>] = [:]
     private var mutationGenerations: [String: Int] = [:]
     private var refreshGeneration = 0, pullRequestRefreshGeneration = 0
-
-    var isRefreshing: Bool { isRefreshingThreads || isRefreshingPullRequests }
 
     init() {
         refresh(localOnly: true,
@@ -73,26 +72,9 @@ final class HyperliteState: ObservableObject {
         paletteMode = nil
     }
 
-    func addProject(path: String) {
-        updateConfiguredProject(path: path, action: "add")
-    }
-
-    func removeProject(path: String) {
-        updateConfiguredProject(path: path, action: "remove")
-    }
-
-    func activeThreads() -> [HyperliteThread] {
-        guard let scan else { return [] }
-        return HyperlitePresentation.activeThreads(scan: scan)
-    }
-
-    func attentionThreads() -> [HyperliteThread] {
-        guard let scan else { return [] }
-        return HyperlitePresentation.attentionThreads(scan: scan)
-    }
-
-    func attentionThreadCount() -> Int {
-        attentionThreads().count
+    func showWorkspace(_ workspace: HyperliteWorkspace) {
+        paletteMode = nil
+        self.workspace = workspace
     }
 
     func markSeen(threadID: String) {
@@ -170,7 +152,7 @@ final class HyperliteState: ObservableObject {
         try Task.checkCancellation()
     }
 
-    private func updateConfiguredProject(path: String, action: String) {
+    func updateConfiguredProject(path: String, action: String) {
         guard !isUpdatingProjects else {
             errorMessage = "A project configuration update is already in progress."
             return

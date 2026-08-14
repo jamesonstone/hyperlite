@@ -29,7 +29,7 @@ final class HyperliteNotepadState: ObservableObject {
     private let searchIndex: HyperliteNoteSearchIndex
     let autosaveDelay: Duration
     private let currentCalendar: () -> Calendar
-    private let now: () -> Date
+    let now: () -> Date
     private var selectedDateID: String
     var savedPinnedText = ""
     var savedDailyText = ""
@@ -113,29 +113,6 @@ final class HyperliteNotepadState: ObservableObject {
         await searchIndex.search(query)
     }
 
-    func displayName(for identifier: String) -> String {
-        HyperliteNoteDate.displayName(for: identifier, calendar: calendar)
-    }
-
-    func selectDateIdentifier(_ identifier: String, focus: Bool = false) async {
-        guard let date = HyperliteNoteDate.date(from: identifier, calendar: calendar) else {
-            errorMessage = HyperliteNotepadError.invalidDate(identifier).localizedDescription
-            return
-        }
-        await selectDate(date, focus: focus)
-    }
-
-    func selectDate(_ candidate: Date, focus: Bool = false) async {
-        let target = calendar.startOfDay(for: candidate)
-        let currentDate = calendar.startOfDay(for: now())
-        await navigate(
-            to: target,
-            focus: focus,
-            activateDaily: true,
-            followCurrentDate: target == currentDate
-        )
-    }
-
     func refreshDailyDateIfNeeded(now currentDate: Date? = nil) async {
         guard !isNavigating else {
             dateRefreshPending = true
@@ -155,7 +132,7 @@ final class HyperliteNotepadState: ObservableObject {
         await navigate(to: target, focus: false, activateDaily: false, followCurrentDate: true)
     }
 
-    private func navigate(
+    func navigate(
         to target: Date,
         focus: Bool,
         activateDaily: Bool,
@@ -199,16 +176,6 @@ final class HyperliteNotepadState: ObservableObject {
         guard dateRefreshPending else { return }
         dateRefreshPending = false
         await refreshDailyDateIfNeeded()
-    }
-
-    func focusPinned() {
-        activeTab = .notepad
-        requestFocus(.pinned)
-    }
-
-    func focusDaily() {
-        activeTab = .daily
-        requestFocus(.daily)
     }
 
     @discardableResult
@@ -297,10 +264,12 @@ final class HyperliteNotepadState: ObservableObject {
         return true
     }
 
-    private func requestFocus(_ target: HyperliteNotepadFocusRequest.Target) {
+    func requestFocus(_ target: HyperliteNotepadFocusRequest.Target) {
         focusGeneration += 1
         focusRequest = HyperliteNotepadFocusRequest(target: target, generation: focusGeneration)
     }
+
+    func activate(_ tab: HyperliteNotepadTab) { activeTab = tab }
 
     func updateIndex(with document: HyperliteNoteDocument) {
         guard isIndexReady else {
@@ -326,5 +295,5 @@ final class HyperliteNotepadState: ObservableObject {
         searchIndexRevision += 1
     }
 
-    private var calendar: Calendar { currentCalendar() }
+    var calendar: Calendar { currentCalendar() }
 }
