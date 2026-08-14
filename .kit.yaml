@@ -183,3 +183,4 @@ registry:
 aws:
     profile: personal
     account_id: "643314767733"
+    region: us-east-1
