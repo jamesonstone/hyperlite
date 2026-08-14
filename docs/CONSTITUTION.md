@@ -92,6 +92,15 @@
   selection and derived search projection never become lifecycle authority.
   The pinned note safely adopts the prior single-document store without
   rewriting its content.
+- The global Pinboard is private graphical working memory, not project
+  evidence, Notepad/Daily content, task state, lifecycle state, attention, or
+  agent input. It remains one finite bounded board whose stable-ID sections own
+  every active note. Canonical Markdown content and timestamps are separate
+  from JSON geometry and membership so layout changes cannot falsify content
+  recency. Deletion is recoverable archive by default, and no section operation
+  may silently destroy contained notes. Pinboard access is local, bounded,
+  user-only, atomic, and fail-closed; it adds no network, repository scan,
+  polling, watcher, notification, or automatic movement behavior.
 - Application-controlled native interface text, including editable notepad
   content, uses JetBrainsMono Nerd Font through one shared SwiftUI/AppKit
   resolver, with the system monospaced family as the unavailable-font fallback.

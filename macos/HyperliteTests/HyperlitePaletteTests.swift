@@ -14,6 +14,11 @@ enum HyperlitePaletteTests {
     private static func testCommandEntries() {
         let entries = HyperliteInteractionModel.commandEntries(threads: [])
         let ids = Set(entries.map(\.id))
+        expect(ids.contains("action:show-dashboard"), "commands should include Dashboard switching")
+        expect(ids.contains("action:show-pinboard"), "commands should include Pinboard switching")
+        expect(ids.contains("action:add-pinboard-note"), "commands should include Pinboard note creation")
+        expect(ids.contains("action:add-pinboard-section"), "commands should include Pinboard section creation")
+        expect(ids.contains("action:open-pinboard-archive"), "commands should include Pinboard archive")
         expect(ids.contains("action:refresh"), "commands should include refresh")
         expect(ids.contains("action:force-cache-refresh"),
                "commands should include forced cache refresh")
@@ -132,7 +137,9 @@ enum HyperlitePaletteTests {
             HyperliteInteractionModel.commandEntries(threads: []),
             query: "ADD"
         )
-        expect(commands.map(\.id) == ["action:add-project"],
+        expect(commands.map(\.id) == [
+            "action:add-pinboard-note", "action:add-pinboard-section", "action:add-project",
+        ],
                "command search should be case insensitive")
     }
 

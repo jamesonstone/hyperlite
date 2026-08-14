@@ -20,18 +20,25 @@ or scan a source path directly with `hyperlite scan /path/to/projects`.
 
 ## Native workspace
 
-The current native presentation focuses on notes and open pull requests.
+The native presentation has two full-content workspaces beneath one shared
+header. Dashboard keeps the existing notes, open pull requests, and projects
+surface. Pinboard is a separate private spatial-notes surface. Use the compact
+segmented control beside the Hyperlite title, `Command+1`, or `Command+2` to
+switch without changing Dashboard data or preferences.
+
 Inferred attention remains available through CLI and JSON but is hidden behind
 a single native feature flag: the window, menu bar, and palettes show no thread
 or attention counts or entries, and the app skips remote attention enrichment.
 
-The fixed header contains the product name and ghost, compact pinned Codex task
-and GitHub GraphQL quota indicators, a subtly orange Refresh action, and
-Settings. Notes, Open PRs, and the single-column Projects list each own one
-third of the content workspace. Every section has its own vertical scroll
-boundary, so long notes, a large pull-request index, and a dense project map
-remain independently usable. Pull-request rows and header projections are
-informational only: none establishes thread activity or attention.
+The fixed header contains the product name and ghost, the workspace switch,
+compact pinned Codex task and GitHub GraphQL quota indicators, a subtly orange
+Refresh action, and Settings. In Dashboard, Notes, Open PRs, and the
+single-column Projects list each own one third of the content workspace. Every
+section has its own vertical scroll boundary, so long notes, a large
+pull-request index, and a dense project map remain independently usable.
+Pull-request rows and header projections are informational only: none
+establishes thread activity or attention. Refresh updates its existing remote
+and scanned projections; it does not refresh the local Pinboard.
 
 ### Pinned Codex tasks
 
@@ -150,12 +157,53 @@ It does not render Markdown or feed content into thread inference or attention.
 Typing stays in memory, the latest edit saves after three idle seconds, and
 pending text flushes when the window or application yields.
 
+### Pinboard
+
+Pinboard is one private, finite spatial workspace, not a Kanban workflow or an
+infinite drawing canvas. Its toolbar creates notes and sections and opens the
+recoverable archive. The board scrolls horizontally or vertically only when
+its fixed bounds exceed the visible window; it has no zoom, connectors,
+auto-layout, collaboration, background indexing, or automatic status changes.
+
+A section is a titled rectangular region with a stable identity. Use its title
+or context menu to rename it, its header handle to move it, and its lower-right
+handle to resize it within the board. The section `+` creates a note directly
+inside that section. Adding a note without a focused section uses the sole
+section or presents a destination chooser. An empty section requires
+confirmation before deletion. A nonempty section can be cancelled, emptied
+manually, or explicitly deleted with all contained notes moved into Archive;
+it never silently destroys them.
+
+Each fixed-size card has a required single-line title and a multiline plain
+Markdown-compatible description. Clicking the card opens an explicit
+Save/Cancel editor with read-only Created and Updated timestamps. Use the quiet
+card context menu or accessibility actions to Edit, Fork, or Delete. The small
+header grip drags a card freely inside its section; crossing another section
+reparents and clamps it there. Moving or resizing layout never changes Updated.
+
+Fork creates an independent note with copied content, a new opaque identity,
+new Created and Updated timestamps, retained source lineage, and a visible
+clamped cascade offset. Delete is recoverable: it removes the card from the
+active layout and records its original section and archive time. Archive can
+restore it to that section while it exists or to an explicitly selected
+destination after the original section is gone. Pinboard has no permanent
+delete action in this version.
+
+Pinboard content is local graphical working memory only. It is never searched
+as Notepad/Daily content and never becomes project evidence, thread or
+attention state, PR state, project configuration, task synchronization, or
+agent input.
+
 ### Keyboard shortcuts
 
+- `Command+1` shows Dashboard.
+- `Command+2` shows Pinboard.
 - `Command+R` refreshes the focused Hyperlite application.
-- `Command+K` opens a searchable command palette with Refresh, Force Cache
-  Refresh, Settings, Add Project, Remove Project, and exact or on-device
-  semantic matches from pinned and daily note filenames, dates, and contents.
+- `Command+K` opens a searchable command palette with Show Dashboard, Show
+  Pinboard, Add Pinboard Note, Add Pinboard Section, Open Pinboard Archive,
+  Refresh, Force Cache Refresh, Settings, Add Project, Remove Project, and
+  exact or on-device semantic matches from pinned and daily note filenames,
+  dates, and contents.
   Force Cache Refresh retries every configured GitHub repository regardless of
   cache age so a successful check replaces stale cached errors. Selecting a
   pinned result opens Notepad; selecting a daily result opens the matching
@@ -185,6 +233,8 @@ hyperlite notepad show [--date YYYY-MM-DD] [--json]
 hyperlite notepad set --stdin [--date YYYY-MM-DD] [--json]
 hyperlite notepad path [--date YYYY-MM-DD]
 hyperlite notepad index
+hyperlite pinboard show
+hyperlite pinboard mutate --stdin
 hyperlite thread seen <thread-id> --revision <digest>
 hyperlite thread note <thread-id> --stdin
 ```
@@ -206,6 +256,17 @@ default. The pinned note is `pinned.md`; daily notes are
 `daily/YYYY-MM-DD.md`. On first use, Hyperlite adopts the prior `notepad.txt`
 or default `notepad.md` document as the pinned note without changing its
 content. Every document is limited to 256 KiB.
+
+The Pinboard follows the same private app-data root at
+`$XDG_DATA_HOME/hyperlite/board`, or `~/.local/share/hyperlite/board` by
+default. `board.json` contains only the schema, finite board and section
+geometry, note membership, and note geometry. Active note content and metadata
+use opaque filenames beneath `notes/<note-id>.md`; archived notes move to
+`archive/<note-id>.md`. Title-derived paths are never used. Content files are
+canonical for IDs, text, Created/Updated timestamps, fork lineage, and archive
+metadata, so layout-only movement does not rewrite content recency. Loads and
+mutations are bounded, locked, user-only, atomic per file, and fail closed on
+unsafe, malformed, oversized, orphaned, or inconsistent state.
 
 ## Status and attention model
 

@@ -7,6 +7,7 @@ SWIFT_SOURCES := $(sort $(wildcard macos/Hyperlite/*.swift))
 SWIFT_MODEL_TEST_SOURCES := macos/Hyperlite/HyperliteModels.swift macos/Hyperlite/HyperliteProjectModels.swift macos/Hyperlite/HyperlitePullRequestModels.swift macos/Hyperlite/HyperlitePullRequestPanel.swift macos/Hyperlite/HyperlitePullRequestRows.swift macos/Hyperlite/HyperliteRateLimit.swift macos/Hyperlite/HyperliteRateLimitIndicator.swift macos/Hyperlite/HyperliteRateLimitPopover.swift macos/Hyperlite/HyperlitePresentation.swift macos/Hyperlite/HyperliteInteractionModels.swift macos/Hyperlite/HyperlitePalettePresentation.swift macos/Hyperlite/HyperliteTheme.swift
 SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteDashboardListModels.swift macos/Hyperlite/HyperliteDashboardListState.swift macos/Hyperlite/HyperliteDashboardListControls.swift macos/Hyperlite/HyperlitePullRequestListFilters.swift macos/Hyperlite/HyperlitePullRequestReviewMarkers.swift
 SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteProcess.swift macos/Hyperlite/HyperliteProcessSupport.swift macos/Hyperlite/HyperliteNotepadModels.swift macos/Hyperlite/HyperliteNoteSearchIndex.swift macos/Hyperlite/HyperliteNotepadState.swift macos/Hyperlite/HyperliteNotepadPersistence.swift
+SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperlitePinboardModels.swift macos/Hyperlite/HyperlitePinboardGeometry.swift macos/Hyperlite/HyperlitePinboardClient.swift macos/Hyperlite/HyperlitePinboardState.swift
 SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperlitePinnedCodexThreadModels.swift macos/Hyperlite/HyperlitePinnedCodexThreadClientModels.swift macos/Hyperlite/HyperlitePinnedCodexThreadClient.swift macos/Hyperlite/HyperlitePinnedCodexThreadState.swift
 SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteTypography.swift macos/HyperliteTests/HyperliteInteractionModelTests.swift macos/HyperliteTests/HyperliteProjectIndexTests.swift
 SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperlitePaletteTests.swift
@@ -14,6 +15,7 @@ SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperliteNotepadTests.swift mac
 SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperlitePinnedCodexThreadStateTests.swift macos/HyperliteTests/HyperlitePinnedCodexThreadTestSupport.swift macos/HyperliteTests/HyperlitePullRequestTests.swift macos/HyperliteTests/HyperliteRateLimitTests.swift macos/HyperliteTests/HyperliteTypographyTests.swift macos/HyperliteTests/HyperliteWorkspaceSizingTests.swift
 SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperliteDashboardListTests.swift
 SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperlitePullRequestReviewMarkerTests.swift
+SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperlitePinboardTests.swift
 SWIFT_MODEL_TEST_BINARY := build/tests/HyperliteInteractionModelTests
 
 help:

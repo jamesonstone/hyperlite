@@ -21,12 +21,14 @@ struct HyperliteApp: App {
     @NSApplicationDelegateAdaptor(HyperliteApplicationDelegate.self) private var applicationDelegate
     @StateObject private var state = HyperliteState.shared
     @StateObject private var pinnedCodexThreads = HyperlitePinnedCodexThreadState.shared
+    @StateObject private var pinboard = HyperlitePinboardState.shared
 
     var body: some Scene {
         WindowGroup("Hyperlite", id: "hyperlite") {
             HyperliteWindow(
                 state: state,
                 pinnedCodexThreads: pinnedCodexThreads,
+                pinboard: pinboard,
                 notepad: HyperliteNotepadState.shared
             )
                 .font(HyperliteTypography.regular(13))
@@ -37,6 +39,11 @@ struct HyperliteApp: App {
         .windowResizability(.contentMinSize)
         .commands {
             CommandMenu("Navigate") {
+                Button("Show Dashboard") { state.showWorkspace(.dashboard) }
+                    .keyboardShortcut("1", modifiers: .command)
+                Button("Show Pinboard") { state.showWorkspace(.pinboard) }
+                    .keyboardShortcut("2", modifiers: .command)
+                Divider()
                 Button("Refresh") { state.refreshAll() }
                     .keyboardShortcut("r", modifiers: .command)
                 Divider()

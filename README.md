@@ -30,8 +30,10 @@ directly with `hyperlite scan /path/to/projects`.
 
 ## Highlights
 
-- Pinned and daily notes, open pull requests, and configured projects in one
-  compact native workspace
+- A compact evidence Dashboard plus a full bounded spatial Pinboard for private
+  graphical working memory
+- Pinned and daily notes, open pull requests, and configured projects in the
+  preserved Dashboard workspace
 - Read-only GitHub quota, review-feedback, and pinned Codex task visibility
 - CLI and JSON interfaces for project scanning and inferred attention
 - Local, permission-restricted state with no external project-management system

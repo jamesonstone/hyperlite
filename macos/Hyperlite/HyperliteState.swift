@@ -12,6 +12,7 @@ final class HyperliteState: ObservableObject {
     @Published private(set) var isUpdatingProjects = false
     @Published private(set) var errorMessage: String?
     @Published private(set) var paletteMode: HyperlitePaletteMode?
+    @Published private(set) var workspace: HyperliteWorkspace = .dashboard
     private var refreshTask: Task<Void, Never>?
     private var pullRequestRefreshTask: Task<Void, Never>?
     private var projectMutationTask: Task<Void, Never>?
@@ -71,6 +72,11 @@ final class HyperliteState: ObservableObject {
 
     func dismissPalette() {
         paletteMode = nil
+    }
+
+    func showWorkspace(_ workspace: HyperliteWorkspace) {
+        paletteMode = nil
+        self.workspace = workspace
     }
 
     func addProject(path: String) {

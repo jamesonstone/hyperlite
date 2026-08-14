@@ -19,6 +19,11 @@ enum HyperlitePaletteMode: String, Hashable, Identifiable {
 }
 
 enum HyperlitePaletteAction: Equatable {
+    case showDashboard
+    case showPinboard
+    case addPinboardNote
+    case addPinboardSection
+    case openPinboardArchive
     case refresh
     case forceCacheRefresh
     case settings
@@ -65,6 +70,26 @@ struct HyperlitePaletteEntry: Equatable, Identifiable {
 enum HyperliteInteractionModel {
     static func commandEntries(threads: [HyperliteThread]) -> [HyperlitePaletteEntry] {
         var entries = [
+            actionEntry(
+                "action:show-dashboard", "Show Dashboard", "Switch to Dashboard · ⌘1",
+                "rectangle.grid.1x2", .showDashboard
+            ),
+            actionEntry(
+                "action:show-pinboard", "Show Pinboard", "Switch to Pinboard · ⌘2",
+                "rectangle.3.group", .showPinboard
+            ),
+            actionEntry(
+                "action:add-pinboard-note", "Add Pinboard Note",
+                "Create a private spatial note", "note.text.badge.plus", .addPinboardNote
+            ),
+            actionEntry(
+                "action:add-pinboard-section", "Add Pinboard Section",
+                "Create a bounded spatial region", "rectangle.badge.plus", .addPinboardSection
+            ),
+            actionEntry(
+                "action:open-pinboard-archive", "Open Pinboard Archive",
+                "Restore archived private notes", "archivebox", .openPinboardArchive
+            ),
             actionEntry(
                 "action:refresh", "Refresh", "Refresh projects, open pull requests, and pinned Codex threads",
                 "arrow.clockwise", .refresh

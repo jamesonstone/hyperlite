@@ -53,6 +53,7 @@ struct HyperliteMenu: View {
 struct HyperliteWindow: View {
     @ObservedObject var state: HyperliteState
     @ObservedObject var pinnedCodexThreads: HyperlitePinnedCodexThreadState
+    @ObservedObject var pinboard: HyperlitePinboardState
     let notepad: HyperliteNotepadState
     @StateObject private var dashboardLists = HyperliteDashboardListState()
     @State private var selectedThread: HyperliteThread?
@@ -83,60 +84,65 @@ struct HyperliteWindow: View {
                 header(active: active)
 
                 GeometryReader { workspace in
-                    let sectionHeight = HyperliteWorkspaceSizing.sectionHeight(
-                        availableHeight: workspace.size.height
-                    )
-                    VStack(alignment: .leading, spacing: HyperliteWorkspaceSizing.sectionSpacing) {
-                        HyperliteNotepadView(state: notepad)
+                    if state.workspace == .dashboard {
+                        let sectionHeight = HyperliteWorkspaceSizing.sectionHeight(
+                            availableHeight: workspace.size.height
+                        )
+                        VStack(alignment: .leading, spacing: HyperliteWorkspaceSizing.sectionSpacing) {
+                            HyperliteNotepadView(state: notepad)
+                                .frame(height: sectionHeight)
+                                .clipped()
+
+                            ScrollView(.vertical, showsIndicators: true) {
+                                VStack(alignment: .leading, spacing: 10) {
+                                    if let errorMessage = state.errorMessage {
+                                        Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                                            .font(HyperliteTypography.regular(12))
+                                            .foregroundStyle(HyperliteTheme.red.color)
+                                    }
+                                    if let pullRequests {
+                                        HyperlitePullRequestPanel(
+                                            scan: pullRequests,
+                                            organization: dashboardLists
+                                        )
+                                    } else {
+                                        ProgressView("Loading open pull requests…")
+                                            .controlSize(.small)
+                                            .frame(maxWidth: .infinity, alignment: .topLeading)
+                                    }
+                                }
+                                .frame(maxWidth: .infinity, alignment: .topLeading)
+                            }
                             .frame(height: sectionHeight)
-                            .clipped()
+                            .overlay(alignment: .bottom) { HyperliteThemeDivider() }
 
-                        ScrollView(.vertical, showsIndicators: true) {
-                            VStack(alignment: .leading, spacing: 10) {
-                                if let errorMessage = state.errorMessage {
-                                    Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
-                                        .font(HyperliteTypography.regular(12))
-                                        .foregroundStyle(HyperliteTheme.red.color)
+                            ScrollView(.vertical, showsIndicators: true) {
+                                VStack(alignment: .leading, spacing: 10) {
+                                    if state.scan == nil {
+                                        ProgressView("Refreshing configured projects…")
+                                            .controlSize(.small)
+                                    }
+                                    if projects.isEmpty, state.scan != nil {
+                                        Text("No configured projects")
+                                            .font(HyperliteTypography.regular(10))
+                                            .foregroundStyle(HyperliteTheme.mutedText.color)
+                                    } else if !projects.isEmpty {
+                                        HyperliteProjectMap(
+                                            projects: projects,
+                                            pullRequests: pullRequests,
+                                            organization: dashboardLists
+                                        )
+                                    }
                                 }
-                                if let pullRequests {
-                                    HyperlitePullRequestPanel(
-                                        scan: pullRequests,
-                                        organization: dashboardLists
-                                    )
-                                } else {
-                                    ProgressView("Loading open pull requests…")
-                                        .controlSize(.small)
-                                        .frame(maxWidth: .infinity, alignment: .topLeading)
-                                }
+                                .frame(maxWidth: .infinity, alignment: .topLeading)
                             }
-                            .frame(maxWidth: .infinity, alignment: .topLeading)
+                            .frame(height: sectionHeight)
                         }
-                        .frame(height: sectionHeight)
-                        .overlay(alignment: .bottom) { HyperliteThemeDivider() }
-
-                        ScrollView(.vertical, showsIndicators: true) {
-                            VStack(alignment: .leading, spacing: 10) {
-                                if state.scan == nil {
-                                    ProgressView("Refreshing configured projects…")
-                                        .controlSize(.small)
-                                }
-                                if projects.isEmpty, state.scan != nil {
-                                    Text("No configured projects")
-                                        .font(HyperliteTypography.regular(10))
-                                        .foregroundStyle(HyperliteTheme.mutedText.color)
-                                } else if !projects.isEmpty {
-                                    HyperliteProjectMap(
-                                        projects: projects,
-                                        pullRequests: pullRequests,
-                                        organization: dashboardLists
-                                    )
-                                }
-                            }
-                            .frame(maxWidth: .infinity, alignment: .topLeading)
-                        }
-                        .frame(height: sectionHeight)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    } else {
+                        HyperlitePinboardView(state: pinboard)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -210,6 +216,7 @@ struct HyperliteWindow: View {
                     .font(.system(size: 18))
                     .accessibilityLabel("Ghost")
             }
+            HyperliteWorkspaceControl(workspace: state.workspace, onSelect: state.showWorkspace)
             if HyperliteFeatureFlags.inferredAttentionPresentation {
                 HStack(spacing: 6) {
                     HyperliteGhostMark()
@@ -250,6 +257,19 @@ struct HyperliteWindow: View {
         }
         state.dismissPalette()
         switch action {
+        case .showDashboard:
+            state.showWorkspace(.dashboard)
+        case .showPinboard:
+            state.showWorkspace(.pinboard)
+        case .addPinboardNote:
+            state.showWorkspace(.pinboard)
+            pinboard.request(.addNote)
+        case .addPinboardSection:
+            state.showWorkspace(.pinboard)
+            pinboard.request(.addSection)
+        case .openPinboardArchive:
+            state.showWorkspace(.pinboard)
+            pinboard.request(.openArchive)
         case .refresh:
             state.refreshAll()
         case .forceCacheRefresh:

@@ -13,6 +13,7 @@
 | 0007 | pinned-codex-threads | `docs/specs/0007-pinned-codex-threads` | deliver | no | 2026-08-02 | Show pinned Codex Desktop tasks in a compact read-only header projection with fail-closed membership and partial metadata. |
 | 0008 | dashboard-list-organization | `docs/specs/0008-dashboard-list-organization` | deliver | no | 2026-08-04 | Add quiet local filtering, sorting, transactional reordering, and project collapse controls to the dashboard lists. |
 | 0009 | reviewed-pull-request-markers | `docs/specs/0009-reviewed-pull-request-markers` | deliver | no | 2026-08-10 | Add private exact-head review markers, local review filtering, stale-state presentation, and bulk clear to Open PRs. |
+| 0010 | notes-pinboard | `docs/specs/0010-notes-pinboard` | deliver | no | 2026-08-14 | Add one private bounded spatial Pinboard with free note placement, safe forking, and recoverable archive. |
 
 ## PROJECT INTENT
 
@@ -167,8 +168,27 @@ changes that warrant human attention.
   feature work is defined.
 - **POINTERS**: `docs/specs/0009-reviewed-pull-request-markers/SPEC.md`
 
+### notes-pinboard
+
+- **STATUS**: deliver
+- **PAUSED**: no
+- **INTENT**: Provide highly visible private graphical working memory that can
+  grow and change without becoming project, task, lifecycle, or agent state.
+- **APPROACH**: Preserve Dashboard as one full-content workspace and add one
+  finite Pinboard workspace with bounded movable/resizable sections, freely
+  positioned fixed-size notes, explicit content editing and forking, and a
+  recoverable archive. Keep canonical Markdown content separate from atomic
+  JSON layout so geometry never falsifies content recency.
+- **OPEN ITEMS**: Issue #41 owns ready pull-request delivery; no additional v1
+  feature work is defined.
+- **POINTERS**: `docs/specs/0010-notes-pinboard/SPEC.md`
+
 ## LAST UPDATED
 
+- 2026-08-14: Added feature `0010-notes-pinboard` with a full-content bounded
+  spatial workspace, free section-relative note placement, content/layout
+  separation, independent fork lineage, and recoverable archive without
+  project or agent semantics.
 - 2026-08-10: Added feature `0009-reviewed-pull-request-markers` with private
   exact-head review state, authoritative invalidation and pruning, local
   filters, reviewed counts, and complete bulk clearing without GitHub mutation.

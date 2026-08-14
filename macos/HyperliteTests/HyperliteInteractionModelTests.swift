@@ -13,6 +13,7 @@ struct HyperliteInteractionModelTests {
         testHoverSummaryLimit()
         testProcessEnvironment()
         HyperliteWorkspaceSizingTests.run()
+        try await HyperlitePinboardTests.run()
         HyperliteTypographyTests.run()
         try HyperliteProjectIndexTests.run()
         try HyperlitePullRequestTests.run()
