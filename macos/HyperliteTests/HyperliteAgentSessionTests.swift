@@ -2,12 +2,15 @@ import Foundation
 
 enum HyperliteAgentSessionTests {
     static func run() throws {
-        try testSnapshotDecoding()
+        HyperliteAgentSessionPolicyTests.run()
+        let snapshot = try testSnapshotDecoding()
         try testActionEncoding()
+        testPopupTransitions(snapshot)
+        testActionAndRoutePresentation(snapshot)
         testNotchGeometry()
     }
 
-    private static func testSnapshotDecoding() throws {
+    private static func testSnapshotDecoding() throws -> HyperliteAgentSessionSnapshot {
         let data = Data("""
         {
           "schema": "agent_session_snapshot.v1",
@@ -48,6 +51,102 @@ enum HyperliteAgentSessionTests {
         expect(snapshot.activeCount == 0, "active count")
         expect(snapshot.sessions[0].action?.requestID == "request-1", "exact request id")
         expect(snapshot.sessions[0].messages.count == 1, "bounded messages")
+        return snapshot
+    }
+
+    private static func testPopupTransitions(_ snapshot: HyperliteAgentSessionSnapshot) {
+        expect(snapshot.popupTransition(from: nil) == .attention, "initial live request expands")
+        expect(snapshot.popupTransition(from: snapshot) == nil, "retained attention does not reopen")
+
+        let attention = snapshot.sessions[0]
+        let revised = copy(attention, revision: attention.revision + 1)
+        let revisedSnapshot = copy(snapshot, sessions: [revised])
+        expect(revisedSnapshot.popupTransition(from: snapshot) == .attention,
+               "new request revision expands")
+
+        let completed = copy(revised, phase: .completed, action: .some(nil))
+        let completedSnapshot = copy(revisedSnapshot, sessions: [completed])
+        expect(completedSnapshot.popupTransition(from: revisedSnapshot) == .completion,
+               "new completion expands")
+        expect(completedSnapshot.popupTransition(from: completedSnapshot) == nil,
+               "retained completion does not reopen")
+        expect(completedSnapshot.popupTransition(from: nil) == nil,
+               "discovered historical completion stays collapsed")
+    }
+
+    private static func testActionAndRoutePresentation(_ snapshot: HyperliteAgentSessionSnapshot) {
+        let session = snapshot.sessions[0]
+        expect(session.actionIdentity == HyperliteAgentActionIdentity(
+            sessionID: session.id,
+            requestID: "request-1",
+            revision: 3
+        ), "pending action identity includes exact revision")
+        expect(session.routeDestination?.label == "Open Claude", "application route names the exact bundle")
+        let cursorRouting = HyperliteAgentRouting(
+            bundleID: "com.todesktop.230313mzl4w4u92",
+            terminal: nil,
+            terminalID: nil,
+            tmuxSession: nil,
+            tmuxPane: nil,
+            workspacePath: nil
+        )
+        let cursor = copy(session, profile: "cursor", routing: cursorRouting)
+        expect(cursor.routeDestination?.label == "Open Cursor",
+               "exact Cursor bundle names the owning app")
+
+        let finderRouting = HyperliteAgentRouting(
+            bundleID: nil,
+            terminal: nil,
+            terminalID: nil,
+            tmuxSession: nil,
+            tmuxPane: nil,
+            workspacePath: "/tmp/hyperlite"
+        )
+        let finder = copy(session, routing: finderRouting)
+        expect(finder.routeDestination == .finder, "workspace-only route uses Finder")
+        expect(finder.routeDestination?.label == "Reveal in Finder", "Finder route is explicit")
+    }
+
+    private static func copy(
+        _ snapshot: HyperliteAgentSessionSnapshot,
+        sessions: [HyperliteAgentSession]
+    ) -> HyperliteAgentSessionSnapshot {
+        HyperliteAgentSessionSnapshot(
+            schema: snapshot.schema,
+            generation: snapshot.generation + 1,
+            generatedAt: snapshot.generatedAt,
+            sessions: sessions,
+            integrations: snapshot.integrations
+        )
+    }
+
+    private static func copy(
+        _ session: HyperliteAgentSession,
+        phase: HyperliteAgentSessionPhase? = nil,
+        profile: String? = nil,
+        revision: UInt64? = nil,
+        action: HyperliteAgentPendingAction?? = nil,
+        routing: HyperliteAgentRouting? = nil
+    ) -> HyperliteAgentSession {
+        HyperliteAgentSession(
+            id: session.id,
+            provider: session.provider,
+            profile: profile ?? session.profile,
+            sessionID: session.sessionID,
+            parentID: session.parentID,
+            project: session.project,
+            title: session.title,
+            phase: phase ?? session.phase,
+            source: session.source,
+            revision: revision ?? session.revision,
+            createdAt: session.createdAt,
+            updatedAt: session.updatedAt,
+            messages: session.messages,
+            latestResult: session.latestResult,
+            action: action ?? session.action,
+            routing: routing ?? session.routing,
+            openInClient: session.openInClient
+        )
     }
 
     private static func testActionEncoding() throws {

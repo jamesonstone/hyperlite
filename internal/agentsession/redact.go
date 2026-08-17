@@ -14,6 +14,7 @@ var (
 	bearerPattern     = regexp.MustCompile(`(?i)\b(bearer|basic)\s+[A-Za-z0-9._~+/=-]+`)
 	assignmentPattern = regexp.MustCompile(`(?i)\b([A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|PASSWD|API_KEY|PRIVATE_KEY|CREDENTIAL)[A-Z0-9_]*)=([^\s]+)`)
 	privateKeyPattern = regexp.MustCompile(`(?s)-----BEGIN [^-]*PRIVATE KEY-----.*?-----END [^-]*PRIVATE KEY-----`)
+	nonWhitespace     = regexp.MustCompile(`\S+`)
 )
 
 var allowedArgumentKeys = map[string]struct{}{
@@ -76,27 +77,32 @@ func SanitizeArguments(values map[string]any) (map[string]string, bool) {
 }
 
 func redactSignedURLs(value string) string {
-	fields := strings.Fields(value)
-	for index, field := range fields {
+	changed := false
+	redactedValue := nonWhitespace.ReplaceAllStringFunc(value, func(field string) string {
 		trimmed := strings.Trim(field, `"'(),`)
 		parsed, err := url.Parse(trimmed)
 		if err != nil || parsed.Scheme == "" || parsed.Host == "" || parsed.RawQuery == "" {
-			continue
+			return field
 		}
 		query := parsed.Query()
-		redacted := false
+		redactedURL := false
 		for key := range query {
 			if secretKeyPattern.MatchString(key) || strings.EqualFold(key, "X-Amz-Signature") {
 				query.Set(key, "REDACTED")
-				redacted = true
+				redactedURL = true
 			}
 		}
-		if redacted {
+		if redactedURL {
 			parsed.RawQuery = query.Encode()
-			fields[index] = strings.Replace(field, trimmed, parsed.String(), 1)
+			changed = true
+			return strings.Replace(field, trimmed, parsed.String(), 1)
 		}
+		return field
+	})
+	if !changed {
+		return value
 	}
-	return strings.Join(fields, " ")
+	return redactedValue
 }
 
 func safeAction(event Event) *PendingAction {

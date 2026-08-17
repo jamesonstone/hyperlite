@@ -2,6 +2,7 @@ package agentsession
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,9 +11,10 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"syscall"
 	"time"
 )
+
+const maxHookWait = 24 * time.Hour
 
 type HookDecision struct {
 	RequestID string              `json:"request_id"`
@@ -43,12 +45,14 @@ func PrepareRuntimeSocket(path string) (net.Listener, error) {
 		if info.Mode()&os.ModeSocket == 0 {
 			return nil, errors.New("agent socket path is occupied by a non-socket")
 		}
-		stat, ok := info.Sys().(*syscall.Stat_t)
-		if !ok || int(stat.Uid) != os.Getuid() {
+		if !fileOwnedByCurrentUser(info) {
 			return nil, errors.New("stale agent socket is not user-owned")
 		}
-		if connection, dialErr := net.DialTimeout("unix", path, 100*time.Millisecond); dialErr == nil {
-			connection.Close()
+		probeContext, cancelProbe := context.WithTimeout(context.Background(), 100*time.Millisecond)
+		connection, dialErr := (&net.Dialer{}).DialContext(probeContext, "unix", path)
+		cancelProbe()
+		if dialErr == nil {
+			_ = connection.Close()
 			return nil, errors.New("another Hyperlite agent service is already active")
 		}
 		if err := os.Remove(path); err != nil {
@@ -57,25 +61,27 @@ func PrepareRuntimeSocket(path string) (net.Listener, error) {
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return nil, fmt.Errorf("inspect agent socket path: %w", err)
 	}
-	listener, err := net.Listen("unix", path)
+	listener, err := (&net.ListenConfig{}).Listen(context.Background(), "unix", path)
 	if err != nil {
 		return nil, fmt.Errorf("listen on agent socket: %w", err)
 	}
 	if err := os.Chmod(path, 0o600); err != nil {
-		listener.Close()
+		_ = listener.Close()
 		return nil, fmt.Errorf("secure agent socket: %w", err)
 	}
 	return listener, nil
 }
 
 func SendHook(event Event, socketPath string, timeout time.Duration, out io.Writer) error {
-	connection, err := net.DialTimeout("unix", socketPath, 500*time.Millisecond)
+	dialContext, cancelDial := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	connection, err := (&net.Dialer{}).DialContext(dialContext, "unix", socketPath)
+	cancelDial()
 	if err != nil {
 		return nil
 	}
-	defer connection.Close()
-	if timeout <= 0 {
-		timeout = 24 * time.Hour
+	defer func() { _ = connection.Close() }()
+	if timeout <= 0 || timeout > maxHookWait {
+		timeout = maxHookWait
 	}
 	_ = connection.SetDeadline(time.Now().Add(timeout))
 	if err := json.NewEncoder(connection).Encode(event); err != nil {
@@ -97,7 +103,7 @@ func SendHook(event Event, socketPath string, timeout time.Duration, out io.Writ
 
 func ProviderResponse(profileID, actionKind string, decision HookDecision) map[string]any {
 	profile, ok := ProfileByID(profileID)
-	if !ok || profile.ActionMode != "blocking" {
+	if !ok || profile.ActionMode != actionModeBlocking {
 		return nil
 	}
 	if actionKind == "question" && decision.Action == "answer" {

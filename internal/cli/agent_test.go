@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/jamesonstone/hyperlite/internal/agentsession"
@@ -24,6 +25,22 @@ func TestAgentIntegrationsListDoesNotRequireProjectConfig(t *testing.T) {
 	}
 	if len(values) != len(agentsession.Profiles()) {
 		t.Fatalf("integration count = %d", len(values))
+	}
+}
+
+func TestAgentHookRejectsOutOfRangeWait(t *testing.T) {
+	for _, wait := range []string{"-1", "86401"} {
+		t.Run(wait, func(t *testing.T) {
+			t.Setenv("HOME", t.TempDir())
+			input := bytes.NewBufferString(`{"session_id":"one","hook_event_name":"PermissionRequest","tool_use_id":"request","tool_input":{"command":"git status"}}`)
+			app := App{In: input, Out: &bytes.Buffer{}, Err: &bytes.Buffer{}}
+			command := app.Root()
+			command.SetArgs([]string{"agent", "hook", "--profile", "claude-code", "--wait-seconds", wait})
+			err := command.Execute()
+			if err == nil || !strings.Contains(err.Error(), "--wait-seconds must be between 0 and 86400") {
+				t.Fatalf("wait %s returned %v", wait, err)
+			}
+		})
 	}
 }
 

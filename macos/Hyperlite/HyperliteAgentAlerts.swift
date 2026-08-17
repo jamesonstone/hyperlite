@@ -12,10 +12,11 @@ enum HyperliteAgentAlerts {
         previous: HyperliteAgentSessionSnapshot?,
         current: HyperliteAgentSessionSnapshot
     ) {
-        let previousByID = Dictionary(uniqueKeysWithValues: (previous?.sessions ?? []).map { ($0.id, $0) })
-        for session in current.sessions {
+        let previousByID = HyperliteAgentSessionSelection.newestByID(previous?.sessions ?? [])
+        for session in HyperliteAgentSessionSelection.newestByID(current.sessions).values {
             let old = previousByID[session.id]
-            if session.needsAttention, old?.needsAttention != true {
+            if session.needsAttention,
+               old?.needsAttention != true || old?.actionIdentity != session.actionIdentity {
                 alert(kind: "Agent needs attention", session: session)
             } else if (session.phase == .completed || session.phase == .error), old?.phase != session.phase {
                 alert(kind: session.phase == .error ? "Agent session error" : "Agent session completed", session: session)

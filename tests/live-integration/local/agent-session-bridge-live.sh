@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-for dependency in git go jq uuidgen; do
+for dependency in git go jq rg uuidgen; do
   if ! command -v "$dependency" >/dev/null 2>&1; then
     printf 'required command is unavailable: %s\n' "$dependency" >&2
     exit 2
@@ -84,7 +84,15 @@ go test ./internal/cli \
   -v -count=1 -timeout 30s
 
 "$repository_root/bin/hyperlite" agent integrations list |
-  jq '[.[] | {id, name, detected, enabled, action_mode}]' >"$integrations_path"
+  jq -e '
+    def allowed_keys:
+      ["action_mode", "detected", "enabled", "id", "name", "provider", "schema", "target"];
+    if type == "array" and length == 20 and
+      all(.[]; type == "object" and ((keys - allowed_keys) | length == 0))
+    then [.[] | {id, name, detected, enabled, action_mode}]
+    else error("integration inventory contains an unexpected field")
+    end
+  ' >"$integrations_path"
 jq -e 'length == 20 and all(.[]; .id != "" and .name != "")' "$integrations_path" >/dev/null
 if rg -n '(prompt|response|transcript|raw_payload|authorization|cookie|password|secret|token)' "$integrations_path"; then
   printf 'integration inventory contains a forbidden content-bearing field\n' >&2

@@ -21,7 +21,7 @@ func ReadRolloutTail(path string, limit int64) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	info, err := file.Stat()
 	if err != nil || !info.Mode().IsRegular() {
 		return nil, errors.New("rollout is not a regular file")
@@ -78,7 +78,7 @@ func ParseCodexRolloutTail(data []byte, fallbackID string, now time.Time) (Event
 		case "event_msg":
 			parseCodexEventMessage(payload, &event, &messages, runningTools)
 		case "response_item":
-			parseCodexResponseItem(payload, &event, &messages, runningTools)
+			parseCodexResponseItem(payload, &event, runningTools)
 		}
 	}
 	if err := scanner.Err(); err != nil {
@@ -119,7 +119,7 @@ func parseCodexEventMessage(payload map[string]any, event *Event, messages *[]Me
 	}
 }
 
-func parseCodexResponseItem(payload map[string]any, event *Event, messages *[]Message, running map[string]string) {
+func parseCodexResponseItem(payload map[string]any, event *Event, running map[string]string) {
 	typeName := firstString(payload, "type")
 	callID := firstString(payload, "call_id")
 	switch typeName {
@@ -138,7 +138,6 @@ func parseCodexResponseItem(payload map[string]any, event *Event, messages *[]Me
 	case "function_call_output", "custom_tool_call_output":
 		delete(running, callID)
 	}
-	_ = messages
 }
 
 func appendDisplayMessage(messages *[]Message, role, text string) {

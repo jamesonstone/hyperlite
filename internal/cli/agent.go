@@ -13,6 +13,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const maximumHookWaitSeconds = 24 * 60 * 60
+
 func (a App) agentCommand() *cobra.Command {
 	command := &cobra.Command{Use: "agent", Short: "Manage local coding-agent sessions", Args: noArgs}
 	command.AddCommand(a.agentSessionsCommand(), a.agentHookCommand(), a.agentIntegrationsCommand())
@@ -60,8 +62,8 @@ func (a App) agentHookCommand() *cobra.Command {
 			if !ok {
 				return usageError{fmt.Errorf("unknown agent profile %q", profileID)}
 			}
-			raw, err := io.ReadAll(io.LimitReader(a.input(), 1024*1024+1))
-			if err != nil || len(raw) > 1024*1024 {
+			raw, err := io.ReadAll(io.LimitReader(a.input(), agentsession.MaxHookPayload+1))
+			if err != nil || len(raw) > agentsession.MaxHookPayload {
 				return errors.New("hook payload exceeds the safety limit")
 			}
 			event, err := agentsession.NormalizeHook(profile, raw, hookEnvironment(), time.Now().UTC())
@@ -70,6 +72,9 @@ func (a App) agentHookCommand() *cobra.Command {
 			}
 			if socketPath == "" {
 				socketPath = agentsession.RuntimeSocketPath(hookEnvironment())
+			}
+			if waitSeconds < 0 || waitSeconds > maximumHookWaitSeconds {
+				return usageError{errors.New("--wait-seconds must be between 0 and 86400")}
 			}
 			return agentsession.SendHook(event, socketPath, time.Duration(waitSeconds)*time.Second, a.Out)
 		},
@@ -95,7 +100,10 @@ func (a App) agentIntegrationsListCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			executable, _ := os.Executable()
+			executable, err := os.Executable()
+			if err != nil {
+				return fmt.Errorf("resolve bridge executable: %w", err)
+			}
 			return json.NewEncoder(a.Out).Encode(agentsession.DetectIntegrations(home, executable))
 		},
 	}

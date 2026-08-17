@@ -61,24 +61,36 @@ or any repository. A Go helper owns exact session identity, provider ingress,
 redaction, response revision checks, expiry, and routing-only persistence. The
 native app consumes versioned sanitized snapshots.
 
-On first agent-session launch, Hyperlite offers Enable Recommended Integrations,
-Customize, and Skip. Recommended includes only detected local clients. Shared
+On first agent-session launch, a centered welcome offers Enable Recommended,
+Review in Settings, and Not Now. Hyperlite performs one bounded detection-only
+request to describe installed clients, but does not start the long-running
+session service, provider watchers, or Codex app server until the operator
+makes a choice. Recommended includes only detected local clients. Ongoing
+provider toggles and integration health live in grouped Settings. Shared
 provider files retain unrelated settings; malformed, oversized, symlinked,
-wrong-owner, or concurrently changed configuration fails closed. Disabling an
-integration removes only exact Hyperlite-owned material.
+wrong-owner, concurrently created, or concurrently changed configuration fails
+closed. Disabling an integration removes only exact Hyperlite-owned material.
 
 The collapsed notch or top-edge pill shows only the Hyperlite mark and active
-or attention counts. Opening it or the Sessions workspace may show at most six
+or attention counts. Click it to open the mini workspace; ordinary hover does
+not expand it. A newly urgent approval or input request may expand once, and
+active pointer, keyboard, or text-field interaction pauses timed dismissal. A
+physical-notch surface stays black while the notchless fallback uses native
+material and shadow. The companion or Sessions workspace may show at most six
 recent user/assistant messages, each capped at 2,000 characters, plus an 8,000-
-character latest final result or decision context. Internal reasoning,
-arbitrary historical tool output, raw hook payloads, secrets, and generic
-environment data are excluded before state reaches the UI.
+character latest final result or decision context. Native system typography is
+used for chrome and controls, while technical content remains monospaced.
+Internal reasoning, arbitrary historical tool output, raw hook payloads,
+secrets, and generic environment data are excluded before state reaches the UI.
 
 Allow Once, Deny, and Answer appear only for a current exact request with
 complete redacted context and a live blocking provider channel. Rollout-only,
 notify-only, stale, truncated, or redacted requests offer Open in client
 instead. Hyperlite never simulates session scope by repeatedly approving
-individual requests.
+individual requests. A request submits once for its exact session, request ID,
+and revision; stale answer text is cleared when that identity changes. Routing
+buttons name the real capability, such as Open Codex or Reveal in Finder,
+instead of claiming an unavailable client route.
 
 Completed sessions remain for ten minutes. Other non-attention sessions expire
 after thirty minutes of inactivity, unresolved attention does not age-expire,

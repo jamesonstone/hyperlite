@@ -123,6 +123,40 @@ struct HyperliteAgentSession: Codable, Equatable, Identifiable {
 
     var needsAttention: Bool { action != nil || phase.needsAttention }
     var displayTitle: String { title.isEmpty ? project : title }
+
+    var actionIdentity: HyperliteAgentActionIdentity? {
+        guard let action else { return nil }
+        return HyperliteAgentActionIdentity(
+            sessionID: id,
+            requestID: action.requestID,
+            revision: revision
+        )
+    }
+
+    var routeDestination: HyperliteAgentRouteDestination? {
+        HyperliteAgentRoutePolicy.destination(
+            openInClient: openInClient,
+            routing: routing
+        )
+    }
+}
+
+struct HyperliteAgentActionIdentity: Hashable {
+    let sessionID: String
+    let requestID: String
+    let revision: UInt64
+}
+
+enum HyperliteAgentRouteDestination: Equatable {
+    case application(String)
+    case finder
+
+    var label: String {
+        switch self {
+        case let .application(name): "Open \(name)"
+        case .finder: "Reveal in Finder"
+        }
+    }
 }
 
 struct HyperliteAgentIntegration: Codable, Equatable, Identifiable {
@@ -155,6 +189,34 @@ struct HyperliteAgentSessionSnapshot: Codable, Equatable {
 
     var attentionCount: Int { sessions.filter(\.needsAttention).count }
     var activeCount: Int { sessions.filter { $0.phase.isActive }.count }
+
+    func popupTransition(
+        from previous: HyperliteAgentSessionSnapshot?
+    ) -> HyperliteAgentPopupTransition? {
+        let previousByID = HyperliteAgentSessionSelection.newestByID(previous?.sessions ?? [])
+        if sessions.contains(where: { session in
+            guard session.needsAttention else { return false }
+            guard let old = previousByID[session.id] else { return true }
+            return old.actionIdentity != session.actionIdentity || !old.needsAttention
+        }) {
+            return .attention
+        }
+        guard previous != nil else { return nil }
+        if sessions.contains(where: { session in
+            guard session.phase == .completed || session.phase == .error else { return false }
+            return previousByID[session.id]?.phase != session.phase
+        }) {
+            return .completion
+        }
+        return nil
+    }
+}
+
+enum HyperliteAgentPopupTransition: Equatable {
+    case attention
+    case completion
+
+    var dismissDelay: UInt64 { self == .attention ? 12 : 6 }
 }
 
 struct HyperliteAgentActionRequest: Codable, Equatable {

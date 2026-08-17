@@ -41,7 +41,8 @@ func TestServiceRoundTripUsesExactLiveResponseChannel(t *testing.T) {
 	initialChannel := make(chan initialResult, 1)
 	go func() {
 		var snapshot Snapshot
-		initialChannel <- initialResult{snapshot: snapshot, err: decoder.Decode(&snapshot)}
+		err := decoder.Decode(&snapshot)
+		initialChannel <- initialResult{snapshot: snapshot, err: err}
 	}()
 	var initial Snapshot
 	select {
@@ -56,7 +57,7 @@ func TestServiceRoundTripUsesExactLiveResponseChannel(t *testing.T) {
 		t.Fatal("initial snapshot timed out")
 	}
 	waitForSocket(t, socketPath)
-	connection, err := net.Dial("unix", socketPath)
+	connection, err := (&net.Dialer{}).DialContext(ctx, "unix", socketPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,10 +101,10 @@ func TestServiceRoundTripUsesExactLiveResponseChannel(t *testing.T) {
 	if bytes.Contains(routingData, []byte("ephemeral-secret-fixture")) {
 		t.Fatalf("session content persisted in routing state: %s", routingData)
 	}
-	connection.Close()
+	_ = connection.Close()
 	cancel()
-	inputWriter.Close()
-	outputReader.Close()
+	_ = inputWriter.Close()
+	_ = outputReader.Close()
 	select {
 	case err := <-serviceDone:
 		if err != nil {
@@ -168,7 +169,7 @@ func TestServiceRetractsActionWhenProviderDisconnects(t *testing.T) {
 		t.Fatal(err)
 	}
 	waitForSocket(t, filepath.Join(runtimeDir, "agent.sock"))
-	connection, err := net.Dial("unix", filepath.Join(runtimeDir, "agent.sock"))
+	connection, err := (&net.Dialer{}).DialContext(ctx, "unix", filepath.Join(runtimeDir, "agent.sock"))
 	if err != nil {
 		t.Fatal(err)
 	}

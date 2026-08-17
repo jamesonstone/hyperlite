@@ -46,9 +46,7 @@ func (s *Store) SetIntegrations(values []IntegrationStatus) Snapshot {
 func (s *Store) Apply(event Event, now time.Time) (Snapshot, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if now.IsZero() {
-		now = time.Now().UTC()
-	}
+	now = nonzeroTime(now)
 	event = normalizeEvent(event, now)
 	if event.Provider == "" || event.SessionID == "" {
 		return s.snapshotLocked(now), false
@@ -58,7 +56,7 @@ func (s *Store) Apply(event Event, now time.Time) (Snapshot, bool) {
 	if exists && staleAgainst(current, event) {
 		return s.snapshotLocked(now), false
 	}
-	updated := applyEvent(current, exists, id, event, now)
+	updated := applyEvent(current, exists, id, event)
 	s.sessions[id] = updated
 	s.generation++
 	return s.snapshotLocked(now), true
@@ -93,7 +91,7 @@ func staleAgainst(current Session, event Event) bool {
 		event.Source.Authority() < current.Source.Authority()
 }
 
-func applyEvent(current Session, exists bool, id string, event Event, now time.Time) Session {
+func applyEvent(current Session, exists bool, id string, event Event) Session {
 	if !exists {
 		current = Session{
 			ID: id, Provider: event.Provider, Profile: event.Profile,
@@ -137,10 +135,6 @@ func applyEvent(current Session, exists bool, id string, event Event, now time.T
 		current.LatestResult = BoundDisplayText(event.LatestResult, maxResultRunes)
 	}
 	current.Action = safeAction(event)
-	if !current.Phase.NeedsAttention() && current.Action == nil {
-		current.Action = nil
-	}
-	_ = now
 	return current
 }
 
@@ -167,6 +161,7 @@ func (s *Store) ValidateAction(request ActionRequest) (Session, error) {
 func (s *Store) ResolveAction(request ActionRequest, now time.Time) Snapshot {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	now = nonzeroTime(now)
 	session, ok := s.sessions[request.SessionID]
 	if !ok || session.Action == nil || session.Action.RequestID != request.RequestID {
 		return s.snapshotLocked(now)
@@ -185,6 +180,7 @@ func (s *Store) ResolveAction(request ActionRequest, now time.Time) Snapshot {
 func (s *Store) CancelAction(sessionID, requestID string, now time.Time) (Snapshot, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	now = nonzeroTime(now)
 	session, ok := s.sessions[sessionID]
 	if !ok || session.Action == nil || session.Action.RequestID != requestID {
 		return s.snapshotLocked(now), false
@@ -198,6 +194,13 @@ func (s *Store) CancelAction(sessionID, requestID string, now time.Time) (Snapsh
 	s.sessions[sessionID] = session
 	s.generation++
 	return s.snapshotLocked(now), true
+}
+
+func nonzeroTime(now time.Time) time.Time {
+	if now.IsZero() {
+		return time.Now().UTC()
+	}
+	return now
 }
 
 func (s *Store) Expire(now time.Time) (Snapshot, bool) {

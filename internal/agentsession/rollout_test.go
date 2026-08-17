@@ -80,7 +80,11 @@ func TestCodexRolloutPathIsConfinedAndWatchIsEventDriven(t *testing.T) {
 		t.Fatal(err)
 	}
 	resolved, err := SafeCodexRolloutPath(path, home)
-	if err != nil || resolved != path {
+	expectedPath, resolveErr := filepath.EvalSymlinks(path)
+	if resolveErr != nil {
+		t.Fatal(resolveErr)
+	}
+	if err != nil || resolved != expectedPath {
 		t.Fatalf("safe path: %q %v", resolved, err)
 	}
 	outside := filepath.Join(t.TempDir(), "outside.jsonl")
@@ -89,6 +93,13 @@ func TestCodexRolloutPathIsConfinedAndWatchIsEventDriven(t *testing.T) {
 	}
 	if _, err := SafeCodexRolloutPath(outside, home); err == nil {
 		t.Fatal("outside rollout accepted")
+	}
+	symlinkedDirectory := filepath.Join(directory, "linked")
+	if err := os.Symlink(filepath.Dir(outside), symlinkedDirectory); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := SafeCodexRolloutPath(filepath.Join(symlinkedDirectory, filepath.Base(outside)), home); err == nil {
+		t.Fatal("rollout through escaping directory symlink was accepted")
 	}
 	if runtime.GOOS != "darwin" {
 		return
@@ -105,17 +116,32 @@ func TestCodexRolloutPathIsConfinedAndWatchIsEventDriven(t *testing.T) {
 			}
 		})
 	}()
-	time.Sleep(20 * time.Millisecond)
-	file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0)
-	if err != nil {
-		t.Fatal(err)
+	appendLine := func() {
+		file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := file.WriteString("{}\n"); err != nil {
+			_ = file.Close()
+			t.Fatal(err)
+		}
+		if err := file.Close(); err != nil {
+			t.Fatal(err)
+		}
 	}
-	_, _ = file.WriteString("{}\n")
-	_ = file.Close()
-	select {
-	case <-changed:
-	case <-time.After(2 * time.Second):
-		t.Fatal("rollout watcher did not observe append")
+	deadline := time.NewTimer(2 * time.Second)
+	defer deadline.Stop()
+	retry := time.NewTicker(20 * time.Millisecond)
+	defer retry.Stop()
+	for observed := false; !observed; {
+		appendLine()
+		select {
+		case <-changed:
+			observed = true
+		case <-retry.C:
+		case <-deadline.C:
+			t.Fatal("rollout watcher did not observe append")
+		}
 	}
 	cancel()
 	select {

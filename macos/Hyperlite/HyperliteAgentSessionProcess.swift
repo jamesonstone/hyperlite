@@ -20,7 +20,8 @@ final class HyperliteAgentSessionProcess {
     private var shouldRun = false
     private var restartCount = 0
     private var restartTask: Task<Void, Never>?
-    private let lineBuffer = HyperliteAgentLineBuffer()
+    private var stableTask: Task<Void, Never>?
+    private var restartAfterTermination = false
 
     func start() {
         guard !shouldRun else { return }
@@ -31,8 +32,11 @@ final class HyperliteAgentSessionProcess {
 
     func stop() {
         shouldRun = false
+        restartAfterTermination = false
         restartTask?.cancel()
         restartTask = nil
+        stableTask?.cancel()
+        stableTask = nil
         guard let process else {
             onStatus?(.stopped)
             return
@@ -53,8 +57,32 @@ final class HyperliteAgentSessionProcess {
         input = nil
         output = nil
         errors = nil
-        lineBuffer.reset()
         onStatus?(.stopped)
+    }
+
+    func restart() {
+        guard shouldRun else {
+            start()
+            return
+        }
+        restartTask?.cancel()
+        restartTask = nil
+        stableTask?.cancel()
+        stableTask = nil
+        restartCount = 0
+        guard let process else {
+            launch()
+            return
+        }
+        restartAfterTermination = true
+        onStatus?(.starting)
+        output?.fileHandleForReading.readabilityHandler = nil
+        errors?.fileHandleForReading.readabilityHandler = nil
+        try? input?.fileHandleForWriting.close()
+        if process.isRunning {
+            process.terminate()
+            forceTerminationIfNeeded(process)
+        }
     }
 
     func send(_ request: HyperliteAgentActionRequest) throws {
@@ -83,6 +111,7 @@ final class HyperliteAgentSessionProcess {
         let input = Pipe()
         let output = Pipe()
         let errors = Pipe()
+        let lineBuffer = HyperliteAgentLineBuffer()
         process.executableURL = executable
         process.arguments = ["agent", "sessions", "serve"]
         process.environment = HyperliteProcessEnvironment.inheriting(ProcessInfo.processInfo.environment)
@@ -95,7 +124,7 @@ final class HyperliteAgentSessionProcess {
         output.fileHandleForReading.readabilityHandler = { [weak self] handle in
             let data = handle.availableData
             guard !data.isEmpty else { return }
-            for line in self?.lineBuffer.append(data) ?? [] {
+            for line in lineBuffer.append(data) {
                 guard line.count <= 1_048_576,
                       let record = try? HyperliteAgentWireRecord.decode(line)
                 else { continue }
@@ -112,6 +141,7 @@ final class HyperliteAgentSessionProcess {
             self.output = output
             self.errors = errors
             onStatus?(.running)
+            scheduleStableReset(for: process)
         } catch {
             output.fileHandleForReading.readabilityHandler = nil
             errors.fileHandleForReading.readabilityHandler = nil
@@ -123,16 +153,30 @@ final class HyperliteAgentSessionProcess {
         guard process === terminated else { return }
         output?.fileHandleForReading.readabilityHandler = nil
         errors?.fileHandleForReading.readabilityHandler = nil
+        stableTask?.cancel()
+        stableTask = nil
         process = nil
         input = nil
         output = nil
         errors = nil
-        lineBuffer.reset()
+        if restartAfterTermination {
+            restartAfterTermination = false
+            launch()
+            return
+        }
         guard shouldRun else {
             onStatus?(.stopped)
             return
         }
         scheduleRestart(message: "Agent-session helper exited")
+    }
+
+    private func forceTerminationIfNeeded(_ ownedProcess: Process) {
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 2) {
+            if ownedProcess.isRunning {
+                kill(ownedProcess.processIdentifier, SIGKILL)
+            }
+        }
     }
 
     private func scheduleRestart(message: String) {
@@ -151,30 +195,19 @@ final class HyperliteAgentSessionProcess {
             self?.launch()
         }
     }
-}
 
-private final class HyperliteAgentLineBuffer: @unchecked Sendable {
-    private let lock = NSLock()
-    private var data = Data()
-
-    func append(_ incoming: Data) -> [Data] {
-        lock.lock()
-        defer { lock.unlock() }
-        data.append(incoming)
-        if data.count > 2_097_152 { data.removeAll(keepingCapacity: false); return [] }
-        var lines: [Data] = []
-        while let newline = data.firstIndex(of: 0x0A) {
-            let line = Data(data[..<newline])
-            data.removeSubrange(data.startIndex ... newline)
-            if !line.isEmpty { lines.append(line) }
+    private func scheduleStableReset(for launched: Process) {
+        stableTask?.cancel()
+        stableTask = Task { [weak self, weak launched] in
+            try? await Task.sleep(nanoseconds: 30 * 1_000_000_000)
+            guard !Task.isCancelled,
+                  let self,
+                  let launched,
+                  self.process === launched,
+                  launched.isRunning
+            else { return }
+            self.restartCount = 0
         }
-        return lines
-    }
-
-    func reset() {
-        lock.lock()
-        data.removeAll(keepingCapacity: false)
-        lock.unlock()
     }
 }
 

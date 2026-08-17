@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -31,7 +32,7 @@ func MonitorCodex(ctx context.Context, environment map[string]string, emit func(
 		return nil
 	}
 	command := exec.CommandContext(ctx, executable, "app-server", "--stdio")
-	command.Env = os.Environ()
+	command.Env = mergeEnvironment(os.Environ(), environment)
 	stdin, err := command.StdinPipe()
 	if err != nil {
 		return fmt.Errorf("open Codex app-server input: %w", err)
@@ -118,7 +119,7 @@ func readResponse(ctx context.Context, reader *bufio.Scanner, id int, emit func(
 			continue
 		}
 		if len(message.Error) > 0 {
-			return codexRPCMessage{}, errors.New("Codex app-server request failed")
+			return codexRPCMessage{}, errors.New("codex app-server request failed")
 		}
 		return message, nil
 	}
@@ -182,8 +183,8 @@ func codexStatusEvent(threadID string, status map[string]any, now time.Time) (Ev
 		return Event{}, false
 	}
 	typeName := firstString(status, "type")
-	phase := PhaseIdle
-	source := SourceAppServer
+	var phase Phase
+	const source = SourceAppServer
 	switch typeName {
 	case "active":
 		phase = PhaseProcessing
@@ -207,6 +208,31 @@ func codexStatusEvent(threadID string, status map[string]any, now time.Time) (Ev
 	return Event{Schema: EventSchema, Provider: "codex", Profile: "codex", SessionID: threadID,
 		Event: "thread/status/changed", Phase: phase, Source: source, OccurredAt: now,
 		Routing: Routing{BundleID: "com.openai.codex"}}, true
+}
+
+func mergeEnvironment(base []string, overrides map[string]string) []string {
+	values := make(map[string]string, len(base)+len(overrides))
+	for _, entry := range base {
+		key, value, ok := strings.Cut(entry, "=")
+		if ok && key != "" {
+			values[key] = value
+		}
+	}
+	for key, value := range overrides {
+		if key != "" {
+			values[key] = value
+		}
+	}
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	result := make([]string, 0, len(keys))
+	for _, key := range keys {
+		result = append(result, key+"="+values[key])
+	}
+	return result
 }
 
 func resolveCodexExecutable(environment map[string]string) string {

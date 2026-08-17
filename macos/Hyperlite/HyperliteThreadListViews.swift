@@ -20,9 +20,8 @@ struct HyperliteSectionHeader: View {
 
 struct HyperliteSettingsView: View {
     @ObservedObject var state: HyperliteState
+    @ObservedObject var agentSessions: HyperliteAgentSessionState
     @AppStorage("hyperlite.hotkey") private var hotkey = defaultHotKey
-    @AppStorage("hyperlite.agent-session-sounds") private var agentSounds = false
-    @AppStorage("hyperlite.agent-session-notifications") private var agentNotifications = false
 
     var body: some View {
         Form {
@@ -52,14 +51,7 @@ struct HyperliteSettingsView: View {
             }
             if HyperliteFeatureFlags.agentSessionPresentation {
                 Section("Agent Sessions") {
-                    Toggle("Play event sounds", isOn: $agentSounds)
-                    Toggle("Show metadata-only notifications", isOn: $agentNotifications)
-                        .onChange(of: agentNotifications) { enabled in
-                            if enabled { HyperliteAgentAlerts.requestAuthorization() }
-                        }
-                    Text("Notifications contain only the client profile and project name.")
-                        .font(HyperliteTypography.regular(10))
-                        .foregroundStyle(HyperliteTheme.secondaryText.color)
+                    HyperliteAgentSessionSettings(state: agentSessions)
                 }
             }
             Section {

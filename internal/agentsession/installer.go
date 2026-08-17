@@ -8,27 +8,20 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"syscall"
 )
-
-const maxIntegrationConfig = 16 * 1024 * 1024
 
 var (
 	tomlBegin = []byte("# BEGIN HYPERLITE MANAGED HOOKS")
 	tomlEnd   = []byte("# END HYPERLITE MANAGED HOOKS")
 )
 
-type fileSignature struct {
-	inode uint64
-	size  int64
-	mode  os.FileMode
-	mtime int64
-}
-
 func ReconcileIntegration(home, bridgePath, id string, enable bool) (IntegrationStatus, error) {
 	profile, ok := ProfileByID(id)
 	if !ok {
 		return IntegrationStatus{}, fmt.Errorf("unknown integration %q", id)
+	}
+	if len(EventsForProfile(profile.ID)) == 0 {
+		return IntegrationStatus{}, fmt.Errorf("integration %q has no registered events", id)
 	}
 	target, err := secureTarget(home, preferredTarget(home, profile))
 	if err != nil {
@@ -167,7 +160,7 @@ func reconcileTOML(path string, profile Profile, command string, enable bool) er
 			block.WriteString("[[hooks]]\nname = \"")
 			block.WriteString(event)
 			block.WriteString("\"\ncommand = \"")
-			block.WriteString(strings.ReplaceAll(command, "\"", "\\\""))
+			block.WriteString(escapeTOMLBasicString(command))
 			block.WriteString("\"\n\n")
 		}
 		block.WriteString(string(tomlEnd) + "\n")
@@ -231,67 +224,4 @@ func generatedDirectoryContents(profile Profile, command string) []byte {
 	data, _ := json.MarshalIndent(map[string]any{"hyperlite_managed": true, "profile": profile.ID,
 		"command": command, "events": EventsForProfile(profile.ID)}, "", "  ")
 	return append(data, '\n')
-}
-
-func readConfig(path string) ([]byte, *fileSignature, error) {
-	info, err := os.Lstat(path)
-	if errors.Is(err, os.ErrNotExist) {
-		return nil, nil, nil
-	}
-	if err != nil {
-		return nil, nil, err
-	}
-	if !info.Mode().IsRegular() || info.Size() > maxIntegrationConfig {
-		return nil, nil, errors.New("integration config is not a bounded regular file")
-	}
-	stat, ok := info.Sys().(*syscall.Stat_t)
-	if !ok || int(stat.Uid) != os.Getuid() {
-		return nil, nil, errors.New("integration config is not user-owned")
-	}
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, nil, err
-	}
-	return data, &fileSignature{inode: stat.Ino, size: info.Size(), mode: info.Mode().Perm(), mtime: info.ModTime().UnixNano()}, nil
-}
-
-func writeConfig(path string, data []byte, previous *fileSignature) error {
-	if len(data) > maxIntegrationConfig {
-		return errors.New("integration config exceeds the safety limit")
-	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
-		return err
-	}
-	if previous != nil {
-		_, current, err := readConfig(path)
-		if err != nil || current == nil || *current != *previous {
-			return errors.New("integration config changed during update")
-		}
-	}
-	file, err := os.CreateTemp(filepath.Dir(path), ".hyperlite-integration-*")
-	if err != nil {
-		return err
-	}
-	temporary := file.Name()
-	defer os.Remove(temporary)
-	mode := os.FileMode(0o600)
-	if previous != nil {
-		mode = previous.mode
-	}
-	if err := file.Chmod(mode); err != nil {
-		file.Close()
-		return err
-	}
-	if _, err := file.Write(data); err != nil {
-		file.Close()
-		return err
-	}
-	if err := file.Sync(); err != nil {
-		file.Close()
-		return err
-	}
-	if err := file.Close(); err != nil {
-		return err
-	}
-	return os.Rename(temporary, path)
 }

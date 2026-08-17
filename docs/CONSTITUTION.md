@@ -114,11 +114,12 @@
   may silently destroy contained notes. Pinboard access is local, bounded,
   user-only, atomic, and fail-closed; it adds no network, repository scan,
   polling, watcher, notification, or automatic movement behavior.
-- Application-controlled native interface text, including editable notepad
-  content, uses JetBrainsMono Nerd Font through one shared SwiftUI/AppKit
-  resolver, with the system monospaced family as the unavailable-font fallback.
-  Operating-system-owned window chrome and menus retain native macOS
-  typography.
+- Technical and user-authored content, including editable notepad text, paths,
+  commands, arguments, messages, and results, uses JetBrainsMono Nerd Font
+  through one shared SwiftUI/AppKit resolver, with the system monospaced family
+  as the unavailable-font fallback. Native macOS chrome, controls, status
+  labels, navigation, menus, and settings may use system typography so their
+  hierarchy and accessibility remain consistent with the platform.
 
 ### Kit-Managed Baseline Rules
 

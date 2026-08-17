@@ -61,7 +61,7 @@ func RunService(ctx context.Context, in io.Reader, out, errOut io.Writer, option
 		return err
 	}
 	defer func() {
-		listener.Close()
+		_ = listener.Close()
 		_ = os.Remove(options.SocketPath)
 	}()
 	store := NewStore()
@@ -85,7 +85,7 @@ func RunService(ctx context.Context, in io.Reader, out, errOut io.Writer, option
 				}
 			})
 			if err != nil {
-				readErrors <- err
+				sendReadError(serviceCtx, readErrors, err)
 			}
 		}()
 	}
@@ -138,13 +138,13 @@ func RunService(ctx context.Context, in io.Reader, out, errOut io.Writer, option
 			if event.ExpectsResponse && event.RequestID != "" && received.conn != nil &&
 				snapshotHasAction(snapshot, key, event.RequestID) {
 				if previous, exists := pending[event.RequestID]; exists {
-					previous.conn.Close()
+					_ = previous.conn.Close()
 				}
 				pending[event.RequestID] = pendingResponse{sessionID: Identity(event.Provider, event.SessionID), conn: received.conn}
 				go watchPendingClosure(serviceCtx, event.RequestID, received.conn, closedResponses)
 			} else if received.conn != nil {
 				_ = json.NewEncoder(received.conn).Encode(HookDecision{})
-				received.conn.Close()
+				_ = received.conn.Close()
 			}
 			if changed {
 				routing[key] = RoutingRecord{Provider: event.Provider, Profile: event.Profile,
@@ -166,10 +166,10 @@ func RunService(ctx context.Context, in io.Reader, out, errOut io.Writer, option
 				RequestID: request.RequestID, Action: request.Action, Answers: request.Answers,
 			}); err != nil {
 				result.Message = "provider response channel closed"
-				target.conn.Close()
+				_ = target.conn.Close()
 				delete(pending, request.RequestID)
 			} else {
-				target.conn.Close()
+				_ = target.conn.Close()
 				delete(pending, request.RequestID)
 				result.Status = "submitted"
 				snapshot := store.ResolveAction(request, options.Now())
@@ -184,7 +184,7 @@ func RunService(ctx context.Context, in io.Reader, out, errOut io.Writer, option
 		case closed := <-closedResponses:
 			if target, ok := pending[closed.requestID]; ok && target.conn == closed.conn {
 				delete(pending, closed.requestID)
-				target.conn.Close()
+				_ = target.conn.Close()
 				if snapshot, changed := store.CancelAction(target.sessionID, closed.requestID, options.Now()); changed {
 					if err := emitter.encode(snapshot); err != nil {
 						return err
@@ -204,7 +204,7 @@ func RunService(ctx context.Context, in io.Reader, out, errOut io.Writer, option
 				return nil
 			}
 			if readErr != nil && readErr != io.EOF {
-				fmt.Fprintf(errOut, "agent session transport unavailable: %v\n", readErr)
+				_, _ = fmt.Fprintf(errOut, "agent session transport unavailable: %v\n", readErr)
 			}
 		}
 	}
@@ -218,7 +218,7 @@ func acceptEvents(ctx context.Context, listener net.Listener, output chan<- inbo
 			case <-ctx.Done():
 				return
 			default:
-				errors <- err
+				sendReadError(ctx, errors, err)
 				return
 			}
 		}
@@ -229,22 +229,22 @@ func acceptEvents(ctx context.Context, listener net.Listener, output chan<- inbo
 func decodeEvent(ctx context.Context, connection net.Conn, output chan<- inboundEvent) {
 	_ = connection.SetReadDeadline(time.Now().Add(2 * time.Second))
 	var event Event
-	decoder := json.NewDecoder(io.LimitReader(connection, maxHookPayload+1))
+	decoder := json.NewDecoder(io.LimitReader(connection, MaxHookPayload+1))
 	if err := decoder.Decode(&event); err != nil || event.Schema != EventSchema {
-		connection.Close()
+		_ = connection.Close()
 		return
 	}
 	_ = connection.SetDeadline(time.Time{})
 	select {
 	case output <- inboundEvent{event: event, conn: connection}:
 	case <-ctx.Done():
-		connection.Close()
+		_ = connection.Close()
 	}
 }
 
 func readActions(ctx context.Context, input io.Reader, output chan<- ActionRequest, errors chan<- error) {
 	scanner := bufio.NewScanner(input)
-	scanner.Buffer(make([]byte, 4096), maxHookPayload)
+	scanner.Buffer(make([]byte, 4096), MaxHookPayload)
 	for scanner.Scan() {
 		var request ActionRequest
 		if err := json.Unmarshal(scanner.Bytes(), &request); err != nil {
@@ -257,14 +257,14 @@ func readActions(ctx context.Context, input io.Reader, output chan<- ActionReque
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		errors <- err
+		sendReadError(ctx, errors, err)
 	} else {
-		errors <- io.EOF
+		sendReadError(ctx, errors, io.EOF)
 	}
 }
 
 func closePending(values map[string]pendingResponse) {
 	for _, value := range values {
-		value.conn.Close()
+		_ = value.conn.Close()
 	}
 }

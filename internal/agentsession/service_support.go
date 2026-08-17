@@ -29,12 +29,19 @@ func startRolloutWatch(
 		case <-ctx.Done():
 		}
 	}
-	emit()
 	go func() {
+		emit()
 		if err := WatchRollout(ctx, path, emit); err != nil && ctx.Err() == nil {
-			errors <- err
+			sendReadError(ctx, errors, err)
 		}
 	}()
+}
+
+func sendReadError(ctx context.Context, output chan<- error, err error) {
+	select {
+	case output <- err:
+	case <-ctx.Done():
+	}
 }
 
 func watchPendingClosure(ctx context.Context, requestID string, connection net.Conn, output chan<- pendingClosure) {
@@ -85,7 +92,7 @@ func loadRoutingMap(options ServiceOptions, errOut io.Writer) map[string]Routing
 	}
 	records, err := LoadRouting(path, options.Now())
 	if err != nil {
-		fmt.Fprintf(errOut, "agent routing unavailable: %v\n", err)
+		_, _ = fmt.Fprintf(errOut, "agent routing unavailable: %v\n", err)
 		return result
 	}
 	for _, record := range records {
@@ -104,7 +111,7 @@ func saveRoutingMap(options ServiceOptions, values map[string]RoutingRecord, err
 		records = append(records, record)
 	}
 	if err := SaveRouting(path, records, options.Now()); err != nil {
-		fmt.Fprintf(errOut, "agent routing save unavailable: %v\n", err)
+		_, _ = fmt.Fprintf(errOut, "agent routing save unavailable: %v\n", err)
 	}
 }
 

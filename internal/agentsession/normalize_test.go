@@ -37,8 +37,18 @@ func TestNormalizeHookRejectsUnidentifiedOrOversizedPayload(t *testing.T) {
 	if _, err := NormalizeHook(profile, []byte(`{"event":"Stop"}`), nil, time.Now()); err == nil {
 		t.Fatal("missing session id was accepted")
 	}
-	if _, err := NormalizeHook(profile, []byte(strings.Repeat("x", maxHookPayload+1)), nil, time.Now()); err == nil {
+	oversized := []byte(`{"thread_id":"thread-1","event":"Stop","message":"` +
+		strings.Repeat("x", MaxHookPayload) + `"}`)
+	if _, err := NormalizeHook(profile, oversized, nil, time.Now()); err == nil {
 		t.Fatal("oversized payload was accepted")
+	}
+}
+
+func TestEveryProfileHasRegisteredEvents(t *testing.T) {
+	for _, profile := range Profiles() {
+		if len(EventsForProfile(profile.ID)) == 0 {
+			t.Errorf("profile %q has no registered events", profile.ID)
+		}
 	}
 }
 

@@ -70,7 +70,7 @@ struct HyperliteApp: App {
         .menuBarExtraStyle(.menu)
 
         Settings {
-            HyperliteSettingsView(state: state)
+            HyperliteSettingsView(state: state, agentSessions: agentSessions)
                 .font(HyperliteTypography.regular(13))
                 .hyperliteTheme()
         }

@@ -57,7 +57,7 @@ func LoadRouting(path string, now time.Time) ([]RoutingRecord, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open routing state: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	info, err := file.Stat()
 	if err != nil || !info.Mode().IsRegular() || info.Size() > maxRoutingFile {
 		return nil, errors.New("routing state is not a bounded regular file")
@@ -100,17 +100,17 @@ func SaveRouting(path string, records []RoutingRecord, now time.Time) error {
 		return fmt.Errorf("create temporary routing state: %w", err)
 	}
 	temporary := file.Name()
-	defer os.Remove(temporary)
+	defer func() { _ = os.Remove(temporary) }()
 	if err := file.Chmod(0o600); err != nil {
-		file.Close()
+		_ = file.Close()
 		return fmt.Errorf("secure temporary routing state: %w", err)
 	}
 	if _, err := file.Write(data); err != nil {
-		file.Close()
+		_ = file.Close()
 		return fmt.Errorf("write routing state: %w", err)
 	}
 	if err := file.Sync(); err != nil {
-		file.Close()
+		_ = file.Close()
 		return fmt.Errorf("sync routing state: %w", err)
 	}
 	if err := file.Close(); err != nil {
@@ -138,17 +138,20 @@ func RemoveRoutingProfile(path, profile string, now time.Time) error {
 
 func pruneRouting(records []RoutingRecord, now time.Time) []RoutingRecord {
 	result := make([]RoutingRecord, 0, len(records))
-	seen := make(map[string]struct{})
+	seen := make(map[string]int)
 	for _, record := range records {
 		if record.Provider == "" || record.SessionID == "" || record.LastSeen.IsZero() ||
 			now.Sub(record.LastSeen) > routingTTL || record.LastSeen.After(now.Add(time.Minute)) {
 			continue
 		}
 		key := Identity(record.Provider, record.SessionID)
-		if _, exists := seen[key]; exists {
+		if index, exists := seen[key]; exists {
+			if record.LastSeen.After(result[index].LastSeen) {
+				result[index] = record
+			}
 			continue
 		}
-		seen[key] = struct{}{}
+		seen[key] = len(result)
 		result = append(result, record)
 	}
 	return result

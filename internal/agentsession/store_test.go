@@ -131,6 +131,66 @@ func TestCancelActionRetractsDisconnectedRequest(t *testing.T) {
 	}
 }
 
+func TestActionTransitionsNormalizeZeroTime(t *testing.T) {
+	store := NewStore()
+	now := timeForTest()
+	snapshot, _ := store.Apply(Event{Provider: "claude", Profile: "claude-code", SessionID: "one",
+		Event: "PermissionRequest", Source: SourceHook, OccurredAt: now, RequestID: "resolve",
+		ActionKind: "approval", ActionContext: "ls", CompleteContext: true, ExpectsResponse: true}, now)
+	request := ActionRequest{Schema: ActionSchema, SessionID: "claude:one", RequestID: "resolve",
+		Revision: snapshot.Sessions[0].Revision, Action: "deny"}
+	resolved := store.ResolveAction(request, time.Time{})
+	if resolved.GeneratedAt.IsZero() || resolved.Sessions[0].UpdatedAt.IsZero() {
+		t.Fatalf("resolve action retained a zero timestamp: %#v", resolved)
+	}
+	cancelStore := NewStore()
+	cancelStore.Apply(Event{Provider: "claude", Profile: "claude-code", SessionID: "one",
+		Event: "PermissionRequest", Source: SourceHook, OccurredAt: now, RequestID: "cancel",
+		ActionKind: "approval", ActionContext: "pwd", CompleteContext: true, ExpectsResponse: true}, now)
+	canceled, changed := cancelStore.CancelAction("claude:one", "cancel", time.Time{})
+	if !changed || canceled.GeneratedAt.IsZero() || canceled.Sessions[0].UpdatedAt.IsZero() {
+		t.Fatalf("cancel action retained a zero timestamp: %#v", canceled)
+	}
+}
+
+func TestAuthoritativeNonActionEventClearsPendingAttention(t *testing.T) {
+	for _, test := range []struct {
+		name          string
+		initialSource Source
+		nextSource    Source
+	}{
+		{name: "same authority", initialSource: SourceHook, nextSource: SourceHook},
+		{name: "higher authority", initialSource: SourceAppServer, nextSource: SourceHook},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			now := timeForTest()
+			store := NewStore()
+			pending, _ := store.Apply(Event{Provider: "claude", Profile: "claude-code", SessionID: "one",
+				Event: "PermissionRequest", Source: test.initialSource, OccurredAt: now, RequestID: "request",
+				ActionKind: "approval", ActionContext: "ls", CompleteContext: true, ExpectsResponse: true}, now)
+			priorAction := pending.Sessions[0].Action
+			if priorAction == nil || !pending.Sessions[0].NeedsAttention() {
+				t.Fatalf("pending action fixture is invalid: %#v", pending)
+			}
+			updated, changed := store.Apply(Event{Provider: "claude", Profile: "claude-code", SessionID: "one",
+				Event: "PostToolUse", Phase: PhaseProcessing, Source: test.nextSource,
+				OccurredAt: now.Add(time.Second)}, now.Add(time.Second))
+			if !changed || len(updated.Sessions) != 1 || !nonActionTransitionComplete(updated.Sessions[0]) {
+				t.Fatalf("non-action transition retained attention: %#v", updated)
+			}
+			staleAction := updated.Sessions[0]
+			staleAction.Action = priorAction
+			if nonActionTransitionComplete(staleAction) {
+				t.Fatal("regression predicate accepted a retained pending action")
+			}
+		})
+	}
+}
+
+func nonActionTransitionComplete(session Session) bool {
+	return session.Phase == PhaseProcessing && session.Action == nil && !session.NeedsAttention()
+}
+
 func TestAnswerPayloadIsBounded(t *testing.T) {
 	store := NewStore()
 	now := time.Now().UTC()

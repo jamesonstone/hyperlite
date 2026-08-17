@@ -1,6 +1,7 @@
 package agentsession
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -114,6 +115,28 @@ func TestIntegrationRejectsMalformedAndConcurrentSharedConfig(t *testing.T) {
 	}
 	if err := writeConfig(path, []byte(`{"hyperlite":true}`), signature); err == nil {
 		t.Fatal("concurrent config change was overwritten")
+	}
+}
+
+func TestWriteConfigDoesNotReplaceUnexpectedCreation(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	userData := []byte(`{"created_by":"other-process"}`)
+	if err := os.WriteFile(path, userData, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeConfig(path, []byte(`{"hyperlite":true}`), nil); err == nil {
+		t.Fatal("unexpectedly created config was overwritten")
+	}
+	data, err := os.ReadFile(path)
+	if err != nil || !bytes.Equal(data, userData) {
+		t.Fatalf("unexpected config changed: %q %v", data, err)
+	}
+}
+
+func TestTOMLBasicStringEscapesBackslashesBeforeQuotes(t *testing.T) {
+	value := `C:\Program Files\"Hyperlite"`
+	if got, want := escapeTOMLBasicString(value), `C:\\Program Files\\\"Hyperlite\"`; got != want {
+		t.Fatalf("escaped TOML command = %q, want %q", got, want)
 	}
 }
 

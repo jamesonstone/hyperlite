@@ -33,6 +33,22 @@ references:
     read_policy: evidence
     used_for: documented local Codex transport and thread contracts
     status: active
+  - id: apple-hig-typography
+    name: Apple Human Interface Guidelines Typography
+    type: external-reference
+    target: https://developer.apple.com/design/human-interface-guidelines/typography
+    relation: informs
+    read_policy: evidence
+    used_for: native macOS hierarchy, system chrome, and minimum legibility
+    status: active
+  - id: apple-hig-popovers
+    name: Apple Human Interface Guidelines Popovers
+    type: external-reference
+    target: https://developer.apple.com/design/human-interface-guidelines/popovers
+    relation: informs
+    read_policy: evidence
+    used_for: notch companion interaction and transient-content boundaries
+    status: active
 skills: []
 ---
 # Agent Sessions And Notch Companion
@@ -90,8 +106,10 @@ threads and pinned Codex membership.
 - R7: Use Codex app-server stdio with the documented initialize and initialized
   handshake. Treat notLoaded as unknown cross-process runtime state, never as
   authoritative idle.
-- R8: Present first-run Enable Recommended Integrations, Customize, and Skip
-  choices. Recommended includes detected clients only. After consent,
+- R8: Present a centered first-run welcome state with Enable Recommended,
+  Review in Settings, and Not Now choices. Recommended includes detected
+  clients only. Do not start provider monitoring or app-server discovery before
+  explicit consent. After consent,
   maintain only exact Hyperlite-owned entries while preserving unrelated
   configuration and failing closed on malformed, symlinked, oversized,
   wrong-owner, or concurrently changed inputs.
@@ -123,6 +141,20 @@ threads and pinned Codex membership.
   focus route that needs it.
 - R16: Keep every handwritten source and test file at 300 physical lines or
   fewer and preserve the macOS 13 arm64/x86_64 universal build.
+- R17: New agent-session chrome, controls, lists, and status text use native
+  macOS system typography at legible sizes. Technical messages, paths,
+  arguments, commands, and results retain the shared monospaced resolver.
+- R18: Ordinary hover never opens the companion. Click expands it, and a newly
+  urgent approval or input request may expand once. Hover, focus, typing, or
+  control interaction prevents timed collapse.
+- R19: Keep the expanded companion as a bounded mini workspace. Ongoing
+  integration management lives in grouped Settings, with a Sessions shortcut.
+  The new surfaces inherit Hyperlite's existing dark application appearance
+  while using semantic macOS materials, controls, selection, and action roles.
+- R20: Presentation reacts to exact state transitions rather than repeatedly
+  presenting retained attention or terminal rows. Pending actions submit once,
+  answer state follows the exact request revision, and partial integration
+  updates converge to observed provider state.
 
 Default-activation acceptance:
 
@@ -132,6 +164,13 @@ Default-activation acceptance:
   suppresses the session presentation.
 - Default activation does not bypass first-run integration consent, grant an
   action capability, or claim unobserved provider or physical-notch evidence.
+- Before consent, the app may perform an explicit bounded integration-detection
+  request for onboarding, but it does not launch the long-running session
+  service, provider hooks, rollout watchers, or Codex app server.
+- Session rows and actions are keyboard- and VoiceOver-operable, interface text
+  remains at least ten points, and ordinary hover does not expand the panel.
+- New attention and terminal transitions present at most once per exact event;
+  active user interaction cancels pending dismissal.
 
 Full provider-parity acceptance remains tracked as residual evidence:
 
@@ -173,6 +212,11 @@ future Ping Island clients not present at the frozen baseline.
    process-ownership, top-edge, and synthetic response validation. Preserve an
    explicit environment rollback and report missing provider or physical-notch
    proof as residual evidence rather than silently claiming full parity.
+8. Refine the native presentation without redesigning Dashboard or Pinboard:
+   move integration management to Settings, use native system chrome with
+   monospaced technical content, retain the notch mini workspace, gate service
+   startup on consent, and repair verified transition, process, routing, and
+   privacy defects before delivery.
 
 ## DECISIONS
 
@@ -190,6 +234,12 @@ future Ping Island clients not present at the frozen baseline.
   gate and requested default activation. An absent preview variable now enables
   the surface, while exact `0` disables it. First-run provider configuration
   still requires consent, and unavailable live evidence remains reported.
+- On 2026-08-17, the user accepted a macOS-native refinement limited visually
+  to the new session surfaces while authorizing correctness repairs across the
+  full feature. The companion remains notch-first and keeps its mini-workspace;
+  it opens by click or newly urgent attention, never ordinary hover. Provider
+  settings move to the Settings scene. Physical-notch interaction is not a
+  delivery gate for this pass and remains explicitly unverified.
 
 ## DISCOVERIES
 
@@ -211,46 +261,64 @@ future Ping Island clients not present at the frozen baseline.
 - Local detection currently finds Claude Code, Codex, Gemini CLI, and GitHub
   Copilot. The remaining frozen profiles are not installed, so their mandatory
   real lifecycle/action evidence remains unavailable.
+- The first implementation started the long-running service and Codex app
+  server before first-run consent. Onboarding now uses a bounded detection-only
+  command, and monitoring starts only after Enable Recommended, Start Agent
+  Sessions, or Not Now records an explicit choice.
+- The initial rollout watcher could synchronously send back into its owning
+  service loop, and Darwin cancellation closed a kqueue from a competing
+  goroutine. Initial emission is now asynchronous, every background error send
+  is cancellation-aware, and a user event wakes a single-owner kqueue loop.
+- Lexical rollout containment and absent-config replacement did not defend
+  intermediate symlinks or create-time races. Resolved-path confinement and
+  atomic create-if-absent writes now fail closed with focused regression tests.
+- The original seven-to-nine-point monospaced session UI was below the native
+  macOS legibility floor and relied on tap or hover semantics. Native lists,
+  system chrome typography, monospaced technical content, explicit buttons,
+  and VoiceOver labels now preserve the accepted dark Hyperlite identity while
+  behaving like a Mac utility.
 
 ## VALIDATION
 
 - `make fmt-check vet test test-race build macos-test macos-build`: passed for
-  the default-on integrated Go, native Swift, and universal bundle after final
-  curation; macOS 14 deprecation warnings remain the pre-existing compatibility
-  form. Swift tests cover absent-variable enablement, retained `1`
-  compatibility, and exact `0` rollback.
+  the corrected Go service, native Swift refactor, and universal bundle after
+  integration. macOS 14 `onChange` deprecation warnings remain intentionally
+  because the replacement overload is unavailable to the macOS 13 target.
 - `tests/live-integration/local/agent-session-bridge-live.sh`: PASS, run
-  `20260817T181332Z-607a1e3f`, for private
+  `20260817T202936Z-6da99a7a`, for raw-object metadata allowlisting, private
   socket permissions, exact action round trip, disconnect retraction, owner EOF
   cleanup including Codex child termination, fail-open delivery, and the
   metadata-only twenty-profile inventory.
+- `golangci-lint run ./internal/agentsession ./internal/cli`: passed with zero
+  issues. Darwin watcher tests passed one hundred consecutive runs; supported
+  cross-build checks and ShellCheck passed.
 - `codesign --verify --deep --strict build/Hyperlite.app`: passed.
 - `lipo -archs` for both native executables: `x86_64 arm64`.
 - Complete affected-source/test audit: every handwritten file is at most 300
   physical lines.
-- Packaged Computer Use inspection: top-edge compact/expanded UI, accessibility
-  tree, consent screen, exact synthetic Claude-compatible approval, 12-second
-  attention collapse with retained badge, provider response, Processing
-  transition, Open Hyperlite handoff, and exact process cleanup passed. A
-  follow-up launch with the variable absent selected Sessions and preserved the
-  consent surface; exact `0` removed Sessions and selected Dashboard. Evidence:
-  `tmp/2026-08-17/agent-session-ui-manual/2/`.
+- Packaged Computer Use inspection: centered native onboarding, no helper
+  before consent, notchless compact/expanded surfaces, consented helper start,
+  native empty Sessions state, Settings-owned provider controls with exact
+  VoiceOver labels/hints/values, and exact process cleanup passed. Evidence:
+  `tmp/2026-08-17/agent-session-ui-manual/4/`.
 - Provider/display acceptance: PARTIAL. Physical-notch hardware and real smoke
   evidence for every frozen provider remain unavailable. Per the explicit
   activation decision, this limits the full-parity evidence claim but no longer
   disables the preview by default.
-- `kit check agent-session-notch`: passed. `kit check --project`: failed with
-  twelve instruction/registry drift findings that reproduce exactly on the
-  untouched primary `origin/main` checkout and are outside this feature.
+- `kit check --project`, `kit check --all`, and the no-op reconcile audit:
+  passed. The whole-project source-size audit checked 250 eligible handwritten
+  source/test files with zero violations.
 
 ## OUTCOME
 
-Hyperlite now contains a clean-room, default-on agent-session preview. A Go
+Hyperlite now contains a clean-room, default-on agent-session surface. A Go
 authority owns the versioned protocol, exact session store, provider registry,
 safe integration reconciliation, private socket, Codex stdio discovery,
 bounded rollout tails, redaction, actions, expiry, and routing-only state. The
-native app adds consent/customization, a Sessions workspace, metadata-only
-alerts, a notch or top-edge companion, and exact capability-gated controls.
+native app adds consent-gated startup, centered onboarding, Settings-owned
+integration health, a keyboard-accessible Sessions workspace, metadata-only
+alerts, a click/new-urgent notch or top-edge mini workspace, and exact
+single-submit capability-gated controls.
 
 With `HYPERLITE_AGENT_SESSIONS_PREVIEW` absent, the surface is enabled;
 `HYPERLITE_AGENT_SESSIONS_PREVIEW=0` provides an explicit local rollback. The

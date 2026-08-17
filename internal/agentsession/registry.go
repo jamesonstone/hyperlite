@@ -5,17 +5,17 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"syscall"
 )
 
 type InstallKind string
 
 const (
-	InstallJSON      InstallKind = "json"
-	InstallTOML      InstallKind = "toml"
-	InstallPlugin    InstallKind = "plugin"
-	InstallDirectory InstallKind = "directory"
-	InstallCopilot   InstallKind = "copilot"
+	InstallJSON        InstallKind = "json"
+	InstallTOML        InstallKind = "toml"
+	InstallPlugin      InstallKind = "plugin"
+	InstallDirectory   InstallKind = "directory"
+	InstallCopilot     InstallKind = "copilot"
+	actionModeBlocking             = "blocking"
 )
 
 type Profile struct {
@@ -30,24 +30,24 @@ type Profile struct {
 }
 
 var profiles = []Profile{
-	jsonProfile("claude-code", "Claude Code", "claude", []string{"claude"}, ".claude/settings.json", "blocking"),
-	jsonProfile("codex", "Codex", "codex", []string{"codex"}, ".codex/hooks.json", "blocking"),
+	jsonProfile("claude-code", "Claude Code", "claude", []string{"claude"}, ".claude/settings.json", actionModeBlocking),
+	jsonProfile("codex", "Codex", "codex", []string{"codex"}, ".codex/hooks.json", actionModeBlocking),
 	jsonProfile("gemini", "Gemini CLI", "gemini", []string{"gemini"}, ".gemini/settings.json", "notify"),
 	pluginProfile("antigravity", "Antigravity CLI", "gemini", []string{"antigravity"}, ".gemini/antigravity-cli/plugins/hyperlite", InstallDirectory),
 	pluginProfile("hermes", "Hermes", "claude", []string{"hermes"}, ".hermes/plugins/hyperlite", InstallDirectory),
 	pluginProfile("pi", "Pi Agent", "claude", []string{"pi"}, ".pi/agent/extensions/hyperlite", InstallDirectory),
-	jsonProfile("qwen-code", "Qwen Code", "claude", []string{"qwen"}, ".qwen/settings.json", "blocking"),
+	jsonProfile("qwen-code", "Qwen Code", "claude", []string{"qwen"}, ".qwen/settings.json", actionModeBlocking),
 	tomlProfile("kimi", "Kimi CLI", "kimi", []string{"kimi"}, []string{".kimi-code/config.toml", ".kimi/config.toml"}),
 	pluginProfile("openclaw", "OpenClaw", "claude", []string{"openclaw"}, ".openclaw/hooks/hyperlite", InstallDirectory),
 	pluginProfile("opencode", "OpenCode", "claude", []string{"opencode"}, ".config/opencode/plugins/hyperlite.js", InstallPlugin),
-	jsonProfile("cursor", "Cursor", "claude", nil, ".cursor/hooks.json", "blocking"),
+	jsonProfile("cursor", "Cursor", "claude", nil, ".cursor/hooks.json", actionModeBlocking),
 	jsonProfile("qoder", "Qoder", "claude", nil, ".qoder/settings.json", "notify"),
-	jsonProfile("qoder-cli", "Qoder CLI", "claude", []string{"qodercli"}, ".qoder/settings.json", "blocking"),
+	jsonProfile("qoder-cli", "Qoder CLI", "claude", []string{"qodercli"}, ".qoder/settings.json", actionModeBlocking),
 	jsonProfile("qoder-cn", "Qoder CN", "claude", nil, ".qoder-cn/settings.json", "notify"),
-	jsonProfile("qoder-cn-cli", "Qoder CN CLI", "claude", []string{"qoderclicn"}, ".qoder-cn/settings.json", "blocking"),
+	jsonProfile("qoder-cn-cli", "Qoder CN CLI", "claude", []string{"qoderclicn"}, ".qoder-cn/settings.json", actionModeBlocking),
 	jsonProfile("qoderwork", "QoderWork", "claude", nil, ".qoderwork/settings.json", "notify"),
 	jsonProfile("codebuddy", "CodeBuddy", "claude", nil, ".codebuddy/settings.json", "notify"),
-	jsonProfile("codebuddy-cli", "CodeBuddy CLI", "claude", []string{"codebuddy"}, ".codebuddy/settings.json", "blocking"),
+	jsonProfile("codebuddy-cli", "CodeBuddy CLI", "claude", []string{"codebuddy"}, ".codebuddy/settings.json", actionModeBlocking),
 	jsonProfile("workbuddy", "WorkBuddy", "claude", nil, ".workbuddy/settings.json", "notify"),
 	{
 		ID: "copilot", Name: "GitHub Copilot", Provider: "copilot",
@@ -156,7 +156,7 @@ func integrationEnabled(target, bridgePath string) bool {
 	if err != nil {
 		data, err = readOwnedIntegrationFile(filepath.Join(target, "hyperlite.json"))
 	}
-	if err != nil || len(data) > 16*1024*1024 {
+	if err != nil {
 		return false
 	}
 	text := string(data)
@@ -169,8 +169,7 @@ func readOwnedIntegrationFile(path string) ([]byte, error) {
 	if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 || info.Size() > maxIntegrationConfig {
 		return nil, os.ErrNotExist
 	}
-	stat, ok := info.Sys().(*syscall.Stat_t)
-	if !ok || int(stat.Uid) != os.Getuid() {
+	if !fileOwnedByCurrentUser(info) {
 		return nil, os.ErrPermission
 	}
 	return os.ReadFile(path)

@@ -3,141 +3,182 @@ import SwiftUI
 struct HyperliteAgentSessionDetail: View {
     let session: HyperliteAgentSession
     @ObservedObject var state: HyperliteAgentSessionState
+    var onInteraction: () -> Void = {}
+    var onEditingChanged: (Bool) -> Void = { _ in }
+
     @State private var answer = ""
+    @State private var answerIdentity: HyperliteAgentActionIdentity?
+    @FocusState private var answerFocused: Bool
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 14) {
                 header
-                if let action = session.action {
-                    actionCard(action)
-                }
-                if !session.messages.isEmpty {
-                    messageHistory
-                }
+                if let action = session.action { actionCard(action) }
+                if !session.messages.isEmpty { messageHistory }
                 if let result = session.latestResult, !result.isEmpty {
-                    contentCard(title: "Latest result", text: result)
+                    contentCard(title: "Latest Result", text: result)
                 }
                 routing
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
+        .onAppear { answerIdentity = session.actionIdentity }
+        .onChange(of: session.actionIdentity) { identity in
+            if HyperliteAgentAnswerResetPolicy.shouldReset(from: answerIdentity, to: identity) {
+                answer = ""
+                answerFocused = false
+            }
+            answerIdentity = identity
+        }
+        .onChange(of: answerFocused) { focused in onEditingChanged(focused) }
+        .onDisappear { onEditingChanged(false) }
     }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 5) {
-            HStack {
+            HStack(alignment: .firstTextBaseline) {
                 Text(session.displayTitle)
-                    .font(HyperliteTypography.semibold(13))
+                    .font(.system(size: 15, weight: .semibold))
                 Spacer()
                 Label(session.phase.label, systemImage: session.phase.symbol)
-                    .font(HyperliteTypography.medium(9))
-                    .foregroundStyle(session.needsAttention ? HyperliteTheme.orange.color : HyperliteTheme.secondaryText.color)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(session.needsAttention ? Color.orange : Color.secondary)
             }
             Text("\(session.profile) · \(session.project) · revision \(session.revision)")
-                .font(HyperliteTypography.regular(8))
-                .foregroundStyle(HyperliteTheme.mutedText.color)
+                .font(HyperliteTypography.regular(10))
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
         }
     }
 
     private func actionCard(_ action: HyperliteAgentPendingAction) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label(action.title, systemImage: action.kind == "question" ? "questionmark.bubble" : "exclamationmark.shield")
-                .font(HyperliteTypography.semibold(11))
-                .foregroundStyle(HyperliteTheme.orange.color)
+        VStack(alignment: .leading, spacing: 10) {
+            Label(
+                action.title,
+                systemImage: action.kind == "question" ? "questionmark.bubble" : "exclamationmark.shield"
+            )
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(Color.orange)
             Text(action.context)
-                .font(HyperliteTypography.regular(10))
+                .font(HyperliteTypography.regular(11))
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
             if let arguments = action.arguments, !arguments.isEmpty {
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 4) {
                     ForEach(arguments.keys.sorted(), id: \.self) { key in
                         Text("\(key): \(arguments[key] ?? "")")
-                            .font(HyperliteTypography.regular(8))
-                            .foregroundStyle(HyperliteTheme.secondaryText.color)
+                            .font(HyperliteTypography.regular(10))
+                            .foregroundStyle(.secondary)
                             .textSelection(.enabled)
                     }
                 }
             }
-            if action.canAnswer {
-                TextField("Answer", text: $answer)
-                    .textFieldStyle(.roundedBorder)
-                Button("Answer") {
-                    let trimmed = answer.trimmingCharacters(in: .whitespacesAndNewlines)
-                    guard !trimmed.isEmpty else { return }
-                    state.submit("answer", for: session, answers: ["answer": [trimmed]])
-                    answer = ""
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            } else {
-                HStack {
-                    if action.canAllowOnce {
-                        Button("Allow Once") { state.submit("allow_once", for: session) }
-                            .buttonStyle(.borderedProminent)
-                    }
-                    if action.canDeny {
-                        Button("Deny") { state.submit("deny", for: session) }
-                            .buttonStyle(.bordered)
-                    }
-                }
-            }
+            actionControls(action)
         }
-        .padding(10)
-        .background(HyperliteTheme.surface.color)
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(HyperliteTheme.orange.color.opacity(0.7)))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .padding(12)
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(Color.orange.opacity(0.55), lineWidth: 1)
+        }
         .accessibilityElement(children: .contain)
     }
 
+    @ViewBuilder
+    private func actionControls(_ action: HyperliteAgentPendingAction) -> some View {
+        let submitting = state.isSubmitting(session)
+        if action.canAnswer {
+            HStack(alignment: .center, spacing: 8) {
+                TextField("Answer", text: $answer)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($answerFocused)
+                    .onSubmit(submitAnswer)
+                if submitting { ProgressView().controlSize(.small) }
+                Button("Answer", action: submitAnswer)
+                    .buttonStyle(.borderedProminent)
+                    .disabled(answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || submitting)
+            }
+        } else {
+            HStack(spacing: 8) {
+                if action.canAllowOnce {
+                    Button("Allow Once") {
+                        onInteraction()
+                        state.submit("allow_once", for: session)
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                if action.canDeny {
+                    Button("Deny", role: .destructive) {
+                        onInteraction()
+                        state.submit("deny", for: session)
+                    }
+                    .buttonStyle(.bordered)
+                }
+                if submitting { ProgressView().controlSize(.small) }
+            }
+            .disabled(submitting)
+        }
+    }
+
+    private func submitAnswer() {
+        let trimmed = answer.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, !state.isSubmitting(session) else { return }
+        onInteraction()
+        state.submit("answer", for: session, answers: ["answer": [trimmed]])
+    }
+
     private var messageHistory: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            Text("Recent messages")
-                .font(HyperliteTypography.semibold(10))
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Recent Messages").font(.system(size: 12, weight: .semibold))
             ForEach(Array(session.messages.enumerated()), id: \.offset) { _, message in
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 3) {
                     Text(message.role == "user" ? "You" : "Agent")
-                        .font(HyperliteTypography.semibold(8))
-                        .foregroundStyle(HyperliteTheme.mutedText.color)
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.secondary)
                     Text(message.text)
-                        .font(HyperliteTypography.regular(9))
+                        .font(HyperliteTypography.regular(11))
                         .textSelection(.enabled)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                .padding(8)
-                .background(HyperliteTheme.surface.color)
-                .clipShape(RoundedRectangle(cornerRadius: 7))
+                .padding(9)
+                .background(Color(nsColor: .controlBackgroundColor).opacity(0.7))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
         }
     }
 
     private func contentCard(title: String, text: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title).font(HyperliteTypography.semibold(9))
+        VStack(alignment: .leading, spacing: 5) {
+            Text(title).font(.system(size: 12, weight: .semibold))
             Text(text)
-                .font(HyperliteTypography.regular(9))
+                .font(HyperliteTypography.regular(11))
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(8)
-        .background(HyperliteTheme.surface.color)
-        .clipShape(RoundedRectangle(cornerRadius: 7))
+        .padding(9)
+        .background(Color(nsColor: .controlBackgroundColor).opacity(0.7))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     private var routing: some View {
-        HStack {
+        HStack(spacing: 8) {
             if let path = session.routing.workspacePath, !path.isEmpty {
                 Text(path)
-                    .font(HyperliteTypography.regular(8))
-                    .foregroundStyle(HyperliteTheme.mutedText.color)
+                    .font(HyperliteTypography.regular(10))
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
+                    .textSelection(.enabled)
             }
             Spacer()
-            if session.openInClient {
-                Button("Open in client") { state.openInClient(session) }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
+            if let destination = session.routeDestination {
+                Button(destination.label) {
+                    onInteraction()
+                    state.performRoute(session)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
             }
         }
     }

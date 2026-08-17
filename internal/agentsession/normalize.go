@@ -9,10 +9,11 @@ import (
 	"time"
 )
 
-const maxHookPayload = 1024 * 1024
+// MaxHookPayload is the largest provider hook envelope Hyperlite accepts.
+const MaxHookPayload = 1024 * 1024
 
 func NormalizeHook(profile Profile, raw []byte, environment map[string]string, now time.Time) (Event, error) {
-	if len(raw) == 0 || len(raw) > maxHookPayload {
+	if len(raw) == 0 || len(raw) > MaxHookPayload {
 		return Event{}, errors.New("hook payload is empty or exceeds the safety limit")
 	}
 	var payload map[string]any
@@ -33,7 +34,7 @@ func NormalizeHook(profile Profile, raw []byte, environment map[string]string, n
 	message, role := displayMessage(payload, eventName)
 	actionKind := actionKindFor(eventName, payload)
 	context := decisionContext(payload, toolInput)
-	expectsResponse := actionKind != "" && requestID != "" && profile.ActionMode == "blocking"
+	expectsResponse := actionKind != "" && requestID != "" && profile.ActionMode == actionModeBlocking
 	arguments, complete := SanitizeArguments(toolInput)
 	argumentValues := make(map[string]any, len(arguments))
 	for key, value := range arguments {

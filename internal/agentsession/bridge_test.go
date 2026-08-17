@@ -3,6 +3,7 @@ package agentsession
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -26,15 +27,17 @@ func TestProviderResponseIsCapabilityGated(t *testing.T) {
 }
 
 func TestRuntimeSocketIsUserOnly(t *testing.T) {
-	directory := filepath.Join("/tmp", "hyperlite-agent-permissions-"+t.Name())
-	_ = os.RemoveAll(directory)
+	directory, err := os.MkdirTemp("/tmp", "hl-agent-perm-")
+	if err != nil {
+		t.Fatal(err)
+	}
 	t.Cleanup(func() { _ = os.RemoveAll(directory) })
 	path := filepath.Join(directory, "agent.sock")
 	listener, err := PrepareRuntimeSocket(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer listener.Close()
+	defer func() { _ = listener.Close() }()
 	directoryInfo, err := os.Stat(directory)
 	if err != nil {
 		t.Fatal(err)
@@ -49,27 +52,29 @@ func TestRuntimeSocketIsUserOnly(t *testing.T) {
 }
 
 func TestRuntimeSocketRejectsOverlongPath(t *testing.T) {
-	path := "/tmp/" + string(make([]byte, 110))
+	path := "/tmp/" + strings.Repeat("x", 110)
 	if _, err := PrepareRuntimeSocket(path); err == nil {
 		t.Fatal("overlong Unix socket path was accepted")
 	}
 }
 
 func TestRuntimeSocketDoesNotReplaceLiveService(t *testing.T) {
-	directory := filepath.Join("/tmp", "hyperlite-agent-live-"+t.Name())
-	_ = os.RemoveAll(directory)
+	directory, err := os.MkdirTemp("/tmp", "hl-agent-live-")
+	if err != nil {
+		t.Fatal(err)
+	}
 	t.Cleanup(func() { _ = os.RemoveAll(directory) })
 	path := filepath.Join(directory, "agent.sock")
 	listener, err := PrepareRuntimeSocket(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer listener.Close()
+	defer func() { _ = listener.Close() }()
 	accepted := make(chan struct{})
 	go func() {
 		connection, acceptErr := listener.Accept()
 		if acceptErr == nil {
-			connection.Close()
+			_ = connection.Close()
 		}
 		close(accepted)
 	}()

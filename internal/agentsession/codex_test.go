@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 )
@@ -44,6 +45,21 @@ printf '%s\n' '{"method":"thread/status/changed","params":{"threadId":"active-1"
 		if event.SessionID == "stored-1" {
 			t.Fatal("notLoaded thread became a live session")
 		}
+	}
+}
+
+func TestMergeEnvironmentOverridesInheritedValues(t *testing.T) {
+	merged := mergeEnvironment(
+		[]string{"HOME=/inherited", "PATH=/bin", "PRESERVED=value"},
+		map[string]string{"HOME": "/injected", "PATH": "/custom"},
+	)
+	for _, expected := range []string{"HOME=/injected", "PATH=/custom", "PRESERVED=value"} {
+		if !slices.Contains(merged, expected) {
+			t.Fatalf("merged environment missing %q: %#v", expected, merged)
+		}
+	}
+	if slices.Contains(merged, "HOME=/inherited") || slices.Contains(merged, "PATH=/bin") {
+		t.Fatalf("inherited value was not overridden: %#v", merged)
 	}
 }
 

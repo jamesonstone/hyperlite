@@ -9,3 +9,8 @@ func bridgeCommand(executable, profileID string) string {
 func shellQuote(value string) string {
 	return "'" + strings.ReplaceAll(value, "'", "'\"'\"'") + "'"
 }
+
+func escapeTOMLBasicString(value string) string {
+	value = strings.ReplaceAll(value, "\\", "\\\\")
+	return strings.ReplaceAll(value, "\"", "\\\"")
+}
