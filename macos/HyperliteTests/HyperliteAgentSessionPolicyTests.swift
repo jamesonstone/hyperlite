@@ -5,11 +5,36 @@ enum HyperliteAgentSessionPolicyTests {
         testIntegrationOutcomes()
         testRouteResolution()
         testDismissalPolicy()
+        testNotchVisibilityPolicy()
         testAttentionAccessibilityLabel()
         testSingleSubmissionAndStaleIdentity()
         testAnswerResetPolicy()
         testDuplicateSessionSelection()
         testLineBufferIsolation()
+    }
+
+    private static func testNotchVisibilityPolicy() {
+        expect(!HyperliteAgentNotchVisibilityPolicy.showsChrome(
+            hasPhysicalNotch: false, expanded: false, pointerInside: false
+        ), "idle notchless chrome stays hidden")
+        expect(HyperliteAgentNotchVisibilityPolicy.showsChrome(
+            hasPhysicalNotch: false, expanded: false, pointerInside: true
+        ), "hover reveals notchless chrome without expanding")
+        expect(HyperliteAgentNotchVisibilityPolicy.showsChrome(
+            hasPhysicalNotch: false, expanded: true, pointerInside: false
+        ), "expanded notchless companion stays visible")
+        expect(HyperliteAgentNotchVisibilityPolicy.showsChrome(
+            hasPhysicalNotch: true, expanded: false, pointerInside: false
+        ), "physical notch chrome remains visible")
+        expect(!HyperliteAgentNotchVisibilityPolicy.showsShadow(
+            hasPhysicalNotch: false, chromeVisible: false
+        ), "hidden notchless chrome casts no shadow")
+        expect(HyperliteAgentNotchVisibilityPolicy.showsShadow(
+            hasPhysicalNotch: false, chromeVisible: true
+        ), "revealed notchless chrome casts its native shadow")
+        expect(!HyperliteAgentNotchVisibilityPolicy.showsShadow(
+            hasPhysicalNotch: true, chromeVisible: true
+        ), "physical notch chrome never adds a floating shadow")
     }
 
     private static func testAttentionAccessibilityLabel() {

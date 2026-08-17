@@ -131,8 +131,10 @@ threads and pinned Codex membership.
   revocation, and automatic clearing at session end. Never simulate scope by
   repeatedly approving individual requests.
 - R13: Add a borderless nonactivating top-center panel that uses macOS safe-area
-  APIs on notch displays and becomes a centered top-edge pill otherwise.
-  Respect Reduce Motion and avoid continuous animation.
+  APIs on notch displays and becomes a centered top-edge hover target
+  otherwise. The idle notchless surface reduces to a subtle two-point handle;
+  pointer hover reveals the metadata pill without expanding it. Respect Reduce
+  Motion and avoid continuous animation.
 - R14: Launch notch-first after onboarding while retaining the regular Dock
   app, menu-bar fallback, global hotkey, and dashboard. Add a third Sessions
   workspace backed by the same state.
@@ -144,9 +146,10 @@ threads and pinned Codex membership.
 - R17: New agent-session chrome, controls, lists, and status text use native
   macOS system typography at legible sizes. Technical messages, paths,
   arguments, commands, and results retain the shared monospaced resolver.
-- R18: Ordinary hover never opens the companion. Click expands it, and a newly
-  urgent approval or input request may expand once. Hover, focus, typing, or
-  control interaction prevents timed collapse.
+- R18: Ordinary hover may reveal collapsed notchless chrome but never expands
+  the companion. Click expands it, and a newly urgent approval or input
+  request may expand once. Hover, focus, typing, or control interaction
+  prevents timed collapse.
 - R19: Keep the expanded companion as a bounded mini workspace. Ongoing
   integration management lives in grouped Settings, with a Sessions shortcut.
   The new surfaces inherit Hyperlite's existing dark application appearance
@@ -237,9 +240,13 @@ future Ping Island clients not present at the frozen baseline.
 - On 2026-08-17, the user accepted a macOS-native refinement limited visually
   to the new session surfaces while authorizing correctness repairs across the
   full feature. The companion remains notch-first and keeps its mini-workspace;
-  it opens by click or newly urgent attention, never ordinary hover. Provider
+  it expands by click or newly urgent attention, never ordinary hover. Provider
   settings move to the Settings scene. Physical-notch interaction is not a
   delivery gate for this pass and remains explicitly unverified.
+- On 2026-08-17, the user requested the notchless top-edge surface remain
+  visually absent until pointer discovery. The collapsed fallback now retains
+  only a subtle top-edge handle, reveals the metadata pill on hover, and still
+  requires click or a new urgent transition to expand.
 
 ## DISCOVERIES
 
@@ -258,6 +265,9 @@ future Ping Island clients not present at the frozen baseline.
 - The available local screens are both notchless (`safeAreaInsets.top == 0`),
   so the centered top-edge fallback could be inspected but physical-notch
   acceptance cannot be produced in this environment.
+- A later packaged follow-up reported `safeAreaInsets.top == 38` on the current
+  physical-notch display. That run could verify exact preview and helper
+  cleanup but could not substitute for a live notchless idle-to-hover journey.
 - Local detection currently finds Claude Code, Codex, Gemini CLI, and GitHub
   Copilot. The remaining frozen profiles are not installed, so their mandatory
   real lifecycle/action evidence remains unavailable.
@@ -301,10 +311,17 @@ future Ping Island clients not present at the frozen baseline.
   native empty Sessions state, Settings-owned provider controls with exact
   VoiceOver labels/hints/values, and exact process cleanup passed. Evidence:
   `tmp/2026-08-17/agent-session-ui-manual/4/`.
-- Provider/display acceptance: PARTIAL. Physical-notch hardware and real smoke
-  evidence for every frozen provider remain unavailable. Per the explicit
-  activation decision, this limits the full-parity evidence claim but no longer
-  disables the preview by default.
+- Notch visibility model tests passed for hidden notchless idle, hover reveal
+  without expansion, expanded fallback visibility, and unchanged physical-
+  notch visibility. Packaged follow-up run `20260817T220649Z-5b643be8` is
+  PARTIAL: the current host exposed a physical notch, so the new live notchless
+  idle-to-hover transition remained unobserved; exact task-owned app and helper
+  cleanup passed. Evidence: `tmp/2026-08-17/agent-session-ui-manual/5/`.
+- Provider/display acceptance: PARTIAL. A complete physical-notch journey, the
+  new live notchless hover journey, and real smoke evidence for every frozen
+  provider remain unavailable. Per the explicit activation decision, this
+  limits the full-parity evidence claim but no longer disables the preview by
+  default.
 - `kit check --project`, `kit check --all`, and the no-op reconcile audit:
   passed. The whole-project source-size audit checked 250 eligible handwritten
   source/test files with zero violations.
@@ -317,8 +334,8 @@ safe integration reconciliation, private socket, Codex stdio discovery,
 bounded rollout tails, redaction, actions, expiry, and routing-only state. The
 native app adds consent-gated startup, centered onboarding, Settings-owned
 integration health, a keyboard-accessible Sessions workspace, metadata-only
-alerts, a click/new-urgent notch or top-edge mini workspace, and exact
-single-submit capability-gated controls.
+alerts, a click/new-urgent notch mini workspace, a hover-revealed notchless
+top-edge pill, and exact single-submit capability-gated controls.
 
 With `HYPERLITE_AGENT_SESSIONS_PREVIEW` absent, the surface is enabled;
 `HYPERLITE_AGENT_SESSIONS_PREVIEW=0` provides an explicit local rollback. The

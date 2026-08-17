@@ -71,12 +71,14 @@ provider files retain unrelated settings; malformed, oversized, symlinked,
 wrong-owner, concurrently created, or concurrently changed configuration fails
 closed. Disabling an integration removes only exact Hyperlite-owned material.
 
-The collapsed notch or top-edge pill shows only the Hyperlite mark and active
-or attention counts. Click it to open the mini workspace; ordinary hover does
-not expand it. A newly urgent approval or input request may expand once, and
-active pointer, keyboard, or text-field interaction pauses timed dismissal. A
-physical-notch surface stays black while the notchless fallback uses native
-material and shadow. The companion or Sessions workspace may show at most six
+The collapsed physical-notch surface shows only the Hyperlite mark and active
+or attention counts. On a notchless display, the idle surface reduces to a
+subtle top-center handle; hovering that target reveals the same metadata pill
+without expanding it. Click the pill to open the mini workspace. A newly urgent
+approval or input request may expand once, and active pointer, keyboard, or
+text-field interaction pauses timed dismissal. A physical-notch surface stays
+black while the revealed notchless fallback uses native material and shadow.
+The companion or Sessions workspace may show at most six
 recent user/assistant messages, each capped at 2,000 characters, plus an 8,000-
 character latest final result or decision context. Native system typography is
 used for chrome and controls, while technical content remains monospaced.

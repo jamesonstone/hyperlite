@@ -86,6 +86,20 @@ enum HyperliteAgentDismissalPolicy {
     }
 }
 
+enum HyperliteAgentNotchVisibilityPolicy {
+    static func showsChrome(
+        hasPhysicalNotch: Bool,
+        expanded: Bool,
+        pointerInside: Bool
+    ) -> Bool {
+        hasPhysicalNotch || expanded || pointerInside
+    }
+
+    static func showsShadow(hasPhysicalNotch: Bool, chromeVisible: Bool) -> Bool {
+        !hasPhysicalNotch && chromeVisible
+    }
+}
+
 enum HyperliteAgentAccessibilityPolicy {
     static func sessionLabel(_ session: HyperliteAgentSession) -> String {
         let attention = session.needsAttention ? ", needs attention" : ""

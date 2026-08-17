@@ -9,6 +9,7 @@ final class HyperliteAgentNotchCoordinator {
     private var panel: HyperliteAgentNotchPanel?
     private var screenObserver: NSObjectProtocol?
     private var expanded = false
+    private var pointerInside = false
 
     init(state: HyperliteAgentSessionState? = nil) {
         self.state = state ?? .shared
@@ -34,6 +35,7 @@ final class HyperliteAgentNotchCoordinator {
         panel?.close()
         panel = nil
         expanded = false
+        pointerInside = false
         display.hasCompanionFocus = false
     }
 
@@ -54,13 +56,15 @@ final class HyperliteAgentNotchCoordinator {
             onExpansionChanged: { [weak self] expanded, activate in
                 self?.setExpanded(expanded, activate: activate)
             },
+            onHoverChanged: { [weak self] hovering in self?.setPointerInside(hovering) },
             onRequestFocus: { [weak self] in self?.focusCompanion() },
             onOpenWindow: { Self.openMainWindow() }
         )
+        self.panel = panel
         panel.contentViewController = NSHostingController(rootView: view.hyperliteTheme())
         panel.setFrame(geometry.frame(expanded: false), display: true)
+        updatePanelAppearance(panel)
         panel.orderFrontRegardless()
-        self.panel = panel
     }
 
     private func setExpanded(_ expanded: Bool, activate: Bool) {
@@ -81,6 +85,12 @@ final class HyperliteAgentNotchCoordinator {
         panel?.makeKey()
     }
 
+    private func setPointerInside(_ value: Bool) {
+        guard pointerInside != value else { return }
+        pointerInside = value
+        if let panel { updatePanelAppearance(panel) }
+    }
+
     private func reposition() {
         guard let panel, let screen = targetScreen() else { return }
         let geometry = HyperliteAgentNotchGeometry(screenFrame: screen.frame, metrics: screen.hyperliteAgentNotchMetrics)
@@ -97,6 +107,15 @@ final class HyperliteAgentNotchCoordinator {
     ) {
         display.hasPhysicalNotch = geometry.metrics.hasPhysicalNotch
         panel.setPhysicalNotch(geometry.metrics.hasPhysicalNotch)
+        updatePanelAppearance(panel)
+    }
+
+    private func updatePanelAppearance(_ panel: HyperliteAgentNotchPanel) {
+        panel.setSurfaceVisible(HyperliteAgentNotchVisibilityPolicy.showsChrome(
+            hasPhysicalNotch: display.hasPhysicalNotch,
+            expanded: expanded,
+            pointerInside: pointerInside
+        ))
     }
 
     private func targetScreen() -> NSScreen? {
@@ -118,8 +137,12 @@ final class HyperliteAgentNotchDisplayState: ObservableObject {
 
 final class HyperliteAgentNotchPanel: NSPanel {
     var onKeyStatusChanged: ((Bool) -> Void)?
+    private var hasPhysicalNotch: Bool
+    private var surfaceVisible: Bool
 
     init(contentRect: CGRect, hasPhysicalNotch: Bool) {
+        self.hasPhysicalNotch = hasPhysicalNotch
+        surfaceVisible = hasPhysicalNotch
         super.init(
             contentRect: contentRect,
             styleMask: [.borderless, .nonactivatingPanel],
@@ -128,7 +151,7 @@ final class HyperliteAgentNotchPanel: NSPanel {
         )
         isOpaque = false
         backgroundColor = .clear
-        hasShadow = !hasPhysicalNotch
+        refreshShadow()
         level = .mainMenu + 2
         isFloatingPanel = true
         becomesKeyOnlyIfNeeded = true
@@ -151,7 +174,20 @@ final class HyperliteAgentNotchPanel: NSPanel {
     }
 
     func setPhysicalNotch(_ value: Bool) {
-        hasShadow = !value
+        hasPhysicalNotch = value
+        refreshShadow()
+    }
+
+    func setSurfaceVisible(_ value: Bool) {
+        surfaceVisible = value
+        refreshShadow()
+    }
+
+    private func refreshShadow() {
+        hasShadow = HyperliteAgentNotchVisibilityPolicy.showsShadow(
+            hasPhysicalNotch: hasPhysicalNotch,
+            chromeVisible: surfaceVisible
+        )
         invalidateShadow()
     }
 }

@@ -4,6 +4,7 @@ struct HyperliteAgentNotchView: View {
     @ObservedObject var state: HyperliteAgentSessionState
     @ObservedObject var display: HyperliteAgentNotchDisplayState
     let onExpansionChanged: (Bool, Bool) -> Void
+    let onHoverChanged: (Bool) -> Void
     let onRequestFocus: () -> Void
     let onOpenWindow: () -> Void
 
@@ -22,6 +23,13 @@ struct HyperliteAgentNotchView: View {
         if let selectedID, let match = sessions.first(where: { $0.id == selectedID }) { return match }
         return sessions.first(where: \.needsAttention) ?? sessions.first
     }
+    private var showsChrome: Bool {
+        HyperliteAgentNotchVisibilityPolicy.showsChrome(
+            hasPhysicalNotch: display.hasPhysicalNotch,
+            expanded: expanded,
+            pointerInside: pointerInside
+        )
+    }
 
     var body: some View {
         Group {
@@ -34,11 +42,14 @@ struct HyperliteAgentNotchView: View {
             if !display.hasPhysicalNotch {
                 RoundedRectangle(cornerRadius: expanded ? 16 : 11, style: .continuous)
                     .stroke(Color.white.opacity(0.13), lineWidth: 1)
+                    .opacity(showsChrome ? 1 : 0)
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: expanded ? 16 : 11, style: .continuous))
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: showsChrome)
         .onHover { hovering in
             pointerInside = hovering
+            onHoverChanged(hovering)
             guard expanded else { return }
             if hovering { cancelDismiss() } else { resumeAutoDismissIfIdle() }
         }
@@ -55,7 +66,10 @@ struct HyperliteAgentNotchView: View {
             selectProgrammatically(sessions.first(where: \.needsAttention)?.id ?? sessions.first?.id)
             reactToSnapshot()
         }
-        .onDisappear { dismissTask?.cancel() }
+        .onDisappear {
+            dismissTask?.cancel()
+            onHoverChanged(false)
+        }
     }
 
     @ViewBuilder
@@ -65,18 +79,29 @@ struct HyperliteAgentNotchView: View {
         } else {
             Rectangle().fill(.regularMaterial)
                 .overlay(Color.black.opacity(0.18))
+                .opacity(showsChrome ? 1 : 0)
         }
     }
 
     private var collapsedContent: some View {
         Button(action: expandManually) {
-            HStack(spacing: 8) {
-                HyperliteGhostMark().frame(width: 15, height: 15)
-                Label("\(state.snapshot?.activeCount ?? 0)", systemImage: "terminal.fill")
-                if let attention = state.snapshot?.attentionCount, attention > 0 {
-                    Label("\(attention)", systemImage: "exclamationmark.bubble.fill")
-                        .foregroundStyle(Color.orange)
+            ZStack {
+                HStack(spacing: 8) {
+                    HyperliteGhostMark().frame(width: 15, height: 15)
+                    Label("\(state.snapshot?.activeCount ?? 0)", systemImage: "terminal.fill")
+                    if let attention = state.snapshot?.attentionCount, attention > 0 {
+                        Label("\(attention)", systemImage: "exclamationmark.bubble.fill")
+                            .foregroundStyle(Color.orange)
+                    }
                 }
+                .opacity(showsChrome ? 1 : 0)
+                Capsule()
+                    .fill(hiddenIndicatorColor)
+                    .frame(width: 28, height: 2)
+                    .padding(.top, 2)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .opacity(showsChrome ? 0 : 1)
+                    .accessibilityHidden(true)
             }
             .font(.system(size: 11, weight: .semibold))
             .padding(.horizontal, 12)
@@ -86,6 +111,12 @@ struct HyperliteAgentNotchView: View {
         .buttonStyle(.plain)
         .accessibilityLabel(collapsedAccessibilityLabel)
         .help("Show agent sessions")
+    }
+
+    private var hiddenIndicatorColor: Color {
+        (state.snapshot?.attentionCount ?? 0) > 0
+            ? Color.orange.opacity(0.55)
+            : Color.secondary.opacity(0.22)
     }
 
     private var collapsedAccessibilityLabel: String {
