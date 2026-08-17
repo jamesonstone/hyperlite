@@ -55,8 +55,12 @@
 
 - The live scan uses the operator's existing `gh` authentication and never
   records credentials or authorization material.
-- All live operations are read-only. No synthetic records, infrastructure,
-  cleanup credentials, rate budget, or cost budget are required.
+- All current live operations are read-only. No synthetic records,
+  infrastructure, cleanup credentials, rate budget, or cost budget are
+  required.
+- Any future retained test-state cleanup follows `rules/deletion-safety.md`:
+  default to a recoverable lifecycle, and require an exact inventory plus
+  specific post-outline manual confirmation before hard deletion.
 
 ## Evidence And Retention
 
