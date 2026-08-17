@@ -7,7 +7,7 @@ struct HyperliteInteractionModelTests {
         try testStructuredDiagnosticDecoding()
         testAttentionAndInformationalProjections()
         expect(!HyperliteFeatureFlags.inferredAttentionPresentation, "attention presentation hidden")
-        expect(!HyperliteFeatureFlags.agentSessionPresentation, "agent sessions remain release gated")
+        testAgentSessionFeatureFlag()
         testRowSummaryOnlyShowsAttention()
         HyperlitePaletteTests.run()
         testSelectionClamping()
@@ -25,6 +25,25 @@ struct HyperliteInteractionModelTests {
         try await HyperlitePinnedCodexThreadTests.run()
         try await HyperliteNotepadTests.run()
         print("Hyperlite interaction model tests passed")
+    }
+
+    private static func testAgentSessionFeatureFlag() {
+        expect(
+            HyperliteFeatureFlags.agentSessionPresentationEnabled(environment: [:]),
+            "agent sessions should be enabled when the preview variable is absent"
+        )
+        expect(
+            HyperliteFeatureFlags.agentSessionPresentationEnabled(environment: [
+                "HYPERLITE_AGENT_SESSIONS_PREVIEW": "1",
+            ]),
+            "the legacy preview opt-in should remain enabled"
+        )
+        expect(
+            !HyperliteFeatureFlags.agentSessionPresentationEnabled(environment: [
+                "HYPERLITE_AGENT_SESSIONS_PREVIEW": "0",
+            ]),
+            "an explicit zero should disable agent sessions"
+        )
     }
 
     private static func testProcessEnvironment() {

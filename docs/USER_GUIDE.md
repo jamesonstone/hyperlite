@@ -20,16 +20,12 @@ or scan a source path directly with `hyperlite scan /path/to/projects`.
 
 ## Native workspace
 
-The release presentation has two full-content workspaces beneath one shared
+The release presentation has three full-content workspaces beneath one shared
 header. Dashboard keeps the existing notes, open pull requests, and projects
-surface. Pinboard is a separate private spatial-notes surface. Use the compact
-segmented control beside the Hyperlite title, `Command+1`, or `Command+2` to
-switch without changing Dashboard data or preferences.
-
-The release-gated agent-session preview adds a third Sessions workspace and
-`Command+3`. It is intentionally disabled by default until every frozen
-provider adapter and both physical-notch and top-edge display modes have live
-acceptance evidence.
+surface. Pinboard is a separate private spatial-notes surface. Sessions shows
+ephemeral local coding-agent activity. Use the compact segmented control beside
+the Hyperlite title or `Command+1`, `Command+2`, and `Command+3` to switch
+without changing Dashboard data or preferences.
 
 Inferred attention remains available through CLI and JSON but is hidden behind
 a single native feature flag: the window, menu bar, and palettes show no thread
@@ -57,15 +53,15 @@ Pinned tasks load at startup, recheck changed source signatures after foreground
 activation, and join explicit Refresh actions. Hyperlite does not poll or watch
 Codex files, read transcripts, navigate to tasks, or mutate Codex state.
 
-### Agent sessions preview
+### Agent sessions
 
-The agent-session preview is a separate local runtime projection. It does not
+The agent-session surface is a separate local runtime projection. It does not
 change pinned Codex membership, inferred project threads, project attention,
 or any repository. A Go helper owns exact session identity, provider ingress,
 redaction, response revision checks, expiry, and routing-only persistence. The
 native app consumes versioned sanitized snapshots.
 
-On first preview launch, Hyperlite offers Enable Recommended Integrations,
+On first agent-session launch, Hyperlite offers Enable Recommended Integrations,
 Customize, and Skip. Recommended includes only detected local clients. Shared
 provider files retain unrelated settings; malformed, oversized, symlinked,
 wrong-owner, or concurrently changed configuration fails closed. Disabling an
@@ -81,7 +77,7 @@ environment data are excluded before state reaches the UI.
 Allow Once, Deny, and Answer appear only for a current exact request with
 complete redacted context and a live blocking provider channel. Rollout-only,
 notify-only, stale, truncated, or redacted requests offer Open in client
-instead. The preview never simulates session scope by repeatedly approving
+instead. Hyperlite never simulates session scope by repeatedly approving
 individual requests.
 
 Completed sessions remain for ten minutes. Other non-attention sessions expire
@@ -92,11 +88,12 @@ routing identifiers, and last-seen time may persist, for at most twenty-four
 hours.
 
 Sounds and native notifications are opt-in in Settings. Notifications contain
-only profile and project metadata. Launch the preview for development with:
+only profile and project metadata. Agent sessions are enabled by default. Set
+the retained preview variable to zero for an explicit local rollback:
 
 ```sh
 make macos-build
-HYPERLITE_AGENT_SESSIONS_PREVIEW=1 build/Hyperlite.app/Contents/MacOS/Hyperlite
+HYPERLITE_AGENT_SESSIONS_PREVIEW=0 build/Hyperlite.app/Contents/MacOS/Hyperlite
 ```
 
 ### GitHub quota
@@ -250,7 +247,7 @@ agent input.
 
 - `Command+1` shows Dashboard.
 - `Command+2` shows Pinboard.
-- `Command+3` shows Sessions when the release-gated preview is enabled.
+- `Command+3` shows Sessions unless agent sessions were explicitly disabled.
 - `Command+R` refreshes the focused Hyperlite application.
 - `Command+K` opens a searchable command palette with Show Dashboard, Show
   Pinboard, Add Pinboard Note, Add Pinboard Section, Open Pinboard Archive,

@@ -12,8 +12,8 @@
   CLI, and failure behavior.
 - Swift executable model tests and native type-checking cover schema and
   presentation behavior.
-- Go contract and integration tests cover the release-gated agent-session
-  authority, provider registry, exact actions, configuration safety, private
+- Go contract and integration tests cover the agent-session authority,
+  provider registry, exact actions, configuration safety, private
   socket, Codex stdio protocol, bounded rollout tails, expiry, and redaction.
 - Swift executable tests cover sanitized agent snapshot decoding and physical
   notch versus top-edge geometry.
@@ -37,7 +37,7 @@
 | --- | --- | --- | --- | --- | --- |
 | inferred attention recovery | live-integration | local | `tests/live-integration/local/inferred-attention-live-scan.sh <r2-path> <event-sink-path>` | manual milestone | `tmp/<UTC-date>/inferred-attention-live-scan.sh/<run-number>/` |
 | agent sessions bridge | live-integration | local | `tests/live-integration/local/agent-session-bridge-live.sh` | manual milestone | `tmp/<UTC-date>/agent-session-bridge-live.sh/<run-number>/` |
-| agent sessions provider/display matrix | live-integration | local | release-gated manual matrix | manual milestone | provider and physical-display evidence pending |
+| agent sessions provider/display matrix | live-integration | local | manual acceptance matrix | manual milestone | provider and physical-display evidence pending |
 | production | end-to-end | production | not applicable | not applicable | Hyperlite is a local desktop application without a deployed production environment |
 
 ## Environment Preflights
@@ -81,7 +81,8 @@
   contract tests prove cited-schema validation and deterministic fallback.
 - The local live scan proves current read-only evidence recovery, not deployed
   operational state in the referenced projects.
-- Agent-session release acceptance remains blocked until every frozen provider
-  passes a real local lifecycle smoke, action-capable providers pass one bounded
-  response round trip, and both physical-notch and external/notchless display
-  journeys pass. Deterministic fixtures do not replace those gates.
+- Agent sessions are enabled by default, but full provider-parity evidence
+  remains partial until every frozen provider passes a real local lifecycle
+  smoke, action-capable providers pass one bounded response round trip, and
+  both physical-notch and external/notchless display journeys pass.
+  Deterministic fixtures do not replace that residual acceptance evidence.

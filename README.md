@@ -35,8 +35,8 @@ directly with `hyperlite scan /path/to/projects`.
 - Pinned and daily notes, open pull requests, and configured projects in the
   preserved Dashboard workspace
 - Read-only GitHub quota, review-feedback, and pinned Codex task visibility
-- A release-gated local agent-session and Mac notch/top-edge companion preview
-  with exact, capability-gated response controls
+- A local agent-session and Mac notch/top-edge companion with exact,
+  capability-gated response controls
 - CLI and JSON interfaces for project scanning and inferred attention
 - Local, permission-restricted state with no external project-management system
 
@@ -51,13 +51,17 @@ shortcuts, CLI commands, persistence paths, and the status and attention model.
 make fmt-check vet test test-race build macos-test macos-build
 ```
 
-The agent-session surface remains disabled until its full provider and hardware
-acceptance matrix passes. Developers can inspect the integrated preview without
-changing the release default:
+The agent-session surface is enabled by default. Build and launch it with:
 
 ```sh
 make macos-build
-HYPERLITE_AGENT_SESSIONS_PREVIEW=1 build/Hyperlite.app/Contents/MacOS/Hyperlite
+build/Hyperlite.app/Contents/MacOS/Hyperlite
+```
+
+Set the retained preview variable to zero for an explicit local rollback:
+
+```sh
+HYPERLITE_AGENT_SESSIONS_PREVIEW=0 build/Hyperlite.app/Contents/MacOS/Hyperlite
 ```
 
 ## Maintainers

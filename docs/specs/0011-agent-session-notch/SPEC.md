@@ -2,7 +2,7 @@
 kit_metadata_version: 1
 artifact: "spec"
 workflow_version: 3
-phase: "validate"
+phase: "deliver"
 delivery_intent: "ready_pull_request"
 feature:
   id: "0011"
@@ -124,7 +124,16 @@ threads and pinned Codex membership.
 - R16: Keep every handwritten source and test file at 300 physical lines or
   fewer and preserve the macOS 13 arm64/x86_64 universal build.
 
-Observable acceptance:
+Default-activation acceptance:
+
+- With `HYPERLITE_AGENT_SESSIONS_PREVIEW` absent, the Sessions workspace and
+  notch or top-edge companion are enabled.
+- `HYPERLITE_AGENT_SESSIONS_PREVIEW=0` is an explicit local rollback that
+  suppresses the session presentation.
+- Default activation does not bypass first-run integration consent, grant an
+  action capability, or claim unobserved provider or physical-notch evidence.
+
+Full provider-parity acceptance remains tracked as residual evidence:
 
 - Every advertised provider passes its contract, configuration round-trip,
   lifecycle smoke, and required real response test.
@@ -160,9 +169,10 @@ future Ping Island clients not present at the frozen baseline.
 6. Add deterministic Go and Swift tests, temporary-home installer integration
    tests, a local socket round trip, secret-leak inspection, complete build
    gates, and literal provider and hardware acceptance evidence.
-7. Keep the feature disabled until the full frozen provider matrix and both
-   display modes satisfy their release gates, then deliver all work through one
-   ready pull request.
+7. Enable the preview by default after deterministic contract, privacy,
+   process-ownership, top-edge, and synthetic response validation. Preserve an
+   explicit environment rollback and report missing provider or physical-notch
+   proof as residual evidence rather than silently claiming full parity.
 
 ## DECISIONS
 
@@ -176,6 +186,10 @@ future Ping Island clients not present at the frozen baseline.
   content ephemeral.
 - Ship one complete pull request rather than progressively advertising partial
   provider support.
+- On 2026-08-17, the user explicitly superseded the external-evidence release
+  gate and requested default activation. An absent preview variable now enables
+  the surface, while exact `0` disables it. First-run provider configuration
+  still requires consent, and unavailable live evidence remains reported.
 
 ## DISCOVERIES
 
@@ -201,10 +215,12 @@ future Ping Island clients not present at the frozen baseline.
 ## VALIDATION
 
 - `make fmt-check vet test test-race build macos-test macos-build`: passed for
-  the integrated Go, native Swift, and universal bundle before final curation;
-  macOS 14 deprecation warnings remain the pre-existing compatibility form.
+  the default-on integrated Go, native Swift, and universal bundle after final
+  curation; macOS 14 deprecation warnings remain the pre-existing compatibility
+  form. Swift tests cover absent-variable enablement, retained `1`
+  compatibility, and exact `0` rollback.
 - `tests/live-integration/local/agent-session-bridge-live.sh`: PASS, run
-  `20260817T175432Z-0ee2f48d`, for private
+  `20260817T181332Z-607a1e3f`, for private
   socket permissions, exact action round trip, disconnect retraction, owner EOF
   cleanup including Codex child termination, fail-open delivery, and the
   metadata-only twenty-profile inventory.
@@ -215,33 +231,36 @@ future Ping Island clients not present at the frozen baseline.
 - Packaged Computer Use inspection: top-edge compact/expanded UI, accessibility
   tree, consent screen, exact synthetic Claude-compatible approval, 12-second
   attention collapse with retained badge, provider response, Processing
-  transition, Open Hyperlite handoff, and exact process cleanup passed.
+  transition, Open Hyperlite handoff, and exact process cleanup passed. A
+  follow-up launch with the variable absent selected Sessions and preserved the
+  consent surface; exact `0` removed Sessions and selected Dashboard. Evidence:
+  `tmp/2026-08-17/agent-session-ui-manual/2/`.
 - Provider/display acceptance: PARTIAL. Physical-notch hardware and real smoke
-  evidence for every frozen provider remain blocked and prevent release
-  enablement.
+  evidence for every frozen provider remain unavailable. Per the explicit
+  activation decision, this limits the full-parity evidence claim but no longer
+  disables the preview by default.
 - `kit check agent-session-notch`: passed. `kit check --project`: failed with
   twelve instruction/registry drift findings that reproduce exactly on the
   untouched primary `origin/main` checkout and are outside this feature.
 
 ## OUTCOME
 
-Hyperlite now contains a clean-room, release-gated agent-session preview. A Go
+Hyperlite now contains a clean-room, default-on agent-session preview. A Go
 authority owns the versioned protocol, exact session store, provider registry,
 safe integration reconciliation, private socket, Codex stdio discovery,
 bounded rollout tails, redaction, actions, expiry, and routing-only state. The
 native app adds consent/customization, a Sessions workspace, metadata-only
 alerts, a notch or top-edge companion, and exact capability-gated controls.
 
-The feature remains disabled by default through
-`HYPERLITE_AGENT_SESSIONS_PREVIEW=1`. This is intentional: the accepted release
-contract requires live proof for every frozen provider and both physical-notch
-and notchless displays. Those external acceptance gates are not available in
-the current environment, so the release outcome is PARTIAL rather than a
-claim of complete Ping-parity support.
+With `HYPERLITE_AGENT_SESSIONS_PREVIEW` absent, the surface is enabled;
+`HYPERLITE_AGENT_SESSIONS_PREVIEW=0` provides an explicit local rollback. The
+first-run consent boundary and provider-native action authority remain intact.
+External provider and physical-notch evidence is still PARTIAL, so the outcome
+does not claim complete live-validated Ping parity.
 
 ## REPOSITORY MEMORY
 
-- Decision: created
+- Decision: updated
 - Rationale: source authority, permission semantics, privacy limits, provider
   boundaries, lifecycle, and notch behavior are material rationale that code
   and tests alone cannot preserve.
