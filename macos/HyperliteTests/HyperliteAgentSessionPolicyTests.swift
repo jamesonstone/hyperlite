@@ -124,6 +124,13 @@ enum HyperliteAgentSessionPolicyTests {
             editing: false,
             companionFocused: false
         ), "manual expansion has no automatic dismissal")
+        expect(!HyperliteAgentDismissalPolicy.shouldSchedule(
+            expanded: false,
+            hasAutomaticDelay: true,
+            pointerInside: false,
+            editing: false,
+            companionFocused: false
+        ), "collapsed companion does not schedule dismissal")
     }
 
     private static func testSingleSubmissionAndStaleIdentity() {
@@ -171,6 +178,13 @@ enum HyperliteAgentSessionPolicyTests {
         expect(String(data: secondLines[0], encoding: .utf8) == "new", "new launch has isolated buffer")
         let firstLines = first.append(Data("-tail\n".utf8))
         expect(String(data: firstLines[0], encoding: .utf8) == "old-tail", "old buffer remains independent")
+
+        let overflow = HyperliteAgentLineBuffer()
+        expect(overflow.append(Data(repeating: 0x61, count: 2_097_153)).isEmpty,
+               "oversized partial record is discarded")
+        let fresh = overflow.append(Data("fresh\n".utf8))
+        expect(fresh.count == 1 && String(data: fresh[0], encoding: .utf8) == "fresh",
+               "fresh record is isolated from discarded oversized input")
     }
 
     private static func routing(
