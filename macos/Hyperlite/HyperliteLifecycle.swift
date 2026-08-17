@@ -5,6 +5,7 @@ import Foundation
 @MainActor
 final class HyperliteApplicationDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var hotKey: HyperliteHotKeyController?
+    private var agentNotch: HyperliteAgentNotchCoordinator?
     private weak var window: NSWindow?
     private var terminationPending = false
     private var dailyDateObservers: [NSObjectProtocol] = []
@@ -33,7 +34,20 @@ final class HyperliteApplicationDelegate: NSObject, NSApplicationDelegate, NSWin
         DispatchQueue.main.async { [weak self] in
             self?.window = NSApp.windows.first(where: { $0.title == "Hyperlite" })
             self?.window?.delegate = self
-            self?.showWindow()
+            if HyperliteFeatureFlags.agentSessionPresentation {
+                HyperliteAgentSessionState.shared.start()
+                let coordinator = HyperliteAgentNotchCoordinator()
+                coordinator.start()
+                self?.agentNotch = coordinator
+                if UserDefaults.standard.bool(forKey: "hyperlite.agent-integrations-consent") {
+                    self?.window?.orderOut(nil)
+                } else {
+                    HyperliteState.shared.showWorkspace(.sessions)
+                    self?.showWindow()
+                }
+            } else {
+                self?.showWindow()
+            }
         }
     }
 
@@ -63,6 +77,9 @@ final class HyperliteApplicationDelegate: NSObject, NSApplicationDelegate, NSWin
         dailyDateObservers.forEach(NotificationCenter.default.removeObserver)
         dailyDateObservers.removeAll()
         hotKey?.stop()
+        agentNotch?.stop()
+        agentNotch = nil
+        HyperliteAgentSessionState.shared.stop()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }

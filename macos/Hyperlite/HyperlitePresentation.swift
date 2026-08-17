@@ -2,6 +2,9 @@ import Foundation
 
 enum HyperliteFeatureFlags {
     static let inferredAttentionPresentation = false
+    static let agentSessionPresentation = ProcessInfo.processInfo.environment[
+        "HYPERLITE_AGENT_SESSIONS_PREVIEW"
+    ] == "1"
 }
 
 enum HyperlitePresentation {

@@ -76,6 +76,7 @@ func (a App) Root() *cobra.Command {
 		Args:          noArgs,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			if cmd.Name() == "version" ||
+				strings.HasPrefix(cmd.CommandPath(), "hyperlite agent") ||
 				strings.HasPrefix(cmd.CommandPath(), "hyperlite notepad") ||
 				strings.HasPrefix(cmd.CommandPath(), "hyperlite pinboard") ||
 				(cmd.Name() == "scan" && len(args) > 0) {
@@ -93,6 +94,7 @@ func (a App) Root() *cobra.Command {
 	addScanFlags(root, &options)
 	root.SetFlagErrorFunc(func(_ *cobra.Command, err error) error { return usageError{err} })
 	root.AddCommand(
+		a.agentCommand(),
 		a.scanCommand(&configPath),
 		a.inferCommand(&configPath),
 		a.notepadCommand(),

@@ -80,6 +80,19 @@
   startup, changed source signatures after foreground activation, and explicit
   user action; Hyperlite does not poll, read transcripts, navigate, or mutate
   Codex state.
+- Live coding-agent sessions are a separate ephemeral runtime projection, not
+  inferred project threads, project evidence, pinned Codex membership,
+  lifecycle authority, or durable task state. Exact provider and session
+  identifiers own membership; lower-authority rollout evidence may enrich but
+  may not heuristically merge sessions. Displayable prompts, responses,
+  approval context, and bounded recent messages remain memory-only and never
+  enter Hyperlite persistence, diagnostics, telemetry, or notifications.
+  Routing-only associations expire after twenty-four hours. Inline actions
+  require an exact current request, revision, complete redacted context, and a
+  live provider-native response channel; transport failure, incomplete
+  context, and notify-only providers preserve the owning client's authority.
+  Agent monitoring is event-driven and may use one next-deadline expiry timer,
+  but it does not re-enable continuous project scans or UI animation work.
 - Exact evidence owns thread membership. Semantic inference may relate
   separate threads, but it may not merge them, establish authoritative
   lifecycle state, suppress a thread, or close a goal.

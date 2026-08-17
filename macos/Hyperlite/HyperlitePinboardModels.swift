@@ -3,6 +3,7 @@ import Foundation
 enum HyperliteWorkspace: String, CaseIterable, Identifiable {
     case dashboard
     case pinboard
+    case sessions
 
     var id: String { rawValue }
 }
