@@ -59,6 +59,13 @@ func secureTarget(home, target string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	homeInfo, err := os.Lstat(homeAbs)
+	if err != nil {
+		return "", fmt.Errorf("inspect user home: %w", err)
+	}
+	if !homeInfo.IsDir() || homeInfo.Mode()&os.ModeSymlink != 0 {
+		return "", errors.New("user home is not a real directory")
+	}
 	targetAbs, err := filepath.Abs(target)
 	if err != nil {
 		return "", err
@@ -126,20 +133,27 @@ func reconcileJSON(path string, profile Profile, command string, enable bool) er
 }
 
 func removeOwnedJSONEntries(entries []any, profileID string) []any {
-	result := entries[:0]
+	result := make([]any, 0, len(entries))
 	for _, entry := range entries {
-		object, _ := entry.(map[string]any)
-		hooks, _ := object["hooks"].([]any)
-		owned := false
+		object, objectOK := entry.(map[string]any)
+		hooks, hooksOK := object["hooks"].([]any)
+		if !objectOK || !hooksOK {
+			result = append(result, entry)
+			continue
+		}
+		remaining := make([]any, 0, len(hooks))
 		for _, hook := range hooks {
 			value, _ := hook.(map[string]any)
 			if value["hyperlite_managed"] == profileID {
-				owned = true
+				continue
 			}
+			remaining = append(remaining, hook)
 		}
-		if !owned {
-			result = append(result, entry)
+		if len(remaining) == 0 {
+			continue
 		}
+		object["hooks"] = remaining
+		result = append(result, object)
 	}
 	return result
 }

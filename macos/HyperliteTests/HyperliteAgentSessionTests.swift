@@ -59,10 +59,17 @@ enum HyperliteAgentSessionTests {
         expect(snapshot.popupTransition(from: snapshot) == nil, "retained attention does not reopen")
 
         let attention = snapshot.sessions[0]
+        let processing = copy(attention, phase: .processing, action: .some(nil))
+        let processingSnapshot = copy(snapshot, sessions: [processing])
+        expect(processingSnapshot.popupTransition(from: processingSnapshot) == nil,
+               "unchanged non-attention input stays collapsed")
+        expect(snapshot.popupTransition(from: processingSnapshot) == .attention,
+               "newly urgent attention expands")
+
         let revised = copy(attention, revision: attention.revision + 1)
         let revisedSnapshot = copy(snapshot, sessions: [revised])
         expect(revisedSnapshot.popupTransition(from: snapshot) == .attention,
-               "new request revision expands")
+               "changed action identity expands")
 
         let completed = copy(revised, phase: .completed, action: .some(nil))
         let completedSnapshot = copy(revisedSnapshot, sessions: [completed])
@@ -72,6 +79,11 @@ enum HyperliteAgentSessionTests {
                "retained completion does not reopen")
         expect(completedSnapshot.popupTransition(from: nil) == nil,
                "discovered historical completion stays collapsed")
+
+        let failed = copy(revised, phase: .error, action: .some(nil))
+        let failedSnapshot = copy(revisedSnapshot, sessions: [failed])
+        expect(failedSnapshot.popupTransition(from: revisedSnapshot) == .completion,
+               "new error transition expands")
     }
 
     private static func testActionAndRoutePresentation(_ snapshot: HyperliteAgentSessionSnapshot) {

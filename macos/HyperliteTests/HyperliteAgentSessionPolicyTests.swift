@@ -5,10 +5,35 @@ enum HyperliteAgentSessionPolicyTests {
         testIntegrationOutcomes()
         testRouteResolution()
         testDismissalPolicy()
+        testAttentionAccessibilityLabel()
         testSingleSubmissionAndStaleIdentity()
         testAnswerResetPolicy()
         testDuplicateSessionSelection()
         testLineBufferIsolation()
+    }
+
+    private static func testAttentionAccessibilityLabel() {
+        let pending = HyperliteAgentPendingAction(
+            requestID: "request",
+            kind: "approval",
+            title: "Approve command",
+            context: "git status",
+            arguments: nil,
+            completeContext: true,
+            canAllowOnce: true,
+            canDeny: true,
+            canAnswer: false,
+            canAllowSession: false,
+            canRevoke: false
+        )
+        let active = session(action: pending)
+        expect(active.phase == .processing && active.needsAttention,
+               "fixture covers pending action during processing")
+        let sharedLabel = HyperliteAgentAccessibilityPolicy.sessionLabel(active)
+        expect(sharedLabel.contains("needs attention"),
+               "shared workspace and notch row label states pending attention explicitly")
+        expect(sharedLabel.contains(active.profile),
+               "shared workspace and notch row label retains provider identity")
     }
 
     private static func testIntegrationOutcomes() {
@@ -167,6 +192,7 @@ enum HyperliteAgentSessionPolicyTests {
         revision: UInt64 = 1,
         title: String = "Session",
         updatedAt: Date = Date(timeIntervalSince1970: 10),
+        action: HyperliteAgentPendingAction? = nil,
         routing: HyperliteAgentRouting = routing()
     ) -> HyperliteAgentSession {
         HyperliteAgentSession(
@@ -184,7 +210,7 @@ enum HyperliteAgentSessionPolicyTests {
             updatedAt: updatedAt,
             messages: [],
             latestResult: nil,
-            action: nil,
+            action: action,
             routing: routing,
             openInClient: true
         )

@@ -19,3 +19,14 @@ func TestRedactSignedURLsPreservesWhitespace(t *testing.T) {
 		t.Fatalf("signed URL was not redacted: %q", got)
 	}
 }
+
+func TestRedactSignedURLInsideMarkdownAutolink(t *testing.T) {
+	value := "before\t<https://example.test/path?safe=yes&X-Amz-Signature=hidden>\nafter"
+	got := redactSignedURLs(value)
+	if !strings.HasPrefix(got, "before\t<https://") || !strings.HasSuffix(got, ">\nafter") {
+		t.Fatalf("autolink wrappers or layout changed: %q", got)
+	}
+	if strings.Contains(got, "hidden") || !strings.Contains(got, "X-Amz-Signature=REDACTED") {
+		t.Fatalf("autolink signature was not redacted: %q", got)
+	}
+}

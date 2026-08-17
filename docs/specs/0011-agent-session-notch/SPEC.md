@@ -285,10 +285,10 @@ future Ping Island clients not present at the frozen baseline.
   integration. macOS 14 `onChange` deprecation warnings remain intentionally
   because the replacement overload is unavailable to the macOS 13 target.
 - `tests/live-integration/local/agent-session-bridge-live.sh`: PASS, run
-  `20260817T202936Z-6da99a7a`, for raw-object metadata allowlisting, private
-  socket permissions, exact action round trip, disconnect retraction, owner EOF
-  cleanup including Codex child termination, fail-open delivery, and the
-  metadata-only twenty-profile inventory.
+  `20260817T212743Z-db3aca03`, for strict raw-object integration identity and
+  metadata allowlisting, private socket permissions, exact action round trip,
+  disconnect retraction, owner EOF cleanup including Codex child termination,
+  fail-open delivery, and the metadata-only twenty-profile inventory.
 - `golangci-lint run ./internal/agentsession ./internal/cli`: passed with zero
   issues. Darwin watcher tests passed one hundred consecutive runs; supported
   cross-build checks and ShellCheck passed.

@@ -175,6 +175,6 @@ struct HyperliteAgentSessionRow: View {
         }
         .padding(.vertical, 3)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(session.displayTitle), \(session.profile), \(session.phase.label)")
+        .accessibilityLabel(HyperliteAgentAccessibilityPolicy.sessionLabel(session))
     }
 }

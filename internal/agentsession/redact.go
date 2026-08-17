@@ -79,7 +79,7 @@ func SanitizeArguments(values map[string]any) (map[string]string, bool) {
 func redactSignedURLs(value string) string {
 	changed := false
 	redactedValue := nonWhitespace.ReplaceAllStringFunc(value, func(field string) string {
-		trimmed := strings.Trim(field, `"'(),`)
+		trimmed := strings.Trim(field, `<>"'(),`)
 		parsed, err := url.Parse(trimmed)
 		if err != nil || parsed.Scheme == "" || parsed.Host == "" || parsed.RawQuery == "" {
 			return field

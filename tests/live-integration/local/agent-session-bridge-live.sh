@@ -88,7 +88,10 @@ go test ./internal/cli \
     def allowed_keys:
       ["action_mode", "detected", "enabled", "id", "name", "provider", "schema", "target"];
     if type == "array" and length == 20 and
-      all(.[]; type == "object" and ((keys - allowed_keys) | length == 0))
+      all(.[];
+        type == "object" and ((keys - allowed_keys) | length == 0) and
+        (.id | type == "string" and length > 0) and
+        (.name | type == "string" and length > 0))
     then [.[] | {id, name, detected, enabled, action_mode}]
     else error("integration inventory contains an unexpected field")
     end

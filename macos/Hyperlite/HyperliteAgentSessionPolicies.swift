@@ -86,6 +86,13 @@ enum HyperliteAgentDismissalPolicy {
     }
 }
 
+enum HyperliteAgentAccessibilityPolicy {
+    static func sessionLabel(_ session: HyperliteAgentSession) -> String {
+        let attention = session.needsAttention ? ", needs attention" : ""
+        return "\(session.displayTitle), \(session.profile), \(session.phase.label)\(attention)"
+    }
+}
+
 struct HyperliteAgentActionSubmissionTracker: Equatable {
     private(set) var pending: Set<HyperliteAgentActionIdentity> = []
 

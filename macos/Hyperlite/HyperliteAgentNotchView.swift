@@ -240,6 +240,6 @@ private struct HyperliteAgentNotchRow: View {
         }
         .padding(.vertical, 2)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(session.displayTitle), \(session.phase.label)")
+        .accessibilityLabel(HyperliteAgentAccessibilityPolicy.sessionLabel(session))
     }
 }

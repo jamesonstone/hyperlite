@@ -86,6 +86,64 @@ func TestIntegrationRejectsSymlinkTarget(t *testing.T) {
 	}
 }
 
+func TestIntegrationRejectsSymlinkedHomeRoot(t *testing.T) {
+	realHome := t.TempDir()
+	home := filepath.Join(t.TempDir(), "home")
+	if err := os.Symlink(realHome, home); err != nil {
+		t.Fatal(err)
+	}
+	target := filepath.Join(home, ".claude", "settings.json")
+	if _, err := secureTarget(home, target); err == nil {
+		t.Fatal("symlinked home root was accepted")
+	}
+}
+
+func TestJSONIntegrationPreservesUserHookInsideMixedParent(t *testing.T) {
+	home := t.TempDir()
+	path := filepath.Join(home, ".claude", "settings.json")
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	original := []byte(`{"hooks":{"Stop":[{"matcher":"mixed","label":"preserve","hooks":[{"type":"command","command":"user-command"},{"type":"command","command":"old-owned","hyperlite_managed":"claude-code"}]}]}}`)
+	if err := os.WriteFile(path, original, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ReconcileIntegration(home, "/app/hyperlite-cli", "claude-code", true); err != nil {
+		t.Fatal(err)
+	}
+	enabled, err := os.ReadFile(path)
+	if err != nil || !bytes.Contains(enabled, []byte("user-command")) || !bytes.Contains(enabled, []byte("hyperlite_managed")) {
+		t.Fatalf("mixed hook was not enabled safely: %s %v", enabled, err)
+	}
+	if _, err := ReconcileIntegration(home, "/app/hyperlite-cli", "claude-code", false); err != nil {
+		t.Fatal(err)
+	}
+	disabled, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var document map[string]any
+	if err := json.Unmarshal(disabled, &document); err != nil {
+		t.Fatal(err)
+	}
+	hooks, _ := document["hooks"].(map[string]any)
+	entries, _ := hooks["Stop"].([]any)
+	if len(entries) != 1 {
+		t.Fatalf("disable retained unexpected parent entries: %s", disabled)
+	}
+	parent, parentOK := entries[0].(map[string]any)
+	remaining, _ := parent["hooks"].([]any)
+	if !parentOK || len(remaining) != 1 {
+		t.Fatalf("disable changed the mixed parent shape: %s", disabled)
+	}
+	userHook, _ := remaining[0].(map[string]any)
+	if parent["matcher"] != "mixed" ||
+		parent["label"] != "preserve" || userHook["command"] != "user-command" ||
+		bytes.Contains(disabled, []byte("hyperlite_managed")) {
+		t.Fatalf("disable did not preserve the mixed user hook: %s", disabled)
+	}
+}
+
 func TestIntegrationRejectsMalformedAndConcurrentSharedConfig(t *testing.T) {
 	home := t.TempDir()
 	path := filepath.Join(home, ".claude", "settings.json")
