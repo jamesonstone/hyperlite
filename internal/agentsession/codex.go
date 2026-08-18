@@ -168,7 +168,7 @@ func codexThreadEvent(thread map[string]any, now time.Time) (Event, bool) {
 	status, _ := thread["status"].(map[string]any)
 	event, ok := codexStatusEvent(threadID, status, now)
 	if !ok {
-		return Event{}, false
+		return codexRolloutDiscoveryEvent(thread, status, now)
 	}
 	event.Title = firstString(thread, "name")
 	event.WorkspacePath = firstString(thread, "cwd")

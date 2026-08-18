@@ -124,11 +124,14 @@ func RunService(ctx context.Context, in io.Reader, out, errOut io.Writer, option
 			event := received.event
 			if event.Provider == "codex" && event.RolloutPath != "" {
 				if safePath, pathErr := SafeCodexRolloutPath(event.RolloutPath, options.Home); pathErr == nil {
-					if _, exists := watchedRollouts[safePath]; !exists {
+					if _, exists := watchedRollouts[safePath]; !exists && len(watchedRollouts) < maxCodexRolloutWatches {
 						watchedRollouts[safePath] = struct{}{}
-						startRolloutWatch(serviceCtx, safePath, event.SessionID, events, readErrors)
+						startRolloutWatch(serviceCtx, safePath, event, events, readErrors)
 					}
 				}
+			}
+			if event.rolloutHint {
+				continue
 			}
 			key := Identity(event.Provider, event.SessionID)
 			if existing, ok := routing[key]; ok {

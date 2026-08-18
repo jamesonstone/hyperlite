@@ -53,6 +53,9 @@ func (s *Store) Apply(event Event, now time.Time) (Snapshot, bool) {
 	}
 	id := Identity(event.Provider, event.SessionID)
 	current, exists := s.sessions[id]
+	if !exists && newEventExpired(event, now) {
+		return s.snapshotLocked(now), false
+	}
 	if exists && staleAgainst(current, event) {
 		return s.snapshotLocked(now), false
 	}
@@ -60,6 +63,17 @@ func (s *Store) Apply(event Event, now time.Time) (Snapshot, bool) {
 	s.sessions[id] = updated
 	s.generation++
 	return s.snapshotLocked(now), true
+}
+
+func newEventExpired(event Event, now time.Time) bool {
+	if event.Phase.NeedsAttention() || (event.ExpectsResponse && event.RequestID != "") {
+		return false
+	}
+	retention := idleRetention
+	if event.Phase == PhaseCompleted {
+		retention = completedRetention
+	}
+	return now.Sub(event.OccurredAt) >= retention
 }
 
 func normalizeEvent(event Event, now time.Time) Event {

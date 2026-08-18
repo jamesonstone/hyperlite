@@ -72,18 +72,25 @@ wrong-owner, concurrently created, or concurrently changed configuration fails
 closed. Disabling an integration removes only exact Hyperlite-owned material.
 
 The collapsed physical-notch surface shows only the Hyperlite mark and active
-or attention counts. On a notchless display, the idle surface reduces to a
-subtle top-center handle; hovering that target reveals the same metadata pill
-without expanding it. Click the pill to open the mini workspace. A newly urgent
-approval or input request may expand once, and active pointer, keyboard, or
-text-field interaction pauses timed dismissal. A physical-notch surface stays
-black while the revealed notchless fallback uses native material and shadow.
+or attention counts. On a notchless or external display, the idle surface is
+entirely invisible while retaining an accessible top-center hit target;
+hovering that target reveals the metadata pill without expanding it. Click the
+pill to open the mini workspace. A newly urgent approval or input request may
+expand once, and active pointer, keyboard, or text-field interaction pauses
+timed dismissal. A physical-notch surface stays black while the revealed
+notchless fallback uses native material and shadow.
 The companion or Sessions workspace may show at most six
 recent user/assistant messages, each capped at 2,000 characters, plus an 8,000-
 character latest final result or decision context. Native system typography is
 used for chrome and controls, while technical content remains monospaced.
 Internal reasoning, arbitrary historical tool output, raw hook payloads,
 secrets, and generic environment data are excluded before state reaches the UI.
+
+Codex tasks running in another process may appear as `notLoaded` to Hyperlite's
+own app server. Hyperlite keeps that status unknown, uses only an exact safe
+rollout path to start one of a bounded number of incremental observers, and
+creates a row only after the rollout establishes exact session identity and
+runtime phase. Stored thread listings alone never create a live or idle row.
 
 Allow Once, Deny, and Answer appear only for a current exact request with
 complete redacted context and a live blocking provider channel. Rollout-only,

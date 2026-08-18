@@ -193,13 +193,17 @@ changes that warrant human attention.
 - **APPROACH**: Add an event-driven Go session authority, bounded provider
   integrations, documented Codex stdio transport, ephemeral redacted content,
   capability-gated actions, and shared notch and Sessions-workspace views.
-- **OPEN ITEMS**: Issue #47 owns one ready pull request. Missing physical-notch
-  and unavailable-provider smoke evidence remains a reported follow-up risk,
-  not a default-activation gate.
+- **OPEN ITEMS**: Issue #47 and PR #48 delivered the feature. Issue #49 owns the
+  post-merge external-transparency and cross-process discovery correction.
+  Missing physical-notch and unavailable-provider smoke evidence remains a
+  reported follow-up risk, not a default-activation gate.
 - **POINTERS**: `docs/specs/0011-agent-session-notch/SPEC.md`
 
 ## LAST UPDATED
 
+- 2026-08-18: Corrected feature `0011-agent-session-notch` so external idle
+  presentation is fully transparent and exact `notLoaded` Codex rollout paths
+  recover current cross-process sessions without inventing idle state.
 - 2026-08-17: Added feature `0011-agent-session-notch` for an ephemeral local
   coding-agent session authority, capability-gated actions, and a notch or
   top-edge companion separate from durable project evidence.

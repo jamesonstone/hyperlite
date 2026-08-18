@@ -69,6 +69,20 @@ func TestParseCodexRolloutQuestionIsOpenInClientOnly(t *testing.T) {
 	}
 }
 
+func TestParseCodexResolvedRolloutQuestionReturnsToProcessing(t *testing.T) {
+	data := []byte(strings.Join([]string{
+		`{"timestamp":"2026-08-18T12:00:00Z","type":"response_item","payload":{"type":"function_call","call_id":"call-1","name":"request_user_input","arguments":"{}"}}`,
+		`{"timestamp":"2026-08-18T12:00:01Z","type":"response_item","payload":{"type":"function_call_output","call_id":"call-1","output":"answered"}}`,
+	}, "\n"))
+	event, err := ParseCodexRolloutTail(data, "thread-1", time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if event.Phase != PhaseProcessing || event.ActionKind != "" || event.ActionTitle != "" {
+		t.Fatalf("resolved question retained attention: %#v", event)
+	}
+}
+
 func TestCodexRolloutPathIsConfinedAndWatchIsEventDriven(t *testing.T) {
 	home := t.TempDir()
 	directory := filepath.Join(home, ".codex", "sessions")

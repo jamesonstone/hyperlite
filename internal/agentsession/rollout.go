@@ -136,7 +136,14 @@ func parseCodexResponseItem(payload map[string]any, event *Event, running map[st
 			event.CompleteContext = false
 		}
 	case "function_call_output", "custom_tool_call_output":
+		name := running[callID]
 		delete(running, callID)
+		if strings.Contains(strings.ToLower(name), "request_user_input") && len(running) == 0 {
+			event.Phase = PhaseProcessing
+			event.ActionKind = ""
+			event.ActionTitle = ""
+			event.ActionContext = ""
+		}
 	}
 }
 

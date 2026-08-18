@@ -61,7 +61,11 @@ final class HyperliteAgentNotchCoordinator {
             onOpenWindow: { Self.openMainWindow() }
         )
         self.panel = panel
-        panel.contentViewController = NSHostingController(rootView: view.hyperliteTheme())
+        let rootView = view
+            .foregroundStyle(HyperliteTheme.primaryText.color)
+            .tint(HyperliteTheme.blue.color)
+            .environment(\.colorScheme, .dark)
+        panel.contentViewController = NSHostingController(rootView: rootView)
         panel.setFrame(geometry.frame(expanded: false), display: true)
         updatePanelAppearance(panel)
         panel.orderFrontRegardless()

@@ -89,6 +89,33 @@ func TestAttentionDoesNotAgeExpire(t *testing.T) {
 	}
 }
 
+func TestStoreIgnoresAlreadyExpiredNewSessions(t *testing.T) {
+	now := time.Date(2026, 8, 18, 14, 0, 0, 0, time.UTC)
+	for _, test := range []struct {
+		name     string
+		phase    Phase
+		age      time.Duration
+		expected bool
+	}{
+		{name: "old completion", phase: PhaseCompleted, age: completedRetention, expected: false},
+		{name: "old processing", phase: PhaseProcessing, age: idleRetention, expected: false},
+		{name: "fresh completion", phase: PhaseCompleted, age: completedRetention - time.Second, expected: true},
+		{name: "old attention", phase: PhaseWaitingInput, age: 72 * time.Hour, expected: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			store := NewStore()
+			snapshot, changed := store.Apply(Event{
+				Provider: "codex", Profile: "codex", SessionID: "thread",
+				Event: "rollout", Phase: test.phase, Source: SourceRollout,
+				OccurredAt: now.Add(-test.age),
+			}, now)
+			if changed != test.expected || (len(snapshot.Sessions) == 1) != test.expected {
+				t.Fatalf("changed=%v snapshot=%#v", changed, snapshot)
+			}
+		})
+	}
+}
+
 func TestSnapshotUsesEmptyArraysAcrossTheSwiftBoundary(t *testing.T) {
 	store := NewStore()
 	now := time.Now().UTC()

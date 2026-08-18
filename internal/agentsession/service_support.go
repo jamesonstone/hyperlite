@@ -9,9 +9,12 @@ import (
 	"time"
 )
 
+const maxCodexRolloutWatches = 32
+
 func startRolloutWatch(
 	ctx context.Context,
-	path, sessionID string,
+	path string,
+	seed Event,
 	events chan<- inboundEvent,
 	errors chan<- error,
 ) {
@@ -20,10 +23,14 @@ func startRolloutWatch(
 		if err != nil {
 			return
 		}
-		event, err := ParseCodexRolloutTail(data, sessionID, time.Now().UTC())
+		event, err := ParseCodexRolloutTail(data, seed.SessionID, time.Now().UTC())
 		if err != nil {
 			return
 		}
+		event.ParentID = firstNonempty(event.ParentID, seed.ParentID)
+		event.Title = firstNonempty(event.Title, seed.Title)
+		event.WorkspacePath = firstNonempty(event.WorkspacePath, seed.WorkspacePath)
+		event.Routing = mergeRouting(seed.Routing, event.Routing, event.WorkspacePath)
 		select {
 		case events <- inboundEvent{event: event}:
 		case <-ctx.Done():
