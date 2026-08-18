@@ -6,43 +6,7 @@ import (
 	"io"
 	"net"
 	"os"
-	"time"
 )
-
-const maxCodexRolloutWatches = 32
-
-func startRolloutWatch(
-	ctx context.Context,
-	path string,
-	seed Event,
-	events chan<- inboundEvent,
-	errors chan<- error,
-) {
-	emit := func() {
-		data, err := ReadRolloutTail(path, maxRolloutTail)
-		if err != nil {
-			return
-		}
-		event, err := ParseCodexRolloutTail(data, seed.SessionID, time.Now().UTC())
-		if err != nil {
-			return
-		}
-		event, ok := reconcileRolloutSeed(event, seed)
-		if !ok {
-			return
-		}
-		select {
-		case events <- inboundEvent{event: event}:
-		case <-ctx.Done():
-		}
-	}
-	go func() {
-		emit()
-		if err := WatchRollout(ctx, path, emit); err != nil && ctx.Err() == nil {
-			sendReadError(ctx, errors, err)
-		}
-	}()
-}
 
 func reconcileRolloutSeed(event, seed Event) (Event, bool) {
 	if event.SessionID != seed.SessionID {
@@ -62,11 +26,11 @@ func sendReadError(ctx context.Context, output chan<- error, err error) {
 	}
 }
 
-func watchPendingClosure(ctx context.Context, requestID string, connection net.Conn, output chan<- pendingClosure) {
+func watchPendingClosure(ctx context.Context, key string, connection net.Conn, output chan<- pendingClosure) {
 	buffer := make([]byte, 1)
 	_, _ = connection.Read(buffer)
 	select {
-	case output <- pendingClosure{requestID: requestID, conn: connection}:
+	case output <- pendingClosure{key: key, conn: connection}:
 	case <-ctx.Done():
 	}
 }
@@ -95,8 +59,9 @@ func snapshotRouting(snapshot Snapshot, id string) Routing {
 
 func snapshotHasAction(snapshot Snapshot, id, requestID string) bool {
 	for _, session := range snapshot.Sessions {
-		if session.ID == id && session.Action != nil && session.Action.RequestID == requestID {
-			return true
+		if session.ID == id {
+			_, ok := actionByRequest(session.Actions, requestID)
+			return ok
 		}
 	}
 	return false
@@ -110,7 +75,7 @@ func loadRoutingMap(options ServiceOptions, errOut io.Writer) map[string]Routing
 	}
 	records, err := LoadRouting(path, options.Now())
 	if err != nil {
-		_, _ = fmt.Fprintf(errOut, "agent routing unavailable: %v\n", err)
+		_, _ = fmt.Fprintln(errOut, "agent routing unavailable: routing_read_error")
 		return result
 	}
 	for _, record := range records {
@@ -129,7 +94,13 @@ func saveRoutingMap(options ServiceOptions, values map[string]RoutingRecord, err
 		records = append(records, record)
 	}
 	if err := SaveRouting(path, records, options.Now()); err != nil {
-		_, _ = fmt.Fprintf(errOut, "agent routing save unavailable: %v\n", err)
+		_, _ = fmt.Fprintln(errOut, "agent routing save unavailable: routing_write_error")
+	}
+}
+
+func closePending(values map[string]pendingResponse) {
+	for _, value := range values {
+		_ = value.conn.Close()
 	}
 }
 

@@ -11,6 +11,21 @@ enum HyperliteAgentSessionPolicyTests {
         testAnswerResetPolicy()
         testDuplicateSessionSelection()
         testLineBufferIsolation()
+        testDiscoveryRefreshPolicy()
+    }
+
+    private static func testDiscoveryRefreshPolicy() {
+        let last = Date(timeIntervalSince1970: 100)
+        expect(!HyperliteAgentDiscoveryRefreshPolicy.shouldRefresh(
+            lastRefresh: last,
+            now: last.addingTimeInterval(59)
+        ), "fresh foreground activation does not rediscover")
+        expect(HyperliteAgentDiscoveryRefreshPolicy.shouldRefresh(
+            lastRefresh: last,
+            now: last.addingTimeInterval(60)
+        ), "stale foreground activation rediscovers")
+        expect(HyperliteAgentVerificationPolicy.timeoutSeconds == 10,
+               "integration verification timeout stays bounded")
     }
 
     private static func testNotchVisibilityPolicy() {

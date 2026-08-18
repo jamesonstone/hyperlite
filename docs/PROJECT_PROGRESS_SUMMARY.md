@@ -15,6 +15,7 @@
 | 0009 | reviewed-pull-request-markers | `docs/specs/0009-reviewed-pull-request-markers` | deliver | no | 2026-08-10 | Add private exact-head review markers, local review filtering, stale-state presentation, and bulk clear to Open PRs. |
 | 0010 | notes-pinboard | `docs/specs/0010-notes-pinboard` | deliver | no | 2026-08-14 | Add one private bounded spatial Pinboard with free note placement, safe forking, and recoverable archive. |
 | 0011 | agent-session-notch | `docs/specs/0011-agent-session-notch` | deliver | no | 2026-08-17 | Add an ephemeral local coding-agent session projection, capability-gated actions, and a native notch or top-edge companion. |
+| 0012 | agent-session-runtime-reliability | `docs/specs/0012-agent-session-runtime-reliability` | deliver | no | 2026-08-18 | Make live agent tracking replacement-safe, hookless, adaptive, health-visible, and bounded for indefinite low-resource operation. |
 
 ## PROJECT INTENT
 
@@ -199,8 +200,26 @@ changes that warrant human attention.
   reported follow-up risk, not a default-activation gate.
 - **POINTERS**: `docs/specs/0011-agent-session-notch/SPEC.md`
 
+### agent-session-runtime-reliability
+
+- **STATUS**: deliver
+- **PAUSED**: no
+- **INTENT**: Reliably track current local coding-agent sessions indefinitely
+  without meaningful idle CPU, memory, battery, I/O, watcher, or child growth.
+- **APPROACH**: Use lifecycle-managed incremental rollout observers, current-
+  date hookless discovery, one adaptive Codex child, metadata-only integration
+  health/self-test, exact process proof, eight-request queues, v1/v2 native
+  compatibility, and event-driven resource governance.
+- **OPEN ITEMS**: Issue #51 owns ready pull-request delivery. Full 30-minute
+  combined-app CPU and eight-hour soak evidence, physical pointer/display
+  journeys, and unavailable-provider smoke tests remain external acceptance.
+- **POINTERS**: `docs/specs/0012-agent-session-runtime-reliability/SPEC.md`
+
 ## LAST UPDATED
 
+- 2026-08-18: Added feature `0012-agent-session-runtime-reliability` for
+  replacement-safe hookless discovery, adaptive app-server ownership,
+  health/self-test, queued interventions, and bounded long-running resources.
 - 2026-08-18: Corrected feature `0011-agent-session-notch` so external idle
   presentation is fully transparent and exact `notLoaded` Codex rollout paths
   recover current cross-process sessions without inventing idle state.

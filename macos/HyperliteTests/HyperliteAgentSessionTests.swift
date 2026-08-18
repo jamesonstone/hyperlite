@@ -3,6 +3,7 @@ import Foundation
 enum HyperliteAgentSessionTests {
     static func run() throws {
         HyperliteAgentSessionPolicyTests.run()
+        try HyperliteAgentSessionCompatibilityTests.run()
         let snapshot = try testSnapshotDecoding()
         try testActionEncoding()
         testPopupTransitions(snapshot)
@@ -49,7 +50,7 @@ enum HyperliteAgentSessionTests {
         expect(snapshot.generation == 4, "snapshot generation")
         expect(snapshot.attentionCount == 1, "attention count")
         expect(snapshot.activeCount == 0, "active count")
-        expect(snapshot.sessions[0].action?.requestID == "request-1", "exact request id")
+        expect(snapshot.sessions[0].currentAction?.requestID == "request-1", "exact request id")
         expect(snapshot.sessions[0].messages.count == 1, "bounded messages")
         return snapshot
     }
@@ -155,7 +156,7 @@ enum HyperliteAgentSessionTests {
             updatedAt: session.updatedAt,
             messages: session.messages,
             latestResult: session.latestResult,
-            action: action ?? session.action,
+            action: action ?? session.currentAction,
             routing: routing ?? session.routing,
             openInClient: session.openInClient
         )
@@ -163,6 +164,7 @@ enum HyperliteAgentSessionTests {
 
     private static func testActionEncoding() throws {
         let request = HyperliteAgentActionRequest(
+            provider: "claude",
             sessionID: "claude:session-1",
             requestID: "request-1",
             revision: 3,
@@ -171,6 +173,7 @@ enum HyperliteAgentSessionTests {
         )
         let object = try JSONSerialization.jsonObject(with: JSONEncoder().encode(request)) as? [String: Any]
         expect(object?["schema"] as? String == hyperliteAgentActionSchema, "action schema")
+        expect(object?["provider"] as? String == "claude", "exact provider")
         expect(object?["session_id"] as? String == "claude:session-1", "canonical session id")
         expect(object?["request_id"] as? String == "request-1", "action request id")
         expect(object?["revision"] as? Int == 3, "action revision")

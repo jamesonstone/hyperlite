@@ -64,6 +64,7 @@ final class HyperliteApplicationDelegate: NSObject, NSApplicationDelegate, NSWin
 
     func applicationDidBecomeActive(_ notification: Notification) {
         HyperliteState.shared.refreshAllIfStale()
+        HyperliteAgentSessionState.shared.refreshSessionsIfStale()
     }
 
     func applicationDidResignActive(_ notification: Notification) {

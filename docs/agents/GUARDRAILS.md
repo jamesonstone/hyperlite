@@ -29,6 +29,8 @@ must:
    shorthand is the primary lane choice and the remaining text is supplemental
    lane instructions. Continue accepting explicit full-form choices; ambiguous
    or contradictory responses fail closed.
+   Treat the case-insensitive full-form answers `new lane`, `new work lane`, `new worklane`, and `new worktree` as the new-lane choice.
+   Each means create or reuse one human-assigned GitHub issue, exact `GH-<issue-number>` branch, canonical non-primary worktree, and ready pull-request plan.
 4. Wait for the user's explicit choice unless that exact choice is already
    recorded for the same unit of work.
 5. Record a Pull-Request Landing Plan with the repository, issue, branch,
@@ -185,6 +187,18 @@ Before AWS-dependent work, load `docs/references/rules/aws-agent-toolkit-guidanc
 4. Use the verified configured profile and Region explicitly for AWS CLI, SDK, Terraform, CDK, deployment, and project scripts where supported.
 5. Stop on missing AWS CLI, expired or unavailable credentials, incomplete .kit.yaml AWS fields, or an account mismatch. Read .kit.yaml and ask the user when the intended context remains ambiguous.
 6. Never fall back to default, another discovered profile, or ambient credentials after verification fails.
+
+## Agent Completion Output Contract
+
+- Before a terminal task response, load `docs/references/rules/agent-completion-output.md` when present. This contract does not apply to progress commentary or focused clarification questions.
+- Make the first human-readable line `# PASS|PARTIAL|BLOCKED|FAIL — <one-sentence outcome>`. A required host wrapper may surround the response, but no human-readable preamble may precede the status.
+- Immediately follow with a table whose columns are `Type | Action required | Why | Continue with`. Order rows Blocker, Incomplete, Next, Optional, then None; every PASS includes a None row.
+- Make required follow-ups copy-ready. Never leave table cells blank or hide blockers and incomplete work below completed detail.
+- Use PASS only for complete scope and required validation, PARTIAL for usable incomplete work, BLOCKED for a specific external dependency, and FAIL for an unresolved known failure without an external stopping dependency.
+- Preserve native evidence states such as PENDING, UNKNOWN, SKIPPED, and NOT_APPLICABLE literally.
+- After the action table, use left-aligned headings and CommonMark list or key/value blocks. Do not use another Markdown pipe table unless a higher-priority schema requires it.
+- Select one primary profile from the requested deliverable: implementation, research, diagnosis, planning, validation, review, operations, coordination, or fallback. Start each detail item with a short bold lead label and put long rationale on indented continuation lines.
+- Preserve every field required by active delivery, validation, repository-memory, orchestration, program, and environment contracts inside the canonical profile blocks.
 
 ## Completion Bar
 

@@ -1,4 +1,3 @@
-import AppKit
 import Combine
 import Foundation
 
@@ -9,6 +8,7 @@ final class HyperliteAgentSessionState: ObservableObject {
 
     @Published private(set) var snapshot: HyperliteAgentSessionSnapshot?
     @Published private(set) var integrations: [HyperliteAgentIntegration] = []
+    @Published private(set) var integrationHealth: [String: HyperliteAgentIntegrationHealth] = [:]
     @Published private(set) var processStatus: HyperliteAgentSessionProcess.Status = .stopped
     @Published private(set) var lastActionResult: HyperliteAgentActionResult?
     @Published private(set) var errorMessage: String?
@@ -16,25 +16,29 @@ final class HyperliteAgentSessionState: ObservableObject {
     @Published private(set) var integrationSuccesses: [String] = []
     @Published private(set) var isUpdatingIntegrations = false
     @Published private(set) var isDetectingIntegrations = false
+    @Published private(set) var verifyingProfiles: Set<String> = []
     @Published private(set) var integrationDetectionSucceeded = false
     @Published private(set) var hasConsent: Bool
     @Published private var actionSubmissions = HyperliteAgentActionSubmissionTracker()
 
     private let service: HyperliteAgentSessionProcess
+    private let verificationTimeouts = HyperliteAgentVerificationTimeouts()
     private var hasStarted = false
+    private var lastDiscoveryRefreshAt = Date.distantPast
 
     init(service: HyperliteAgentSessionProcess? = nil) {
         let resolvedService = service ?? HyperliteAgentSessionProcess()
         self.service = resolvedService
         hasConsent = UserDefaults.standard.bool(forKey: Self.consentKey)
         resolvedService.onRecord = { [weak self] record in self?.receive(record) }
-        resolvedService.onStatus = { [weak self] status in self?.processStatus = status }
+        resolvedService.onStatus = { [weak self] status in self?.receiveProcessStatus(status) }
     }
 
     func start() {
         guard HyperliteFeatureFlags.agentSessionPresentation, hasConsent, !hasStarted else { return }
         hasStarted = true
         service.start()
+        lastDiscoveryRefreshAt = Date()
     }
 
     func prepareOnboarding() {
@@ -46,6 +50,9 @@ final class HyperliteAgentSessionState: ObservableObject {
         hasStarted = false
         service.stop()
         snapshot = nil
+        integrationHealth = [:]
+        verificationTimeouts.cancelAll()
+        verifyingProfiles = []
         lastActionResult = nil
         actionSubmissions = .init()
     }
@@ -63,7 +70,7 @@ final class HyperliteAgentSessionState: ObservableObject {
         for session: HyperliteAgentSession,
         answers: [String: [String]]? = nil
     ) {
-        guard let pending = session.action, let identity = session.actionIdentity else {
+        guard let pending = session.currentAction, let identity = session.actionIdentity else {
             errorMessage = "This request is no longer active."
             return
         }
@@ -71,9 +78,12 @@ final class HyperliteAgentSessionState: ObservableObject {
         guard submissions.begin(identity) else { return }
         actionSubmissions = submissions
         let request = HyperliteAgentActionRequest(
+            schema: snapshot?.schema == hyperliteAgentSnapshotSchemaV1 ?
+                hyperliteAgentActionSchemaV1 : hyperliteAgentActionSchema,
+            provider: session.provider,
             sessionID: session.id,
             requestID: pending.requestID,
-            revision: session.revision,
+            revision: identity.revision,
             action: action,
             answers: answers
         )
@@ -93,25 +103,47 @@ final class HyperliteAgentSessionState: ObservableObject {
         return actionSubmissions.contains(identity)
     }
 
-    func performRoute(_ session: HyperliteAgentSession) {
-        if let bundleID = HyperliteAgentRoutePolicy.effectiveBundleID(session.routing) {
-            if let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first {
-                app.activate(options: [])
-                return
-            }
-            if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
-                NSWorkspace.shared.openApplication(at: url, configuration: .init()) { _, error in
-                    guard let error else { return }
-                    Task { @MainActor [weak self] in self?.errorMessage = error.localizedDescription }
-                }
-                return
-            }
+    func refreshSessions(manual: Bool = true) {
+        guard hasStarted else { return }
+        let operation = manual ? "manual_refresh" : "foreground_refresh"
+        do {
+            try service.send(HyperliteAgentControlRequest(
+                operation: operation,
+                profile: nil,
+                requestID: nil
+            ))
+            lastDiscoveryRefreshAt = Date()
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
         }
-        if let workspace = session.routing.workspacePath, !workspace.isEmpty {
-            NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: workspace)])
-            return
+    }
+
+    func refreshSessionsIfStale(now: Date = Date()) {
+        guard HyperliteAgentDiscoveryRefreshPolicy.shouldRefresh(
+            lastRefresh: lastDiscoveryRefreshAt,
+            now: now
+        ) else { return }
+        refreshSessions(manual: false)
+    }
+
+    func verifyIntegration(_ integration: HyperliteAgentIntegration) {
+        guard hasStarted, !verifyingProfiles.contains(integration.id) else { return }
+        verifyingProfiles.insert(integration.id)
+        do {
+            try service.send(HyperliteAgentControlRequest(
+                operation: "integration_self_test",
+                profile: integration.id,
+                requestID: UUID().uuidString.lowercased()
+            ))
+            verificationTimeouts.start(integration.id) { [weak self] profile in
+                guard let self, verifyingProfiles.remove(profile) != nil else { return }
+                errorMessage = "Verification timed out for \(integration.name)."
+            }
+        } catch {
+            verifyingProfiles.remove(integration.id)
+            errorMessage = error.localizedDescription
         }
-        errorMessage = "The owning client could not be resolved."
     }
 
     func enableRecommendedIntegrations() {
@@ -207,6 +239,9 @@ final class HyperliteAgentSessionState: ObservableObject {
     private func restart() {
         guard hasConsent else { return }
         snapshot = nil
+        integrationHealth = [:]
+        verificationTimeouts.cancelAll()
+        verifyingProfiles = []
         actionSubmissions = .init()
         service.restart()
         hasStarted = true
@@ -215,7 +250,8 @@ final class HyperliteAgentSessionState: ObservableObject {
     private func receive(_ record: HyperliteAgentWireRecord) {
         switch record {
         case let .snapshot(value):
-            guard value.schema == hyperliteAgentSnapshotSchema,
+            guard value.schema == hyperliteAgentSnapshotSchema ||
+                    value.schema == hyperliteAgentSnapshotSchemaV1,
                   value.generation >= (snapshot?.generation ?? 0)
             else { return }
             let previous = snapshot
@@ -236,6 +272,23 @@ final class HyperliteAgentSessionState: ObservableObject {
             if value.status != "submitted" {
                 errorMessage = value.message ?? "The agent action was rejected."
             }
+        case let .health(value):
+            guard value.schema == hyperliteAgentHealthSchema else { return }
+            integrationHealth[value.profile] = value
+            if value.selfTestResult != nil {
+                verificationTimeouts.finish(value.profile)
+                verifyingProfiles.remove(value.profile)
+            }
         }
+    }
+
+    func reportAgentError(_ message: String?) { errorMessage = message }
+
+    private func receiveProcessStatus(_ status: HyperliteAgentSessionProcess.Status) {
+        processStatus = status
+        guard status != .running, !verifyingProfiles.isEmpty else { return }
+        verificationTimeouts.cancelAll()
+        verifyingProfiles = []
+        errorMessage = "Integration verification stopped because the session helper is unavailable."
     }
 }

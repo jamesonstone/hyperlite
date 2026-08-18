@@ -14,7 +14,7 @@ struct HyperliteAgentSessionDetail: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 header
-                if let action = session.action { actionCard(action) }
+                if let action = session.currentAction { actionCard(action) }
                 if !session.messages.isEmpty { messageHistory }
                 if let result = session.latestResult, !result.isEmpty {
                     contentCard(title: "Latest Result", text: result)
@@ -44,6 +44,12 @@ struct HyperliteAgentSessionDetail: View {
                 Label(session.phase.label, systemImage: session.phase.symbol)
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(session.needsAttention ? Color.orange : Color.secondary)
+                if session.pendingActionCount > 1 {
+                    Text("\(session.pendingActionCount) pending")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(Color.orange)
+                        .accessibilityLabel("\(session.pendingActionCount) requests pending")
+                }
             }
             Text("\(session.profile) · \(session.project) · revision \(session.revision)")
                 .font(HyperliteTypography.regular(10))

@@ -70,12 +70,16 @@ func TestServiceRoundTripUsesExactLiveResponseChannel(t *testing.T) {
 		t.Fatal(err)
 	}
 	var active Snapshot
-	if err := decoder.Decode(&active); err != nil || len(active.Sessions) != 1 {
+	if err := decodeAgentSnapshot(decoder, &active); err != nil || len(active.Sessions) != 1 {
 		t.Fatalf("active snapshot: %#v %v", active, err)
 	}
 	session := active.Sessions[0]
-	request := ActionRequest{Schema: ActionSchema, SessionID: session.ID,
-		RequestID: "request-1", Revision: session.Revision, Action: "allow_once"}
+	pending := session.CurrentAction()
+	if pending == nil {
+		t.Fatalf("active snapshot has no pending action: %#v", session)
+	}
+	request := ActionRequest{Schema: ActionSchema, Provider: "claude", SessionID: session.ID,
+		RequestID: "request-1", Revision: pending.Revision, Action: "allow_once"}
 	if err := json.NewEncoder(inputWriter).Encode(request); err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +91,7 @@ func TestServiceRoundTripUsesExactLiveResponseChannel(t *testing.T) {
 		t.Fatalf("unexpected decision: %#v", decision)
 	}
 	var resolved Snapshot
-	if err := decoder.Decode(&resolved); err != nil || resolved.Sessions[0].Action != nil {
+	if err := decodeAgentSnapshot(decoder, &resolved); err != nil || resolved.Sessions[0].CurrentAction() != nil {
 		t.Fatalf("resolved snapshot: %#v %v", resolved, err)
 	}
 	var result ActionResult
@@ -165,7 +169,7 @@ func TestServiceRetractsActionWhenProviderDisconnects(t *testing.T) {
 	}()
 	decoder := json.NewDecoder(outputReader)
 	var initial Snapshot
-	if err := decoder.Decode(&initial); err != nil {
+	if err := decodeAgentSnapshot(decoder, &initial); err != nil {
 		t.Fatal(err)
 	}
 	waitForSocket(t, filepath.Join(runtimeDir, "agent.sock"))
@@ -181,12 +185,12 @@ func TestServiceRetractsActionWhenProviderDisconnects(t *testing.T) {
 		t.Fatal(err)
 	}
 	var active Snapshot
-	if err := decoder.Decode(&active); err != nil || active.Sessions[0].Action == nil {
+	if err := decodeAgentSnapshot(decoder, &active); err != nil || active.Sessions[0].CurrentAction() == nil {
 		t.Fatalf("active request: %#v %v", active, err)
 	}
 	_ = connection.Close()
 	var retracted Snapshot
-	if err := decoder.Decode(&retracted); err != nil || retracted.Sessions[0].Action != nil || retracted.Sessions[0].Phase != PhaseIdle {
+	if err := decodeAgentSnapshot(decoder, &retracted); err != nil || retracted.Sessions[0].CurrentAction() != nil || retracted.Sessions[0].Phase != PhaseIdle {
 		t.Fatalf("retracted request: %#v %v", retracted, err)
 	}
 	_ = inputWriter.Close()

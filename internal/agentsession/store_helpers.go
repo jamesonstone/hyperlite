@@ -100,13 +100,13 @@ func validAnswers(answers map[string][]string) bool {
 
 func cloneSession(value Session) Session {
 	value.Messages = append([]Message{}, value.Messages...)
-	if value.Action != nil {
-		copyAction := *value.Action
-		copyAction.Arguments = make(map[string]string, len(value.Action.Arguments))
-		for key, item := range value.Action.Arguments {
-			copyAction.Arguments[key] = item
+	value.Actions = append([]PendingAction{}, value.Actions...)
+	for index := range value.Actions {
+		arguments := make(map[string]string, len(value.Actions[index].Arguments))
+		for key, item := range value.Actions[index].Arguments {
+			arguments[key] = item
 		}
-		value.Action = &copyAction
+		value.Actions[index].Arguments = arguments
 	}
 	return value
 }

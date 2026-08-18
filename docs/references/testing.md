@@ -15,10 +15,12 @@
 - Go contract and integration tests cover the agent-session authority,
   provider registry, exact actions, configuration safety, private
   socket, Codex stdio protocol, discovery-only `notLoaded` rollout fallback,
-  bounded rollout tails, resolved-input transitions, pre-store expiry, and
-  redaction.
-- Swift executable tests cover sanitized agent snapshot decoding and physical
-  notch versus top-edge geometry.
+  incremental cursors, current-date discovery, replacement recovery, adaptive
+  child ownership, exact process proof, action queues, health/self-test,
+  coalescing, resolved-input transitions, pre-store expiry, and redaction.
+- Swift executable tests cover v1/v2 agent snapshot decoding, queued action
+  identity, health/control records, stale foreground refresh policy, and
+  physical notch versus top-edge geometry.
 - A read-only local live-integration suite validates recovery of the selected
   R2 and Event Sink goal threads against current repository and GitHub
   evidence.
@@ -40,6 +42,7 @@
 | inferred attention recovery | live-integration | local | `tests/live-integration/local/inferred-attention-live-scan.sh <r2-path> <event-sink-path>` | manual milestone | `tmp/<UTC-date>/inferred-attention-live-scan.sh/<run-number>/` |
 | agent sessions bridge | live-integration | local | `tests/live-integration/local/agent-session-bridge-live.sh` | manual milestone | `tmp/<UTC-date>/agent-session-bridge-live.sh/<run-number>/` |
 | agent session cross-process discovery | live-integration | local | isolated `hyperlite-cli agent sessions serve` with a metadata-only JSON projection | manual milestone | `tmp/<UTC-date>/agent-session-discovery-live/<run-number>/` |
+| agent session resources | live-integration | local | `tests/live-integration/local/agent-session-resource-live.sh` | manual release gate | `tmp/<UTC-date>/agent-session-resource-live.sh/<run-number>/result.json` |
 | agent sessions provider/display matrix | live-integration | local | manual acceptance matrix | manual milestone | provider and physical-display evidence pending |
 | production | end-to-end | production | not applicable | not applicable | Hyperlite is a local desktop application without a deployed production environment |
 
@@ -53,14 +56,21 @@
   semantic enrichment runs only when `settings.ollama_model` is configured.
 - Production validation is `NOT_APPLICABLE`; Hyperlite is packaged locally and
   does not deploy a service.
+- Resource acceptance additionally requires `lsof`, `ps`, and `jq`. The
+  resource suite defaults to a 30-minute post-warmup sample. Set
+  `HYPERLITE_RESOURCE_SOAK_SECONDS=28800` for the required eight-hour soak and
+  `HYPERLITE_APP_PID` to include the packaged app in combined CPU sampling.
 
 ## Credentials And Test Data
 
 - The live scan uses the operator's existing `gh` authentication and never
   records credentials or authorization material.
-- All current live operations are read-only. No synthetic records,
-  infrastructure, cleanup credentials, rate budget, or cost budget are
-  required.
+- Repository, GitHub, provider, and application live operations remain
+  read-only. The resource suite creates only metadata-only sessions, rollout
+  files, and a private socket beneath one task-owned temporary home, then
+  verifies owner-EOF cleanup and removes that exact directory. It creates no
+  provider, infrastructure, or durable application record and requires no
+  cleanup credential, rate budget, or cost budget.
 - Any future retained test-state cleanup follows `rules/deletion-safety.md`:
   default to a recoverable lifecycle, and require an exact inventory plus
   specific post-outline manual confirmation before hard deletion.
@@ -97,3 +107,6 @@
   and cross-process Codex discovery. Direct pointer-only hover remains a
   deterministic policy assertion because the local Computer Use API exposes
   clicks and drags rather than pointer-only motion.
+- Feature 0012's short resource smoke proves the harness and bounded synthetic
+  load, not the mandatory 30-minute combined-app sample or eight-hour soak;
+  those remain `PARTIAL` until their full wall-clock observations complete.

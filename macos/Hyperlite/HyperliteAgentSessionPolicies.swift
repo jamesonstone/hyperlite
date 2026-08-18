@@ -140,6 +140,20 @@ enum HyperliteAgentAnswerResetPolicy {
     }
 }
 
+enum HyperliteAgentDiscoveryRefreshPolicy {
+    static func shouldRefresh(
+        lastRefresh: Date,
+        now: Date,
+        staleAfter: TimeInterval = 60
+    ) -> Bool {
+        now.timeIntervalSince(lastRefresh) >= staleAfter
+    }
+}
+
+enum HyperliteAgentVerificationPolicy {
+    static let timeoutSeconds: UInt64 = 10
+}
+
 enum HyperliteAgentSessionSelection {
     static func newestByID(
         _ sessions: [HyperliteAgentSession]

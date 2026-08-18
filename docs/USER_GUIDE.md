@@ -70,6 +70,10 @@ provider toggles and integration health live in grouped Settings. Shared
 provider files retain unrelated settings; malformed, oversized, symlinked,
 wrong-owner, concurrently created, or concurrently changed configuration fails
 closed. Disabling an integration removes only exact Hyperlite-owned material.
+Each detected provider also has an on-demand Verify action. Verification sends
+one metadata-only synthetic event through Hyperlite's private bridge, socket,
+store, and native decoder, then removes the synthetic row immediately. It
+does not contact a model, invoke a provider task, or approve anything.
 
 The collapsed physical-notch surface shows only the Hyperlite mark and active
 or attention counts. On a notchless or external display, the idle surface is
@@ -91,13 +95,27 @@ own app server. Hyperlite keeps that status unknown, uses only an exact safe
 rollout path to start one of a bounded number of incremental observers, and
 creates a row only after the rollout establishes exact session identity and
 runtime phase. Stored thread listings alone never create a live or idle row.
+Hyperlite also watches the current local Codex date directory so a new
+hookless rollout created after launch can appear without polling. Rollouts are
+read incrementally in bounded chunks, recover from truncation or replacement,
+and retain a watcher only while that exact session still needs observation.
+Foreground activation requests discovery only after the prior discovery is
+stale; the explicit Refresh control always requests it.
+
+The Codex app server is an adaptive discovery client rather than an
+always-running child. Hyperlite owns at most one stdio child, reuses it across
+bounded refreshes, and stops it after 120 seconds without discovery or live
+response work. Hooks and file events continue tracking after it exits.
 
 Allow Once, Deny, and Answer appear only for a current exact request with
 complete redacted context and a live blocking provider channel. Rollout-only,
 notify-only, stale, truncated, or redacted requests offer Open in client
 instead. Hyperlite never simulates session scope by repeatedly approving
-individual requests. A request submits once for its exact session, request ID,
-and revision; stale answer text is cleared when that identity changes. Routing
+individual requests. A session can retain at most eight independent requests.
+The current request is shown with the total pending count; resolving or
+retracting it reveals the next request without changing any other request. A
+response submits once for its exact provider, session, request ID, and action
+revision; stale answer text is cleared when that identity changes. Routing
 buttons name the real capability, such as Open Codex or Reveal in Finder,
 instead of claiming an unavailable client route.
 
@@ -107,6 +125,13 @@ and content disappears when the session expires or Hyperlite exits. Only
 provider/profile IDs, opaque session ID, working directory, app/terminal/tmux
 routing identifiers, and last-seen time may persist, for at most twenty-four
 hours.
+
+The runtime is deliberately bounded for indefinite use: at most 32 rollout
+watchers, 100 session rows, eight requests per session, six display messages,
+and 256 content-free phase transitions. Ordinary UI snapshots are coalesced to
+four per second during bursts; attention, input, and error remain immediate.
+There are no background self-tests, continuous UI timelines, transcript
+rescans, or periodic project scans.
 
 Sounds and native notifications are opt-in in Settings. Notifications contain
 only profile and project metadata. Agent sessions are enabled by default. Set

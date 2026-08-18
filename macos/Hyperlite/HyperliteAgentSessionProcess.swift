@@ -85,7 +85,7 @@ final class HyperliteAgentSessionProcess {
         }
     }
 
-    func send(_ request: HyperliteAgentActionRequest) throws {
+    func send<Request: Encodable>(_ request: Request) throws {
         guard let handle = input?.fileHandleForWriting, process?.isRunning == true else {
             throw HyperliteAgentProcessError.unavailable
         }

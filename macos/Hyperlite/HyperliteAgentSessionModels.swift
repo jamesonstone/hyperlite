@@ -1,8 +1,13 @@
 import Foundation
 
-let hyperliteAgentSnapshotSchema = "agent_session_snapshot.v1"
-let hyperliteAgentActionSchema = "agent_session_action.v1"
+let hyperliteAgentSnapshotSchemaV1 = "agent_session_snapshot.v1"
+let hyperliteAgentSnapshotSchema = "agent_session_snapshot.v2"
+let hyperliteAgentActionSchemaV1 = "agent_session_action.v1"
+let hyperliteAgentActionSchema = "agent_session_action.v2"
 let hyperliteAgentActionResultSchema = "agent_session_action_result.v1"
+let hyperliteAgentControlSchema = "agent_session_control.v1"
+let hyperliteAgentHealthSchema = "agent_integration_health.v1"
+let hyperliteAgentMaxPendingActions = 8
 
 enum HyperliteAgentSessionPhase: String, Codable, Equatable {
     case starting
@@ -61,9 +66,10 @@ struct HyperliteAgentPendingAction: Codable, Equatable {
     let canAnswer: Bool
     let canAllowSession: Bool
     let canRevoke: Bool
+    var revision: UInt64? = nil
 
     enum CodingKeys: String, CodingKey {
-        case kind, title, context, arguments
+        case kind, title, context, arguments, revision
         case requestID = "request_id"
         case completeContext = "complete_context"
         case canAllowOnce = "can_allow_once"
@@ -92,52 +98,50 @@ struct HyperliteAgentRouting: Codable, Equatable {
     }
 }
 
-struct HyperliteAgentSession: Codable, Equatable, Identifiable {
+struct HyperliteAgentIntegration: Codable, Equatable, Identifiable {
     let id: String
+    let name: String
     let provider: String
-    let profile: String
-    let sessionID: String
-    let parentID: String?
-    let project: String
-    let title: String
-    let phase: HyperliteAgentSessionPhase
-    let source: String
-    let revision: UInt64
-    let createdAt: Date
-    let updatedAt: Date
-    let messages: [HyperliteAgentMessage]
-    let latestResult: String?
-    let action: HyperliteAgentPendingAction?
-    let routing: HyperliteAgentRouting
-    let openInClient: Bool
+    let detected: Bool
+    let enabled: Bool
+    let actionMode: String
+    let target: String?
+    let message: String?
 
     enum CodingKeys: String, CodingKey {
-        case id, provider, profile, project, title, phase, source, revision, messages, action, routing
-        case sessionID = "session_id"
-        case parentID = "parent_id"
-        case createdAt = "created_at"
-        case updatedAt = "updated_at"
-        case latestResult = "latest_result"
-        case openInClient = "open_in_client"
+        case id, name, provider, detected, enabled, target, message
+        case actionMode = "action_mode"
     }
+}
 
-    var needsAttention: Bool { action != nil || phase.needsAttention }
-    var displayTitle: String { title.isEmpty ? project : title }
+struct HyperliteAgentIntegrationHealth: Decodable, Equatable, Identifiable {
+    let schema: String
+    let provider: String
+    let profile: String
+    let transport: String
+    let connectionState: String
+    let lastEventAt: Date?
+    let lastAcknowledgementAt: Date?
+    let watchersUsed: Int
+    let watchersLimit: Int
+    let filteredCount: UInt64
+    let rejectedCount: UInt64
+    let selfTestResult: String?
+    let errorCode: String?
 
-    var actionIdentity: HyperliteAgentActionIdentity? {
-        guard let action else { return nil }
-        return HyperliteAgentActionIdentity(
-            sessionID: id,
-            requestID: action.requestID,
-            revision: revision
-        )
-    }
+    var id: String { profile }
 
-    var routeDestination: HyperliteAgentRouteDestination? {
-        HyperliteAgentRoutePolicy.destination(
-            openInClient: openInClient,
-            routing: routing
-        )
+    enum CodingKeys: String, CodingKey {
+        case schema, provider, profile, transport
+        case connectionState = "connection_state"
+        case lastEventAt = "last_event_at"
+        case lastAcknowledgementAt = "last_acknowledgement_at"
+        case watchersUsed = "watchers_used"
+        case watchersLimit = "watchers_limit"
+        case filteredCount = "filtered_count"
+        case rejectedCount = "rejected_count"
+        case selfTestResult = "self_test_result"
+        case errorCode = "error_code"
     }
 }
 
@@ -159,110 +163,9 @@ enum HyperliteAgentRouteDestination: Equatable {
     }
 }
 
-struct HyperliteAgentIntegration: Codable, Equatable, Identifiable {
-    let id: String
-    let name: String
-    let provider: String
-    let detected: Bool
-    let enabled: Bool
-    let actionMode: String
-    let target: String?
-    let message: String?
-
-    enum CodingKeys: String, CodingKey {
-        case id, name, provider, detected, enabled, target, message
-        case actionMode = "action_mode"
-    }
-}
-
-struct HyperliteAgentSessionSnapshot: Codable, Equatable {
-    let schema: String
-    let generation: UInt64
-    let generatedAt: Date
-    let sessions: [HyperliteAgentSession]
-    let integrations: [HyperliteAgentIntegration]
-
-    enum CodingKeys: String, CodingKey {
-        case schema, generation, sessions, integrations
-        case generatedAt = "generated_at"
-    }
-
-    var attentionCount: Int { sessions.filter(\.needsAttention).count }
-    var activeCount: Int { sessions.filter { $0.phase.isActive }.count }
-
-    func popupTransition(
-        from previous: HyperliteAgentSessionSnapshot?
-    ) -> HyperliteAgentPopupTransition? {
-        let previousByID = HyperliteAgentSessionSelection.newestByID(previous?.sessions ?? [])
-        if sessions.contains(where: { session in
-            guard session.needsAttention else { return false }
-            guard let old = previousByID[session.id] else { return true }
-            return old.actionIdentity != session.actionIdentity || !old.needsAttention
-        }) {
-            return .attention
-        }
-        guard previous != nil else { return nil }
-        if sessions.contains(where: { session in
-            guard session.phase == .completed || session.phase == .error else { return false }
-            return previousByID[session.id]?.phase != session.phase
-        }) {
-            return .completion
-        }
-        return nil
-    }
-}
-
 enum HyperliteAgentPopupTransition: Equatable {
     case attention
     case completion
 
     var dismissDelay: UInt64 { self == .attention ? 12 : 6 }
-}
-
-struct HyperliteAgentActionRequest: Codable, Equatable {
-    let schema = hyperliteAgentActionSchema
-    let sessionID: String
-    let requestID: String
-    let revision: UInt64
-    let action: String
-    let answers: [String: [String]]?
-
-    enum CodingKeys: String, CodingKey {
-        case schema, revision, action, answers
-        case sessionID = "session_id"
-        case requestID = "request_id"
-    }
-}
-
-struct HyperliteAgentActionResult: Codable, Equatable {
-    let schema: String
-    let sessionID: String
-    let requestID: String
-    let action: String
-    let status: String
-    let message: String?
-
-    enum CodingKeys: String, CodingKey {
-        case schema, action, status, message
-        case sessionID = "session_id"
-        case requestID = "request_id"
-    }
-}
-
-enum HyperliteAgentWireRecord: Equatable {
-    case snapshot(HyperliteAgentSessionSnapshot)
-    case actionResult(HyperliteAgentActionResult)
-
-    static func decode(_ data: Data) throws -> HyperliteAgentWireRecord {
-        let envelope = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        let schema = envelope?["schema"] as? String
-        switch schema {
-        case hyperliteAgentSnapshotSchema:
-            return .snapshot(try HyperliteJSON.decoder.decode(HyperliteAgentSessionSnapshot.self, from: data))
-        case hyperliteAgentActionResultSchema:
-            return .actionResult(try HyperliteJSON.decoder.decode(HyperliteAgentActionResult.self, from: data))
-        default:
-            throw DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "unknown agent wire schema"))
-        }
-    }
 }
