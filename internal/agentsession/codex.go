@@ -1,14 +1,8 @@
 package agentsession
 
 import (
-	"bufio"
-	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
-	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -24,109 +18,6 @@ type codexRPCMessage struct {
 	Params map[string]any `json:"params,omitempty"`
 	Result map[string]any `json:"result,omitempty"`
 	Error  map[string]any `json:"error,omitempty"`
-}
-
-func MonitorCodex(ctx context.Context, environment map[string]string, emit func(Event)) error {
-	executable := resolveCodexExecutable(environment)
-	if executable == "" {
-		return nil
-	}
-	command := exec.CommandContext(ctx, executable, "app-server", "--stdio")
-	command.Env = mergeEnvironment(os.Environ(), environment)
-	stdin, err := command.StdinPipe()
-	if err != nil {
-		return fmt.Errorf("open Codex app-server input: %w", err)
-	}
-	stdout, err := command.StdoutPipe()
-	if err != nil {
-		return fmt.Errorf("open Codex app-server output: %w", err)
-	}
-	command.Stderr = io.Discard
-	if err := command.Start(); err != nil {
-		return fmt.Errorf("start Codex app-server: %w", err)
-	}
-	defer func() {
-		_ = stdin.Close()
-		if command.Process != nil {
-			_ = command.Process.Kill()
-		}
-		_ = command.Wait()
-	}()
-	encoder := json.NewEncoder(stdin)
-	reader := bufio.NewScanner(stdout)
-	reader.Buffer(make([]byte, 64*1024), maxAppServerMessage)
-	if err := encoder.Encode(map[string]any{"id": 1, "method": "initialize", "params": map[string]any{
-		"clientInfo": map[string]any{"name": "hyperlite", "title": "Hyperlite", "version": "1"},
-	}}); err != nil {
-		return err
-	}
-	if err := readUntilResponse(ctx, reader, 1, emit); err != nil {
-		return err
-	}
-	if err := encoder.Encode(map[string]any{"method": "initialized"}); err != nil {
-		return err
-	}
-	if err := encoder.Encode(map[string]any{"id": 2, "method": "thread/list", "params": map[string]any{
-		"limit": 100, "sortKey": "recency_at", "sortDirection": "desc",
-		"archived": false, "useStateDbOnly": true,
-		"sourceKinds": []string{"cli", "vscode", "appServer", "subAgent", "subAgentReview", "subAgentCompact", "subAgentThreadSpawn", "subAgentOther"},
-	}}); err != nil {
-		return err
-	}
-	response, err := readResponse(ctx, reader, 2, emit)
-	if err != nil {
-		return err
-	}
-	for _, thread := range objectSlice(response.Result["data"]) {
-		if event, ok := codexThreadEvent(thread, time.Now().UTC()); ok {
-			emit(event)
-		}
-	}
-	for reader.Scan() {
-		message, ok := decodeCodexLine(reader.Bytes())
-		if !ok {
-			continue
-		}
-		handleCodexNotification(message, emit)
-	}
-	if err := reader.Err(); err != nil && !errors.Is(ctx.Err(), context.Canceled) {
-		return err
-	}
-	return nil
-}
-
-func readUntilResponse(ctx context.Context, reader *bufio.Scanner, id int, emit func(Event)) error {
-	_, err := readResponse(ctx, reader, id, emit)
-	return err
-}
-
-func readResponse(ctx context.Context, reader *bufio.Scanner, id int, emit func(Event)) (codexRPCMessage, error) {
-	for reader.Scan() {
-		select {
-		case <-ctx.Done():
-			return codexRPCMessage{}, ctx.Err()
-		default:
-		}
-		message, ok := decodeCodexLine(reader.Bytes())
-		if !ok {
-			continue
-		}
-		if message.Method != "" {
-			handleCodexNotification(message, emit)
-			continue
-		}
-		if rpcID(message.ID) != strconv.Itoa(id) {
-			continue
-		}
-		if len(message.Error) > 0 {
-			return codexRPCMessage{}, errors.New("codex app-server request failed")
-		}
-		return message, nil
-	}
-	if err := reader.Err(); err != nil {
-		return codexRPCMessage{}, err
-	}
-	return codexRPCMessage{}, io.EOF
 }
 
 func decodeCodexLine(data []byte) (codexRPCMessage, bool) {
@@ -174,6 +65,8 @@ func codexThreadEvent(thread map[string]any, now time.Time) (Event, bool) {
 	event.WorkspacePath = firstString(thread, "cwd")
 	event.ParentID = firstString(thread, "parentThreadId", "parent_thread_id", "forkedFromId")
 	event.RolloutPath = firstString(thread, "rolloutPath", "sessionFilePath", "path")
+	event.AuxiliaryKind = codexAuxiliaryKind(thread)
+	event.HasPrompt = firstBool(thread, "hasUserMessage", "has_user_message", "hasPrompt")
 	event.Routing = Routing{BundleID: "com.openai.codex", WorkspacePath: event.WorkspacePath}
 	return event, true
 }

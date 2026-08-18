@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func TestCodexMonitorUsesStdioAndDiscoversNotLoadedRollouts(t *testing.T) {
+func TestCodexControllerUsesStdioAndDiscoversNotLoadedRollouts(t *testing.T) {
 	directory := t.TempDir()
 	executable := filepath.Join(directory, "codex")
 	script := `#!/bin/sh
@@ -25,25 +25,36 @@ printf '%s\n' '{"method":"thread/status/changed","params":{"threadId":"active-1"
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	var events []Event
-	err := MonitorCodex(ctx, map[string]string{"PATH": directory, "HOME": directory}, func(event Event) {
-		events = append(events, event)
+	eventChannel := make(chan Event, 3)
+	controller := NewCodexController(ctx, CodexControllerOptions{
+		Environment: map[string]string{"PATH": directory, "HOME": directory},
+		Emit:        func(event Event) { eventChannel <- event },
 	})
-	if err != nil {
-		t.Fatalf("monitor Codex: %v", err)
+	if err := controller.Refresh(ctx); err != nil {
+		t.Fatalf("refresh Codex: %v", err)
 	}
+	events := make([]Event, 0, 3)
+	for len(events) < 3 {
+		select {
+		case event := <-eventChannel:
+			events = append(events, event)
+		case <-time.After(time.Second):
+			t.Fatal("Codex notification timed out")
+		}
+	}
+	controller.Stop()
 	if len(events) != 3 {
 		t.Fatalf("events = %#v", events)
 	}
-	if events[0].SessionID != "active-1" || events[0].Phase != PhaseWaitingApproval {
-		t.Fatalf("active event = %#v", events[0])
+	var approval, hint, idle bool
+	for _, event := range events {
+		approval = approval || (event.SessionID == "active-1" && event.Phase == PhaseWaitingApproval)
+		hint = hint || (event.rolloutHint && event.SessionID == "stored-1" &&
+			event.RolloutPath == "/tmp/stored.jsonl" && event.Phase == "")
+		idle = idle || (event.SessionID == "active-1" && event.Phase == PhaseIdle)
 	}
-	if !events[1].rolloutHint || events[1].SessionID != "stored-1" ||
-		events[1].RolloutPath != "/tmp/stored.jsonl" || events[1].Phase != "" {
-		t.Fatalf("rollout discovery = %#v", events[1])
-	}
-	if events[2].Phase != PhaseIdle {
-		t.Fatalf("status notification = %#v", events[2])
+	if !approval || !hint || !idle {
+		t.Fatalf("controller events = %#v", events)
 	}
 }
 
@@ -74,5 +85,15 @@ func TestCodexStatusRequiresKnownRuntimeState(t *testing.T) {
 		"id": "stored", "status": map[string]any{"type": "notLoaded"},
 	}, time.Now()); ok {
 		t.Fatal("notLoaded thread without a rollout path was discovered")
+	}
+}
+
+func TestCodexThreadRecencyAcceptsNumericTimestamps(t *testing.T) {
+	want := time.Date(2026, 8, 18, 12, 0, 0, 0, time.UTC)
+	for _, value := range []any{float64(want.Unix()), float64(want.UnixMilli()), want.Format(time.RFC3339)} {
+		got := firstTime(map[string]any{"updatedAt": value}, "updatedAt")
+		if !got.Equal(want) {
+			t.Fatalf("firstTime(%v) = %v want %v", value, got, want)
+		}
 	}
 }

@@ -12,10 +12,14 @@ func codexRolloutDiscoveryEvent(thread, status map[string]any, now time.Time) (E
 		return Event{}, false
 	}
 	workspace := firstString(thread, "cwd")
+	observedAt := firstTime(thread, "updatedAt", "updated_at", "createdAt", "created_at")
+	if observedAt.IsZero() {
+		observedAt = now
+	}
 	return Event{
 		Schema: EventSchema, Provider: "codex", Profile: "codex",
 		SessionID: threadID, ParentID: firstString(thread, "parentThreadId", "parent_thread_id", "forkedFromId"),
-		Event: "rollout/discovered", Source: SourceAppServer, OccurredAt: now,
+		Event: "rollout/discovered", Source: SourceAppServer, OccurredAt: observedAt,
 		WorkspacePath: workspace, Title: firstString(thread, "name"), RolloutPath: path,
 		Routing:     Routing{BundleID: "com.openai.codex", WorkspacePath: workspace},
 		rolloutHint: true,

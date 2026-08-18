@@ -77,7 +77,7 @@ cd "$repository_root"
 
 make -C "$repository_root" build
 go test ./internal/agentsession \
-  -run 'TestServiceRoundTripUsesExactLiveResponseChannel|TestServiceStopsWhenOwningAppClosesInput|TestServiceRetractsActionWhenProviderDisconnects|TestOwnerEOFStopsOwnedCodexProcess|TestRuntimeSocketIsUserOnly' \
+  -run 'TestServiceRoundTripUsesExactLiveResponseChannel|TestServiceStopsWhenOwningAppClosesInput|TestServiceRetractsActionWhenProviderDisconnects|TestOwnerEOFStopsOwnedCodexProcess|TestRuntimeSocketIsUserOnly|TestServiceIntegrationSelfTestTraversesSocketStoreAndProjection|TestServiceLargeRolloutConvergesWithoutReadmissionLoop|TestCodexControllerPaginatesReusesAndStopsAfterQuiet|TestRolloutCursorRecoversTruncationAndReplacement' \
   -v -count=1 -timeout 30s
 go test ./internal/cli \
   -run 'TestAgentIntegrationsListDoesNotRequireProjectConfig|TestAgentHookFailsOpenWhenAppIsUnavailable' \
@@ -102,5 +102,5 @@ if rg -n '(prompt|response|transcript|raw_payload|authorization|cookie|password|
   exit 1
 fi
 
-assertion_summary="private socket permissions, exact live action round trip, disconnect retraction, owner EOF cleanup including Codex child termination, fail-open hook delivery, and 20-profile metadata-only inventory passed"
+assertion_summary="private socket permissions, v2 queue action round trip, disconnect retraction, metadata-only self-test, large-rollout convergence, replacement recovery, adaptive Codex cleanup, fail-open hook delivery, and 20-profile metadata-only inventory passed"
 printf '%s\n' "$assertion_summary"

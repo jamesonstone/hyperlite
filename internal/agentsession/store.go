@@ -2,6 +2,7 @@ package agentsession
 
 import (
 	"errors"
+	"reflect"
 	"sort"
 	"strings"
 	"sync"
@@ -24,6 +25,7 @@ type Store struct {
 	mu           sync.Mutex
 	sessions     map[string]Session
 	integrations []IntegrationStatus
+	transitions  []PhaseTransition
 	generation   uint64
 }
 
@@ -38,8 +40,11 @@ func Identity(provider, sessionID string) string {
 func (s *Store) SetIntegrations(values []IntegrationStatus) Snapshot {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.integrations = append([]IntegrationStatus(nil), values...)
-	s.generation++
+	values = append([]IntegrationStatus{}, values...)
+	if !reflect.DeepEqual(s.integrations, values) {
+		s.integrations = values
+		s.generation++
+	}
 	return s.snapshotLocked(time.Now().UTC())
 }
 
@@ -59,21 +64,23 @@ func (s *Store) Apply(event Event, now time.Time) (Snapshot, bool) {
 	if exists && staleAgainst(current, event) {
 		return s.snapshotLocked(now), false
 	}
+	if !exists && len(s.sessions) >= maxSessions && !s.evictForAdmissionLocked() {
+		return s.snapshotLocked(now), false
+	}
 	updated := applyEvent(current, exists, id, event)
+	if exists && sameSessionProjection(current, updated) {
+		return s.snapshotLocked(now), false
+	}
+	updated.Revision = current.Revision + 1
+	for index := range updated.Actions {
+		if updated.Actions[index].Revision == 0 {
+			updated.Actions[index].Revision = updated.Revision
+		}
+	}
 	s.sessions[id] = updated
+	s.recordTransitionLocked(current, updated, event)
 	s.generation++
 	return s.snapshotLocked(now), true
-}
-
-func newEventExpired(event Event, now time.Time) bool {
-	if event.Phase.NeedsAttention() || safeAction(event) != nil || event.ExpectsResponse {
-		return false
-	}
-	retention := idleRetention
-	if event.Phase == PhaseCompleted {
-		retention = completedRetention
-	}
-	return now.Sub(event.OccurredAt) >= retention
 }
 
 func normalizeEvent(event Event, now time.Time) Event {
@@ -82,6 +89,7 @@ func normalizeEvent(event Event, now time.Time) Event {
 	event.SessionID = strings.TrimSpace(event.SessionID)
 	event.ParentID = strings.TrimSpace(event.ParentID)
 	event.Event = strings.TrimSpace(event.Event)
+	event.ReasonCode = boundedReason(event.ReasonCode, event.Event)
 	if event.Source == "" {
 		event.Source = SourceHook
 	}
@@ -95,7 +103,7 @@ func normalizeEvent(event Event, now time.Time) Event {
 }
 
 func staleAgainst(current Session, event Event) bool {
-	if current.Action != nil && event.Source.Authority() < current.Source.Authority() {
+	if len(current.Actions) > 0 && event.Source.Authority() < current.Source.Authority() {
 		return true
 	}
 	if event.OccurredAt.Before(current.UpdatedAt) {
@@ -110,7 +118,7 @@ func applyEvent(current Session, exists bool, id string, event Event) Session {
 		current = Session{
 			ID: id, Provider: event.Provider, Profile: event.Profile,
 			SessionID: event.SessionID, Phase: PhaseStarting,
-			CreatedAt: event.OccurredAt, Messages: []Message{},
+			CreatedAt: event.OccurredAt, Messages: []Message{}, Actions: []PendingAction{},
 		}
 	}
 	current.Profile = firstNonempty(event.Profile, current.Profile)
@@ -118,22 +126,32 @@ func applyEvent(current Session, exists bool, id string, event Event) Session {
 	current.Source = event.Source
 	current.Phase = event.Phase
 	current.UpdatedAt = event.OccurredAt
-	current.Revision++
 	current.Routing = mergeRouting(current.Routing, event.Routing, event.WorkspacePath)
 	current.Project = projectName(current.Routing.WorkspacePath, current.Provider)
 	current.Title = BoundDisplayText(firstNonempty(event.Title, current.Title, current.Project), 240)
 	current.OpenInClient = routingAvailable(current.Routing)
+	current.Synthetic = event.Synthetic
+	applyEventContent(&current, event)
+	if action := safeAction(event); action != nil {
+		current.Actions, _ = upsertPendingAction(current.Actions, *action)
+	} else if terminalPhase(event.Phase) {
+		current.Actions = []PendingAction{}
+	}
+	if current.Actions == nil {
+		current.Actions = []PendingAction{}
+	}
+	return current
+}
+
+func applyEventContent(current *Session, event Event) {
 	if role := displayRole(event.MessageRole); role != "" {
 		text := BoundDisplayText(event.Message, maxMessageRunes)
 		if text != "" {
 			current.Messages = append(current.Messages, Message{Role: role, Text: text})
-			if len(current.Messages) > maxMessages {
-				current.Messages = current.Messages[len(current.Messages)-maxMessages:]
-			}
 		}
 	}
 	if event.Source == SourceRollout && len(event.Messages) > 0 {
-		current.Messages = nil
+		current.Messages = []Message{}
 	}
 	for _, message := range event.Messages {
 		role := displayRole(message.Role)
@@ -145,121 +163,41 @@ func applyEvent(current Session, exists bool, id string, event Event) Session {
 	if len(current.Messages) > maxMessages {
 		current.Messages = current.Messages[len(current.Messages)-maxMessages:]
 	}
+	if current.Messages == nil {
+		current.Messages = []Message{}
+	}
 	if event.LatestResult != "" {
 		current.LatestResult = BoundDisplayText(event.LatestResult, maxResultRunes)
 	}
-	current.Action = safeAction(event)
-	return current
 }
 
-func (s *Store) ValidateAction(request ActionRequest) (Session, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	session, ok := s.sessions[request.SessionID]
-	if !ok {
-		return Session{}, ErrUnknownSession
-	}
-	if request.Schema != ActionSchema || session.Revision != request.Revision ||
-		session.Action == nil || session.Action.RequestID != request.RequestID {
-		return Session{}, ErrStaleAction
-	}
-	if !actionAllowed(*session.Action, request.Action) {
-		return Session{}, ErrUnsupported
-	}
-	if request.Action == "answer" && !validAnswers(request.Answers) {
-		return Session{}, ErrInvalidAction
-	}
-	return cloneSession(session), nil
-}
-
-func (s *Store) ResolveAction(request ActionRequest, now time.Time) Snapshot {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	now = nonzeroTime(now)
-	session, ok := s.sessions[request.SessionID]
-	if !ok || session.Action == nil || session.Action.RequestID != request.RequestID {
-		return s.snapshotLocked(now)
-	}
-	session.Action = nil
-	session.Revision++
-	session.UpdatedAt = now
-	if session.Phase.NeedsAttention() {
-		session.Phase = PhaseProcessing
-	}
-	s.sessions[request.SessionID] = session
-	s.generation++
-	return s.snapshotLocked(now)
-}
-
-func (s *Store) CancelAction(sessionID, requestID string, now time.Time) (Snapshot, bool) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	now = nonzeroTime(now)
-	session, ok := s.sessions[sessionID]
-	if !ok || session.Action == nil || session.Action.RequestID != requestID {
-		return s.snapshotLocked(now), false
-	}
-	session.Action = nil
-	session.Revision++
-	session.UpdatedAt = now
-	if session.Phase.NeedsAttention() {
-		session.Phase = PhaseIdle
-	}
-	s.sessions[sessionID] = session
-	s.generation++
-	return s.snapshotLocked(now), true
-}
-
-func nonzeroTime(now time.Time) time.Time {
-	if now.IsZero() {
-		return time.Now().UTC()
-	}
-	return now
-}
-
-func (s *Store) Expire(now time.Time) (Snapshot, bool) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	changed := false
-	for id, session := range s.sessions {
-		if session.NeedsAttention() {
+func upsertPendingAction(values []PendingAction, incoming PendingAction) ([]PendingAction, bool) {
+	for index := range values {
+		if values[index].RequestID != incoming.RequestID {
 			continue
 		}
-		age := now.Sub(session.UpdatedAt)
-		if (session.Phase == PhaseCompleted && age >= completedRetention) || age >= idleRetention {
-			delete(s.sessions, id)
-			changed = true
+		incoming.Revision = values[index].Revision
+		if reflect.DeepEqual(values[index], incoming) {
+			return values, false
 		}
+		incoming.Revision = 0
+		result := append([]PendingAction{}, values...)
+		result[index] = incoming
+		return result, true
 	}
-	if changed {
-		s.generation++
+	if len(values) >= maxPendingActions {
+		return values, false
 	}
-	return s.snapshotLocked(now), changed
+	return append(append([]PendingAction{}, values...), incoming), true
 }
 
-func (s *Store) NextDeadline() (time.Time, bool) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	var next time.Time
-	for _, session := range s.sessions {
-		if session.NeedsAttention() {
-			continue
-		}
-		deadline := session.UpdatedAt.Add(idleRetention)
-		if session.Phase == PhaseCompleted {
-			deadline = session.UpdatedAt.Add(completedRetention)
-		}
-		if next.IsZero() || deadline.Before(next) {
-			next = deadline
-		}
-	}
-	return next, !next.IsZero()
+func sameSessionProjection(left, right Session) bool {
+	left.Revision, right.Revision = 0, 0
+	return reflect.DeepEqual(left, right)
 }
 
-func (s *Store) Snapshot(now time.Time) Snapshot {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.snapshotLocked(now)
+func terminalPhase(phase Phase) bool {
+	return phase == PhaseCompleted || phase == PhaseError || phase == PhaseEnded
 }
 
 func (s *Store) snapshotLocked(now time.Time) Snapshot {
@@ -269,7 +207,7 @@ func (s *Store) snapshotLocked(now time.Time) Snapshot {
 	}
 	sort.Slice(values, func(i, j int) bool { return sessionBefore(values[i], values[j]) })
 	return Snapshot{Schema: SnapshotSchema, Generation: s.generation, GeneratedAt: now,
-		Sessions: values, Integrations: append([]IntegrationStatus(nil), s.integrations...)}
+		Sessions: values, Integrations: append([]IntegrationStatus{}, s.integrations...)}
 }
 
 func sessionBefore(a, b Session) bool {

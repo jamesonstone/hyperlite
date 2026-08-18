@@ -9,6 +9,10 @@ import (
 )
 
 func WatchRollout(ctx context.Context, path string, changed func()) error {
+	return WatchPath(ctx, path, changed)
+}
+
+func WatchPath(ctx context.Context, path string, changed func()) error {
 	file, err := os.Open(path)
 	if err != nil {
 		return err

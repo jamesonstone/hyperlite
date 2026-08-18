@@ -8,3 +8,7 @@ func WatchRollout(ctx context.Context, path string, changed func()) error {
 	<-ctx.Done()
 	return nil
 }
+
+func WatchPath(ctx context.Context, path string, changed func()) error {
+	return WatchRollout(ctx, path, changed)
+}

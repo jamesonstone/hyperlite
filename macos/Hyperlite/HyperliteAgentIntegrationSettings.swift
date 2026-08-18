@@ -57,31 +57,50 @@ struct HyperliteAgentSessionSettings: View {
         } else {
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(state.integrations) { integration in
-                    Toggle(isOn: integrationBinding(integration)) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack(spacing: 6) {
-                                Text(integration.name)
-                                    .font(.system(size: 12, weight: .medium))
-                                if !integration.detected {
-                                    Text("Not Installed")
-                                        .font(.system(size: 10, weight: .medium))
+                    VStack(alignment: .leading, spacing: 5) {
+                        HStack(alignment: .center, spacing: 8) {
+                            Toggle(isOn: integrationBinding(integration)) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    HStack(spacing: 6) {
+                                        Text(integration.name)
+                                            .font(.system(size: 12, weight: .medium))
+                                        if !integration.detected {
+                                            Text("Not Installed")
+                                                .font(.system(size: 10, weight: .medium))
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
+                                    Text(integrationSummary(integration))
+                                        .font(.system(size: 10))
                                         .foregroundStyle(.secondary)
+                                        .fixedSize(horizontal: false, vertical: true)
                                 }
                             }
-                            Text(integrationSummary(integration))
-                                .font(.system(size: 10))
-                                .foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
+                            .toggleStyle(.switch)
+                            .disabled(
+                                (!integration.detected && !integration.enabled) ||
+                                    state.isUpdatingIntegrations
+                            )
+                            .accessibilityLabel(Text(integration.name))
+                            .accessibilityHint(Text(integrationSummary(integration)))
+                            .accessibilityValue(Text(integration.enabled ? "Enabled" : "Disabled"))
+                            if state.verifyingProfiles.contains(integration.id) {
+                                ProgressView().controlSize(.small)
+                            }
+                            Button("Verify") { state.verifyIntegration(integration) }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                                .disabled(
+                                    !state.hasConsent || !integration.detected ||
+                                        state.verifyingProfiles.contains(integration.id)
+                                )
+                                .accessibilityLabel("Verify \(integration.name) integration")
                         }
+                        Text(healthSummary(integration))
+                            .font(.system(size: 10))
+                            .foregroundStyle(.tertiary)
+                            .textSelection(.enabled)
                     }
-                    .toggleStyle(.switch)
-                    .disabled(
-                        (!integration.detected && !integration.enabled) ||
-                            state.isUpdatingIntegrations
-                    )
-                    .accessibilityLabel(Text(integration.name))
-                    .accessibilityHint(Text(integrationSummary(integration)))
-                    .accessibilityValue(Text(integration.enabled ? "Enabled" : "Disabled"))
                     if integration.id != state.integrations.last?.id { Divider() }
                 }
             }
@@ -110,6 +129,23 @@ struct HyperliteAgentSessionSettings: View {
         case "observe": return "Observes lifecycle while preserving native permissions."
         default: return integration.actionMode.replacingOccurrences(of: "_", with: " ").capitalized
         }
+    }
+
+    private func healthSummary(_ integration: HyperliteAgentIntegration) -> String {
+        guard let health = state.integrationHealth[integration.id] else {
+            return "Runtime health will appear after Agent Sessions starts."
+        }
+        var parts = [health.connectionState.replacingOccurrences(of: "_", with: " ").capitalized]
+        if health.watchersLimit > 0 {
+            parts.append("Watchers \(health.watchersUsed)/\(health.watchersLimit)")
+        }
+        if health.filteredCount > 0 { parts.append("Filtered \(health.filteredCount)") }
+        if health.rejectedCount > 0 { parts.append("Rejected \(health.rejectedCount)") }
+        if let result = health.selfTestResult, !result.isEmpty {
+            parts.append("Verify \(result.capitalized)")
+        }
+        if let code = health.errorCode, !code.isEmpty { parts.append(code) }
+        return parts.joined(separator: " · ")
     }
 }
 

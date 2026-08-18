@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -40,6 +41,9 @@ func NormalizeHook(profile Profile, raw []byte, environment map[string]string, n
 	for key, value := range arguments {
 		argumentValues[key] = value
 	}
+	processID := firstInt(payload, "process_id", "processId", "pid")
+	processStart := firstString(payload, "process_start_token", "processStartToken", "process_start")
+	lowerEvent := strings.ToLower(eventName)
 	return Event{
 		Schema: EventSchema, Provider: profile.Provider, Profile: profile.ID,
 		SessionID: sessionID, ParentID: firstString(payload, "parent_session_id", "parentThreadId", "parent_thread_id"),
@@ -51,8 +55,12 @@ func NormalizeHook(profile Profile, raw []byte, environment map[string]string, n
 		ActionKind: actionKind, ActionTitle: actionTitle(actionKind, payload),
 		ActionContext: context, Arguments: argumentValues,
 		CompleteContext: complete && context != "", ExpectsResponse: expectsResponse,
-		Routing:     routingFrom(payload, environment, workspace),
-		RolloutPath: firstString(payload, "rollout_path", "session_file_path", "transcript_path"),
+		Routing:       routingFrom(payload, environment, workspace),
+		RolloutPath:   firstString(payload, "rollout_path", "session_file_path", "transcript_path"),
+		AuxiliaryKind: firstString(payload, "auxiliary_kind", "auxiliaryKind", "session_kind", "sessionKind"),
+		HasPrompt:     strings.Contains(lowerEvent, "userprompt") || strings.Contains(lowerEvent, "user_message"),
+		ActiveTool:    strings.Contains(lowerEvent, "pretool") || strings.Contains(lowerEvent, "tool_start"),
+		ProcessID:     processID, ProcessStart: processStart,
 	}, nil
 }
 
@@ -174,6 +182,15 @@ func firstObject(values map[string]any, keys ...string) map[string]any {
 		}
 	}
 	return map[string]any{}
+}
+
+func firstInt(values map[string]any, keys ...string) int {
+	text := firstString(values, keys...)
+	value, err := strconv.Atoi(text)
+	if err != nil || value <= 1 {
+		return 0
+	}
+	return value
 }
 
 func BridgeExecutable(appBundle string) string {

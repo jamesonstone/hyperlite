@@ -11,33 +11,19 @@ import (
 	"time"
 )
 
-func TestStartRolloutWatchEmitsWithoutBlockingCaller(t *testing.T) {
+func TestRolloutCursorInitialAdvanceIsBounded(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "rollout.jsonl")
 	data := []byte(`{"timestamp":"2026-08-17T12:00:00Z","type":"session_meta","payload":{"id":"thread-1"}}` + "\n")
 	if err := os.WriteFile(path, data, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	events := make(chan inboundEvent)
-	errors := make(chan error)
-	returned := make(chan struct{})
-	go func() {
-		startRolloutWatch(ctx, path, Event{SessionID: "thread-1", Title: "Stored task"}, events, errors)
-		close(returned)
-	}()
-	select {
-	case <-returned:
-	case <-time.After(time.Second):
-		t.Fatal("startRolloutWatch blocked on its initial emit")
+	cursor := NewRolloutCursor(path, Event{Provider: "codex", Profile: "codex", SessionID: "thread-1", Title: "Stored task"})
+	event, changed, more, readBytes, err := cursor.Advance(time.Now().UTC(), rolloutTurnBytes, rolloutTurnRows)
+	if err != nil || !changed || more || readBytes > rolloutTurnBytes {
+		t.Fatalf("initial cursor advance = %#v changed=%v more=%v bytes=%d err=%v", event, changed, more, readBytes, err)
 	}
-	select {
-	case event := <-events:
-		if event.event.SessionID != "thread-1" || event.event.Title != "Stored task" {
-			t.Fatalf("initial rollout event = %#v", event.event)
-		}
-	case <-time.After(time.Second):
-		t.Fatal("initial rollout event was not emitted")
+	if event.SessionID != "thread-1" || event.Title != "Stored task" {
+		t.Fatalf("initial rollout event = %#v", event)
 	}
 }
 
@@ -107,7 +93,7 @@ IFS= read -r keep_open
 		t.Fatalf("initial snapshot = %#v %v", initial, err)
 	}
 	var discovered Snapshot
-	if err := decoder.Decode(&discovered); err != nil {
+	if err := decodeAgentSnapshot(decoder, &discovered); err != nil {
 		t.Fatal(err)
 	}
 	if len(discovered.Sessions) != 1 || discovered.Sessions[0].ID != "codex:thread-1" ||

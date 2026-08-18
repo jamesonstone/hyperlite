@@ -18,7 +18,11 @@ struct HyperliteAgentNotchView: View {
     @State private var pointerInside = false
     @State private var editing = false
 
-    private var sessions: [HyperliteAgentSession] { state.snapshot?.sessions ?? [] }
+    private var sessions: [HyperliteAgentSession] {
+        (state.snapshot?.sessions ?? []).filter { !$0.synthetic }
+    }
+    private var activeCount: Int { sessions.filter { $0.phase.isActive }.count }
+    private var attentionCount: Int { sessions.filter(\.needsAttention).count }
     private var selected: HyperliteAgentSession? {
         if let selectedID, let match = sessions.first(where: { $0.id == selectedID }) { return match }
         return sessions.first(where: \.needsAttention) ?? sessions.first
@@ -88,9 +92,9 @@ struct HyperliteAgentNotchView: View {
         Button(action: expandManually) {
             HStack(spacing: 8) {
                 HyperliteGhostMark().frame(width: 15, height: 15)
-                Label("\(state.snapshot?.activeCount ?? 0)", systemImage: "terminal.fill")
-                if let attention = state.snapshot?.attentionCount, attention > 0 {
-                    Label("\(attention)", systemImage: "exclamationmark.bubble.fill")
+                Label("\(activeCount)", systemImage: "terminal.fill")
+                if attentionCount > 0 {
+                    Label("\(attentionCount)", systemImage: "exclamationmark.bubble.fill")
                         .foregroundStyle(Color.orange)
                 }
             }
@@ -106,8 +110,8 @@ struct HyperliteAgentNotchView: View {
     }
 
     private var collapsedAccessibilityLabel: String {
-        "Hyperlite, \(state.snapshot?.activeCount ?? 0) active agent sessions, " +
-            "\(state.snapshot?.attentionCount ?? 0) needing attention"
+        "Hyperlite, \(activeCount) active agent sessions, " +
+            "\(attentionCount) needing attention"
     }
 
     private var expandedContent: some View {

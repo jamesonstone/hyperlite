@@ -4,7 +4,9 @@ struct HyperliteAgentSessionsWorkspace: View {
     @ObservedObject var state: HyperliteAgentSessionState
     @State private var selectedID: String?
 
-    private var sessions: [HyperliteAgentSession] { state.snapshot?.sessions ?? [] }
+    private var sessions: [HyperliteAgentSession] {
+        (state.snapshot?.sessions ?? []).filter { !$0.synthetic }
+    }
     private var selected: HyperliteAgentSession? {
         if let selectedID, let match = sessions.first(where: { $0.id == selectedID }) {
             return match
@@ -48,6 +50,14 @@ struct HyperliteAgentSessionsWorkspace: View {
                 Label(statusText, systemImage: statusSymbol)
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
+                Button {
+                    state.refreshSessions()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .accessibilityLabel("Refresh agent sessions")
                 Button("Manage Integrations…", action: openHyperliteSettings)
                     .buttonStyle(.bordered)
                     .controlSize(.small)

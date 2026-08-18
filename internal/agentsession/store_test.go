@@ -23,7 +23,7 @@ func TestStorePreservesHigherAuthorityAndValidatesExactAction(t *testing.T) {
 		t.Fatalf("unexpected snapshot: %#v", snapshot)
 	}
 	session := snapshot.Sessions[0]
-	if session.ID != "claude:session-1" || session.Action == nil || !session.Action.CanAllowOnce {
+	if session.ID != "claude:session-1" || session.CurrentAction() == nil || !session.CurrentAction().CanAllowOnce {
 		t.Fatalf("unexpected session: %#v", session)
 	}
 	stale := Event{
@@ -39,8 +39,8 @@ func TestStorePreservesHigherAuthorityAndValidatesExactAction(t *testing.T) {
 	if _, accepted := store.Apply(laterLower, now.Add(time.Minute)); accepted {
 		t.Fatal("lower-authority event replaced a live exact action")
 	}
-	request := ActionRequest{Schema: ActionSchema, SessionID: session.ID,
-		RequestID: "request-1", Revision: session.Revision, Action: "allow_once"}
+	request := ActionRequest{Schema: ActionSchema, Provider: "claude", SessionID: session.ID,
+		RequestID: "request-1", Revision: session.CurrentAction().Revision, Action: "allow_once"}
 	if _, err := store.ValidateAction(request); err != nil {
 		t.Fatalf("validate exact action: %v", err)
 	}
@@ -155,11 +155,11 @@ func TestCancelActionRetractsDisconnectedRequest(t *testing.T) {
 	snapshot, _ := store.Apply(Event{Provider: "claude", Profile: "claude-code", SessionID: "one",
 		Event: "PermissionRequest", Source: SourceHook, OccurredAt: now, RequestID: "request",
 		ActionKind: "approval", ActionContext: "ls", CompleteContext: true, ExpectsResponse: true}, now)
-	if snapshot.Sessions[0].Action == nil {
+	if snapshot.Sessions[0].CurrentAction() == nil {
 		t.Fatal("action missing")
 	}
 	snapshot, changed := store.CancelAction("claude:one", "request", now.Add(time.Second))
-	if !changed || snapshot.Sessions[0].Action != nil || snapshot.Sessions[0].Phase != PhaseIdle {
+	if !changed || snapshot.Sessions[0].CurrentAction() != nil || snapshot.Sessions[0].Phase != PhaseIdle {
 		t.Fatalf("disconnected action retained: %#v", snapshot.Sessions[0])
 	}
 }
@@ -170,8 +170,8 @@ func TestActionTransitionsNormalizeZeroTime(t *testing.T) {
 	snapshot, _ := store.Apply(Event{Provider: "claude", Profile: "claude-code", SessionID: "one",
 		Event: "PermissionRequest", Source: SourceHook, OccurredAt: now, RequestID: "resolve",
 		ActionKind: "approval", ActionContext: "ls", CompleteContext: true, ExpectsResponse: true}, now)
-	request := ActionRequest{Schema: ActionSchema, SessionID: "claude:one", RequestID: "resolve",
-		Revision: snapshot.Sessions[0].Revision, Action: "deny"}
+	request := ActionRequest{Schema: ActionSchema, Provider: "claude", SessionID: "claude:one", RequestID: "resolve",
+		Revision: snapshot.Sessions[0].CurrentAction().Revision, Action: "deny"}
 	resolved := store.ResolveAction(request, time.Time{})
 	if resolved.GeneratedAt.IsZero() || resolved.Sessions[0].UpdatedAt.IsZero() {
 		t.Fatalf("resolve action retained a zero timestamp: %#v", resolved)
@@ -186,7 +186,7 @@ func TestActionTransitionsNormalizeZeroTime(t *testing.T) {
 	}
 }
 
-func TestAuthoritativeNonActionEventClearsPendingAttention(t *testing.T) {
+func TestIndependentActionSurvivesUnrelatedTransition(t *testing.T) {
 	for _, test := range []struct {
 		name          string
 		initialSource Source
@@ -201,27 +201,21 @@ func TestAuthoritativeNonActionEventClearsPendingAttention(t *testing.T) {
 			pending, _ := store.Apply(Event{Provider: "claude", Profile: "claude-code", SessionID: "one",
 				Event: "PermissionRequest", Source: test.initialSource, OccurredAt: now, RequestID: "request",
 				ActionKind: "approval", ActionContext: "ls", CompleteContext: true, ExpectsResponse: true}, now)
-			priorAction := pending.Sessions[0].Action
+			priorAction := pending.Sessions[0].CurrentAction()
 			if priorAction == nil || !pending.Sessions[0].NeedsAttention() {
 				t.Fatalf("pending action fixture is invalid: %#v", pending)
 			}
 			updated, changed := store.Apply(Event{Provider: "claude", Profile: "claude-code", SessionID: "one",
 				Event: "PostToolUse", Phase: PhaseProcessing, Source: test.nextSource,
 				OccurredAt: now.Add(time.Second)}, now.Add(time.Second))
-			if !changed || len(updated.Sessions) != 1 || !nonActionTransitionComplete(updated.Sessions[0]) {
-				t.Fatalf("non-action transition retained attention: %#v", updated)
+			if !changed || len(updated.Sessions) != 1 || updated.Sessions[0].CurrentAction() == nil {
+				t.Fatalf("unrelated transition retracted an exact request: %#v", updated)
 			}
-			staleAction := updated.Sessions[0]
-			staleAction.Action = priorAction
-			if nonActionTransitionComplete(staleAction) {
-				t.Fatal("regression predicate accepted a retained pending action")
+			if updated.Sessions[0].CurrentAction().RequestID != priorAction.RequestID {
+				t.Fatal("unrelated transition replaced the exact request")
 			}
 		})
 	}
-}
-
-func nonActionTransitionComplete(session Session) bool {
-	return session.Phase == PhaseProcessing && session.Action == nil && !session.NeedsAttention()
 }
 
 func TestAnswerPayloadIsBounded(t *testing.T) {
@@ -230,8 +224,8 @@ func TestAnswerPayloadIsBounded(t *testing.T) {
 	snapshot, _ := store.Apply(Event{Provider: "claude", Profile: "claude-code", SessionID: "question",
 		Event: "AskUserQuestion", Source: SourceHook, OccurredAt: now, RequestID: "request",
 		ActionKind: "question", ActionContext: "Choose", CompleteContext: true, ExpectsResponse: true}, now)
-	request := ActionRequest{Schema: ActionSchema, SessionID: "claude:question", RequestID: "request",
-		Revision: snapshot.Sessions[0].Revision, Action: "answer", Answers: map[string][]string{"answer": {strings.Repeat("x", maxActionRunes+1)}}}
+	request := ActionRequest{Schema: ActionSchema, Provider: "claude", SessionID: "claude:question", RequestID: "request",
+		Revision: snapshot.Sessions[0].CurrentAction().Revision, Action: "answer", Answers: map[string][]string{"answer": {strings.Repeat("x", maxActionRunes+1)}}}
 	if _, err := store.ValidateAction(request); !errors.Is(err, ErrInvalidAction) {
 		t.Fatalf("oversized answer accepted: %v", err)
 	}

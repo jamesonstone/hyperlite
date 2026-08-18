@@ -70,12 +70,12 @@ func TestServiceRoundTripUsesExactLiveResponseChannel(t *testing.T) {
 		t.Fatal(err)
 	}
 	var active Snapshot
-	if err := decoder.Decode(&active); err != nil || len(active.Sessions) != 1 {
+	if err := decodeAgentSnapshot(decoder, &active); err != nil || len(active.Sessions) != 1 {
 		t.Fatalf("active snapshot: %#v %v", active, err)
 	}
 	session := active.Sessions[0]
-	request := ActionRequest{Schema: ActionSchema, SessionID: session.ID,
-		RequestID: "request-1", Revision: session.Revision, Action: "allow_once"}
+	request := ActionRequest{Schema: ActionSchema, Provider: "claude", SessionID: session.ID,
+		RequestID: "request-1", Revision: session.CurrentAction().Revision, Action: "allow_once"}
 	if err := json.NewEncoder(inputWriter).Encode(request); err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +87,7 @@ func TestServiceRoundTripUsesExactLiveResponseChannel(t *testing.T) {
 		t.Fatalf("unexpected decision: %#v", decision)
 	}
 	var resolved Snapshot
-	if err := decoder.Decode(&resolved); err != nil || resolved.Sessions[0].Action != nil {
+	if err := decodeAgentSnapshot(decoder, &resolved); err != nil || resolved.Sessions[0].CurrentAction() != nil {
 		t.Fatalf("resolved snapshot: %#v %v", resolved, err)
 	}
 	var result ActionResult
@@ -165,7 +165,7 @@ func TestServiceRetractsActionWhenProviderDisconnects(t *testing.T) {
 	}()
 	decoder := json.NewDecoder(outputReader)
 	var initial Snapshot
-	if err := decoder.Decode(&initial); err != nil {
+	if err := decodeAgentSnapshot(decoder, &initial); err != nil {
 		t.Fatal(err)
 	}
 	waitForSocket(t, filepath.Join(runtimeDir, "agent.sock"))
@@ -181,12 +181,12 @@ func TestServiceRetractsActionWhenProviderDisconnects(t *testing.T) {
 		t.Fatal(err)
 	}
 	var active Snapshot
-	if err := decoder.Decode(&active); err != nil || active.Sessions[0].Action == nil {
+	if err := decodeAgentSnapshot(decoder, &active); err != nil || active.Sessions[0].CurrentAction() == nil {
 		t.Fatalf("active request: %#v %v", active, err)
 	}
 	_ = connection.Close()
 	var retracted Snapshot
-	if err := decoder.Decode(&retracted); err != nil || retracted.Sessions[0].Action != nil || retracted.Sessions[0].Phase != PhaseIdle {
+	if err := decodeAgentSnapshot(decoder, &retracted); err != nil || retracted.Sessions[0].CurrentAction() != nil || retracted.Sessions[0].Phase != PhaseIdle {
 		t.Fatalf("retracted request: %#v %v", retracted, err)
 	}
 	_ = inputWriter.Close()
@@ -278,4 +278,20 @@ func waitForFile(t *testing.T, path string) {
 		time.Sleep(10 * time.Millisecond)
 	}
 	t.Fatalf("file did not appear: %s", path)
+}
+
+func decodeAgentSnapshot(decoder *json.Decoder, snapshot *Snapshot) error {
+	for {
+		var raw json.RawMessage
+		if err := decoder.Decode(&raw); err != nil {
+			return err
+		}
+		var envelope struct {
+			Schema string `json:"schema"`
+		}
+		if json.Unmarshal(raw, &envelope) != nil || envelope.Schema != SnapshotSchema {
+			continue
+		}
+		return json.Unmarshal(raw, snapshot)
+	}
 }

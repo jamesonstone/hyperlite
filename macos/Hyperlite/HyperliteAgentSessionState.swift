@@ -9,6 +9,7 @@ final class HyperliteAgentSessionState: ObservableObject {
 
     @Published private(set) var snapshot: HyperliteAgentSessionSnapshot?
     @Published private(set) var integrations: [HyperliteAgentIntegration] = []
+    @Published private(set) var integrationHealth: [String: HyperliteAgentIntegrationHealth] = [:]
     @Published private(set) var processStatus: HyperliteAgentSessionProcess.Status = .stopped
     @Published private(set) var lastActionResult: HyperliteAgentActionResult?
     @Published private(set) var errorMessage: String?
@@ -16,12 +17,14 @@ final class HyperliteAgentSessionState: ObservableObject {
     @Published private(set) var integrationSuccesses: [String] = []
     @Published private(set) var isUpdatingIntegrations = false
     @Published private(set) var isDetectingIntegrations = false
+    @Published private(set) var verifyingProfiles: Set<String> = []
     @Published private(set) var integrationDetectionSucceeded = false
     @Published private(set) var hasConsent: Bool
     @Published private var actionSubmissions = HyperliteAgentActionSubmissionTracker()
 
     private let service: HyperliteAgentSessionProcess
     private var hasStarted = false
+    private var lastDiscoveryRefreshAt = Date.distantPast
 
     init(service: HyperliteAgentSessionProcess? = nil) {
         let resolvedService = service ?? HyperliteAgentSessionProcess()
@@ -35,6 +38,7 @@ final class HyperliteAgentSessionState: ObservableObject {
         guard HyperliteFeatureFlags.agentSessionPresentation, hasConsent, !hasStarted else { return }
         hasStarted = true
         service.start()
+        lastDiscoveryRefreshAt = Date()
     }
 
     func prepareOnboarding() {
@@ -46,6 +50,8 @@ final class HyperliteAgentSessionState: ObservableObject {
         hasStarted = false
         service.stop()
         snapshot = nil
+        integrationHealth = [:]
+        verifyingProfiles = []
         lastActionResult = nil
         actionSubmissions = .init()
     }
@@ -63,7 +69,7 @@ final class HyperliteAgentSessionState: ObservableObject {
         for session: HyperliteAgentSession,
         answers: [String: [String]]? = nil
     ) {
-        guard let pending = session.action, let identity = session.actionIdentity else {
+        guard let pending = session.currentAction, let identity = session.actionIdentity else {
             errorMessage = "This request is no longer active."
             return
         }
@@ -71,9 +77,12 @@ final class HyperliteAgentSessionState: ObservableObject {
         guard submissions.begin(identity) else { return }
         actionSubmissions = submissions
         let request = HyperliteAgentActionRequest(
+            schema: snapshot?.schema == hyperliteAgentSnapshotSchemaV1 ?
+                hyperliteAgentActionSchemaV1 : hyperliteAgentActionSchema,
+            provider: session.provider,
             sessionID: session.id,
             requestID: pending.requestID,
-            revision: session.revision,
+            revision: identity.revision,
             action: action,
             answers: answers
         )
@@ -91,6 +100,45 @@ final class HyperliteAgentSessionState: ObservableObject {
     func isSubmitting(_ session: HyperliteAgentSession) -> Bool {
         guard let identity = session.actionIdentity else { return false }
         return actionSubmissions.contains(identity)
+    }
+
+    func refreshSessions(manual: Bool = true) {
+        guard hasStarted else { return }
+        let operation = manual ? "manual_refresh" : "foreground_refresh"
+        do {
+            try service.send(HyperliteAgentControlRequest(
+                operation: operation,
+                profile: nil,
+                requestID: nil
+            ))
+            lastDiscoveryRefreshAt = Date()
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func refreshSessionsIfStale(now: Date = Date()) {
+        guard HyperliteAgentDiscoveryRefreshPolicy.shouldRefresh(
+            lastRefresh: lastDiscoveryRefreshAt,
+            now: now
+        ) else { return }
+        refreshSessions(manual: false)
+    }
+
+    func verifyIntegration(_ integration: HyperliteAgentIntegration) {
+        guard hasStarted, !verifyingProfiles.contains(integration.id) else { return }
+        verifyingProfiles.insert(integration.id)
+        do {
+            try service.send(HyperliteAgentControlRequest(
+                operation: "integration_self_test",
+                profile: integration.id,
+                requestID: UUID().uuidString.lowercased()
+            ))
+        } catch {
+            verifyingProfiles.remove(integration.id)
+            errorMessage = error.localizedDescription
+        }
     }
 
     func performRoute(_ session: HyperliteAgentSession) {
@@ -207,6 +255,8 @@ final class HyperliteAgentSessionState: ObservableObject {
     private func restart() {
         guard hasConsent else { return }
         snapshot = nil
+        integrationHealth = [:]
+        verifyingProfiles = []
         actionSubmissions = .init()
         service.restart()
         hasStarted = true
@@ -215,7 +265,8 @@ final class HyperliteAgentSessionState: ObservableObject {
     private func receive(_ record: HyperliteAgentWireRecord) {
         switch record {
         case let .snapshot(value):
-            guard value.schema == hyperliteAgentSnapshotSchema,
+            guard value.schema == hyperliteAgentSnapshotSchema ||
+                    value.schema == hyperliteAgentSnapshotSchemaV1,
                   value.generation >= (snapshot?.generation ?? 0)
             else { return }
             let previous = snapshot
@@ -235,6 +286,12 @@ final class HyperliteAgentSessionState: ObservableObject {
             actionSubmissions = submissions
             if value.status != "submitted" {
                 errorMessage = value.message ?? "The agent action was rejected."
+            }
+        case let .health(value):
+            guard value.schema == hyperliteAgentHealthSchema else { return }
+            integrationHealth[value.profile] = value
+            if value.selfTestResult != nil {
+                verifyingProfiles.remove(value.profile)
             }
         }
     }
