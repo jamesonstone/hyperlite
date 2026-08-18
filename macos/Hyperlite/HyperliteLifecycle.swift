@@ -1,10 +1,13 @@
 import AppKit
 import Carbon.HIToolbox
+import Combine
 import Foundation
 
 @MainActor
 final class HyperliteApplicationDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var hotKey: HyperliteHotKeyController?
+    private var agentNotch: HyperliteAgentNotchCoordinator?
+    private var agentConsentObserver: AnyCancellable?
     private weak var window: NSWindow?
     private var terminationPending = false
     private var dailyDateObservers: [NSObjectProtocol] = []
@@ -33,7 +36,29 @@ final class HyperliteApplicationDelegate: NSObject, NSApplicationDelegate, NSWin
         DispatchQueue.main.async { [weak self] in
             self?.window = NSApp.windows.first(where: { $0.title == "Hyperlite" })
             self?.window?.delegate = self
-            self?.showWindow()
+            if HyperliteFeatureFlags.agentSessionPresentation {
+                let sessionState = HyperliteAgentSessionState.shared
+                let coordinator = HyperliteAgentNotchCoordinator()
+                self?.agentNotch = coordinator
+                self?.agentConsentObserver = sessionState.$hasConsent
+                    .removeDuplicates()
+                    .sink { [weak self] hasConsent in
+                        if hasConsent {
+                            self?.agentNotch?.start()
+                        } else {
+                            self?.agentNotch?.stop()
+                            sessionState.prepareOnboarding()
+                        }
+                    }
+                if sessionState.hasConsent {
+                    self?.window?.orderOut(nil)
+                } else {
+                    HyperliteState.shared.showWorkspace(.sessions)
+                    self?.showWindow()
+                }
+            } else {
+                self?.showWindow()
+            }
         }
     }
 
@@ -63,6 +88,11 @@ final class HyperliteApplicationDelegate: NSObject, NSApplicationDelegate, NSWin
         dailyDateObservers.forEach(NotificationCenter.default.removeObserver)
         dailyDateObservers.removeAll()
         hotKey?.stop()
+        agentNotch?.stop()
+        agentNotch = nil
+        agentConsentObserver?.cancel()
+        agentConsentObserver = nil
+        HyperliteAgentSessionState.shared.stop()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }

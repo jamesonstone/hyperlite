@@ -80,6 +80,19 @@
   startup, changed source signatures after foreground activation, and explicit
   user action; Hyperlite does not poll, read transcripts, navigate, or mutate
   Codex state.
+- Live coding-agent sessions are a separate ephemeral runtime projection, not
+  inferred project threads, project evidence, pinned Codex membership,
+  lifecycle authority, or durable task state. Exact provider and session
+  identifiers own membership; lower-authority rollout evidence may enrich but
+  may not heuristically merge sessions. Displayable prompts, responses,
+  approval context, and bounded recent messages remain memory-only and never
+  enter Hyperlite persistence, diagnostics, telemetry, or notifications.
+  Routing-only associations expire after twenty-four hours. Inline actions
+  require an exact current request, revision, complete redacted context, and a
+  live provider-native response channel; transport failure, incomplete
+  context, and notify-only providers preserve the owning client's authority.
+  Agent monitoring is event-driven and may use one next-deadline expiry timer,
+  but it does not re-enable continuous project scans or UI animation work.
 - Exact evidence owns thread membership. Semantic inference may relate
   separate threads, but it may not merge them, establish authoritative
   lifecycle state, suppress a thread, or close a goal.
@@ -101,11 +114,12 @@
   may silently destroy contained notes. Pinboard access is local, bounded,
   user-only, atomic, and fail-closed; it adds no network, repository scan,
   polling, watcher, notification, or automatic movement behavior.
-- Application-controlled native interface text, including editable notepad
-  content, uses JetBrainsMono Nerd Font through one shared SwiftUI/AppKit
-  resolver, with the system monospaced family as the unavailable-font fallback.
-  Operating-system-owned window chrome and menus retain native macOS
-  typography.
+- Technical and user-authored content, including editable notepad text, paths,
+  commands, arguments, messages, and results, uses JetBrainsMono Nerd Font
+  through one shared SwiftUI/AppKit resolver, with the system monospaced family
+  as the unavailable-font fallback. Native macOS chrome, controls, status
+  labels, navigation, menus, and settings may use system typography so their
+  hierarchy and accessibility remain consistent with the platform.
 
 ### Kit-Managed Baseline Rules
 

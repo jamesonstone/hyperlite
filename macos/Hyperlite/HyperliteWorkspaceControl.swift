@@ -12,15 +12,28 @@ struct HyperliteWorkspaceControl: View {
             Label("Pinboard", systemImage: "rectangle.3.group")
                 .labelStyle(.iconOnly)
                 .tag(HyperliteWorkspace.pinboard)
+            if HyperliteFeatureFlags.agentSessionPresentation {
+                Label("Sessions", systemImage: "terminal.fill")
+                    .labelStyle(.iconOnly)
+                    .tag(HyperliteWorkspace.sessions)
+            }
         }
         .pickerStyle(.segmented)
         .labelsHidden()
-        .frame(width: 70)
-        .help(workspace == .dashboard ? "Dashboard (⌘1)" : "Pinboard (⌘2)")
+        .frame(width: HyperliteFeatureFlags.agentSessionPresentation ? 96 : 70)
+        .help(helpText)
         .accessibilityLabel("Hyperlite workspace")
     }
 
     private var selection: Binding<HyperliteWorkspace> {
         Binding(get: { workspace }, set: onSelect)
+    }
+
+    private var helpText: String {
+        switch workspace {
+        case .dashboard: "Dashboard (⌘1)"
+        case .pinboard: "Pinboard (⌘2)"
+        case .sessions: "Sessions (⌘3)"
+        }
     }
 }

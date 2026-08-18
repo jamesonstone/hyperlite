@@ -20,6 +20,7 @@ struct HyperliteSectionHeader: View {
 
 struct HyperliteSettingsView: View {
     @ObservedObject var state: HyperliteState
+    @ObservedObject var agentSessions: HyperliteAgentSessionState
     @AppStorage("hyperlite.hotkey") private var hotkey = defaultHotKey
 
     var body: some View {
@@ -46,6 +47,11 @@ struct HyperliteSettingsView: View {
                         .foregroundStyle(HyperliteTheme.red.color)
                         .lineLimit(2)
                         .help(error)
+                }
+            }
+            if HyperliteFeatureFlags.agentSessionPresentation {
+                Section("Agent Sessions") {
+                    HyperliteAgentSessionSettings(state: agentSessions)
                 }
             }
             Section {

@@ -20,11 +20,12 @@ or scan a source path directly with `hyperlite scan /path/to/projects`.
 
 ## Native workspace
 
-The native presentation has two full-content workspaces beneath one shared
+The release presentation has three full-content workspaces beneath one shared
 header. Dashboard keeps the existing notes, open pull requests, and projects
-surface. Pinboard is a separate private spatial-notes surface. Use the compact
-segmented control beside the Hyperlite title, `Command+1`, or `Command+2` to
-switch without changing Dashboard data or preferences.
+surface. Pinboard is a separate private spatial-notes surface. Sessions shows
+ephemeral local coding-agent activity. Use the compact segmented control beside
+the Hyperlite title or `Command+1`, `Command+2`, and `Command+3` to switch
+without changing Dashboard data or preferences.
 
 Inferred attention remains available through CLI and JSON but is hidden behind
 a single native feature flag: the window, menu bar, and palettes show no thread
@@ -51,6 +52,63 @@ unavailable instead of a stale or guessed count when membership cannot be read.
 Pinned tasks load at startup, recheck changed source signatures after foreground
 activation, and join explicit Refresh actions. Hyperlite does not poll or watch
 Codex files, read transcripts, navigate to tasks, or mutate Codex state.
+
+### Agent sessions
+
+The agent-session surface is a separate local runtime projection. It does not
+change pinned Codex membership, inferred project threads, project attention,
+or any repository. A Go helper owns exact session identity, provider ingress,
+redaction, response revision checks, expiry, and routing-only persistence. The
+native app consumes versioned sanitized snapshots.
+
+On first agent-session launch, a centered welcome offers Enable Recommended,
+Review in Settings, and Not Now. Hyperlite performs one bounded detection-only
+request to describe installed clients, but does not start the long-running
+session service, provider watchers, or Codex app server until the operator
+makes a choice. Recommended includes only detected local clients. Ongoing
+provider toggles and integration health live in grouped Settings. Shared
+provider files retain unrelated settings; malformed, oversized, symlinked,
+wrong-owner, concurrently created, or concurrently changed configuration fails
+closed. Disabling an integration removes only exact Hyperlite-owned material.
+
+The collapsed physical-notch surface shows only the Hyperlite mark and active
+or attention counts. On a notchless display, the idle surface reduces to a
+subtle top-center handle; hovering that target reveals the same metadata pill
+without expanding it. Click the pill to open the mini workspace. A newly urgent
+approval or input request may expand once, and active pointer, keyboard, or
+text-field interaction pauses timed dismissal. A physical-notch surface stays
+black while the revealed notchless fallback uses native material and shadow.
+The companion or Sessions workspace may show at most six
+recent user/assistant messages, each capped at 2,000 characters, plus an 8,000-
+character latest final result or decision context. Native system typography is
+used for chrome and controls, while technical content remains monospaced.
+Internal reasoning, arbitrary historical tool output, raw hook payloads,
+secrets, and generic environment data are excluded before state reaches the UI.
+
+Allow Once, Deny, and Answer appear only for a current exact request with
+complete redacted context and a live blocking provider channel. Rollout-only,
+notify-only, stale, truncated, or redacted requests offer Open in client
+instead. Hyperlite never simulates session scope by repeatedly approving
+individual requests. A request submits once for its exact session, request ID,
+and revision; stale answer text is cleared when that identity changes. Routing
+buttons name the real capability, such as Open Codex or Reveal in Finder,
+instead of claiming an unavailable client route.
+
+Completed sessions remain for ten minutes. Other non-attention sessions expire
+after thirty minutes of inactivity, unresolved attention does not age-expire,
+and content disappears when the session expires or Hyperlite exits. Only
+provider/profile IDs, opaque session ID, working directory, app/terminal/tmux
+routing identifiers, and last-seen time may persist, for at most twenty-four
+hours.
+
+Sounds and native notifications are opt-in in Settings. Notifications contain
+only profile and project metadata. Agent sessions are enabled by default. Set
+the retained preview variable to zero for an explicit local rollback:
+
+```sh
+make macos-build
+HYPERLITE_AGENT_SESSIONS_PREVIEW=0 build/Hyperlite.app/Contents/MacOS/Hyperlite
+```
 
 ### GitHub quota
 
@@ -203,6 +261,7 @@ agent input.
 
 - `Command+1` shows Dashboard.
 - `Command+2` shows Pinboard.
+- `Command+3` shows Sessions unless agent sessions were explicitly disabled.
 - `Command+R` refreshes the focused Hyperlite application.
 - `Command+K` opens a searchable command palette with Show Dashboard, Show
   Pinboard, Add Pinboard Note, Add Pinboard Section, Open Pinboard Archive,

@@ -463,8 +463,7 @@ Include:
 
 ## Anti-Patterns
 
-- Do not run this workflow without the explicit work-lane choice and recorded
-  Pull-Request Landing Plan required by `work-lane-gating`.
+- Do not run this workflow without consent or an explicit PR request.
 - Do not use a global GitHub/plugin workflow as the delivery process inside a Kit-managed project.
 - Do not create duplicate issues or PRs.
 - Do not create `codex/*` branches unless repo-local Kit rules or the user explicitly override the `GH-123` convention.
@@ -489,8 +488,7 @@ Include:
 ## Verification
 
 - Confirm `safety-guardrails` ran first.
-- Confirm the explicit work-lane choice and Pull-Request Landing Plan were
-  recorded for the current unit of work.
+- Confirm PR workflow consent or explicit PR request was recorded.
 - Confirm the Kit Delivery Hard Gate ran before any issue, branch, staging, commit, push, PR, or merge mutation, and that merge routed separately to `github-pr-merge`.
 - Confirm the Delivery Contract was resolved and no unknown fields remained before mutation.
 - Confirm branch/status/staleness recon ran at the GitHub delivery boundary.

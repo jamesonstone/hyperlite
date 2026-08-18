@@ -14,6 +14,7 @@
 | 0008 | dashboard-list-organization | `docs/specs/0008-dashboard-list-organization` | deliver | no | 2026-08-04 | Add quiet local filtering, sorting, transactional reordering, and project collapse controls to the dashboard lists. |
 | 0009 | reviewed-pull-request-markers | `docs/specs/0009-reviewed-pull-request-markers` | deliver | no | 2026-08-10 | Add private exact-head review markers, local review filtering, stale-state presentation, and bulk clear to Open PRs. |
 | 0010 | notes-pinboard | `docs/specs/0010-notes-pinboard` | deliver | no | 2026-08-14 | Add one private bounded spatial Pinboard with free note placement, safe forking, and recoverable archive. |
+| 0011 | agent-session-notch | `docs/specs/0011-agent-session-notch` | deliver | no | 2026-08-17 | Add an ephemeral local coding-agent session projection, capability-gated actions, and a native notch or top-edge companion. |
 
 ## PROJECT INTENT
 
@@ -183,8 +184,25 @@ changes that warrant human attention.
   feature work is defined.
 - **POINTERS**: `docs/specs/0010-notes-pinboard/SPEC.md`
 
+### agent-session-notch
+
+- **STATUS**: deliver
+- **PAUSED**: no
+- **INTENT**: Surface ephemeral local coding-agent sessions and exact requests
+  at the Mac notch or top edge without changing project evidence authority.
+- **APPROACH**: Add an event-driven Go session authority, bounded provider
+  integrations, documented Codex stdio transport, ephemeral redacted content,
+  capability-gated actions, and shared notch and Sessions-workspace views.
+- **OPEN ITEMS**: Issue #47 owns one ready pull request. Missing physical-notch
+  and unavailable-provider smoke evidence remains a reported follow-up risk,
+  not a default-activation gate.
+- **POINTERS**: `docs/specs/0011-agent-session-notch/SPEC.md`
+
 ## LAST UPDATED
 
+- 2026-08-17: Added feature `0011-agent-session-notch` for an ephemeral local
+  coding-agent session authority, capability-gated actions, and a notch or
+  top-edge companion separate from durable project evidence.
 - 2026-08-14: Added feature `0010-notes-pinboard` with a full-content bounded
   spatial workspace, free section-relative note placement, content/layout
   separation, independent fork lineage, and recoverable archive without

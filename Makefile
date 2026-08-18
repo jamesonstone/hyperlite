@@ -4,11 +4,12 @@
 
 HYPERLITE_APP ?= $(CURDIR)/build/Hyperlite.app
 SWIFT_SOURCES := $(sort $(wildcard macos/Hyperlite/*.swift))
-SWIFT_MODEL_TEST_SOURCES := macos/Hyperlite/HyperliteModels.swift macos/Hyperlite/HyperliteProjectModels.swift macos/Hyperlite/HyperlitePullRequestModels.swift macos/Hyperlite/HyperlitePullRequestPanel.swift macos/Hyperlite/HyperlitePullRequestRows.swift macos/Hyperlite/HyperliteRateLimit.swift macos/Hyperlite/HyperliteRateLimitModels.swift macos/Hyperlite/HyperliteRateLimitIndicator.swift macos/Hyperlite/HyperliteRateLimitPopover.swift macos/Hyperlite/HyperlitePresentation.swift macos/Hyperlite/HyperliteInteractionModels.swift macos/Hyperlite/HyperlitePalettePresentation.swift macos/Hyperlite/HyperliteTheme.swift
+SWIFT_MODEL_TEST_SOURCES := macos/Hyperlite/HyperliteModels.swift macos/Hyperlite/HyperliteProjectModels.swift macos/Hyperlite/HyperlitePullRequestModels.swift macos/Hyperlite/HyperlitePullRequestPanel.swift macos/Hyperlite/HyperlitePullRequestRows.swift macos/Hyperlite/HyperliteRateLimit.swift macos/Hyperlite/HyperliteRateLimitModels.swift macos/Hyperlite/HyperliteRateLimitIndicator.swift macos/Hyperlite/HyperliteRateLimitPopover.swift macos/Hyperlite/HyperlitePresentation.swift macos/Hyperlite/HyperliteInteractionModels.swift macos/Hyperlite/HyperliteInteractionEntries.swift macos/Hyperlite/HyperlitePalettePresentation.swift macos/Hyperlite/HyperliteTheme.swift
 SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteDashboardListModels.swift macos/Hyperlite/HyperliteDashboardListState.swift macos/Hyperlite/HyperliteDashboardListControls.swift macos/Hyperlite/HyperlitePullRequestListFilters.swift macos/Hyperlite/HyperlitePullRequestReviewMarkers.swift
 SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteProcess.swift macos/Hyperlite/HyperliteProcessSupport.swift macos/Hyperlite/HyperliteNotepadModels.swift macos/Hyperlite/HyperliteNoteSearchIndex.swift macos/Hyperlite/HyperliteNotepadState.swift macos/Hyperlite/HyperliteNotepadNavigation.swift macos/Hyperlite/HyperliteNotepadPersistence.swift
 SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperlitePinboardModels.swift macos/Hyperlite/HyperlitePinboardGeometry.swift macos/Hyperlite/HyperlitePinboardClient.swift macos/Hyperlite/HyperlitePinboardState.swift
 SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperlitePinnedCodexThreadModels.swift macos/Hyperlite/HyperlitePinnedCodexThreadClientModels.swift macos/Hyperlite/HyperlitePinnedCodexThreadClient.swift macos/Hyperlite/HyperlitePinnedCodexThreadState.swift
+SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteAgentSessionModels.swift macos/Hyperlite/HyperliteAgentSessionPolicies.swift macos/Hyperlite/HyperliteAgentNotchGeometry.swift macos/HyperliteTests/HyperliteAgentSessionTests.swift macos/HyperliteTests/HyperliteAgentSessionPolicyTests.swift
 SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteTypography.swift macos/HyperliteTests/HyperliteInteractionModelTests.swift macos/HyperliteTests/HyperliteProjectIndexTests.swift
 SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperlitePaletteTests.swift
 SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperliteNotepadTests.swift macos/HyperliteTests/HyperliteNotepadNavigationTests.swift macos/HyperliteTests/HyperliteNotepadPersistenceTests.swift macos/HyperliteTests/HyperliteNotepadSearchTests.swift macos/HyperliteTests/HyperliteNotepadTestSupport.swift macos/HyperliteTests/HyperliteNotepadRecoveryTests.swift macos/HyperliteTests/HyperlitePinnedCodexThreadTests.swift macos/HyperliteTests/HyperlitePinnedCodexThreadAdapterTests.swift
@@ -56,22 +57,22 @@ macos-build:
 	HYPERLITE_APP="$(HYPERLITE_APP)" ./scripts/build-macos-app.sh
 
 macos-test:
-	xcrun swiftc -parse-as-library -typecheck -framework SwiftUI -framework AppKit -framework Carbon -framework NaturalLanguage -lsqlite3 $(SWIFT_SOURCES)
+	xcrun swiftc -parse-as-library -typecheck -framework SwiftUI -framework AppKit -framework Carbon -framework NaturalLanguage -framework UserNotifications -lsqlite3 $(SWIFT_SOURCES)
 	mkdir -p "$(dir $(SWIFT_MODEL_TEST_BINARY))"
 	xcrun swiftc -parse-as-library -framework SwiftUI -framework AppKit -framework NaturalLanguage -lsqlite3 $(SWIFT_MODEL_TEST_SOURCES) -o "$(SWIFT_MODEL_TEST_BINARY)"
 	"$(SWIFT_MODEL_TEST_BINARY)"
 
 stop-hyper:
 	@osascript -e 'tell application id "com.jamesonstone.hyperlite" to quit' >/dev/null 2>&1 || true
-	@pids="$$(ps -axo pid=,comm= | awk '$$2 == "$(HYPERLITE_APP)/Contents/MacOS/Hyperlite" || $$2 == "$(HYPERLITE_APP)/Contents/MacOS/hyperlite" { print $$1 }')"; \
+	@pids="$$(ps -axo pid=,comm= | awk '$$2 == "$(HYPERLITE_APP)/Contents/MacOS/Hyperlite" || $$2 == "$(HYPERLITE_APP)/Contents/MacOS/hyperlite-cli" { print $$1 }')"; \
 	if [ -n "$$pids" ]; then \
 		kill -TERM $$pids 2>/dev/null || true; \
 		attempt=0; \
-		while [ -n "$$(ps -axo pid=,comm= | awk '$$2 == "$(HYPERLITE_APP)/Contents/MacOS/Hyperlite" || $$2 == "$(HYPERLITE_APP)/Contents/MacOS/hyperlite" { print $$1 }')" ] && [ "$$attempt" -lt 50 ]; do \
+		while [ -n "$$(ps -axo pid=,comm= | awk '$$2 == "$(HYPERLITE_APP)/Contents/MacOS/Hyperlite" || $$2 == "$(HYPERLITE_APP)/Contents/MacOS/hyperlite-cli" { print $$1 }')" ] && [ "$$attempt" -lt 50 ]; do \
 			sleep 0.1; \
 			attempt=$$((attempt + 1)); \
 		done; \
-		if [ -n "$$(ps -axo pid=,comm= | awk '$$2 == "$(HYPERLITE_APP)/Contents/MacOS/Hyperlite" || $$2 == "$(HYPERLITE_APP)/Contents/MacOS/hyperlite" { print $$1 }')" ]; then \
+		if [ -n "$$(ps -axo pid=,comm= | awk '$$2 == "$(HYPERLITE_APP)/Contents/MacOS/Hyperlite" || $$2 == "$(HYPERLITE_APP)/Contents/MacOS/hyperlite-cli" { print $$1 }')" ]; then \
 			echo "Hyperlite is still running; refusing to replace it." >&2; \
 			exit 1; \
 		fi; \
