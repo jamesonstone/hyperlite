@@ -25,6 +25,14 @@ references:
     read_policy: evidence
     used_for: clean-room provider and session architecture research
     status: active
+  - id: issue-49
+    name: Fix external notch visibility and live session discovery
+    type: github-issue
+    target: https://github.com/jamesonstone/hyperlite/issues/49
+    relation: implements
+    read_policy: must
+    used_for: post-merge external-display and cross-process discovery defects
+    status: active
   - id: codex-app-server
     name: Codex App Server
     type: external-reference
@@ -105,7 +113,8 @@ threads and pinned Codex membership.
   next-deadline timer for expiry and no continuous UI timeline or project scan.
 - R7: Use Codex app-server stdio with the documented initialize and initialized
   handshake. Treat notLoaded as unknown cross-process runtime state, never as
-  authoritative idle.
+  authoritative idle. A notLoaded row with an exact safe rollout path may
+  trigger bounded rollout observation without itself entering session state.
 - R8: Present a centered first-run welcome state with Enable Recommended,
   Review in Settings, and Not Now choices. Recommended includes detected
   clients only. Do not start provider monitoring or app-server discovery before
@@ -132,9 +141,10 @@ threads and pinned Codex membership.
   repeatedly approving individual requests.
 - R13: Add a borderless nonactivating top-center panel that uses macOS safe-area
   APIs on notch displays and becomes a centered top-edge hover target
-  otherwise. The idle notchless surface reduces to a subtle two-point handle;
-  pointer hover reveals the metadata pill without expanding it. Respect Reduce
-  Motion and avoid continuous animation.
+  otherwise. The idle notchless surface is entirely transparent while
+  retaining an invisible accessible hit target; pointer hover reveals the
+  metadata pill without expanding it. Respect Reduce Motion and avoid
+  continuous animation.
 - R14: Launch notch-first after onboarding while retaining the regular Dock
   app, menu-bar fallback, global hotkey, and dashboard. Add a third Sessions
   workspace backed by the same state.
@@ -247,6 +257,13 @@ future Ping Island clients not present at the frozen baseline.
   visually absent until pointer discovery. The collapsed fallback now retains
   only a subtle top-edge handle, reveals the metadata pill on hover, and still
   requires click or a new urgent transition to expand.
+- On 2026-08-18, issue #49 superseded the visible discovery handle. A
+  notchless or external display now draws no idle panel pixels or shadow while
+  retaining the same invisible accessible hit target and hover/click behavior.
+- On 2026-08-18, issue #49 corrected cross-process Codex discovery. App-server
+  `notLoaded` remains unknown and is never stored, but its exact rollout path
+  may seed one of at most thirty-two bounded watchers. Only a parsed rollout
+  event with exact identity can create the session row.
 
 ## DISCOVERIES
 
@@ -287,6 +304,28 @@ future Ping Island clients not present at the frozen baseline.
   system chrome typography, monospaced technical content, explicit buttons,
   and VoiceOver labels now preserve the accepted dark Hyperlite identity while
   behaving like a Mac utility.
+- The floating notch view still used the regular application theme wrapper,
+  whose opaque canvas remained visible after the notchless material and border
+  were hidden. The panel now applies only foreground, tint, and dark-mode
+  chrome so its idle external window is truly transparent.
+- Codex `thread/list` returned current cross-process tasks as `notLoaded` with
+  valid rollout paths. The adapter rejected the unknown status before the
+  service could start its documented rollout fallback. Internal discovery-only
+  events now bridge that exact path without turning unknown state into idle.
+- Initial discovery also surfaced old completions briefly before the normal
+  expiry timer removed them. New events already beyond their retention window
+  are now rejected before they enter the store, while unresolved attention
+  remains exempt.
+- A resolved rollout `request_user_input` call removed its running call record
+  but retained the earlier waiting phase. Matching tool output now clears the
+  display-only action context and returns the rollout projection to processing.
+- A watched rollout could contain a different `session_meta` identity than the
+  app-server row that authorized the path. The watcher now rejects that event
+  before fallback enrichment or store admission rather than creating an
+  unrelated session row.
+- Pre-store expiry initially exempted response events only when they carried a
+  request ID. Every event that expects a response is now retained regardless of
+  ID completeness, so an aged but unresolved provider request cannot disappear.
 
 ## VALIDATION
 
@@ -322,8 +361,22 @@ future Ping Island clients not present at the frozen baseline.
   provider remain unavailable. Per the explicit activation decision, this
   limits the full-parity evidence claim but no longer disables the preview by
   default.
+- Post-merge issue #49 regression run `20260818T142629Z-f4aaf0c7` is PARTIAL
+  only for the remaining broader matrix: two attached notchless displays
+  rendered a fully transparent idle panel, the packaged app reported four
+  active sessions and expanded to five Codex rows without an empty state, a
+  metadata-only service diagnostic stabilized at four current rollout-backed
+  sessions without stale completion churn, and exact cleanup passed. Direct
+  pointer-only hover remains deterministic rather than physically observed.
+  Evidence: `tmp/2026-08-18/agent-session-ui-manual/1/`.
+- Final cross-process discovery run `20260818T143532Z-11ca6f44` passed:
+  the metadata-only projection stabilized at seven current sessions (three
+  processing, two idle, and two recent completions), emitted no content fields,
+  retained no false input wait, admitted no already-expired row, and cleaned
+  every owned process and socket. Evidence:
+  `tmp/2026-08-18/agent-session-discovery-live/1/`.
 - `kit check --project`, `kit check --all`, and the no-op reconcile audit:
-  passed. The whole-project source-size audit checked 250 eligible handwritten
+  passed. The whole-project source-size audit checked 251 eligible handwritten
   source/test files with zero violations.
 
 ## OUTCOME
@@ -335,7 +388,10 @@ bounded rollout tails, redaction, actions, expiry, and routing-only state. The
 native app adds consent-gated startup, centered onboarding, Settings-owned
 integration health, a keyboard-accessible Sessions workspace, metadata-only
 alerts, a click/new-urgent notch mini workspace, a hover-revealed notchless
-top-edge pill, and exact single-submit capability-gated controls.
+top-edge pill that is entirely invisible while idle, and exact single-submit
+capability-gated controls. Cross-process Codex tasks reported as `notLoaded`
+now become visible only after bounded rollout evidence establishes their exact
+runtime state.
 
 With `HYPERLITE_AGENT_SESSIONS_PREVIEW` absent, the surface is enabled;
 `HYPERLITE_AGENT_SESSIONS_PREVIEW=0` provides an explicit local rollback. The

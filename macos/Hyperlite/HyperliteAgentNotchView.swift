@@ -46,6 +46,7 @@ struct HyperliteAgentNotchView: View {
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: expanded ? 16 : 11, style: .continuous))
+        .contentShape(Rectangle())
         .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: showsChrome)
         .onHover { hovering in
             pointerInside = hovering
@@ -85,24 +86,15 @@ struct HyperliteAgentNotchView: View {
 
     private var collapsedContent: some View {
         Button(action: expandManually) {
-            ZStack {
-                HStack(spacing: 8) {
-                    HyperliteGhostMark().frame(width: 15, height: 15)
-                    Label("\(state.snapshot?.activeCount ?? 0)", systemImage: "terminal.fill")
-                    if let attention = state.snapshot?.attentionCount, attention > 0 {
-                        Label("\(attention)", systemImage: "exclamationmark.bubble.fill")
-                            .foregroundStyle(Color.orange)
-                    }
+            HStack(spacing: 8) {
+                HyperliteGhostMark().frame(width: 15, height: 15)
+                Label("\(state.snapshot?.activeCount ?? 0)", systemImage: "terminal.fill")
+                if let attention = state.snapshot?.attentionCount, attention > 0 {
+                    Label("\(attention)", systemImage: "exclamationmark.bubble.fill")
+                        .foregroundStyle(Color.orange)
                 }
-                .opacity(showsChrome ? 1 : 0)
-                Capsule()
-                    .fill(hiddenIndicatorColor)
-                    .frame(width: 28, height: 2)
-                    .padding(.top, 2)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    .opacity(showsChrome ? 0 : 1)
-                    .accessibilityHidden(true)
             }
+            .opacity(showsChrome ? 1 : 0)
             .font(.system(size: 11, weight: .semibold))
             .padding(.horizontal, 12)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -111,12 +103,6 @@ struct HyperliteAgentNotchView: View {
         .buttonStyle(.plain)
         .accessibilityLabel(collapsedAccessibilityLabel)
         .help("Show agent sessions")
-    }
-
-    private var hiddenIndicatorColor: Color {
-        (state.snapshot?.attentionCount ?? 0) > 0
-            ? Color.orange.opacity(0.55)
-            : Color.secondary.opacity(0.22)
     }
 
     private var collapsedAccessibilityLabel: String {

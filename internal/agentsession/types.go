@@ -142,6 +142,7 @@ type Event struct {
 	ExpectsResponse bool           `json:"expects_response,omitempty"`
 	Routing         Routing        `json:"routing,omitempty"`
 	RolloutPath     string         `json:"rollout_path,omitempty"`
+	rolloutHint     bool
 }
 
 type ActionRequest struct {

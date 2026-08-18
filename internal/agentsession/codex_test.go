@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func TestCodexMonitorUsesStdioAndIgnoresNotLoadedAsIdle(t *testing.T) {
+func TestCodexMonitorUsesStdioAndDiscoversNotLoadedRollouts(t *testing.T) {
 	directory := t.TempDir()
 	executable := filepath.Join(directory, "codex")
 	script := `#!/bin/sh
@@ -17,7 +17,7 @@ IFS= read -r initialize
 printf '%s\n' '{"id":1,"result":{"userAgent":"test"}}'
 IFS= read -r initialized
 IFS= read -r list
-printf '%s\n' '{"id":2,"result":{"data":[{"id":"active-1","name":"Active","cwd":"/tmp/project","status":{"type":"active","activeFlags":["waitingOnApproval"]}},{"id":"stored-1","status":{"type":"notLoaded"}}]}}'
+printf '%s\n' '{"id":2,"result":{"data":[{"id":"active-1","name":"Active","cwd":"/tmp/project","status":{"type":"active","activeFlags":["waitingOnApproval"]}},{"id":"stored-1","name":"Stored","cwd":"/tmp/stored","path":"/tmp/stored.jsonl","status":{"type":"notLoaded"}}]}}'
 printf '%s\n' '{"method":"thread/status/changed","params":{"threadId":"active-1","status":{"type":"idle"}}}'
 `
 	if err := os.WriteFile(executable, []byte(script), 0o700); err != nil {
@@ -32,19 +32,18 @@ printf '%s\n' '{"method":"thread/status/changed","params":{"threadId":"active-1"
 	if err != nil {
 		t.Fatalf("monitor Codex: %v", err)
 	}
-	if len(events) != 2 {
+	if len(events) != 3 {
 		t.Fatalf("events = %#v", events)
 	}
 	if events[0].SessionID != "active-1" || events[0].Phase != PhaseWaitingApproval {
 		t.Fatalf("active event = %#v", events[0])
 	}
-	if events[1].Phase != PhaseIdle {
-		t.Fatalf("status notification = %#v", events[1])
+	if !events[1].rolloutHint || events[1].SessionID != "stored-1" ||
+		events[1].RolloutPath != "/tmp/stored.jsonl" || events[1].Phase != "" {
+		t.Fatalf("rollout discovery = %#v", events[1])
 	}
-	for _, event := range events {
-		if event.SessionID == "stored-1" {
-			t.Fatal("notLoaded thread became a live session")
-		}
+	if events[2].Phase != PhaseIdle {
+		t.Fatalf("status notification = %#v", events[2])
 	}
 }
 
@@ -70,5 +69,10 @@ func TestCodexStatusRequiresKnownRuntimeState(t *testing.T) {
 	event, ok := codexStatusEvent("thread", map[string]any{"type": "active", "activeFlags": []any{"waitingOnUserInput"}}, time.Now())
 	if !ok || event.Phase != PhaseWaitingInput {
 		t.Fatalf("unexpected active status: %#v", event)
+	}
+	if _, ok := codexThreadEvent(map[string]any{
+		"id": "stored", "status": map[string]any{"type": "notLoaded"},
+	}, time.Now()); ok {
+		t.Fatal("notLoaded thread without a rollout path was discovered")
 	}
 }

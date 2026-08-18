@@ -14,7 +14,9 @@
   presentation behavior.
 - Go contract and integration tests cover the agent-session authority,
   provider registry, exact actions, configuration safety, private
-  socket, Codex stdio protocol, bounded rollout tails, expiry, and redaction.
+  socket, Codex stdio protocol, discovery-only `notLoaded` rollout fallback,
+  bounded rollout tails, resolved-input transitions, pre-store expiry, and
+  redaction.
 - Swift executable tests cover sanitized agent snapshot decoding and physical
   notch versus top-edge geometry.
 - A read-only local live-integration suite validates recovery of the selected
@@ -37,6 +39,7 @@
 | --- | --- | --- | --- | --- | --- |
 | inferred attention recovery | live-integration | local | `tests/live-integration/local/inferred-attention-live-scan.sh <r2-path> <event-sink-path>` | manual milestone | `tmp/<UTC-date>/inferred-attention-live-scan.sh/<run-number>/` |
 | agent sessions bridge | live-integration | local | `tests/live-integration/local/agent-session-bridge-live.sh` | manual milestone | `tmp/<UTC-date>/agent-session-bridge-live.sh/<run-number>/` |
+| agent session cross-process discovery | live-integration | local | isolated `hyperlite-cli agent sessions serve` with a metadata-only JSON projection | manual milestone | `tmp/<UTC-date>/agent-session-discovery-live/<run-number>/` |
 | agent sessions provider/display matrix | live-integration | local | manual acceptance matrix | manual milestone | provider and physical-display evidence pending |
 | production | end-to-end | production | not applicable | not applicable | Hyperlite is a local desktop application without a deployed production environment |
 
@@ -90,3 +93,7 @@
   smoke, action-capable providers pass one bounded response round trip, and
   both physical-notch and external/notchless display journeys pass.
   Deterministic fixtures do not replace that residual acceptance evidence.
+- Issue #49 live regression evidence proves current external idle transparency
+  and cross-process Codex discovery. Direct pointer-only hover remains a
+  deterministic policy assertion because the local Computer Use API exposes
+  clicks and drags rather than pointer-only motion.

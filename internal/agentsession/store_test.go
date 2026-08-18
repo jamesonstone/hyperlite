@@ -89,6 +89,39 @@ func TestAttentionDoesNotAgeExpire(t *testing.T) {
 	}
 }
 
+func TestStoreIgnoresAlreadyExpiredNewSessions(t *testing.T) {
+	now := time.Date(2026, 8, 18, 14, 0, 0, 0, time.UTC)
+	for _, test := range []struct {
+		name     string
+		phase    Phase
+		age      time.Duration
+		expected bool
+		response bool
+		request  string
+	}{
+		{name: "old completion", phase: PhaseCompleted, age: completedRetention, expected: false},
+		{name: "old processing", phase: PhaseProcessing, age: idleRetention, expected: false},
+		{name: "fresh completion", phase: PhaseCompleted, age: completedRetention - time.Second, expected: true},
+		{name: "old attention", phase: PhaseWaitingInput, age: 72 * time.Hour, expected: true},
+		{name: "old action", phase: PhaseProcessing, age: idleRetention, expected: true, response: true, request: "request"},
+		{name: "old response without id", phase: PhaseProcessing, age: idleRetention, expected: true, response: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			store := NewStore()
+			event := Event{
+				Provider: "codex", Profile: "codex", SessionID: "thread",
+				Event: "rollout", Phase: test.phase, Source: SourceRollout,
+				OccurredAt: now.Add(-test.age), ExpectsResponse: test.response,
+				RequestID: test.request, ActionKind: "approval", ActionContext: "ls", CompleteContext: true,
+			}
+			snapshot, changed := store.Apply(event, now)
+			if changed != test.expected || (len(snapshot.Sessions) == 1) != test.expected {
+				t.Fatalf("changed=%v snapshot=%#v", changed, snapshot)
+			}
+		})
+	}
+}
+
 func TestSnapshotUsesEmptyArraysAcrossTheSwiftBoundary(t *testing.T) {
 	store := NewStore()
 	now := time.Now().UTC()
