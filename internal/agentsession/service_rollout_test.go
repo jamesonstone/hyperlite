@@ -23,7 +23,7 @@ func TestStartRolloutWatchEmitsWithoutBlockingCaller(t *testing.T) {
 	errors := make(chan error)
 	returned := make(chan struct{})
 	go func() {
-		startRolloutWatch(ctx, path, Event{SessionID: "fallback", Title: "Stored task"}, events, errors)
+		startRolloutWatch(ctx, path, Event{SessionID: "thread-1", Title: "Stored task"}, events, errors)
 		close(returned)
 	}()
 	select {
@@ -38,6 +38,15 @@ func TestStartRolloutWatchEmitsWithoutBlockingCaller(t *testing.T) {
 		}
 	case <-time.After(time.Second):
 		t.Fatal("initial rollout event was not emitted")
+	}
+}
+
+func TestRolloutWatchRejectsMismatchedIdentity(t *testing.T) {
+	if event, ok := reconcileRolloutSeed(
+		Event{SessionID: "other-thread"},
+		Event{SessionID: "expected-thread"},
+	); ok {
+		t.Fatalf("mismatched rollout accepted: %#v", event)
 	}
 }
 

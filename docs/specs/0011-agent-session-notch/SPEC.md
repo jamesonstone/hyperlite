@@ -319,6 +319,13 @@ future Ping Island clients not present at the frozen baseline.
 - A resolved rollout `request_user_input` call removed its running call record
   but retained the earlier waiting phase. Matching tool output now clears the
   display-only action context and returns the rollout projection to processing.
+- A watched rollout could contain a different `session_meta` identity than the
+  app-server row that authorized the path. The watcher now rejects that event
+  before fallback enrichment or store admission rather than creating an
+  unrelated session row.
+- Pre-store expiry initially exempted response events only when they carried a
+  request ID. Every event that expects a response is now retained regardless of
+  ID completeness, so an aged but unresolved provider request cannot disappear.
 
 ## VALIDATION
 

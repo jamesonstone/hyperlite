@@ -66,7 +66,7 @@ func (s *Store) Apply(event Event, now time.Time) (Snapshot, bool) {
 }
 
 func newEventExpired(event Event, now time.Time) bool {
-	if event.Phase.NeedsAttention() || (event.ExpectsResponse && event.RequestID != "") {
+	if event.Phase.NeedsAttention() || safeAction(event) != nil || event.ExpectsResponse {
 		return false
 	}
 	retention := idleRetention

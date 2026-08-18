@@ -27,10 +27,10 @@ func startRolloutWatch(
 		if err != nil {
 			return
 		}
-		event.ParentID = firstNonempty(event.ParentID, seed.ParentID)
-		event.Title = firstNonempty(event.Title, seed.Title)
-		event.WorkspacePath = firstNonempty(event.WorkspacePath, seed.WorkspacePath)
-		event.Routing = mergeRouting(seed.Routing, event.Routing, event.WorkspacePath)
+		event, ok := reconcileRolloutSeed(event, seed)
+		if !ok {
+			return
+		}
 		select {
 		case events <- inboundEvent{event: event}:
 		case <-ctx.Done():
@@ -42,6 +42,17 @@ func startRolloutWatch(
 			sendReadError(ctx, errors, err)
 		}
 	}()
+}
+
+func reconcileRolloutSeed(event, seed Event) (Event, bool) {
+	if event.SessionID != seed.SessionID {
+		return Event{}, false
+	}
+	event.ParentID = firstNonempty(event.ParentID, seed.ParentID)
+	event.Title = firstNonempty(event.Title, seed.Title)
+	event.WorkspacePath = firstNonempty(event.WorkspacePath, seed.WorkspacePath)
+	event.Routing = mergeRouting(seed.Routing, event.Routing, event.WorkspacePath)
+	return event, true
 }
 
 func sendReadError(ctx context.Context, output chan<- error, err error) {
