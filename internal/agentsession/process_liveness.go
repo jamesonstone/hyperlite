@@ -48,11 +48,12 @@ func (l *ProcessLiveness) Observe(event Event) bool {
 		}
 		l.mu.Lock()
 		proof, ok := l.proofs[id]
-		if ok && proof.pid == pid && proof.token == token {
+		matched := ok && proof.pid == pid && proof.token == token
+		if matched {
 			delete(l.proofs, id)
 		}
 		l.mu.Unlock()
-		if ok && l.exited != nil {
+		if matched && l.exited != nil {
 			l.exited(id)
 		}
 	}(event.ProcessID, event.ProcessStart)

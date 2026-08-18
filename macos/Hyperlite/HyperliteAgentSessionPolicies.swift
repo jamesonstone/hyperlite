@@ -150,6 +150,10 @@ enum HyperliteAgentDiscoveryRefreshPolicy {
     }
 }
 
+enum HyperliteAgentVerificationPolicy {
+    static let timeoutSeconds: UInt64 = 10
+}
+
 enum HyperliteAgentSessionSelection {
     static func newestByID(
         _ sessions: [HyperliteAgentSession]

@@ -8,14 +8,16 @@ import (
 )
 
 const codexQuietPeriod = 120 * time.Second
+const codexRefreshTimeout = 30 * time.Second
 
 type CodexControllerOptions struct {
-	Environment  map[string]string
-	QuietPeriod  time.Duration
-	Now          func() time.Time
-	Emit         func(Event)
-	State        func(string, string)
-	Acknowledged func(time.Time)
+	Environment    map[string]string
+	QuietPeriod    time.Duration
+	RefreshTimeout time.Duration
+	Now            func() time.Time
+	Emit           func(Event)
+	State          func(string, string)
+	Acknowledged   func(time.Time)
 }
 
 type CodexController struct {
@@ -35,6 +37,9 @@ type CodexController struct {
 func NewCodexController(ctx context.Context, options CodexControllerOptions) *CodexController {
 	if options.QuietPeriod <= 0 {
 		options.QuietPeriod = codexQuietPeriod
+	}
+	if options.RefreshTimeout <= 0 {
+		options.RefreshTimeout = codexRefreshTimeout
 	}
 	if options.Now == nil {
 		options.Now = func() time.Time { return time.Now().UTC() }
@@ -71,13 +76,15 @@ func (c *CodexController) runRequests() {
 func (c *CodexController) Refresh(ctx context.Context) error {
 	c.refreshMu.Lock()
 	defer c.refreshMu.Unlock()
+	refreshCtx, cancel := context.WithTimeout(ctx, c.options.RefreshTimeout)
+	defer cancel()
 	client, err := c.ensureClient()
 	if err != nil {
 		c.report("disconnected", codexErrorCode(err))
 		return err
 	}
 	c.report("connected", "")
-	if err := client.discover(ctx); err != nil {
+	if err := client.discover(refreshCtx); err != nil {
 		c.report("degraded", codexErrorCode(err))
 		c.stopClient(client)
 		return err

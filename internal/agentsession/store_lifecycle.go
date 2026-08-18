@@ -28,6 +28,7 @@ func (s *Store) Expire(now time.Time) (Snapshot, bool) {
 func (s *Store) ExpireWithIDs(now time.Time) (Snapshot, []string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	now = nonzeroTime(now)
 	removed := make([]string, 0)
 	for id, session := range s.sessions {
 		if session.NeedsAttention() {
@@ -48,6 +49,7 @@ func (s *Store) ExpireWithIDs(now time.Time) (Snapshot, []string) {
 func (s *Store) Remove(id string, now time.Time) (Snapshot, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	now = nonzeroTime(now)
 	if _, ok := s.sessions[id]; !ok {
 		return s.snapshotLocked(now), false
 	}
@@ -78,6 +80,7 @@ func (s *Store) NextDeadline() (time.Time, bool) {
 func (s *Store) Snapshot(now time.Time) Snapshot {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	now = nonzeroTime(now)
 	return s.snapshotLocked(now)
 }
 
@@ -135,8 +138,9 @@ func (s *Store) evictForAdmissionLocked() bool {
 
 func boundedReason(primary, fallback string) string {
 	value := firstNonempty(primary, fallback, "state_changed")
-	if len(value) > 64 {
-		value = value[:64]
+	runes := []rune(value)
+	if len(runes) > 64 {
+		return string(runes[:64])
 	}
 	return value
 }

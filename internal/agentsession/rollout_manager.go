@@ -134,7 +134,7 @@ func (m *RolloutManager) run(options RolloutManagerOptions) {
 		}
 		budget := int64(rolloutTurnBytes)
 		if trigger.discovery {
-			if discoveryRemaining <= 0 {
+			if discoveryRemaining < rolloutChunkBytes+4*1024 {
 				return
 			}
 			if discoveryRemaining < budget {
@@ -156,7 +156,7 @@ func (m *RolloutManager) run(options RolloutManagerOptions) {
 		}
 		if changed {
 			event.rolloutCaughtUp = !more
-			registry.Update(trigger.path, event)
+			registry.Update(trigger.path, event, options.Now())
 			if options.Emit != nil {
 				options.Emit(event)
 			}

@@ -74,8 +74,12 @@ func TestServiceRoundTripUsesExactLiveResponseChannel(t *testing.T) {
 		t.Fatalf("active snapshot: %#v %v", active, err)
 	}
 	session := active.Sessions[0]
+	pending := session.CurrentAction()
+	if pending == nil {
+		t.Fatalf("active snapshot has no pending action: %#v", session)
+	}
 	request := ActionRequest{Schema: ActionSchema, Provider: "claude", SessionID: session.ID,
-		RequestID: "request-1", Revision: session.CurrentAction().Revision, Action: "allow_once"}
+		RequestID: "request-1", Revision: pending.Revision, Action: "allow_once"}
 	if err := json.NewEncoder(inputWriter).Encode(request); err != nil {
 		t.Fatal(err)
 	}
@@ -278,20 +282,4 @@ func waitForFile(t *testing.T, path string) {
 		time.Sleep(10 * time.Millisecond)
 	}
 	t.Fatalf("file did not appear: %s", path)
-}
-
-func decodeAgentSnapshot(decoder *json.Decoder, snapshot *Snapshot) error {
-	for {
-		var raw json.RawMessage
-		if err := decoder.Decode(&raw); err != nil {
-			return err
-		}
-		var envelope struct {
-			Schema string `json:"schema"`
-		}
-		if json.Unmarshal(raw, &envelope) != nil || envelope.Schema != SnapshotSchema {
-			continue
-		}
-		return json.Unmarshal(raw, snapshot)
-	}
 }

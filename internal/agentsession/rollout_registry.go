@@ -43,6 +43,7 @@ func (r *RolloutRegistry) Admit(path string, seed Event, discovered bool, now ti
 			existing.seed = mergeRolloutSeed(existing.seed, seed)
 			existing.identity = firstNonempty(identity, existing.identity)
 			existing.priority = rolloutPriority(existing.seed)
+			existing.cursor.BindSeed(existing.seed)
 			observed := nonzeroObservedTime(seed.OccurredAt, now)
 			if observed.After(existing.updatedAt) {
 				existing.updatedAt = observed
@@ -99,16 +100,18 @@ func (r *RolloutRegistry) ReleaseIdentity(identity string) int {
 	return removed
 }
 
-func (r *RolloutRegistry) Update(path string, event Event) {
+func (r *RolloutRegistry) Update(path string, event Event, now time.Time) {
 	entry, ok := r.entries[path]
 	if !ok {
 		return
 	}
-	entry.identity = Identity(event.Provider, event.SessionID)
+	if event.Provider != "" && event.SessionID != "" {
+		entry.identity = Identity(event.Provider, event.SessionID)
+	}
 	entry.seed = mergeRolloutSeed(entry.seed, event)
 	entry.cursor.BindSeed(entry.seed)
 	entry.priority = rolloutPriority(event)
-	entry.updatedAt = nonzeroObservedTime(event.OccurredAt, time.Now().UTC())
+	entry.updatedAt = nonzeroObservedTime(event.OccurredAt, now)
 }
 
 func (r *RolloutRegistry) Entry(path string) (*rolloutEntry, bool) {
@@ -184,6 +187,8 @@ func mergeRolloutSeed(current, incoming Event) Event {
 	if !incoming.OccurredAt.IsZero() {
 		current.OccurredAt = incoming.OccurredAt
 	}
+	current.AuxiliaryKind = firstNonempty(incoming.AuxiliaryKind, current.AuxiliaryKind)
+	current.HasPrompt = current.HasPrompt || incoming.HasPrompt
 	return current
 }
 

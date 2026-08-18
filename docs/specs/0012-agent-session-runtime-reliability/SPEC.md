@@ -271,8 +271,8 @@ WebSocket transport, and copies no upstream source, assets, or branding.
   --all`: PASS/no-op after reviewed managed refresh. The complete audit checked
   289 version-control-eligible handwritten source/test files with zero above
   300 physical lines.
-- `agent-session-bridge-live.sh`: PASS, run
-  `20260818T171731Z-51ffc25e`, covering private socket permissions, v2 queued
+- `agent-session-bridge-live.sh`: PASS, post-review run
+  `20260818T175113Z-d69fa9dc`, covering private socket permissions, v2 queued
   response, disconnect retraction, metadata-only self-test, large-rollout
   convergence, replacement recovery, adaptive child cleanup, fail-open hook
   delivery, and the 20-profile inventory.
@@ -282,9 +282,10 @@ WebSocket transport, and copies no upstream source, assets, or branding.
   fabricated action, three retained active watchers, and exact owner-run
   socket/child cleanup. The real Codex app-server child was separately absent
   after 122 quiet seconds while the helper remained alive.
-- Resource smoke `20260818T171733Z-b4b5b81f`: PASS for 20 seconds with 32
-  watchers and 100 sessions: 0.0000% sampled helper CPU, 23,104 KiB peak RSS,
-  zero RSS growth, 74 descriptors, 45 threads, and owner-EOF cleanup.
+- Resource smoke `20260818T175116Z-47b5379a`: PASS for 20 seconds with 32
+  watchers and 100 sessions: 0.0000% sampled helper CPU, 22,560 KiB peak RSS,
+  zero RSS growth, 74 descriptors, 47 threads, and fail-closed owner-EOF
+  cleanup.
 - Resource release acceptance: PARTIAL. The required 30-minute combined
   packaged-app/helper sample and eight-hour soak were not compressed or
   inferred. Physical pointer/display journeys and unavailable-provider smoke
@@ -321,6 +322,8 @@ does not claim the complete external release matrix.
   alone cannot preserve.
 - Artifacts: docs/specs/0012-agent-session-runtime-reliability/SPEC.md,
   docs/USER_GUIDE.md, docs/PROJECT_PROGRESS_SUMMARY.md,
-  docs/references/testing.md, and tests/RUN_STATUS.md. No Constitution update
-  was required because feature 0011 already owns the broader ephemeral and
-  event-driven project invariant.
+  docs/references/testing.md, tests/RUN_STATUS.md, docs/CONSTITUTION.md, and
+  the Kit-managed instruction support files. No feature-specific Constitution
+  rule was required because feature 0011 already owns the broader ephemeral
+  and event-driven invariant; the Constitution change is managed propagation
+  of the independent agent-completion-output contract.

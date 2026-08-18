@@ -7,6 +7,7 @@ let hyperliteAgentActionSchema = "agent_session_action.v2"
 let hyperliteAgentActionResultSchema = "agent_session_action_result.v1"
 let hyperliteAgentControlSchema = "agent_session_control.v1"
 let hyperliteAgentHealthSchema = "agent_integration_health.v1"
+let hyperliteAgentMaxPendingActions = 8
 
 enum HyperliteAgentSessionPhase: String, Codable, Equatable {
     case starting
@@ -113,7 +114,7 @@ struct HyperliteAgentIntegration: Codable, Equatable, Identifiable {
     }
 }
 
-struct HyperliteAgentIntegrationHealth: Codable, Equatable, Identifiable {
+struct HyperliteAgentIntegrationHealth: Decodable, Equatable, Identifiable {
     let schema: String
     let provider: String
     let profile: String

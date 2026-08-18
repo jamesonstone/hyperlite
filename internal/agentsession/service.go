@@ -3,6 +3,7 @@ package agentsession
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -84,6 +85,7 @@ func RunService(ctx context.Context, in io.Reader, out, errOut io.Writer, option
 	selfTests := make(chan selfTestResult, 16)
 	readErrors := make(chan error, 4)
 	go acceptEvents(serviceCtx, listener, events, readErrors)
+	closeOwnerInputOnCancel(serviceCtx, in)
 	go readServiceInput(serviceCtx, in, inputs, readErrors)
 
 	integrations := DetectIntegrations(options.Home, options.BridgePath)
@@ -223,6 +225,10 @@ func RunService(ctx context.Context, in io.Reader, out, errOut io.Writer, option
 			}
 			if readErr != nil {
 				_, _ = fmt.Fprintln(errOut, "agent session transport unavailable: transport_error")
+				var ownerErr ownerInputError
+				if errors.As(readErr, &ownerErr) {
+					return ownerErr
+				}
 			}
 		}
 	}

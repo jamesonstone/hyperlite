@@ -6,6 +6,7 @@ enum HyperliteAgentSessionCompatibilityTests {
         try testHealthRecord()
         try testControlEncoding()
         try testV1ActionEncoding()
+        try testQueueBoundAndUnknownSchema()
     }
 
     private static func testV2ActionQueue() throws {
@@ -42,6 +43,8 @@ enum HyperliteAgentSessionCompatibilityTests {
         let data = Data("""
         {"schema":"agent_integration_health.v1","provider":"codex","profile":"codex",
          "transport":"hook+app_server+rollout","connection_state":"idle",
+         "last_event_at":"2026-08-18T12:00:00.123Z",
+         "last_acknowledgement_at":"2026-08-18T12:00:01.456Z",
          "watchers_used":4,"watchers_limit":32,"filtered_count":2,"rejected_count":1,
          "self_test_result":"passed"}
         """.utf8)
@@ -50,6 +53,8 @@ enum HyperliteAgentSessionCompatibilityTests {
         }
         expect(health.watchersUsed == 4 && health.watchersLimit == 32, "watcher utilization decodes")
         expect(health.selfTestResult == "passed", "self-test acknowledgement decodes")
+        expect(health.lastEventAt != nil && health.lastAcknowledgementAt != nil,
+               "fractional health timestamps decode")
     }
 
     private static func testControlEncoding() throws {
@@ -77,6 +82,33 @@ enum HyperliteAgentSessionCompatibilityTests {
         let object = try JSONSerialization.jsonObject(with: JSONEncoder().encode(request)) as? [String: Any]
         expect(object?["schema"] as? String == hyperliteAgentActionSchemaV1,
                "v1 snapshot compatibility sends a v1 action")
+    }
+
+    private static func testQueueBoundAndUnknownSchema() throws {
+        let action = """
+        {"request_id":"one","kind":"approval","title":"First","context":"git status",
+         "complete_context":true,"can_allow_once":true,"can_deny":true,"can_answer":false,
+         "can_allow_session":false,"can_revoke":false,"revision":4}
+        """
+        let data = Data("""
+        {"schema":"agent_session_snapshot.v2","generation":10,
+         "generated_at":"2026-08-18T12:00:00Z","sessions":[{
+         "id":"claude:bounded","provider":"claude","profile":"claude-code",
+         "session_id":"bounded","project":"hyperlite","title":"Bounded",
+         "phase":"waiting_for_approval","source":"hook","revision":10,
+         "created_at":"2026-08-18T12:00:00Z","updated_at":"2026-08-18T12:00:00Z",
+         "messages":[],"actions":[\(Array(repeating: action, count: 9).joined(separator: ","))],
+         "routing":{},"open_in_client":false}],"integrations":[]}
+        """.utf8)
+        guard case let .snapshot(snapshot) = try HyperliteAgentWireRecord.decode(data) else {
+            fail("bounded snapshot expected")
+        }
+        expect(snapshot.sessions[0].actions.count == hyperliteAgentMaxPendingActions,
+               "native action queue enforces the shared bound")
+        do {
+            _ = try HyperliteAgentWireRecord.decode(Data("{\"schema\":\"unknown.v1\"}".utf8))
+            fail("unknown schema was accepted")
+        } catch { }
     }
 
     private static func expect(_ condition: @autoclosure () -> Bool, _ message: String) {

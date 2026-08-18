@@ -1,4 +1,3 @@
-import AppKit
 import Combine
 import Foundation
 
@@ -23,6 +22,7 @@ final class HyperliteAgentSessionState: ObservableObject {
     @Published private var actionSubmissions = HyperliteAgentActionSubmissionTracker()
 
     private let service: HyperliteAgentSessionProcess
+    private let verificationTimeouts = HyperliteAgentVerificationTimeouts()
     private var hasStarted = false
     private var lastDiscoveryRefreshAt = Date.distantPast
 
@@ -31,7 +31,7 @@ final class HyperliteAgentSessionState: ObservableObject {
         self.service = resolvedService
         hasConsent = UserDefaults.standard.bool(forKey: Self.consentKey)
         resolvedService.onRecord = { [weak self] record in self?.receive(record) }
-        resolvedService.onStatus = { [weak self] status in self?.processStatus = status }
+        resolvedService.onStatus = { [weak self] status in self?.receiveProcessStatus(status) }
     }
 
     func start() {
@@ -51,6 +51,7 @@ final class HyperliteAgentSessionState: ObservableObject {
         service.stop()
         snapshot = nil
         integrationHealth = [:]
+        verificationTimeouts.cancelAll()
         verifyingProfiles = []
         lastActionResult = nil
         actionSubmissions = .init()
@@ -135,31 +136,14 @@ final class HyperliteAgentSessionState: ObservableObject {
                 profile: integration.id,
                 requestID: UUID().uuidString.lowercased()
             ))
+            verificationTimeouts.start(integration.id) { [weak self] profile in
+                guard let self, verifyingProfiles.remove(profile) != nil else { return }
+                errorMessage = "Verification timed out for \(integration.name)."
+            }
         } catch {
             verifyingProfiles.remove(integration.id)
             errorMessage = error.localizedDescription
         }
-    }
-
-    func performRoute(_ session: HyperliteAgentSession) {
-        if let bundleID = HyperliteAgentRoutePolicy.effectiveBundleID(session.routing) {
-            if let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first {
-                app.activate(options: [])
-                return
-            }
-            if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
-                NSWorkspace.shared.openApplication(at: url, configuration: .init()) { _, error in
-                    guard let error else { return }
-                    Task { @MainActor [weak self] in self?.errorMessage = error.localizedDescription }
-                }
-                return
-            }
-        }
-        if let workspace = session.routing.workspacePath, !workspace.isEmpty {
-            NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: workspace)])
-            return
-        }
-        errorMessage = "The owning client could not be resolved."
     }
 
     func enableRecommendedIntegrations() {
@@ -256,6 +240,7 @@ final class HyperliteAgentSessionState: ObservableObject {
         guard hasConsent else { return }
         snapshot = nil
         integrationHealth = [:]
+        verificationTimeouts.cancelAll()
         verifyingProfiles = []
         actionSubmissions = .init()
         service.restart()
@@ -291,8 +276,19 @@ final class HyperliteAgentSessionState: ObservableObject {
             guard value.schema == hyperliteAgentHealthSchema else { return }
             integrationHealth[value.profile] = value
             if value.selfTestResult != nil {
+                verificationTimeouts.finish(value.profile)
                 verifyingProfiles.remove(value.profile)
             }
         }
+    }
+
+    func reportAgentError(_ message: String?) { errorMessage = message }
+
+    private func receiveProcessStatus(_ status: HyperliteAgentSessionProcess.Status) {
+        processStatus = status
+        guard status != .running, !verifyingProfiles.isEmpty else { return }
+        verificationTimeouts.cancelAll()
+        verifyingProfiles = []
+        errorMessage = "Integration verification stopped because the session helper is unavailable."
     }
 }

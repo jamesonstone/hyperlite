@@ -38,6 +38,9 @@ func WatchExactProcessExit(ctx context.Context, pid int, token string) error {
 	}
 	if _, err := unix.Kevent(queue, []unix.Kevent_t{processEvent, cancelEvent}, nil, nil); err != nil {
 		_ = unix.Close(queue)
+		if errors.Is(err, unix.ESRCH) {
+			return nil
+		}
 		return err
 	}
 	stopWake := make(chan struct{})

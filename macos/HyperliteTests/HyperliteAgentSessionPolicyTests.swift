@@ -24,6 +24,8 @@ enum HyperliteAgentSessionPolicyTests {
             lastRefresh: last,
             now: last.addingTimeInterval(60)
         ), "stale foreground activation rediscovers")
+        expect(HyperliteAgentVerificationPolicy.timeoutSeconds == 10,
+               "integration verification timeout stays bounded")
     }
 
     private static func testNotchVisibilityPolicy() {

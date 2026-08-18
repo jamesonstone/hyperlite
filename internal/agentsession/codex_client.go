@@ -37,7 +37,7 @@ func startCodexClient(ctx context.Context, environment map[string]string, emit f
 	if executable == "" {
 		return nil, errCodexUnavailable
 	}
-	command := exec.Command(executable, "app-server", "--stdio")
+	command := exec.CommandContext(ctx, executable, "app-server", "--stdio")
 	command.Env = mergeEnvironment(os.Environ(), environment)
 	stdin, err := command.StdinPipe()
 	if err != nil {
@@ -164,9 +164,15 @@ func (c *codexClient) read(output io.Reader) {
 			return
 		}
 	}
+	if reader.Err() != nil {
+		c.stopNow()
+	}
 }
 
 func (c *codexClient) running() bool {
+	if c.command == nil {
+		return false
+	}
 	select {
 	case <-c.done:
 		return false
@@ -176,7 +182,9 @@ func (c *codexClient) running() bool {
 }
 
 func (c *codexClient) stop() {
-	_ = c.stdin.Close()
+	if c.stdin != nil {
+		_ = c.stdin.Close()
+	}
 	if c.command.Process != nil && c.running() {
 		_ = c.command.Process.Signal(os.Interrupt)
 		select {
@@ -189,7 +197,13 @@ func (c *codexClient) stop() {
 }
 
 func (c *codexClient) stopNow() {
-	_ = c.stdin.Close()
+	if c.stdin != nil {
+		_ = c.stdin.Close()
+	}
+	if c.command == nil {
+		c.stopOnce.Do(func() { close(c.done) })
+		return
+	}
 	if c.command.Process != nil && c.running() {
 		_ = c.command.Process.Kill()
 		<-c.done

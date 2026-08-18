@@ -17,8 +17,8 @@ func (s *SnapshotScheduler) Submit(snapshot Snapshot, immediate bool, now time.T
 		s.pending = nil
 		return &snapshot, true
 	}
-	copy := snapshot
-	s.pending = &copy
+	pending := snapshot
+	s.pending = &pending
 	return nil, false
 }
 

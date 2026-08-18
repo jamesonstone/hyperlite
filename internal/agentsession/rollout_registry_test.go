@@ -35,10 +35,10 @@ func TestRolloutRegistryAdmissionEvictionAndRelease(t *testing.T) {
 	if _, exists := registry.Entry("/tmp/rollout-00.jsonl"); !exists {
 		t.Fatal("unresolved-attention watcher was evicted")
 	}
-	if removed := registry.ReleaseIdentity("codex:new"); removed != 1 || registry.Len() != 31 {
+	if removed := registry.ReleaseIdentity("codex:new"); removed != 1 || registry.Len() != maxCodexRolloutWatches-1 {
 		t.Fatalf("release removed=%d count=%d", removed, registry.Len())
 	}
-	if len(utilization) == 0 || utilization[len(utilization)-1] != 31 {
+	if len(utilization) == 0 || utilization[len(utilization)-1] != maxCodexRolloutWatches-1 {
 		t.Fatalf("utilization updates = %#v", utilization)
 	}
 }
@@ -62,12 +62,38 @@ func TestRolloutRegistryHintDoesNotDowngradeActiveWatcher(t *testing.T) {
 	registry.Admit(path, Event{Provider: "codex", SessionID: "active",
 		Phase: PhaseProcessing, OccurredAt: now}, false, now)
 	registry.Update(path, Event{Provider: "codex", SessionID: "active",
-		Phase: PhaseProcessing, OccurredAt: now.Add(time.Minute)})
+		Phase: PhaseProcessing, OccurredAt: now.Add(time.Minute)}, now)
 	registry.Admit(path, Event{Provider: "codex", SessionID: "active",
 		OccurredAt: now.Add(-time.Hour)}, false, now)
 	entry, ok := registry.Entry(path)
 	if !ok || entry.priority != 3 || !entry.updatedAt.Equal(now.Add(time.Minute)) {
 		t.Fatalf("active watcher was downgraded: %#v", entry)
+	}
+}
+
+func TestRolloutSeedMergePreservesFilteringEvidence(t *testing.T) {
+	seed := Event{Provider: "codex", SessionID: "one", AuxiliaryKind: "titleGeneration", HasPrompt: true}
+	merged := mergeRolloutSeed(seed, Event{Provider: "codex", SessionID: "one"})
+	reconciled := mustReconcileRolloutSeed(Event{Provider: "codex", SessionID: "one"}, merged)
+	if reconciled.AuxiliaryKind != "titleGeneration" || !reconciled.HasPrompt {
+		t.Fatalf("filtering evidence was lost: %#v", reconciled)
+	}
+}
+
+func TestRolloutRegistryMergeRebindsCursorAndKeepsExactIdentity(t *testing.T) {
+	registry := NewRolloutRegistry(context.Background(), nil, nil)
+	now := timeForTest()
+	path := "/tmp/rebound"
+	registry.Admit(path, Event{Provider: "codex", SessionID: "one"}, false, now)
+	registry.Admit(path, Event{Provider: "codex", SessionID: "one", Title: "Merged"}, false, now)
+	entry, ok := registry.Entry(path)
+	if !ok || entry.cursor.seed.Title != "Merged" {
+		t.Fatalf("registry merge did not rebind cursor: %#v", entry)
+	}
+	registry.Update(path, Event{Title: "Presentation only"}, now)
+	entry, ok = registry.Entry(path)
+	if !ok || entry.identity != "codex:one" {
+		t.Fatalf("registry update lost exact identity: %#v", entry)
 	}
 }
 

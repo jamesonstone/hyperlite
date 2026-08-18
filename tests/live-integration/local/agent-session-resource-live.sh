@@ -68,9 +68,11 @@ cleanup() {
       sleep 0.1
     done
     if kill -0 "$helper_pid" 2>/dev/null; then
+      printf 'helper did not stop after owner EOF\n' >&2
+      exit_code=1
       kill -TERM "$helper_pid" 2>/dev/null || true
     fi
-    wait "$helper_pid" 2>/dev/null || true
+    wait "$helper_pid" 2>/dev/null || exit_code=1
   fi
   if [[ -e "$socket" ]]; then
     printf 'owned socket remained after helper shutdown\n' >&2

@@ -54,6 +54,9 @@ func (r *sessionRuntime) close() {
 	if r.liveness != nil {
 		r.liveness.Close()
 	}
+	if r.rollouts != nil {
+		r.rollouts.Wait()
+	}
 	closePending(r.pending)
 }
 
@@ -92,7 +95,7 @@ func (r *sessionRuntime) handleEvent(received inboundEvent) error {
 	now := r.options.Now()
 	snapshot, changed := r.store.Apply(event, now)
 	if event.Source != SourceRollout || event.rolloutCaughtUp {
-		if health, healthChanged := r.health.Event(event); healthChanged {
+		if health, healthChanged := r.health.Event(event, now); healthChanged {
 			if err := r.emitter.encode(health); err != nil {
 				return err
 			}
@@ -103,6 +106,7 @@ func (r *sessionRuntime) handleEvent(received inboundEvent) error {
 		if !changed {
 			return r.emitSelfTest(event.Profile, "failed", "store_rejected")
 		}
+		r.reconcileRemoved(snapshot)
 		if err := r.emitSnapshot(snapshot, true); err != nil {
 			return err
 		}
@@ -113,6 +117,7 @@ func (r *sessionRuntime) handleEvent(received inboundEvent) error {
 		if err := r.emitSnapshot(removed, true); err != nil {
 			return err
 		}
+		r.reconcileRemoved(removed)
 		return r.emitSelfTest(event.Profile, "passed", "")
 	}
 	r.observeResponseChannel(event, received.conn, snapshot)

@@ -12,6 +12,22 @@ type serviceInput struct {
 	control *ControlRequest
 }
 
+type ownerInputError struct{ err error }
+
+func (e ownerInputError) Error() string { return "agent session owner input failed" }
+func (e ownerInputError) Unwrap() error { return e.err }
+
+func closeOwnerInputOnCancel(ctx context.Context, input io.Reader) {
+	closer, ok := input.(io.ReadCloser)
+	if !ok {
+		return
+	}
+	go func() {
+		<-ctx.Done()
+		_ = closer.Close()
+	}()
+}
+
 func readServiceInput(ctx context.Context, input io.Reader, output chan<- serviceInput, errors chan<- error) {
 	scanner := bufio.NewScanner(input)
 	scanner.Buffer(make([]byte, 4096), MaxHookPayload)
@@ -46,7 +62,7 @@ func readServiceInput(ctx context.Context, input io.Reader, output chan<- servic
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		sendReadError(ctx, errors, err)
+		sendReadError(ctx, errors, ownerInputError{err: err})
 	} else {
 		sendReadError(ctx, errors, io.EOF)
 	}

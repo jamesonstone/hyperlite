@@ -107,7 +107,7 @@ struct HyperliteAgentSession: Decodable, Equatable, Identifiable {
         messages = try values.decode([HyperliteAgentMessage].self, forKey: .messages)
         latestResult = try values.decodeIfPresent(String.self, forKey: .latestResult)
         if let queued = try values.decodeIfPresent([HyperliteAgentPendingAction].self, forKey: .actions) {
-            actions = Array(queued.prefix(8))
+            actions = Array(queued.prefix(hyperliteAgentMaxPendingActions))
         } else if let legacy = try values.decodeIfPresent(HyperliteAgentPendingAction.self, forKey: .action) {
             actions = [legacy]
         } else {
@@ -154,7 +154,7 @@ struct HyperliteAgentSessionSnapshot: Decodable, Equatable {
     }
 }
 
-struct HyperliteAgentActionRequest: Codable, Equatable {
+struct HyperliteAgentActionRequest: Encodable, Equatable {
     let schema: String
     let provider: String
     let sessionID: String
@@ -188,7 +188,7 @@ struct HyperliteAgentActionRequest: Codable, Equatable {
     }
 }
 
-struct HyperliteAgentControlRequest: Codable, Equatable {
+struct HyperliteAgentControlRequest: Encodable, Equatable {
     let schema = hyperliteAgentControlSchema
     let operation: String
     let profile: String?
@@ -200,7 +200,7 @@ struct HyperliteAgentControlRequest: Codable, Equatable {
     }
 }
 
-struct HyperliteAgentActionResult: Codable, Equatable {
+struct HyperliteAgentActionResult: Decodable, Equatable {
     let schema: String
     let sessionID: String
     let requestID: String
@@ -221,17 +221,21 @@ enum HyperliteAgentWireRecord: Equatable {
     case health(HyperliteAgentIntegrationHealth)
 
     static func decode(_ data: Data) throws -> HyperliteAgentWireRecord {
-        let envelope = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        let schema = envelope?["schema"] as? String
-        switch schema {
+        let decoder = HyperliteJSON.decoder
+        let envelope = try decoder.decode(HyperliteAgentWireEnvelope.self, from: data)
+        switch envelope.schema {
         case hyperliteAgentSnapshotSchema, hyperliteAgentSnapshotSchemaV1:
-            return .snapshot(try HyperliteJSON.decoder.decode(HyperliteAgentSessionSnapshot.self, from: data))
+            return .snapshot(try decoder.decode(HyperliteAgentSessionSnapshot.self, from: data))
         case hyperliteAgentActionResultSchema:
-            return .actionResult(try HyperliteJSON.decoder.decode(HyperliteAgentActionResult.self, from: data))
+            return .actionResult(try decoder.decode(HyperliteAgentActionResult.self, from: data))
         case hyperliteAgentHealthSchema:
-            return .health(try HyperliteJSON.decoder.decode(HyperliteAgentIntegrationHealth.self, from: data))
+            return .health(try decoder.decode(HyperliteAgentIntegrationHealth.self, from: data))
         default:
             throw DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "unknown agent wire schema"))
         }
     }
+}
+
+private struct HyperliteAgentWireEnvelope: Decodable {
+    let schema: String
 }

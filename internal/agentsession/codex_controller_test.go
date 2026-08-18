@@ -1,6 +1,7 @@
 package agentsession
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"path/filepath"
@@ -47,7 +48,7 @@ done
 		Environment: map[string]string{
 			"HOME": directory, "PATH": directory + ":/bin:/usr/bin", "TEST_START_LOG": startLog,
 		},
-		QuietPeriod: 80 * time.Millisecond,
+		QuietPeriod: 500 * time.Millisecond,
 		Emit: func(event Event) {
 			mu.Lock()
 			events = append(events, event)
@@ -73,7 +74,7 @@ done
 		t.Fatalf("paginated events = %#v", events)
 	}
 	mu.Unlock()
-	waitForCondition(t, time.Second, func() bool { return !controller.Running() }, "Codex quiet shutdown")
+	waitForCondition(t, 2*time.Second, func() bool { return !controller.Running() }, "Codex quiet shutdown")
 	if err := controller.Refresh(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -108,20 +109,66 @@ done
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	var mu sync.Mutex
 	var errorCode string
 	controller := NewCodexController(ctx, CodexControllerOptions{
 		Environment: map[string]string{"HOME": directory, "PATH": directory + ":/bin:/usr/bin"},
 		State: func(_, code string) {
+			mu.Lock()
+			defer mu.Unlock()
 			if code != "" {
 				errorCode = code
 			}
 		},
 	})
-	if err := controller.Refresh(ctx); err == nil || errorCode != "unsupported_method" {
-		t.Fatalf("unsupported refresh err=%v code=%q", err, errorCode)
+	err := controller.Refresh(ctx)
+	mu.Lock()
+	code := errorCode
+	mu.Unlock()
+	if err == nil || code != "unsupported_method" {
+		t.Fatalf("unsupported refresh err=%v code=%q", err, code)
 	}
 	if controller.Running() {
 		t.Fatal("unsupported app-server remained running")
+	}
+}
+
+func TestCodexControllerBoundsRefresh(t *testing.T) {
+	directory := t.TempDir()
+	executable := filepath.Join(directory, "codex")
+	script := `#!/bin/sh
+IFS= read -r initialize
+printf '%s\n' '{"id":1,"result":{}}'
+IFS= read -r initialized
+IFS= read -r list
+IFS= read -r never
+	`
+	if err := os.WriteFile(executable, []byte(script), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	controller := NewCodexController(ctx, CodexControllerOptions{
+		Environment:    map[string]string{"HOME": directory, "PATH": directory + ":/bin:/usr/bin"},
+		RefreshTimeout: 200 * time.Millisecond,
+	})
+	if err := controller.Refresh(ctx); err == nil {
+		t.Fatal("timed-out refresh unexpectedly succeeded")
+	}
+	if controller.Running() {
+		t.Fatal("timed-out refresh retained Codex child")
+	}
+	controller.Stop()
+}
+
+func TestCodexClientStopsOnScannerFailure(t *testing.T) {
+	client := &codexClient{done: make(chan struct{}), responses: make(chan codexRPCMessage, 1)}
+	line := append(bytes.Repeat([]byte("x"), maxAppServerMessage+1), '\n')
+	client.read(bytes.NewReader(line))
+	select {
+	case <-client.done:
+	default:
+		t.Fatal("scanner failure did not terminate the client")
 	}
 }
 

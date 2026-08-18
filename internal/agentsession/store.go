@@ -144,14 +144,14 @@ func applyEvent(current Session, exists bool, id string, event Event) Session {
 }
 
 func applyEventContent(current *Session, event Event) {
+	if event.Source == SourceRollout && len(event.Messages) > 0 {
+		current.Messages = []Message{}
+	}
 	if role := displayRole(event.MessageRole); role != "" {
 		text := BoundDisplayText(event.Message, maxMessageRunes)
 		if text != "" {
 			current.Messages = append(current.Messages, Message{Role: role, Text: text})
 		}
-	}
-	if event.Source == SourceRollout && len(event.Messages) > 0 {
-		current.Messages = []Message{}
 	}
 	for _, message := range event.Messages {
 		role := displayRole(message.Role)
@@ -193,6 +193,8 @@ func upsertPendingAction(values []PendingAction, incoming PendingAction) ([]Pend
 
 func sameSessionProjection(left, right Session) bool {
 	left.Revision, right.Revision = 0, 0
+	left.CreatedAt, right.CreatedAt = left.CreatedAt.UTC().Round(0), right.CreatedAt.UTC().Round(0)
+	left.UpdatedAt, right.UpdatedAt = left.UpdatedAt.UTC().Round(0), right.UpdatedAt.UTC().Round(0)
 	return reflect.DeepEqual(left, right)
 }
 

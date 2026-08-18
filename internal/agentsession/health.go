@@ -32,11 +32,10 @@ func (s *HealthState) All() []IntegrationHealth {
 	return result
 }
 
-func (s *HealthState) Event(event Event) (IntegrationHealth, bool) {
+func (s *HealthState) Event(event Event, observedAt time.Time) (IntegrationHealth, bool) {
 	profile := firstNonempty(event.Profile, event.Provider)
 	return s.update(profile, func(value *IntegrationHealth) {
-		observed := event.OccurredAt
-		value.LastEventAt = &observed
+		value.LastEventAt = &observedAt
 		value.ConnectionState = "connected"
 		value.ErrorCode = ""
 	})

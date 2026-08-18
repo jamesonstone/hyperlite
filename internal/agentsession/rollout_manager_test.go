@@ -22,7 +22,12 @@ func TestRolloutManagerRefreshesExistingAndObservesAppend(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	events := make(chan Event, 16)
 	manager := StartRolloutManager(ctx, RolloutManagerOptions{
-		Home: home, Emit: func(event Event) { events <- event },
+		Home: home, Emit: func(event Event) {
+			select {
+			case events <- event:
+			default:
+			}
+		},
 	})
 	defer func() {
 		cancel()

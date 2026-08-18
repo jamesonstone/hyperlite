@@ -1,6 +1,7 @@
 package agentsession
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -113,11 +114,17 @@ func TestServiceInputAcceptsV1AndV2Actions(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		var envelope struct {
-			Schema string `json:"schema"`
-		}
-		if json.Unmarshal(data, &envelope) != nil || envelope.Schema != schema {
-			t.Fatalf("action schema %q did not round trip", schema)
+		data = append(data, '\n')
+		output := make(chan serviceInput, 1)
+		errors := make(chan error, 1)
+		readServiceInput(context.Background(), bytes.NewReader(data), output, errors)
+		select {
+		case decoded := <-output:
+			if decoded.action == nil || decoded.action.Schema != schema {
+				t.Fatalf("action schema %q was not decoded: %#v", schema, decoded)
+			}
+		default:
+			t.Fatalf("action schema %q did not reach service input", schema)
 		}
 	}
 }

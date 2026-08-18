@@ -20,7 +20,11 @@ func (c *RolloutCursor) consume(data []byte, now time.Time, rowBudget int) (int,
 		}
 		if value == '\n' {
 			c.consumeLine(c.partial, now)
-			c.partial = c.partial[:0]
+			if cap(c.partial) > rolloutChunkBytes {
+				c.partial = nil
+			} else {
+				c.partial = c.partial[:0]
+			}
 			rows++
 			if rows >= rowBudget {
 				return index + 1, rows
@@ -93,6 +97,8 @@ func mustReconcileRolloutSeed(event, seed Event) Event {
 	event.Title = firstNonempty(event.Title, seed.Title)
 	event.WorkspacePath = firstNonempty(event.WorkspacePath, seed.WorkspacePath)
 	event.Routing = mergeRouting(seed.Routing, event.Routing, event.WorkspacePath)
+	event.AuxiliaryKind = firstNonempty(event.AuxiliaryKind, seed.AuxiliaryKind)
+	event.HasPrompt = event.HasPrompt || seed.HasPrompt
 	return event
 }
 
