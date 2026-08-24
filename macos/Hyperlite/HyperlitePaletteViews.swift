@@ -6,6 +6,7 @@ struct HyperliteCommandPalette: View {
     let projects: [HyperliteProjectLocation]
     let pullRequests: HyperliteProjectPullRequestScan?
     @ObservedObject var notepad: HyperliteNotepadState
+    @ObservedObject var agentIsland: HyperliteAgentIslandPreference
     let onAction: (HyperlitePaletteAction) -> Void
     let onDismiss: () -> Void
 
@@ -17,7 +18,10 @@ struct HyperliteCommandPalette: View {
     private var unfilteredEntries: [HyperlitePaletteEntry] {
         switch mode {
         case .commands:
-            return HyperliteInteractionModel.commandEntries(threads: threads)
+            return HyperliteInteractionModel.commandEntries(
+                threads: threads,
+                agentIslandEnabled: agentIsland.isEnabled
+            )
         case .projects:
             let effectiveExpansion = HyperliteInteractionModel.effectiveProjectExpansion(
                 projects: projects,
@@ -41,9 +45,9 @@ struct HyperliteCommandPalette: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             paletteHeader
-            paletteDivider
+            HyperliteThemeDivider()
             entryList
-            paletteDivider
+            HyperliteThemeDivider()
             HStack(spacing: 12) {
                 Text("↑↓ navigate")
                 Text("Enter select")
@@ -291,9 +295,4 @@ struct HyperliteCommandPalette: View {
         return false
     }
 
-    private var paletteDivider: some View {
-        Rectangle()
-            .fill(HyperliteTheme.mutedText.color.opacity(0.32))
-            .frame(height: 1)
-    }
 }

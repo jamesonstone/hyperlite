@@ -13,7 +13,7 @@ struct HyperliteWorkspaceControl: View {
                 .labelStyle(.iconOnly)
                 .tag(HyperliteWorkspace.pinboard)
             if HyperliteFeatureFlags.agentSessionPresentation {
-                Label("Sessions", systemImage: "terminal.fill")
+                Label("Agent Tasks", systemImage: "terminal.fill")
                     .labelStyle(.iconOnly)
                     .tag(HyperliteWorkspace.sessions)
             }
@@ -33,7 +33,7 @@ struct HyperliteWorkspaceControl: View {
         switch workspace {
         case .dashboard: "Dashboard (⌘1)"
         case .pinboard: "Pinboard (⌘2)"
-        case .sessions: "Sessions (⌘3)"
+        case .sessions: "Agent Tasks (⌘3)"
         }
     }
 }

@@ -35,6 +35,13 @@
 - Use native agent planning for research, clarification, design, and implementation planning
 - Treat repo-local markdown under `docs/` as persistent repository memory
 
+## Multi-Agent Orchestration Evaluation Hard Gate
+
+- Before finalizing any native implementation plan for a new feature, a substantial architectural or behavioral change, or a multi-file refactor, load `docs/references/rules/agent-team-orchestration.md` and evaluate whether the work benefits from multi-agent or parallel decomposition using that rule's lifecycle and semantic capability profiles.
+- A single mechanical edit, a direct question, or read-only research that never forms an implementation plan does not trigger this gate.
+- Record the decision before the plan is finalized: either a multi-lane Agent Team Plan, or `single-lane, because <reason>` using that rule's single-lane criteria. Never skip the evaluation silently, even when the recorded answer is single-lane.
+- This gate fires during plan formation and precedes the Work Lane Mutation Hard Gate below, which fires later, before the first repository mutation.
+
 ## Work Lane Mutation Hard Gate
 
 - Before any coding-agent repository file or delivery mutation, including issue, branch, staging, commit, push, worktree, and pull-request mutations, load `docs/agents/GUARDRAILS.md` and `work-lane-gating` first, complete read-only safety recon, then ask exactly: "Before I make any repository changes, should I create a new GitHub issue, GH-<issue-number> branch, canonical worktree, and pull request for this work, or continue in the existing branch/worktree and land it through that branch's pull request?"
@@ -75,11 +82,11 @@
 
 - Before a terminal task response, load `docs/references/rules/agent-completion-output.md` when present. This contract does not apply to progress commentary or focused clarification questions.
 - Make the first human-readable line `# PASS|PARTIAL|BLOCKED|FAIL — <one-sentence outcome>`. A required host wrapper may surround the response, but no human-readable preamble may precede the status.
-- Immediately follow with a table whose columns are `Type | Action required | Why | Continue with`. Order rows Blocker, Incomplete, Next, Optional, then None; every PASS includes a None row.
-- Make required follow-ups copy-ready. Never leave table cells blank or hide blockers and incomplete work below completed detail.
+- Immediately follow with a prioritized action list ordered Blocker, Incomplete, Next, Optional, then None; every PASS includes a None item.
+- Give every item indented `Why:` and `Continue with:` lines. Make required follow-ups copy-ready, and never hide blockers or incomplete work below completed detail.
 - Use PASS only for complete scope and required validation, PARTIAL for usable incomplete work, BLOCKED for a specific external dependency, and FAIL for an unresolved known failure without an external stopping dependency.
 - Preserve native evidence states such as PENDING, UNKNOWN, SKIPPED, and NOT_APPLICABLE literally.
-- After the action table, use left-aligned headings and CommonMark list or key/value blocks. Do not use another Markdown pipe table unless a higher-priority schema requires it.
+- After the action list, use left-aligned headings and CommonMark list or key/value blocks. Do not use a Markdown pipe table unless a higher-priority schema requires it.
 - Select one primary profile from the requested deliverable: implementation, research, diagnosis, planning, validation, review, operations, coordination, or fallback. Start each detail item with a short bold lead label and put long rationale on indented continuation lines.
 - Preserve every field required by active delivery, validation, repository-memory, orchestration, program, and environment contracts inside the canonical profile blocks.
 

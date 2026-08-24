@@ -22,6 +22,7 @@ enum HyperlitePaletteAction: Equatable {
     case showDashboard
     case showPinboard
     case showSessions
+    case toggleAgentIsland
     case addPinboardNote
     case addPinboardSection
     case openPinboardArchive
@@ -69,7 +70,10 @@ struct HyperlitePaletteEntry: Equatable, Identifiable {
 }
 
 enum HyperliteInteractionModel {
-    static func commandEntries(threads: [HyperliteThread]) -> [HyperlitePaletteEntry] {
+    static func commandEntries(
+        threads: [HyperliteThread],
+        agentIslandEnabled: Bool
+    ) -> [HyperlitePaletteEntry] {
         var entries = [
             actionEntry(
                 "action:show-dashboard", "Show Dashboard", "Switch to Dashboard · ⌘1",
@@ -115,9 +119,18 @@ enum HyperliteInteractionModel {
         ]
         if HyperliteFeatureFlags.agentSessionPresentation {
             entries.insert(actionEntry(
-                "action:show-sessions", "Show Sessions", "Switch to Agent Sessions · ⌘3",
+                "action:show-sessions", "Show Agent Tasks", "Switch to Agent Tasks · ⌘3",
                 "terminal.fill", .showSessions
             ), at: 2)
+            entries.insert(actionEntry(
+                "action:toggle-agent-island",
+                agentIslandEnabled ? "Turn Agent Island Off" : "Turn Agent Island On",
+                agentIslandEnabled
+                    ? "Hide the floating island; Agent Tasks keeps tracking"
+                    : "Show live agent status at the Mac notch or top edge",
+                "rectangle.topthird.inset.filled",
+                .toggleAgentIsland
+            ), at: 3)
         }
         entries.append(contentsOf: threads.map { thread in
             actionEntry(

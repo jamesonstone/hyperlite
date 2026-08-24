@@ -2,14 +2,28 @@ import SwiftUI
 
 struct HyperliteAgentSessionSettings: View {
     @ObservedObject var state: HyperliteAgentSessionState
+    @ObservedObject var agentIsland: HyperliteAgentIslandPreference
     @AppStorage("hyperlite.agent-session-sounds") private var agentSounds = false
     @AppStorage("hyperlite.agent-session-notifications") private var agentNotifications = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            Toggle(isOn: islandBinding) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Show Agent Island")
+                    Text("Show live agent status at the Mac notch or top edge.")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .toggleStyle(.switch)
+            .accessibilityLabel("Show Agent Island")
+            .accessibilityHint("Controls only the floating island. Agent Tasks keeps tracking.")
+            .accessibilityValue(agentIsland.isEnabled ? "On" : "Off")
+            Divider()
             if !state.hasConsent {
                 Label(
-                    "Review the detected integrations, then start Agent Sessions.",
+                    "Review the detected integrations, then start Agent Tasks.",
                     systemImage: "info.circle"
                 )
                 .font(.system(size: 11))
@@ -20,7 +34,7 @@ struct HyperliteAgentSessionSettings: View {
                 Button("Check Again", action: state.refreshIntegrations)
                     .disabled(state.isDetectingIntegrations || state.isUpdatingIntegrations)
                 if !state.hasConsent {
-                    Button("Start Agent Sessions", action: state.completeOnboarding)
+                    Button("Start Agent Tasks", action: state.completeOnboarding)
                         .buttonStyle(.borderedProminent)
                 }
                 Spacer()
@@ -46,6 +60,10 @@ struct HyperliteAgentSessionSettings: View {
         .onAppear {
             if state.integrations.isEmpty { state.refreshIntegrations() }
         }
+    }
+
+    private var islandBinding: Binding<Bool> {
+        Binding(get: { agentIsland.isEnabled }, set: agentIsland.setEnabled)
     }
 
     @ViewBuilder
@@ -133,7 +151,7 @@ struct HyperliteAgentSessionSettings: View {
 
     private func healthSummary(_ integration: HyperliteAgentIntegration) -> String {
         guard let health = state.integrationHealth[integration.id] else {
-            return "Runtime health will appear after Agent Sessions starts."
+            return "Runtime health will appear after Agent Tasks starts."
         }
         var parts = [health.connectionState.replacingOccurrences(of: "_", with: " ").capitalized]
         if health.watchersLimit > 0 {
