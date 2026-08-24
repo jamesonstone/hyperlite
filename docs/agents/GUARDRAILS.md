@@ -9,6 +9,38 @@
 - Never mix multiple features in one `docs/specs/<feature>/` directory
 - Update docs first when reality diverges from documented behavior
 
+## Multi-Agent Orchestration Evaluation Hard Gate
+
+Before a coding agent finalizes any native implementation plan for a new
+feature, a substantial architectural or behavioral change, or a multi-file
+refactor, it must:
+
+1. Load `docs/references/rules/agent-team-orchestration.md` and
+   enter its `CAPABILITY_NEGOTIATING` state.
+2. Evaluate whether the work benefits from multi-agent or parallel
+   decomposition using that rule's lifecycle and semantic capability
+   profiles (`architect`, `orchestrator`, `mapper`,
+   `specialist`, `precision`, `verifier`).
+3. Record the decision before the plan is finalized:
+   - a multi-lane Agent Team Plan / Lane Manifest, using that rule's
+     existing artifact; or
+   - `single-lane, because <reason>`, using that rule's existing
+     single-lane criteria: trivial, tightly coupled, high-overlap, requires
+     continuous design judgment, the user requested single-agent execution,
+     or the active host does not confirm separate execution.
+
+- This gate is mandatory even when the recorded answer is single-lane. A
+  single mechanical edit, a direct question, or read-only research that
+  never forms an implementation plan does not trigger it.
+- This gate fires during native plan formation, before the plan is
+  finalized. It precedes the Work Lane Mutation Hard Gate below, which fires
+  later, before the first repository mutation.
+- Never treat this evaluation as permission to force parallel execution on
+  work that does not need it; a recorded single-lane decision remains a
+  fully valid outcome.
+
+---
+
 ## Work Lane Mutation Hard Gate
 
 Before a coding agent performs any repository file or delivery mutation, it
@@ -192,11 +224,11 @@ Before AWS-dependent work, load `docs/references/rules/aws-agent-toolkit-guidanc
 
 - Before a terminal task response, load `docs/references/rules/agent-completion-output.md` when present. This contract does not apply to progress commentary or focused clarification questions.
 - Make the first human-readable line `# PASS|PARTIAL|BLOCKED|FAIL — <one-sentence outcome>`. A required host wrapper may surround the response, but no human-readable preamble may precede the status.
-- Immediately follow with a table whose columns are `Type | Action required | Why | Continue with`. Order rows Blocker, Incomplete, Next, Optional, then None; every PASS includes a None row.
-- Make required follow-ups copy-ready. Never leave table cells blank or hide blockers and incomplete work below completed detail.
+- Immediately follow with a prioritized action list ordered Blocker, Incomplete, Next, Optional, then None; every PASS includes a None item.
+- Give every item indented `Why:` and `Continue with:` lines. Make required follow-ups copy-ready, and never hide blockers or incomplete work below completed detail.
 - Use PASS only for complete scope and required validation, PARTIAL for usable incomplete work, BLOCKED for a specific external dependency, and FAIL for an unresolved known failure without an external stopping dependency.
 - Preserve native evidence states such as PENDING, UNKNOWN, SKIPPED, and NOT_APPLICABLE literally.
-- After the action table, use left-aligned headings and CommonMark list or key/value blocks. Do not use another Markdown pipe table unless a higher-priority schema requires it.
+- After the action list, use left-aligned headings and CommonMark list or key/value blocks. Do not use a Markdown pipe table unless a higher-priority schema requires it.
 - Select one primary profile from the requested deliverable: implementation, research, diagnosis, planning, validation, review, operations, coordination, or fallback. Start each detail item with a short bold lead label and put long rationale on indented continuation lines.
 - Preserve every field required by active delivery, validation, repository-memory, orchestration, program, and environment contracts inside the canonical profile blocks.
 

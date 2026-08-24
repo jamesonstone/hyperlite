@@ -15,6 +15,7 @@ struct HyperliteInteractionModelTests {
         testProcessEnvironment()
         HyperliteWorkspaceSizingTests.run()
         try HyperliteAgentSessionTests.run()
+        HyperliteAgentIslandTests.run()
         try await HyperlitePinboardTests.run()
         HyperliteTypographyTests.run()
         try HyperliteProjectIndexTests.run()

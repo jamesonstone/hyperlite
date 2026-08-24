@@ -22,7 +22,7 @@ or scan a source path directly with `hyperlite scan /path/to/projects`.
 
 The release presentation has three full-content workspaces beneath one shared
 header. Dashboard keeps the existing notes, open pull requests, and projects
-surface. Pinboard is a separate private spatial-notes surface. Sessions shows
+surface. Pinboard is a separate private spatial-notes surface. Agent Tasks shows
 ephemeral local coding-agent activity. Use the compact segmented control beside
 the Hyperlite title or `Command+1`, `Command+2`, and `Command+3` to switch
 without changing Dashboard data or preferences.
@@ -53,13 +53,27 @@ Pinned tasks load at startup, recheck changed source signatures after foreground
 activation, and join explicit Refresh actions. Hyperlite does not poll or watch
 Codex files, read transcripts, navigate to tasks, or mutate Codex state.
 
-### Agent sessions
+### Agent Tasks and Agent Island
 
 The agent-session surface is a separate local runtime projection. It does not
 change pinned Codex membership, inferred project threads, project attention,
 or any repository. A Go helper owns exact session identity, provider ingress,
 redaction, response revision checks, expiry, and routing-only persistence. The
 native app consumes versioned sanitized snapshots.
+
+Agent Tasks is the third full-window workspace after Pinboard. It shows only
+current starting, processing, approval, input, or idle work and groups those
+rows by exact client profile, so clients such as Claude Code and Cursor remain
+separate even when they share an integration adapter. Recent completions,
+errors, ended rows, and metadata-only verification rows do not appear there.
+
+`Show Agent Island` in Settings is on by default. Turning it off closes the
+floating notch or top-edge panel on every display while session discovery,
+Agent Tasks, event sounds, and opt-in metadata-only notifications continue.
+The next launch opens the regular Dashboard when consent already exists.
+Command-K exposes the matching `Turn Agent Island Off` or `Turn Agent Island
+On` action. This preference controls presentation only; integration consent
+and `HYPERLITE_AGENT_SESSIONS_PREVIEW=0` remain the broader runtime gates.
 
 On first agent-session launch, a centered welcome offers Enable Recommended,
 Review in Settings, and Not Now. Hyperlite performs one bounded detection-only
@@ -83,7 +97,7 @@ pill to open the mini workspace. A newly urgent approval or input request may
 expand once, and active pointer, keyboard, or text-field interaction pauses
 timed dismissal. A physical-notch surface stays black while the revealed
 notchless fallback uses native material and shadow.
-The companion or Sessions workspace may show at most six
+The companion or Agent Tasks workspace may show at most six
 recent user/assistant messages, each capped at 2,000 characters, plus an 8,000-
 character latest final result or decision context. Native system typography is
 used for chrome and controls, while technical content remains monospaced.
@@ -293,11 +307,12 @@ agent input.
 
 - `Command+1` shows Dashboard.
 - `Command+2` shows Pinboard.
-- `Command+3` shows Sessions unless agent sessions were explicitly disabled.
+- `Command+3` shows Agent Tasks unless agent sessions were explicitly disabled.
 - `Command+R` refreshes the focused Hyperlite application.
 - `Command+K` opens a searchable command palette with Show Dashboard, Show
-  Pinboard, Add Pinboard Note, Add Pinboard Section, Open Pinboard Archive,
-  Refresh, Force Cache Refresh, Settings, Add Project, Remove Project, and
+  Pinboard, Show Agent Tasks, Turn Agent Island On or Off, Add Pinboard Note,
+  Add Pinboard Section, Open Pinboard Archive, Refresh, Force Cache Refresh,
+  Settings, Add Project, Remove Project, and
   exact or on-device semantic matches from pinned and daily note filenames,
   dates, and contents.
   Force Cache Refresh retries every configured GitHub repository regardless of

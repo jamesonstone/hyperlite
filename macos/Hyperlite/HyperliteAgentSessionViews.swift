@@ -4,8 +4,14 @@ struct HyperliteAgentSessionsWorkspace: View {
     @ObservedObject var state: HyperliteAgentSessionState
     @State private var selectedID: String?
 
+    private var groups: [HyperliteAgentTaskGroup] {
+        HyperliteAgentTaskPresentation.groups(
+            sessions: state.snapshot?.sessions ?? [],
+            integrations: state.snapshot?.integrations ?? state.integrations
+        )
+    }
     private var sessions: [HyperliteAgentSession] {
-        (state.snapshot?.sessions ?? []).filter { !$0.synthetic }
+        groups.flatMap(\.sessions)
     }
     private var selected: HyperliteAgentSession? {
         if let selectedID, let match = sessions.first(where: { $0.id == selectedID }) {
@@ -43,7 +49,7 @@ struct HyperliteAgentSessionsWorkspace: View {
 
     private var title: some View {
         HStack(spacing: 8) {
-            Label("Agent Sessions", systemImage: "terminal.fill")
+            Label("Agent Tasks", systemImage: "terminal.fill")
                 .font(.system(size: 15, weight: .semibold))
             Spacer()
             if state.hasConsent {
@@ -57,7 +63,7 @@ struct HyperliteAgentSessionsWorkspace: View {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
-                .accessibilityLabel("Refresh agent sessions")
+                .accessibilityLabel("Refresh agent tasks")
                 Button("Manage Integrations…", action: openHyperliteSettings)
                     .buttonStyle(.bordered)
                     .controlSize(.small)
@@ -136,22 +142,35 @@ struct HyperliteAgentSessionsWorkspace: View {
 
     private var sessionContent: some View {
         HStack(alignment: .top, spacing: 12) {
-            if sessions.isEmpty {
+            if groups.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "terminal")
                         .font(.system(size: 26))
                         .foregroundStyle(.secondary)
-                    Text("No Current Sessions")
+                    Text("No Active Agent Tasks")
                         .font(.system(size: 15, weight: .semibold))
-                    Text("Sessions appear here while supported coding agents are active.")
+                    Text("Tasks appear here while supported coding agents are active.")
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List(sessions, selection: $selectedID) { session in
-                    HyperliteAgentSessionRow(session: session)
-                        .tag(session.id)
+                List(selection: $selectedID) {
+                    ForEach(groups) { group in
+                        Section {
+                            ForEach(group.sessions) { session in
+                                HyperliteAgentSessionRow(session: session)
+                                    .tag(session.id)
+                            }
+                        } header: {
+                            HStack(spacing: 5) {
+                                Text(group.displayName)
+                                Text("\(group.sessions.count)")
+                                    .foregroundStyle(.tertiary)
+                            }
+                            .accessibilityElement(children: .combine)
+                        }
+                    }
                 }
                 .listStyle(.sidebar)
                 .scrollContentBackground(.hidden)
@@ -177,7 +196,7 @@ struct HyperliteAgentSessionRow: View {
                 Text(session.displayTitle)
                     .font(.system(size: 12, weight: .medium))
                     .lineLimit(2)
-                Text("\(session.profile) · \(session.phase.label)")
+                Text(rowContext)
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -186,5 +205,11 @@ struct HyperliteAgentSessionRow: View {
         .padding(.vertical, 3)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(HyperliteAgentAccessibilityPolicy.sessionLabel(session))
+    }
+
+    private var rowContext: String {
+        [session.title.isEmpty ? "" : session.project, session.phase.label]
+            .filter { !$0.isEmpty }
+            .joined(separator: " · ")
     }
 }

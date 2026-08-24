@@ -20,7 +20,10 @@
   coalescing, resolved-input transitions, pre-store expiry, and redaction.
 - Swift executable tests cover v1/v2 agent snapshot decoding, queued action
   identity, health/control records, stale foreground refresh policy, and
-  physical notch versus top-edge geometry.
+  physical notch versus top-edge geometry. They also cover the default-on
+  persisted Agent Island preference, consent/preference launch policy,
+  live-only Agent Tasks filtering, exact client-profile grouping, deterministic
+  group order, workspace order, and dynamic command-palette labels.
 - A read-only local live-integration suite validates recovery of the selected
   R2 and Event Sink goal threads against current repository and GitHub
   evidence.

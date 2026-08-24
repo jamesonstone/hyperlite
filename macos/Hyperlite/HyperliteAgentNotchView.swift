@@ -106,7 +106,7 @@ struct HyperliteAgentNotchView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(collapsedAccessibilityLabel)
-        .help("Show agent sessions")
+        .help("Show Agent Tasks")
     }
 
     private var collapsedAccessibilityLabel: String {
@@ -117,7 +117,7 @@ struct HyperliteAgentNotchView: View {
     private var expandedContent: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
-                Label("Agent Sessions", systemImage: "terminal.fill")
+                Label("Agent Tasks", systemImage: "terminal.fill")
                     .font(.system(size: 13, weight: .semibold))
                 Spacer()
                 Button("Open Hyperlite") {
@@ -129,11 +129,11 @@ struct HyperliteAgentNotchView: View {
                 .controlSize(.small)
                 Button { setExpanded(false) } label: { Image(systemName: "xmark") }
                     .buttonStyle(.borderless)
-                    .accessibilityLabel("Close agent sessions")
+                    .accessibilityLabel("Close Agent Tasks")
             }
             if sessions.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("No Current Sessions")
+                    Text("No Active Agent Tasks")
                         .font(.system(size: 13, weight: .semibold))
                     Text("Open Hyperlite to review detected integrations.")
                         .font(.system(size: 11))

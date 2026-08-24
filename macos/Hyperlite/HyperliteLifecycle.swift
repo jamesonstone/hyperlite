@@ -7,7 +7,7 @@ import Foundation
 final class HyperliteApplicationDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var hotKey: HyperliteHotKeyController?
     private var agentNotch: HyperliteAgentNotchCoordinator?
-    private var agentConsentObserver: AnyCancellable?
+    private var agentPresentationObserver: AnyCancellable?
     private weak var window: NSWindow?
     private var terminationPending = false
     private var dailyDateObservers: [NSObjectProtocol] = []
@@ -38,21 +38,46 @@ final class HyperliteApplicationDelegate: NSObject, NSApplicationDelegate, NSWin
             self?.window?.delegate = self
             if HyperliteFeatureFlags.agentSessionPresentation {
                 let sessionState = HyperliteAgentSessionState.shared
+                let islandPreference = HyperliteAgentIslandPreference.shared
                 let coordinator = HyperliteAgentNotchCoordinator()
                 self?.agentNotch = coordinator
-                self?.agentConsentObserver = sessionState.$hasConsent
-                    .removeDuplicates()
-                    .sink { [weak self] hasConsent in
-                        if hasConsent {
+                self?.agentPresentationObserver = sessionState.$hasConsent
+                    .combineLatest(islandPreference.$isEnabled)
+                    .removeDuplicates { previous, current in
+                        previous.0 == current.0 && previous.1 == current.1
+                    }
+                    .sink { [weak self] values in
+                        let (hasConsent, islandEnabled) = values
+                        if HyperliteAgentIslandLaunchPolicy.tracksSessions(
+                            featureEnabled: true,
+                            hasConsent: hasConsent
+                        ) {
+                            sessionState.start()
+                        } else {
+                            sessionState.prepareOnboarding()
+                        }
+                        if HyperliteAgentIslandLaunchPolicy.showsPanel(
+                            featureEnabled: true,
+                            hasConsent: hasConsent,
+                            islandEnabled: islandEnabled
+                        ) {
                             self?.agentNotch?.start()
                         } else {
                             self?.agentNotch?.stop()
-                            sessionState.prepareOnboarding()
                         }
                     }
-                if sessionState.hasConsent {
+
+                switch HyperliteAgentIslandLaunchPolicy.destination(
+                    featureEnabled: true,
+                    hasConsent: sessionState.hasConsent,
+                    islandEnabled: islandPreference.isEnabled
+                ) {
+                case .island:
                     self?.window?.orderOut(nil)
-                } else {
+                case .dashboard:
+                    HyperliteState.shared.showWorkspace(.dashboard)
+                    self?.showWindow()
+                case .onboarding:
                     HyperliteState.shared.showWorkspace(.sessions)
                     self?.showWindow()
                 }
@@ -91,8 +116,8 @@ final class HyperliteApplicationDelegate: NSObject, NSApplicationDelegate, NSWin
         hotKey?.stop()
         agentNotch?.stop()
         agentNotch = nil
-        agentConsentObserver?.cancel()
-        agentConsentObserver = nil
+        agentPresentationObserver?.cancel()
+        agentPresentationObserver = nil
         HyperliteAgentSessionState.shared.stop()
     }
 

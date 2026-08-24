@@ -12,7 +12,10 @@ enum HyperlitePaletteTests {
     }
 
     private static func testCommandEntries() {
-        let entries = HyperliteInteractionModel.commandEntries(threads: [])
+        let entries = HyperliteInteractionModel.commandEntries(
+            threads: [],
+            agentIslandEnabled: true
+        )
         let ids = Set(entries.map(\.id))
         expect(ids.contains("action:show-dashboard"), "commands should include Dashboard switching")
         expect(ids.contains("action:show-pinboard"), "commands should include Pinboard switching")
@@ -30,6 +33,17 @@ enum HyperlitePaletteTests {
         expect(ids.contains("action:settings"), "commands should include settings")
         expect(ids.contains("action:add-project"), "commands should include add project")
         expect(ids.contains("action:remove-project"), "commands should include remove project")
+        let island = entries.first { $0.id == "action:toggle-agent-island" }
+        expect(island?.title == "Turn Agent Island Off",
+               "enabled island should offer the off command")
+        expect(island?.kind == .action(.toggleAgentIsland),
+               "island command should dispatch the presentation toggle")
+        let disabledIsland = HyperliteInteractionModel.commandEntries(
+            threads: [],
+            agentIslandEnabled: false
+        ).first { $0.id == "action:toggle-agent-island" }
+        expect(disabledIsland?.title == "Turn Agent Island On",
+               "disabled island should offer the on command")
         expect(!entries.contains { $0.id.hasPrefix("prune:") },
                "commands should not expose worktree pruning")
     }
@@ -134,7 +148,10 @@ enum HyperlitePaletteTests {
         }, "a project-name match should retain all expanded children")
 
         let commands = HyperliteInteractionModel.filteredEntries(
-            HyperliteInteractionModel.commandEntries(threads: []),
+            HyperliteInteractionModel.commandEntries(
+                threads: [],
+                agentIslandEnabled: true
+            ),
             query: "ADD"
         )
         expect(commands.map(\.id) == [

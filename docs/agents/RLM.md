@@ -53,6 +53,8 @@
 - Load `docs/references/rules/aws-agent-toolkit-guidance.md` before AWS-dependent work
 - Load `docs/references/rules/infrastructure-change-approval.md` before planning or performing mutations to public-cloud resources, Kubernetes resources or cluster state, or infrastructure-as-code source, configuration, or state
 - Load `docs/references/rules/github-pr-merge.md` and resolve `pull-request-merge` before any merge or merge-queue mutation
+- Load `docs/references/rules/human-authorship.md` before any commit, pull request, issue, review comment, or other attribution text
+- Load `docs/references/rules/deadline-mode.md` only when the user explicitly signals a real time constraint or deadline in-thread; never infer or proactively suggest deadline mode
 - Load `docs/references/rules/cross-repository-program-coordination.md` before implementing or resuming an accepted plan that spans multiple repositories with dependent deliverables, staged deployment or activation, or expected agent or session handoff
 - Load `docs/references/rules/agent-team-orchestration.md` only when the immediate decision includes execution topology, subagent lanes, or read-only verification; do not load it for trivial single-lane tasks
 - Load `docs/references/rules/agent-completion-output.md` before a terminal task completion or handoff response

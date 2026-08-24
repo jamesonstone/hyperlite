@@ -16,6 +16,7 @@
 | 0010 | notes-pinboard | `docs/specs/0010-notes-pinboard` | deliver | no | 2026-08-14 | Add one private bounded spatial Pinboard with free note placement, safe forking, and recoverable archive. |
 | 0011 | agent-session-notch | `docs/specs/0011-agent-session-notch` | deliver | no | 2026-08-17 | Add an ephemeral local coding-agent session projection, capability-gated actions, and a native notch or top-edge companion. |
 | 0012 | agent-session-runtime-reliability | `docs/specs/0012-agent-session-runtime-reliability` | deliver | no | 2026-08-18 | Make live agent tracking replacement-safe, hookless, adaptive, health-visible, and bounded for indefinite low-resource operation. |
+| 0013 | agent-island-toggle | `docs/specs/0013-agent-island-toggle` | deliver | no | 2026-08-24 | Add a persistent Agent Island presentation toggle and a live-only Agent Tasks workspace grouped by client profile. |
 
 ## PROJECT INTENT
 
@@ -215,8 +216,24 @@ changes that warrant human attention.
   journeys, and unavailable-provider smoke tests remain external acceptance.
 - **POINTERS**: `docs/specs/0012-agent-session-runtime-reliability/SPEC.md`
 
+### agent-island-toggle
+
+- **STATUS**: deliver
+- **PAUSED**: no
+- **INTENT**: Let the operator disable the floating Agent Island while keeping
+  low-resource session tracking and a dedicated live Agent Tasks workspace.
+- **APPROACH**: Persist one native presentation preference, gate only the
+  top-edge panel lifecycle, rename and refine the existing third workspace,
+  and derive live non-synthetic groups by exact client profile without adding
+  helper protocol, polling, or continuous work.
+- **OPEN ITEMS**: Local implementation and complete validation are finished;
+  issue #53 owns ready pull-request delivery.
+- **POINTERS**: `docs/specs/0013-agent-island-toggle/SPEC.md`
+
 ## LAST UPDATED
 
+- 2026-08-24: Added feature `0013-agent-island-toggle` for persistent island
+  presentation control and a grouped live-only Agent Tasks workspace.
 - 2026-08-18: Added feature `0012-agent-session-runtime-reliability` for
   replacement-safe hookless discovery, adaptive app-server ownership,
   health/self-test, queued interventions, and bounded long-running resources.

@@ -32,6 +32,12 @@ agent applies this contract using capabilities the host actually exposes.
 ## Applies When
 
 - A coding agent plans implementation, validation, review, or repair work.
+- Before finalizing any native implementation plan for a new feature, a
+  substantial architectural or behavioral change, or a multi-file refactor.
+  This first-pass evaluation is mandatory and does not wait for `kit
+  dispatch` or another subagent-capable workflow to already be in use; it
+  does not apply to a single mechanical edit, a direct question, or
+  read-only research that never forms an implementation plan.
 - Work may split into backend, frontend, CLI, tests, docs, data, security,
   compatibility, validation, or repository-research lanes.
 - `kit dispatch`, `kit pr fix`, a prompt-library dispatch prompt, CI dispatch,
@@ -46,6 +52,16 @@ verification remains unsatisfied when the host cannot provide it; logical
 decomposition is not a substitute.
 
 ## Rules
+
+### First-Pass Topology Decision
+
+Before `PLAN_READY`, the root supervisor must have evaluated and recorded a
+topology decision: a multi-lane Agent Team Plan, or one supervisor lane with
+the reason from Applies When. Recording the decision is mandatory even when
+the recorded outcome is one supervisor lane. The evaluation requirement never
+waives or narrows the single-lane criteria already defined in Applies When,
+and it never substitutes for host-confirmed capability evidence gathered
+during `CAPABILITY_NEGOTIATING`.
 
 ### Lifecycle And Root Accountability
 
@@ -218,6 +234,9 @@ each omission, and final integration ownership.
   execution, assign one implementation owner and a later read-only reviewer,
   or split responsibilities differently. Parallel overlap requires an
   explicit low-risk integration plan.
+- Serialize work sharing a repository, a migration or schema registry, a
+  contract under active revision, deployment state, runtime authority, or
+  another mutable external resource, even when file paths differ.
 
 ### Stable Continuity And Rebriefing
 
@@ -247,6 +266,26 @@ worktrees, create branches, stage files, commit, push, open pull requests,
 resolve review threads, merge, queue a merge, or mark the whole workflow
 complete unless that exact mutation is explicitly assigned, authorized, and
 allowed by the active repository rules.
+
+### Handoff Reconciliation
+
+Never adopt a child or logical lane's handoff solely from its narrative.
+Before integrating, repairing, or advancing state based on a handoff:
+
+1. inspect the current worktree and diff for the claimed changes;
+2. reconcile against git and remote heads;
+3. reconcile against GitHub issue, pull-request, and check state when
+   delivery is in scope;
+4. reconcile against the canonical plan or spec and its accepted acceptance
+   criteria;
+5. reconcile against artifact identity and deployment/runtime evidence when
+   either is claimed; and
+6. record any current external blocker the handoff surfaced.
+
+Change a stale, unverified, or narrative-only claim to `unknown` or
+`unobserved` instead of carrying it forward as fact. Do not repeat completed
+work or trust stale checkpoint text; treat a lane's own summary as a starting
+hypothesis to reconcile, not the source of truth for state.
 
 ### Merge-Wave Authority
 

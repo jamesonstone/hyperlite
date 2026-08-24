@@ -23,6 +23,7 @@ struct HyperliteApp: App {
     @StateObject private var pinnedCodexThreads = HyperlitePinnedCodexThreadState.shared
     @StateObject private var pinboard = HyperlitePinboardState.shared
     @StateObject private var agentSessions = HyperliteAgentSessionState.shared
+    @StateObject private var agentIsland = HyperliteAgentIslandPreference.shared
 
     var body: some Scene {
         WindowGroup("Hyperlite", id: "hyperlite") {
@@ -31,6 +32,7 @@ struct HyperliteApp: App {
                 pinnedCodexThreads: pinnedCodexThreads,
                 pinboard: pinboard,
                 agentSessions: agentSessions,
+                agentIsland: agentIsland,
                 notepad: HyperliteNotepadState.shared
             )
                 .font(HyperliteTypography.regular(13))
@@ -46,7 +48,7 @@ struct HyperliteApp: App {
                 Button("Show Pinboard") { state.showWorkspace(.pinboard) }
                     .keyboardShortcut("2", modifiers: .command)
                 if HyperliteFeatureFlags.agentSessionPresentation {
-                    Button("Show Sessions") { state.showWorkspace(.sessions) }
+                    Button("Show Agent Tasks") { state.showWorkspace(.sessions) }
                         .keyboardShortcut("3", modifiers: .command)
                 }
                 Divider()
@@ -70,7 +72,11 @@ struct HyperliteApp: App {
         .menuBarExtraStyle(.menu)
 
         Settings {
-            HyperliteSettingsView(state: state, agentSessions: agentSessions)
+            HyperliteSettingsView(
+                state: state,
+                agentSessions: agentSessions,
+                agentIsland: agentIsland
+            )
                 .font(HyperliteTypography.regular(13))
                 .hyperliteTheme()
         }
