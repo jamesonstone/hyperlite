@@ -208,7 +208,7 @@ struct HyperliteAgentSessionRow: View {
     }
 
     private var rowContext: String {
-        [session.title.isEmpty ? "" : session.project, session.phase.label]
+        [session.project.isEmpty ? "" : session.project, session.phase.label]
             .filter { !$0.isEmpty }
             .joined(separator: " · ")
     }
