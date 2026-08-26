@@ -188,8 +188,11 @@ identity or cache is shown as unavailable. Pagination fails safely on a
 repeated cursor or bounded page limit instead of risking an unbounded GitHub
 query loop.
 
-Each row places an actionable review-feedback count after its ready or draft
-state. Only unresolved, non-outdated GitHub review threads count. Nonzero counts
+Each row places a merge-conflict icon after its ready or draft state when
+GitHub reports the pull request as `CONFLICTING`. The column stays aligned when
+there is no confirmed conflict; `MERGEABLE`, `UNKNOWN`, and older cache entries
+without the field stay blank. The actionable review-feedback count follows that
+column. Only unresolved, non-outdated GitHub review threads count. Nonzero counts
 use the orange attention color, confirmed zero uses a quiet dash, and
 unavailable legacy cache data uses `?` until a complete refresh supplies an
 exact count. The row content opens the pull request; its separate leading
@@ -203,13 +206,17 @@ and shows an orange stale marker until the new revision is reviewed or the mark
 is cleared. Cached or unavailable evidence preserves the last mark; a cached
 row may clear that mark but cannot create or replace one.
 
-The quiet icons on the Open PRs title line filter the loaded index, choose a
-sort order, clear all local review marks, or enter reorder mode. The title shows
-the count currently reviewed. Filters include local Unreviewed, Reviewed, and
+The quiet icons on the Open PRs title line hide drafts, filter the loaded
+index, choose a sort order, clear all local review marks, or enter reorder
+mode. The title shows the count currently reviewed. The hide-drafts checkbox
+removes draft rows from the visible list without changing the cached index;
+it is a temporary presentation toggle like other Open PRs filters and never
+queries GitHub. Filters include local Unreviewed, Reviewed, and
 Stale states; they are temporary and never refresh GitHub. Sort choices persist.
-Reorder shows every loaded row with drag handles; Done saves a custom order,
-while Cancel restores the previous order. Accessible Move up and Move down
-actions provide the same control without dragging.
+Reorder shows every loaded row with drag handles, including drafts even while
+hide-drafts is on; Done saves a custom order, while Cancel restores the previous
+order. Accessible Move up and Move down actions provide the same control without
+dragging.
 
 `Reviewed by me` is organization metadata, not GitHub approval, review-feedback
 resolution, passing checks, mergeability, or permission to merge. Hyperlite

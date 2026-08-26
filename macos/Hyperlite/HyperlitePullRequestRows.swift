@@ -102,6 +102,7 @@ private struct HyperlitePullRequestRowContent: View {
                 .layoutPriority(HyperlitePullRequestPanelRow.layout.repositoryLayoutPriority)
             Text("#\(row.number)").frame(width: 42, alignment: .leading)
             Text(row.isDraft ? "draft" : "ready").frame(width: 42, alignment: .leading)
+            mergeConflictGlyph
             Text(review.text)
                 .frame(width: HyperlitePullRequestPanelRow.layout.reviewFeedbackColumnWidth,
                        alignment: .leading)
@@ -126,6 +127,23 @@ private struct HyperlitePullRequestRowContent: View {
         .opacity(reviewStatus == .reviewed ? 0.62 : 1)
     }
 
+    @ViewBuilder
+    private var mergeConflictGlyph: some View {
+        Group {
+            if row.hasMergeConflict {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(HyperliteTheme.orange.color)
+                    .help("Merge conflicts")
+            }
+        }
+        .frame(
+            width: HyperlitePullRequestPanelRow.layout.mergeConflictColumnWidth,
+            alignment: .leading
+        )
+        .accessibilityHidden(true)
+    }
+
     static func accessibilityLabel(
         for row: HyperlitePullRequestRow,
         reviewStatus: HyperlitePullRequestReviewStatus
@@ -133,8 +151,12 @@ private struct HyperlitePullRequestRowContent: View {
         let review = HyperlitePullRequestPresentation.reviewFeedback(
             unresolvedThreads: row.unresolvedReviewThreads
         )
+        let conflict = HyperlitePullRequestPresentation.mergeConflictAccessibilityLabel(
+            hasMergeConflict: row.hasMergeConflict
+        )
         return "\(row.repository) pull request \(row.number), " +
-            "\(row.isDraft ? "draft" : "ready"), \(review.accessibilityLabel), " +
+            "\(row.isDraft ? "draft" : "ready"), \(conflict), " +
+            "\(review.accessibilityLabel), " +
             "\(reviewStatus.accessibilityLabel), \(row.title)"
     }
 }

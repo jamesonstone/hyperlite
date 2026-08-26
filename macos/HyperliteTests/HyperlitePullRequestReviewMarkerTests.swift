@@ -229,6 +229,7 @@ enum HyperlitePullRequestReviewMarkerTests {
             url: nil,
             headRefOID: head,
             isDraft: false,
+            hasMergeConflict: false,
             unresolvedReviewThreads: 0,
             updatedAt: Date(timeIntervalSince1970: 1_786_000_000)
         )

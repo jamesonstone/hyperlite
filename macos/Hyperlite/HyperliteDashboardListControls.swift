@@ -84,8 +84,12 @@ struct HyperlitePullRequestFilterPopover: View {
             }
             HStack {
                 Spacer()
-                Button("Clear") { filter = HyperlitePullRequestFilter() }
-                    .disabled(!filter.isActive)
+                Button("Clear") {
+                    let hideDrafts = filter.hideDrafts
+                    filter = HyperlitePullRequestFilter()
+                    filter.hideDrafts = hideDrafts
+                }
+                .disabled(!filter.popoverIsActive)
             }
         }
         .font(HyperliteTypography.regular(10))

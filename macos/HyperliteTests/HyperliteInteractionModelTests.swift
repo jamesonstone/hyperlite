@@ -20,6 +20,7 @@ struct HyperliteInteractionModelTests {
         HyperliteTypographyTests.run()
         try HyperliteProjectIndexTests.run()
         try HyperlitePullRequestTests.run()
+        try HyperliteOpenPRControlsTests.run()
         try HyperliteDashboardListTests.run()
         try HyperlitePullRequestReviewMarkerTests.run()
         HyperliteRateLimitTests.run()

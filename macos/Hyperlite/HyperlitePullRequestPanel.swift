@@ -132,8 +132,19 @@ struct HyperlitePullRequestPanel: View {
                     disabled: organization.pullRequestReviewMarkCount == 0
                 ) { organization.clearPullRequestReviewMarks() }
                 HyperliteDashboardControlButton(
+                    systemName: organization.pullRequestFilter.hideDrafts
+                        ? "checkmark.square.fill" : "square",
+                    active: organization.pullRequestFilter.hideDrafts,
+                    label: organization.pullRequestFilter.hideDrafts
+                        ? "Show draft pull requests" : "Hide draft pull requests"
+                ) {
+                    var filter = organization.pullRequestFilter
+                    filter.hideDrafts.toggle()
+                    organization.setPullRequestFilter(filter)
+                }
+                HyperliteDashboardControlButton(
                     systemName: "line.3.horizontal.decrease",
-                    active: organization.pullRequestFilter.isActive,
+                    active: organization.pullRequestFilter.popoverIsActive,
                     label: "Filter open pull requests"
                 ) { isFilterPresented.toggle() }
                 .popover(isPresented: $isFilterPresented, arrowEdge: .top) {

@@ -29,7 +29,7 @@ func buildQuery(requests []pageRequest) (string, map[string]pageRequest) {
 		}
 		query.WriteString(", orderBy: {field: UPDATED_AT, direction: DESC}) {\n")
 		query.WriteString("      nodes {\n")
-		query.WriteString("        number title url headRefName headRefOid isDraft updatedAt\n")
+		query.WriteString("        number title url headRefName headRefOid isDraft mergeable updatedAt\n")
 		writeReviewThreadConnection(&query, "        ", "")
 		query.WriteString("      }\n")
 		query.WriteString("      pageInfo { hasNextPage endCursor }\n")
