@@ -161,6 +161,9 @@ Observable acceptance:
   column.
 - No Constitution change. Read-only GitHub projection and local presentation
   filters are already project-wide invariants.
+- Accessibility and copied prompts must not treat `has_merge_conflict == false`
+  as confirmed mergeable. VoiceOver omits conflict text unless GitHub reported
+  `CONFLICTING`; copied observations use `merge conflicts not confirmed`.
 
 ## DISCOVERIES
 

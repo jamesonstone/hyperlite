@@ -88,7 +88,8 @@ rather than a one-off sentence.
   apply. Reorder mode copies every loaded row currently shown, including drafts.
 - R3: Copy writes the durable instruction plus one observation line per visible
   pull request (repository, number, URL when present, draft/ready, confirmed
-  merge conflict, unresolved review-thread hint) to the clipboard. Confirm a
+  merge conflict or `merge conflicts not confirmed`, unresolved review-thread
+  hint) to the clipboard. Confirm a
   successful copy on both surfaces. Do not open a file, note, or GitHub URL.
 - R4: Disable or no-op the control when no rows are visible. An empty list must
   not clear or replace the clipboard.
@@ -141,6 +142,9 @@ Observable acceptance:
   pasteboard write. It is not persisted and is not a GitHub refresh signal.
 - Command-K does not dismiss on this action so the copied command remains
   visible. Other commands keep the existing dismiss-then-dispatch behavior.
+- Copied conflict observations follow the Open PRs column: confirmed
+  `CONFLICTING` is `merge conflicts`; `has_merge_conflict == false` is
+  `merge conflicts not confirmed` rather than a claimed absence.
 
 ## DISCOVERIES
 

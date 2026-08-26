@@ -33,11 +33,11 @@ enum HyperliteOpenPRMergePromptTests {
         ])
         expect(text.contains("- owner/one#187 — https://github.com/owner/one/pull/187 — ready; merge conflicts; 4 unresolved review threads"),
                "ready conflicting rows should include URL and known hints")
-        expect(text.contains("- owner/one#12 — draft; no merge conflicts; unresolved review threads unknown"),
+        expect(text.contains("- owner/one#12 — draft; merge conflicts not confirmed; unresolved review threads unknown"),
                "draft rows without a URL should omit that segment")
-        expect(text.contains("- owner/one#3 — ready; no merge conflicts; no unresolved review threads"),
+        expect(text.contains("- owner/one#3 — ready; merge conflicts not confirmed; no unresolved review threads"),
                "zero review threads should be explicit")
-        expect(text.contains("- owner/one#9 — ready; no merge conflicts; 1 unresolved review thread"),
+        expect(text.contains("- owner/one#9 — ready; merge conflicts not confirmed; 1 unresolved review thread"),
                "a single review thread should stay singular")
     }
 

@@ -151,13 +151,21 @@ private struct HyperlitePullRequestRowContent: View {
         let review = HyperlitePullRequestPresentation.reviewFeedback(
             unresolvedThreads: row.unresolvedReviewThreads
         )
-        let conflict = HyperlitePullRequestPresentation.mergeConflictAccessibilityLabel(
+        var parts = [
+            "\(row.repository) pull request \(row.number)",
+            row.isDraft ? "draft" : "ready",
+        ]
+        if let conflict = HyperlitePullRequestPresentation.mergeConflictAccessibilityLabel(
             hasMergeConflict: row.hasMergeConflict
-        )
-        return "\(row.repository) pull request \(row.number), " +
-            "\(row.isDraft ? "draft" : "ready"), \(conflict), " +
-            "\(review.accessibilityLabel), " +
-            "\(reviewStatus.accessibilityLabel), \(row.title)"
+        ) {
+            parts.append(conflict)
+        }
+        parts.append(contentsOf: [
+            review.accessibilityLabel,
+            reviewStatus.accessibilityLabel,
+            row.title,
+        ])
+        return parts.joined(separator: ", ")
     }
 }
 

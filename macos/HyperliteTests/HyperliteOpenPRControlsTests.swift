@@ -16,8 +16,8 @@ enum HyperliteOpenPRControlsTests {
         expect(
             HyperlitePullRequestPresentation.mergeConflictAccessibilityLabel(
                 hasMergeConflict: false
-            ) == "no merge conflicts",
-            "absent conflicts should stay explicit to accessibility"
+            ) == nil,
+            "unconfirmed conflicts should stay silent to accessibility"
         )
     }
 

@@ -191,8 +191,9 @@ query loop.
 Each row places a merge-conflict icon after its ready or draft state when
 GitHub reports the pull request as `CONFLICTING`. The column stays aligned when
 there is no confirmed conflict; `MERGEABLE`, `UNKNOWN`, and older cache entries
-without the field stay blank. The actionable review-feedback count follows that
-column. Only unresolved, non-outdated GitHub review threads count. Nonzero counts
+without the field stay blank. VoiceOver names confirmed conflicts only and
+omits unconfirmed `MERGEABLE`, `UNKNOWN`, and legacy rows. The actionable
+review-feedback count follows that column. Only unresolved, non-outdated GitHub review threads count. Nonzero counts
 use the orange attention color, confirmed zero uses a quiet dash, and
 unavailable legacy cache data uses `?` until a complete refresh supplies an
 exact count. The row content opens the pull request; its separate leading
@@ -211,8 +212,9 @@ prompt for the currently visible rows, hide drafts, filter the loaded
 index, choose a sort order, clear all local review marks, or enter reorder
 mode. The title shows the count currently reviewed. Copy writes a durable
 instruction plus each visible pull request's identity, URL, draft/ready
-state, confirmed merge-conflict hint, and unresolved review-thread count to
-the clipboard, then confirms for two seconds. It does not call `gh`, open
+state, confirmed merge-conflict hint or `merge conflicts not confirmed`,
+and unresolved review-thread count to the clipboard, then confirms for two
+seconds. It does not call `gh`, open
 GitHub, or mutate pull requests. An empty visible list disables the control
 and leaves the clipboard unchanged. The hide-drafts checkbox
 removes draft rows from the visible list without changing the cached index;

@@ -53,7 +53,9 @@ enum HyperliteOpenPRMergePrompt {
 
     private static func observations(for row: HyperlitePullRequestRow) -> String {
         let state = row.isDraft ? "draft" : "ready"
-        let conflict = row.hasMergeConflict ? "merge conflicts" : "no merge conflicts"
+        let conflict = row.hasMergeConflict
+            ? "merge conflicts"
+            : "merge conflicts not confirmed"
         return "\(state); \(conflict); \(reviewThreads(row.unresolvedReviewThreads))"
     }
 

@@ -217,7 +217,7 @@ enum HyperlitePullRequestPresentation {
         )
     }
 
-    static func mergeConflictAccessibilityLabel(hasMergeConflict: Bool) -> String {
-        hasMergeConflict ? "has merge conflicts" : "no merge conflicts"
+    static func mergeConflictAccessibilityLabel(hasMergeConflict: Bool) -> String? {
+        hasMergeConflict ? "has merge conflicts" : nil
     }
 }
