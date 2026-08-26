@@ -25,7 +25,10 @@
   live-only Agent Tasks filtering, exact client-profile grouping, deterministic
   group order, workspace order, and dynamic command-palette labels. Open PRs
   tests cover confirmed merge-conflict decoding, legacy cache compatibility,
-  hide-drafts filtering, and conflict-column layout reservation.
+  hide-drafts filtering, and conflict-column layout reservation. Copy Open PR
+  Merge Prompt tests cover the durable instruction, visible-row observations,
+  hide-drafts and reorder list selection, empty-list text, and Command-K copy
+  labels.
 - A read-only local live-integration suite validates recovery of the selected
   R2 and Event Sink goal threads against current repository and GitHub
   evidence.

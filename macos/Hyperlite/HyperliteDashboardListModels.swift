@@ -105,6 +105,23 @@ enum HyperliteDashboardListPresentation {
         return sortedPullRequests(filtered, sort: sort, customOrder: customOrder)
     }
 
+    static func displayedPullRequests(
+        _ rows: [HyperlitePullRequestRow],
+        filter: HyperlitePullRequestFilter,
+        sort: HyperlitePullRequestSort,
+        customOrder: [String],
+        reviewStatuses: [String: HyperlitePullRequestReviewStatus] = [:],
+        isReordering: Bool
+    ) -> [HyperlitePullRequestRow] {
+        pullRequests(
+            rows,
+            filter: isReordering ? HyperlitePullRequestFilter() : filter,
+            sort: isReordering ? .custom : sort,
+            customOrder: customOrder,
+            reviewStatuses: reviewStatuses
+        )
+    }
+
     static func availability(
         _ projects: [HyperliteProjectPullRequests],
         filter: HyperlitePullRequestFilter

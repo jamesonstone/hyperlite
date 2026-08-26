@@ -206,9 +206,15 @@ and shows an orange stale marker until the new revision is reviewed or the mark
 is cleared. Cached or unavailable evidence preserves the last mark; a cached
 row may clear that mark but cannot create or replace one.
 
-The quiet icons on the Open PRs title line hide drafts, filter the loaded
+The quiet icons on the Open PRs title line copy a merge-ready coding-agent
+prompt for the currently visible rows, hide drafts, filter the loaded
 index, choose a sort order, clear all local review marks, or enter reorder
-mode. The title shows the count currently reviewed. The hide-drafts checkbox
+mode. The title shows the count currently reviewed. Copy writes a durable
+instruction plus each visible pull request's identity, URL, draft/ready
+state, confirmed merge-conflict hint, and unresolved review-thread count to
+the clipboard, then confirms for two seconds. It does not call `gh`, open
+GitHub, or mutate pull requests. An empty visible list disables the control
+and leaves the clipboard unchanged. The hide-drafts checkbox
 removes draft rows from the visible list without changing the cached index;
 it is a temporary presentation toggle like other Open PRs filters and never
 queries GitHub. Filters include local Unreviewed, Reviewed, and
@@ -216,7 +222,7 @@ Stale states; they are temporary and never refresh GitHub. Sort choices persist.
 Reorder shows every loaded row with drag handles, including drafts even while
 hide-drafts is on; Done saves a custom order, while Cancel restores the previous
 order. Accessible Move up and Move down actions provide the same control without
-dragging.
+dragging. Copy in reorder mode uses that same on-screen list.
 
 `Reviewed by me` is organization metadata, not GitHub approval, review-feedback
 resolution, passing checks, mergeability, or permission to merge. Hyperlite
@@ -319,11 +325,14 @@ agent input.
 - `Command+K` opens a searchable command palette with Show Dashboard, Show
   Pinboard, Show Agent Tasks, Turn Agent Island On or Off, Add Pinboard Note,
   Add Pinboard Section, Open Pinboard Archive, Refresh, Force Cache Refresh,
-  Settings, Add Project, Remove Project, and
+  Copy Open PR Merge Prompt, Settings, Add Project, Remove Project, and
   exact or on-device semantic matches from pinned and daily note filenames,
   dates, and contents.
   Force Cache Refresh retries every configured GitHub repository regardless of
-  cache age so a successful check replaces stale cached errors. Selecting a
+  cache age so a successful check replaces stale cached errors. Copy Open PR
+  Merge Prompt copies the same durable merge-ready prompt as the Open PRs
+  header for the currently visible rows and stays open to confirm the copy.
+  Selecting a
   pinned result opens Notepad; selecting a daily result opens the matching
   Daily date.
 - `Command+P` opens the same searchable surface in configured-project mode.

@@ -16,6 +16,7 @@ SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperliteNotepadTests.swift mac
 SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperlitePinnedCodexThreadStateTests.swift macos/HyperliteTests/HyperlitePinnedCodexThreadTestSupport.swift macos/HyperliteTests/HyperlitePullRequestTests.swift macos/HyperliteTests/HyperliteRateLimitTests.swift macos/HyperliteTests/HyperliteTypographyTests.swift macos/HyperliteTests/HyperliteWorkspaceSizingTests.swift
 SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperliteDashboardListTests.swift
 SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperliteOpenPRControlsTests.swift
+SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteOpenPRMergePrompt.swift macos/HyperliteTests/HyperliteOpenPRMergePromptTests.swift
 SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperlitePullRequestReviewMarkerTests.swift
 SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperlitePinboardTests.swift
 SWIFT_MODEL_TEST_BINARY := build/tests/HyperliteInteractionModelTests

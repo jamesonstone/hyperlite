@@ -5,6 +5,8 @@ struct HyperliteCommandPalette: View {
     let threads: [HyperliteThread]
     let projects: [HyperliteProjectLocation]
     let pullRequests: HyperliteProjectPullRequestScan?
+    let visibleOpenPullRequestCount: Int
+    let mergePromptCopied: Bool
     @ObservedObject var notepad: HyperliteNotepadState
     @ObservedObject var agentIsland: HyperliteAgentIslandPreference
     let onAction: (HyperlitePaletteAction) -> Void
@@ -20,7 +22,9 @@ struct HyperliteCommandPalette: View {
         case .commands:
             return HyperliteInteractionModel.commandEntries(
                 threads: threads,
-                agentIslandEnabled: agentIsland.isEnabled
+                agentIslandEnabled: agentIsland.isEnabled,
+                visibleOpenPullRequestCount: visibleOpenPullRequestCount,
+                mergePromptCopied: mergePromptCopied
             )
         case .projects:
             let effectiveExpansion = HyperliteInteractionModel.effectiveProjectExpansion(
@@ -138,32 +142,10 @@ struct HyperliteCommandPalette: View {
         .background(HyperliteTheme.surface.color)
     }
 
-    private var paletteTitle: String {
-        switch mode {
-        case .commands: "Commands"
-        case .projects: "Projects"
-        case .removeProjects: "Remove Project"
-        }
-    }
-
-    private var paletteSymbol: String {
-        mode == .commands ? "command" : "folder"
-    }
-
-    private var shortcutLabel: String {
-        switch mode {
-        case .commands, .removeProjects: "⌘K"
-        case .projects: "⌘P"
-        }
-    }
-
-    private var searchPrompt: String {
-        switch mode {
-        case .commands: "Search commands and notes"
-        case .projects: "Search projects, PRs, and worktrees"
-        case .removeProjects: "Search configured projects"
-        }
-    }
+    private var paletteTitle: String { HyperlitePaletteChrome.title(for: mode) }
+    private var paletteSymbol: String { HyperlitePaletteChrome.symbol(for: mode) }
+    private var shortcutLabel: String { HyperlitePaletteChrome.shortcut(for: mode) }
+    private var searchPrompt: String { HyperlitePaletteChrome.searchPrompt(for: mode) }
 
     private var entryList: some View {
         ScrollViewReader { proxy in

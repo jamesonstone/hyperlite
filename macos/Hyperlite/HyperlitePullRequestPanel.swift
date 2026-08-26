@@ -3,6 +3,8 @@ import SwiftUI
 struct HyperlitePullRequestPanel: View {
     let scan: HyperliteProjectPullRequestScan
     @ObservedObject var organization: HyperliteDashboardListState
+    let mergePromptCopied: Bool
+    let onCopyMergePrompt: () -> Void
     @State private var isFilterPresented = false
     @State private var draggedRowID: String?
 
@@ -11,16 +13,13 @@ struct HyperlitePullRequestPanel: View {
     }
 
     private var rows: [HyperlitePullRequestRow] {
-        let filter = organization.isReorderingPullRequests
-            ? HyperlitePullRequestFilter() : organization.pullRequestFilter
-        let sort = organization.isReorderingPullRequests
-            ? HyperlitePullRequestSort.custom : organization.pullRequestSort
-        return HyperliteDashboardListPresentation.pullRequests(
+        HyperliteDashboardListPresentation.displayedPullRequests(
             sourceRows,
-            filter: filter,
-            sort: sort,
+            filter: organization.pullRequestFilter,
+            sort: organization.pullRequestSort,
             customOrder: organization.orderedPullRequestIDs(sourceRows.map(\.id)),
-            reviewStatuses: reviewStatuses
+            reviewStatuses: reviewStatuses,
+            isReordering: organization.isReorderingPullRequests
         )
     }
 
@@ -125,6 +124,16 @@ struct HyperlitePullRequestPanel: View {
                     organization.finishPullRequestReordering(commit: true)
                 }
             } else {
+                HyperliteDashboardControlButton(
+                    systemName: HyperliteOpenPRMergePrompt.commandSymbol(
+                        copied: mergePromptCopied
+                    ),
+                    active: mergePromptCopied,
+                    label: mergePromptCopied
+                        ? HyperliteOpenPRMergePrompt.copiedAccessibilityLabel
+                        : HyperliteOpenPRMergePrompt.copyAccessibilityLabel,
+                    disabled: rows.isEmpty
+                ) { onCopyMergePrompt() }
                 HyperliteDashboardControlButton(
                     systemName: "xmark.square",
                     active: organization.pullRequestReviewMarkCount > 0,

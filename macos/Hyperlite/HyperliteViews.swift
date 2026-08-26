@@ -60,6 +60,8 @@ struct HyperliteWindow: View {
     @StateObject private var dashboardLists = HyperliteDashboardListState()
     @State var selectedThread: HyperliteThread?
     @State var pendingProjectRemoval: HyperliteProjectLocation?
+    @State var mergePromptCopied = false
+    @State var mergePromptCopyGeneration = 0
 
     private var activeThreads: [HyperliteThread] { state.activeThreads() }
     private var pullRequestScan: HyperliteProjectPullRequestScan? { state.pullRequestScan }
@@ -73,6 +75,22 @@ struct HyperliteWindow: View {
         HyperliteProjectIndexPresentation.visibleProjects(
             state.scan?.projectIndex ?? [],
             pullRequests: pullRequestScan
+        )
+    }
+
+    var visibleOpenPullRequests: [HyperlitePullRequestRow] {
+        guard let scan = pullRequestScan else { return [] }
+        let source = HyperlitePullRequestPresentation.rows(scan: scan)
+        let reviewStatuses = source.reduce(into: [:]) { values, row in
+            values[row.id] = dashboardLists.pullRequestReviewStatus(for: row)
+        }
+        return HyperliteDashboardListPresentation.displayedPullRequests(
+            source,
+            filter: dashboardLists.pullRequestFilter,
+            sort: dashboardLists.pullRequestSort,
+            customOrder: dashboardLists.orderedPullRequestIDs(source.map(\.id)),
+            reviewStatuses: reviewStatuses,
+            isReordering: dashboardLists.isReorderingPullRequests
         )
     }
 
@@ -105,7 +123,9 @@ struct HyperliteWindow: View {
                                     if let pullRequests {
                                         HyperlitePullRequestPanel(
                                             scan: pullRequests,
-                                            organization: dashboardLists
+                                            organization: dashboardLists,
+                                            mergePromptCopied: mergePromptCopied,
+                                            onCopyMergePrompt: copyVisibleOpenPRMergePrompt
                                         )
                                     } else {
                                         ProgressView("Loading open pull requests…")
@@ -171,6 +191,8 @@ struct HyperliteWindow: View {
                             threads: HyperliteFeatureFlags.inferredAttentionPresentation ? active : [],
                             projects: paletteProjects,
                             pullRequests: pullRequests,
+                            visibleOpenPullRequestCount: visibleOpenPullRequests.count,
+                            mergePromptCopied: mergePromptCopied,
                             notepad: notepad,
                             agentIsland: agentIsland,
                             onAction: handlePaletteAction,
@@ -184,6 +206,16 @@ struct HyperliteWindow: View {
             }
         }
         .frame(minWidth: 480, minHeight: 580)
+        .task(id: mergePromptCopyGeneration) {
+            guard mergePromptCopyGeneration > 0 else { return }
+            mergePromptCopied = true
+            do {
+                try await Task.sleep(for: HyperliteOpenPRMergePrompt.confirmationDuration)
+            } catch {
+                return
+            }
+            mergePromptCopied = false
+        }
         .sheet(item: $selectedThread) { thread in
             HyperliteThreadDetail(
                 thread: thread,

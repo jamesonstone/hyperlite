@@ -25,6 +25,8 @@ enum HyperlitePaletteTests {
         expect(ids.contains("action:refresh"), "commands should include refresh")
         expect(ids.contains("action:force-cache-refresh"),
                "commands should include forced cache refresh")
+        expect(ids.contains("action:copy-open-pr-merge-prompt"),
+               "commands should include copy open PR merge prompt")
         let forceRefresh = entries.first { $0.id == "action:force-cache-refresh" }
         expect(forceRefresh?.kind == .action(.forceCacheRefresh),
                "forced cache refresh should dispatch its dedicated action")
