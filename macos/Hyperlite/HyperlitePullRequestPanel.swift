@@ -3,6 +3,8 @@ import SwiftUI
 struct HyperlitePullRequestPanel: View {
     let scan: HyperliteProjectPullRequestScan
     @ObservedObject var organization: HyperliteDashboardListState
+    let mergePromptCopied: Bool
+    let onCopyMergePrompt: () -> Void
     @State private var isFilterPresented = false
     @State private var draggedRowID: String?
 
@@ -11,16 +13,13 @@ struct HyperlitePullRequestPanel: View {
     }
 
     private var rows: [HyperlitePullRequestRow] {
-        let filter = organization.isReorderingPullRequests
-            ? HyperlitePullRequestFilter() : organization.pullRequestFilter
-        let sort = organization.isReorderingPullRequests
-            ? HyperlitePullRequestSort.custom : organization.pullRequestSort
-        return HyperliteDashboardListPresentation.pullRequests(
+        HyperliteDashboardListPresentation.displayedPullRequests(
             sourceRows,
-            filter: filter,
-            sort: sort,
+            filter: organization.pullRequestFilter,
+            sort: organization.pullRequestSort,
             customOrder: organization.orderedPullRequestIDs(sourceRows.map(\.id)),
-            reviewStatuses: reviewStatuses
+            reviewStatuses: reviewStatuses,
+            isReordering: organization.isReorderingPullRequests
         )
     }
 
@@ -126,14 +125,35 @@ struct HyperlitePullRequestPanel: View {
                 }
             } else {
                 HyperliteDashboardControlButton(
+                    systemName: HyperliteOpenPRMergePrompt.commandSymbol(
+                        copied: mergePromptCopied
+                    ),
+                    active: mergePromptCopied,
+                    label: mergePromptCopied
+                        ? HyperliteOpenPRMergePrompt.copiedAccessibilityLabel
+                        : HyperliteOpenPRMergePrompt.copyAccessibilityLabel,
+                    disabled: rows.isEmpty
+                ) { onCopyMergePrompt() }
+                HyperliteDashboardControlButton(
                     systemName: "xmark.square",
                     active: organization.pullRequestReviewMarkCount > 0,
                     label: "Clear all reviewed pull request marks",
                     disabled: organization.pullRequestReviewMarkCount == 0
                 ) { organization.clearPullRequestReviewMarks() }
                 HyperliteDashboardControlButton(
+                    systemName: organization.pullRequestFilter.hideDrafts
+                        ? "checkmark.square.fill" : "square",
+                    active: organization.pullRequestFilter.hideDrafts,
+                    label: organization.pullRequestFilter.hideDrafts
+                        ? "Show draft pull requests" : "Hide draft pull requests"
+                ) {
+                    var filter = organization.pullRequestFilter
+                    filter.hideDrafts.toggle()
+                    organization.setPullRequestFilter(filter)
+                }
+                HyperliteDashboardControlButton(
                     systemName: "line.3.horizontal.decrease",
-                    active: organization.pullRequestFilter.isActive,
+                    active: organization.pullRequestFilter.popoverIsActive,
                     label: "Filter open pull requests"
                 ) { isFilterPresented.toggle() }
                 .popover(isPresented: $isFilterPresented, arrowEdge: .top) {

@@ -17,6 +17,8 @@
 | 0011 | agent-session-notch | `docs/specs/0011-agent-session-notch` | deliver | no | 2026-08-17 | Add an ephemeral local coding-agent session projection, capability-gated actions, and a native notch or top-edge companion. |
 | 0012 | agent-session-runtime-reliability | `docs/specs/0012-agent-session-runtime-reliability` | deliver | no | 2026-08-18 | Make live agent tracking replacement-safe, hookless, adaptive, health-visible, and bounded for indefinite low-resource operation. |
 | 0013 | agent-island-toggle | `docs/specs/0013-agent-island-toggle` | deliver | no | 2026-08-24 | Add a persistent Agent Island presentation toggle and a live-only Agent Tasks workspace grouped by client profile. |
+| 0014 | open-pr-conflicts-hide-drafts | `docs/specs/0014-open-pr-conflicts-hide-drafts` | deliver | no | 2026-08-26 | Show confirmed merge conflicts in Open PRs and hide drafts with a quiet header checkbox. |
+| 0015 | copy-open-pr-merge-prompt | `docs/specs/0015-copy-open-pr-merge-prompt` | deliver | no | 2026-08-26 | Copy a durable merge-ready coding-agent prompt for the currently visible Open PRs. |
 
 ## PROJECT INTENT
 
@@ -230,8 +232,40 @@ changes that warrant human attention.
   issue #53 owns ready pull-request delivery.
 - **POINTERS**: `docs/specs/0013-agent-island-toggle/SPEC.md`
 
+### open-pr-conflicts-hide-drafts
+
+- **STATUS**: deliver
+- **PAUSED**: no
+- **INTENT**: Let the operator see confirmed merge conflicts in Open PRs and
+  hide draft rows with one quiet header checkbox without mutating GitHub.
+- **APPROACH**: Fetch `mergeable` on the existing batched GraphQL projection,
+  cache confirmed `CONFLICTING` as `has_merge_conflict`, render a reserved
+  attention column, and add a session hide-drafts header toggle on the
+  existing local filter.
+- **OPEN ITEMS**: Local implementation and complete validation are finished;
+  issue #57 owns ready pull-request delivery.
+- **POINTERS**: `docs/specs/0014-open-pr-conflicts-hide-drafts/SPEC.md`
+
+### copy-open-pr-merge-prompt
+
+- **STATUS**: deliver
+- **PAUSED**: no
+- **INTENT**: Let the operator copy a durable coding-agent prompt plus the
+  currently visible Open PRs so an external agent can make each listed
+  pull request merge-ready with `gh`.
+- **APPROACH**: Build the prompt from on-screen rows, copy it to the clipboard
+  from the Open PRs header and Command-K, and confirm the copy without
+  Hyperlite calling `gh` or mutating GitHub.
+- **OPEN ITEMS**: Local implementation and complete validation are finished;
+  issue #59 owns ready pull-request delivery through PR #58.
+- **POINTERS**: `docs/specs/0015-copy-open-pr-merge-prompt/SPEC.md`
+
 ## LAST UPDATED
 
+- 2026-08-26: Added feature `0015-copy-open-pr-merge-prompt` for a durable
+  merge-ready clipboard prompt over currently visible Open PRs.
+- 2026-08-26: Added feature `0014-open-pr-conflicts-hide-drafts` for confirmed
+  Open PR merge-conflict icons and a session hide-drafts header checkbox.
 - 2026-08-24: Added feature `0013-agent-island-toggle` for persistent island
   presentation control and a grouped live-only Agent Tasks workspace.
 - 2026-08-18: Added feature `0012-agent-session-runtime-reliability` for

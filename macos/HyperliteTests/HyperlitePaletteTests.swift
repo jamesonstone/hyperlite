@@ -25,6 +25,8 @@ enum HyperlitePaletteTests {
         expect(ids.contains("action:refresh"), "commands should include refresh")
         expect(ids.contains("action:force-cache-refresh"),
                "commands should include forced cache refresh")
+        expect(ids.contains("action:copy-open-pr-merge-prompt"),
+               "commands should include copy open PR merge prompt")
         let forceRefresh = entries.first { $0.id == "action:force-cache-refresh" }
         expect(forceRefresh?.kind == .action(.forceCacheRefresh),
                "forced cache refresh should dispatch its dedicated action")
@@ -265,13 +267,13 @@ enum HyperlitePaletteTests {
                 id: "owner/kit#7", number: 7, title: "Ship feature",
                 url: "https://github.com/owner/kit/pull/7", headRefName: "GH-7",
                 headRefOID: "head-7",
-                isDraft: false, unresolvedReviewThreads: 0, updatedAt: Date()
+                isDraft: false, hasMergeConflict: false, unresolvedReviewThreads: 0, updatedAt: Date()
             ),
             HyperliteProjectPullRequest(
                 id: "owner/kit#8", number: 8, title: "Draft cleanup",
                 url: "https://github.com/owner/kit/pull/8", headRefName: "GH-8",
                 headRefOID: "head-8",
-                isDraft: true, unresolvedReviewThreads: 0, updatedAt: Date()
+                isDraft: true, hasMergeConflict: false, unresolvedReviewThreads: 0, updatedAt: Date()
             ),
         ]
         let scan = HyperliteProjectPullRequestScan(

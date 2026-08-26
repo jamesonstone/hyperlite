@@ -46,6 +46,7 @@ type rawPullRequest struct {
 	HeadRefName   string                     `json:"headRefName"`
 	HeadRefOID    string                     `json:"headRefOid"`
 	IsDraft       bool                       `json:"isDraft"`
+	Mergeable     string                     `json:"mergeable"`
 	UpdatedAt     time.Time                  `json:"updatedAt"`
 	ReviewThreads *rawReviewThreadConnection `json:"reviewThreads"`
 }
@@ -155,15 +156,12 @@ func (c GitHubClient) collectBatch(
 				unresolvedReviewThreads := actionableReviewThreadCount(
 					pullRequest.ReviewThreads.Nodes,
 				)
-				result.PullRequests = append(result.PullRequests, model.ProjectPullRequest{
-					ID:     fmt.Sprintf("%s#%d", request.repository.GitHub, pullRequest.Number),
-					Number: pullRequest.Number, Title: pullRequest.Title,
-					URL: pullRequest.URL, HeadRefName: pullRequest.HeadRefName,
-					HeadRefOID:              pullRequest.HeadRefOID,
-					IsDraft:                 pullRequest.IsDraft,
-					UnresolvedReviewThreads: &unresolvedReviewThreads,
-					UpdatedAt:               pullRequest.UpdatedAt.UTC(),
-				})
+				result.PullRequests = append(
+					result.PullRequests,
+					mappedPullRequest(
+						request.repository.GitHub, pullRequest, unresolvedReviewThreads,
+					),
+				)
 				if pullRequest.ReviewThreads.PageInfo.HasNextPage {
 					cursor := pullRequest.ReviewThreads.PageInfo.EndCursor
 					if cursor == "" {

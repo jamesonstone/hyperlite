@@ -14,6 +14,10 @@ extension HyperliteWindow {
             state.showPalette(.removeProjects)
             return
         }
+        if action == .copyOpenPRMergePrompt {
+            copyVisibleOpenPRMergePrompt()
+            return
+        }
         state.dismissPalette()
         switch action {
         case .showDashboard:
@@ -37,6 +41,8 @@ extension HyperliteWindow {
             state.refreshAll()
         case .forceCacheRefresh:
             state.forceCacheRefresh()
+        case .copyOpenPRMergePrompt:
+            break
         case .settings:
             openHyperliteSettings()
         case .addProject:
@@ -58,5 +64,16 @@ extension HyperliteWindow {
         case let .openDailyNote(date):
             Task { await notepad.selectDateIdentifier(date, focus: true) }
         }
+    }
+
+    func copyVisibleOpenPRMergePrompt() {
+        let rows = visibleOpenPullRequests
+        guard !rows.isEmpty else { return }
+        NSPasteboard.general.clearContents()
+        guard NSPasteboard.general.setString(
+            HyperliteOpenPRMergePrompt.text(rows: rows),
+            forType: .string
+        ) else { return }
+        mergePromptCopyGeneration += 1
     }
 }

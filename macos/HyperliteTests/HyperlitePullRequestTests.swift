@@ -181,7 +181,7 @@ enum HyperlitePullRequestTests {
             id: "owner/one#1", number: 1, title: "Legacy",
             url: "https://github.com/owner/one/pull/1",
             headRefName: "GH-1", headRefOID: "head-1", isDraft: false,
-            unresolvedReviewThreads: nil, updatedAt: checkedAt
+            hasMergeConflict: false, unresolvedReviewThreads: nil, updatedAt: checkedAt
         )
         func scan(status: HyperliteProjectPullRequestStatus)
             -> HyperliteProjectPullRequestScan

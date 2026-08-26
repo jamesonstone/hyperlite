@@ -55,6 +55,7 @@ struct HyperliteProjectPullRequest: Codable, Equatable, Identifiable {
     let headRefName: String
     let headRefOID: String
     let isDraft: Bool
+    let hasMergeConflict: Bool
     let unresolvedReviewThreads: Int?
     let updatedAt: Date
 
@@ -63,6 +64,7 @@ struct HyperliteProjectPullRequest: Codable, Equatable, Identifiable {
         case headRefName = "head_ref_name"
         case headRefOID = "head_ref_oid"
         case isDraft = "is_draft"
+        case hasMergeConflict = "has_merge_conflict"
         case unresolvedReviewThreads = "unresolved_review_threads"
         case updatedAt = "updated_at"
     }
@@ -78,6 +80,10 @@ extension HyperliteProjectPullRequest {
         headRefName = try container.decode(String.self, forKey: .headRefName)
         headRefOID = try container.decodeIfPresent(String.self, forKey: .headRefOID) ?? ""
         isDraft = try container.decode(Bool.self, forKey: .isDraft)
+        hasMergeConflict = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .hasMergeConflict
+        ) ?? false
         unresolvedReviewThreads = try container.decodeIfPresent(
             Int.self,
             forKey: .unresolvedReviewThreads
@@ -96,6 +102,7 @@ struct HyperlitePullRequestRow: Equatable, Identifiable {
     let url: URL?
     let headRefOID: String
     let isDraft: Bool
+    let hasMergeConflict: Bool
     let unresolvedReviewThreads: Int?
     let updatedAt: Date
 }
@@ -103,6 +110,7 @@ struct HyperlitePullRequestRow: Equatable, Identifiable {
 struct HyperlitePullRequestRowLayout: Equatable {
     let repositoryColumnWidth: CGFloat
     let reviewFeedbackColumnWidth: CGFloat
+    let mergeConflictColumnWidth: CGFloat
     let availabilityMetadataColumnWidth: CGFloat
     let repositoryLayoutPriority: Double
     let titleLayoutPriority: Double
@@ -110,7 +118,8 @@ struct HyperlitePullRequestRowLayout: Equatable {
     static let repositoryFirst = HyperlitePullRequestRowLayout(
         repositoryColumnWidth: 190,
         reviewFeedbackColumnWidth: 28,
-        availabilityMetadataColumnWidth: 126,
+        mergeConflictColumnWidth: 16,
+        availabilityMetadataColumnWidth: 149,
         repositoryLayoutPriority: 1,
         titleLayoutPriority: -1
     )
@@ -136,6 +145,7 @@ enum HyperlitePullRequestPresentation {
                     url: URL(string: pullRequest.url),
                     headRefOID: pullRequest.headRefOID,
                     isDraft: pullRequest.isDraft,
+                    hasMergeConflict: pullRequest.hasMergeConflict,
                     unresolvedReviewThreads: pullRequest.unresolvedReviewThreads,
                     updatedAt: pullRequest.updatedAt
                 )
@@ -205,5 +215,9 @@ enum HyperlitePullRequestPresentation {
                 "thread\(unresolvedThreads == 1 ? "" : "s")",
             needsAttention: true
         )
+    }
+
+    static func mergeConflictAccessibilityLabel(hasMergeConflict: Bool) -> String? {
+        hasMergeConflict ? "has merge conflicts" : nil
     }
 }

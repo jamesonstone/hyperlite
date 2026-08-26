@@ -84,6 +84,7 @@ enum HyperliteDashboardListPresentation {
             case .ready: !row.isDraft
             case .draft: row.isDraft
             }
+            let hideDraftMatches = !filter.hideDrafts || !row.isDraft
             let reviewMatches = switch filter.review {
             case .all: true
             case .attention: (row.unresolvedReviewThreads ?? 0) > 0
@@ -98,10 +99,27 @@ enum HyperliteDashboardListPresentation {
             case .stale: localReviewStatus == .stale
             }
             let dataMatches = filter.data == .all || row.status.rawValue == filter.data.rawValue
-            return queryMatches && repositoryMatches && stateMatches && reviewMatches &&
-                localReviewMatches && dataMatches
+            return queryMatches && repositoryMatches && stateMatches && hideDraftMatches &&
+                reviewMatches && localReviewMatches && dataMatches
         }
         return sortedPullRequests(filtered, sort: sort, customOrder: customOrder)
+    }
+
+    static func displayedPullRequests(
+        _ rows: [HyperlitePullRequestRow],
+        filter: HyperlitePullRequestFilter,
+        sort: HyperlitePullRequestSort,
+        customOrder: [String],
+        reviewStatuses: [String: HyperlitePullRequestReviewStatus] = [:],
+        isReordering: Bool
+    ) -> [HyperlitePullRequestRow] {
+        pullRequests(
+            rows,
+            filter: isReordering ? HyperlitePullRequestFilter() : filter,
+            sort: isReordering ? .custom : sort,
+            customOrder: customOrder,
+            reviewStatuses: reviewStatuses
+        )
     }
 
     static func availability(
@@ -109,7 +127,7 @@ enum HyperliteDashboardListPresentation {
         filter: HyperlitePullRequestFilter
     ) -> [HyperliteProjectPullRequests] {
         guard filter.state == .all, filter.review == .all,
-              filter.localReview == .all
+              filter.localReview == .all, !filter.hideDrafts
         else { return [] }
         let query = normalized(filter.query.trimmingCharacters(in: .whitespacesAndNewlines))
         return projects.filter { project in

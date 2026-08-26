@@ -20,6 +20,7 @@ type ProjectPullRequest struct {
 	HeadRefName             string    `json:"head_ref_name"`
 	HeadRefOID              string    `json:"head_ref_oid"`
 	IsDraft                 bool      `json:"is_draft"`
+	HasMergeConflict        bool      `json:"has_merge_conflict,omitempty"`
 	UnresolvedReviewThreads *int      `json:"unresolved_review_threads,omitempty"`
 	UpdatedAt               time.Time `json:"updated_at"`
 }

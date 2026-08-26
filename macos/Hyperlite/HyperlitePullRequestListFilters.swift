@@ -29,6 +29,7 @@ enum HyperlitePullRequestDataFilter: String, CaseIterable, Identifiable {
 }
 
 struct HyperlitePullRequestFilter: Equatable {
+    var hideDrafts = false
     var query = ""
     var repository = ""
     var state: HyperlitePullRequestStateFilter = .all
@@ -36,9 +37,11 @@ struct HyperlitePullRequestFilter: Equatable {
     var localReview: HyperlitePullRequestLocalReviewFilter = .all
     var data: HyperlitePullRequestDataFilter = .all
 
-    var isActive: Bool {
+    var popoverIsActive: Bool {
         !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
             !repository.isEmpty || state != .all || review != .all ||
             localReview != .all || data != .all
     }
+
+    var isActive: Bool { hideDrafts || popoverIsActive }
 }
