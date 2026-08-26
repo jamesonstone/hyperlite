@@ -57,7 +57,7 @@
 - Load `docs/references/rules/deadline-mode.md` only when the user explicitly signals a real time constraint or deadline in-thread; never infer or proactively suggest deadline mode
 - Load `docs/references/rules/cross-repository-program-coordination.md` before implementing or resuming an accepted plan that spans multiple repositories with dependent deliverables, staged deployment or activation, or expected agent or session handoff
 - Load `docs/references/rules/agent-team-orchestration.md` only when the immediate decision includes execution topology, subagent lanes, or read-only verification; do not load it for trivial single-lane tasks
-- Load `docs/references/rules/agent-completion-output.md` before a terminal task completion or handoff response
+- Load `docs/references/rules/agent-completion-output.md` before a substantial terminal completion or handoff response; answer ordinary conversational requests naturally without its structured envelope
 - Use indices first: start with `docs/PROJECT_PROGRESS_SUMMARY.md` and explicit SPEC relationships to shortlist candidate prior features under `docs/specs/`
 - Treat prior feature docs, repo references, and secondary global inputs as conditional reads only
 - Do not load every ruleset by default; feature front matter references determine when a ruleset is must-read, conditional, evidence, or skipped
