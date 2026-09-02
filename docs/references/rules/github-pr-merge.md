@@ -48,6 +48,9 @@ ledger existence are also not authorization.
 
 - Record the authorization source and exact approved pull-request set before
   mutation.
+- Treat that exact existing pull-request set as explicit continuation under
+  `work-lane-gating`. Do not create a new coordination issue, branch, worktree,
+  or pull request merely to prepare or execute the merge plan.
 - Exact-head merge authority freezes the commit eligible for merge; it does not
   authorize source repair. An authorized in-place repair keeps the same pull
   request in the graph but invalidates its readiness and prior exact-head merge
@@ -75,7 +78,8 @@ Before the first merge, record:
 - dependency edges and the current authorized ready frontier;
 - required review and hosted-check policy plus current-head evidence;
 - known deployment, Kubernetes, public-cloud, and infrastructure-as-code
-  effects, including their approval state;
+  effects, classified as routine application operations or covered
+  infrastructure mutations, including approval state when covered;
 - post-merge deployment, runtime, and validation gates; and
 - bounded in-place-remediation authority, replacement-PR criteria,
   failure-containment, recovery, and rollback ownership.
@@ -136,16 +140,24 @@ before mutation.
 
 ### Infrastructure And Deployment Effects
 
-- A merge known to trigger deployment, Kubernetes, public-cloud, or
-  infrastructure-as-code mutation is part of that covered mutation boundary.
-- Before authorizing that node as `MERGE_READY`, the accepted plan must identify
-  the triggering workflow, target account/environment/region/cluster, expected
-  actions and impact, recovery or rollback, and post-merge evidence.
+- Record known deployment, Kubernetes, public-cloud, and infrastructure-as-code
+  effects in the merge plan, including routine application operations such as
+  existing CD rolling a new image onto already-provisioned compute.
+- A merge known to trigger a covered infrastructure mutation is part of that
+  covered mutation boundary. Before authorizing that node as `MERGE_READY`,
+  the accepted plan must identify the triggering workflow, target
+  account/environment/region/cluster, expected actions and impact, recovery
+  or rollback, and post-merge evidence.
+- A merge whose only known cloud effect is a routine application operation
+  does not require infrastructure-change-approval confirmation. Record the
+  workflow and environment; do not invent a covered infrastructure batch.
 - The same accepted plan may contain both merge authorization and applicable
   infrastructure approval. Do not ask twice when one complete plan satisfies
   both contracts.
-- Unknown indirect effects or incomplete infrastructure approval make the node
-  `UNKNOWN` or `BLOCKED`; inspect them before merge.
+- Unknown create, replace, or delete effects, or incomplete approval for a
+  covered infrastructure mutation, make the node `UNKNOWN` or `BLOCKED`;
+  inspect them before merge. An image-only CD path is not an unknown covered
+  mutation once classified as a routine application operation.
 - Merge success never implies workflow success, deployed identity, runtime
   readiness, production validation, or rollback readiness.
 
@@ -214,6 +226,14 @@ log in the terminal result.
 Report partial waves literally. Do not call a queued, merged, deployed, or
 healthy state by another name.
 
+Under an active `docs/references/rules/deadline-mode.md` authorization,
+continue authorized merge and deployment work without interleaving UI or
+browser walkthrough verification after each result. After every result in
+the authorized set is delivered, run one final UI verification. Record merge,
+hosted-workflow, and deployment/runtime evidence after each transition as
+usual. Do not treat the deferred UI check as license to skip required
+post-deployment production-suite evidence.
+
 ## Anti-Patterns
 
 - Treating PR-delivery consent, automatic lane allocation, review resolution,
@@ -224,8 +244,10 @@ healthy state by another name.
 - Assigning merge authority implicitly to every subagent or verifier.
 - Using admin merge, protection bypass, identity substitution, or an
   unsupported merge method.
-- Starting a deployment-triggering merge before its effects and approval are
-  known.
+- Starting a merge that creates, replaces, or deletes infrastructure before
+  those covered effects and approval are known.
+- Inventing an infrastructure-approval batch solely because merge will deploy
+  a new application image through existing CD.
 - Creating replacement or recursively corrective pull requests for routine,
   scope-preserving remediation that can safely stay on the existing PR head.
 - Updating a PR head and merging it under authorization or evidence bound to
@@ -234,6 +256,9 @@ healthy state by another name.
   to recreate an already-current snapshot.
 - Treating merge success as deployment, runtime, production, or integration
   evidence.
+- Interleaving UI or browser walkthroughs after each merge or deployment
+  result during an active deadline-mode wave instead of one final UI
+  verification after all results are delivered.
 
 ## Verification
 
@@ -259,6 +284,9 @@ healthy state by another name.
   direction.
 - Confirm post-merge evidence separates merge, workflow, deployment/runtime,
   and production validation.
+- Confirm that under active deadline mode, UI or browser walkthroughs waited
+  until every authorized merge and deployment result was delivered, then one
+  final UI verification ran.
 - Confirm no bypass, admin override, silent identity substitution, or
   unauthorized scope expansion occurred.
 
@@ -269,7 +297,9 @@ Authorized single PR:
 ```text
 Direct request: merge owner/service#84.
 Head/base, actor, policy, reviews, required checks, and deployment effects are
-current and acceptable. State: MERGE_READY. Merge only #84.
+current and acceptable. The hosted workflow rolls a new image onto the existing
+ECS service. That is a routine application operation, not a covered
+infrastructure batch. State: MERGE_READY. Merge only #84.
 ```
 
 Unauthorized extra PR:
@@ -284,4 +314,12 @@ Partial wave:
 ```text
 Wave 2 merged service-a#84. service-b#87 became UNKNOWN after head drift, so it
 and its dependent UI#90 stopped. Independent docs#12 remains MERGE_READY.
+```
+
+Deadline-mode merge/deploy wave:
+
+```text
+Deadline mode is active. Wave 1 merges service#84 and ui#90; both configured
+deployments complete. UI verification stays SKIPPED until both results are
+delivered, then one final UI verification runs against the delivered system.
 ```
