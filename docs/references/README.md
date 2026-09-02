@@ -7,8 +7,9 @@
 - Link these files from feature front matter references when they materially shape work
 - Store durable rulesets under `rules/<slug>.md` and link them with `kit rules link` instead of copying rules into agent instruction files
 - Use `rules/work-lane-gating.md` before any coding-agent repository
-  file or delivery mutation to require the explicit lane choice, pull-request
-  landing plan, and read-only primary checkout
+  file or delivery mutation to default to a new worklane without asking,
+  require the pull-request landing plan, preserve exact existing-PR lifecycle
+  work in place, and keep the primary checkout read-only
 - Use `rules/kit-capabilities-usage.md` in downstream projects for Kit command discovery guidance
 - Use `rules/constitution-curation.md` after implementation and validation to keep the Constitution aligned with demonstrated project-wide truth
 - Use `rules/cross-repository-program-coordination.md` before implementing or resuming accepted plans that span multiple repositories with dependent deliverables, staged deployment or activation, or expected handoff
