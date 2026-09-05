@@ -8,7 +8,6 @@ enum HyperliteAgentSessionTests {
         try testActionEncoding()
         testPopupTransitions(snapshot)
         testActionAndRoutePresentation(snapshot)
-        testNotchGeometry()
     }
 
     private static func testSnapshotDecoding() throws -> HyperliteAgentSessionSnapshot {
@@ -177,35 +176,6 @@ enum HyperliteAgentSessionTests {
         expect(object?["session_id"] as? String == "claude:session-1", "canonical session id")
         expect(object?["request_id"] as? String == "request-1", "action request id")
         expect(object?["revision"] as? Int == 3, "action revision")
-    }
-
-    private static func testNotchGeometry() {
-        let physical = HyperliteAgentNotchMetrics.detect(
-            screenFrame: CGRect(x: 0, y: 0, width: 1_512, height: 982),
-            safeAreaTop: 38,
-            auxiliaryLeftWidth: 650,
-            auxiliaryRightWidth: 650
-        )
-        expect(physical.hasPhysicalNotch, "physical notch detected")
-        expect(physical.size.width >= 170 && physical.size.height == 38, "physical notch size")
-        let fallback = HyperliteAgentNotchMetrics.detect(
-            screenFrame: CGRect(x: 0, y: 0, width: 1_920, height: 1_080),
-            safeAreaTop: 0,
-            auxiliaryLeftWidth: nil,
-            auxiliaryRightWidth: nil
-        )
-        expect(!fallback.hasPhysicalNotch, "fallback display")
-        let geometry = HyperliteAgentNotchGeometry(
-            screenFrame: CGRect(x: 100, y: 50, width: 1_920, height: 1_080),
-            metrics: fallback
-        )
-        let collapsed = geometry.frame(expanded: false)
-        let expanded = geometry.frame(expanded: true)
-        let emptyExpanded = geometry.frame(expanded: true, hasSessions: false)
-        expect(collapsed.midX == expanded.midX, "top-edge frames stay centered")
-        expect(collapsed.maxY == expanded.maxY, "top-edge frames stay anchored")
-        expect(emptyExpanded.height == 150, "empty expanded surface stays compact")
-        expect(HyperliteWorkspace.allCases.contains(.sessions), "sessions workspace exists")
     }
 
     private static func expect(_ condition: @autoclosure () -> Bool, _ message: String) {

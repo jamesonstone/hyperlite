@@ -3,7 +3,6 @@ import Foundation
 extension HyperliteInteractionModel {
     static func commandEntries(
         threads: [HyperliteThread],
-        agentIslandEnabled: Bool,
         visibleOpenPullRequestCount: Int = 0,
         mergePromptCopied: Bool = false
     ) -> [HyperlitePaletteEntry] {
@@ -67,15 +66,6 @@ extension HyperliteInteractionModel {
                 "action:show-sessions", "Show Agent Tasks", "Switch to Agent Tasks · ⌘3",
                 "terminal.fill", .showSessions
             ), at: 2)
-            entries.insert(actionEntry(
-                "action:toggle-agent-island",
-                agentIslandEnabled ? "Turn Agent Island Off" : "Turn Agent Island On",
-                agentIslandEnabled
-                    ? "Hide the floating island; Agent Tasks keeps tracking"
-                    : "Show live agent status at the Mac notch or top edge",
-                "rectangle.topthird.inset.filled",
-                .toggleAgentIsland
-            ), at: 3)
         }
         entries.append(contentsOf: threads.map { thread in
             actionEntry(

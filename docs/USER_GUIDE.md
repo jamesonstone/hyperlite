@@ -53,7 +53,7 @@ Pinned tasks load at startup, recheck changed source signatures after foreground
 activation, and join explicit Refresh actions. Hyperlite does not poll or watch
 Codex files, read transcripts, navigate to tasks, or mutate Codex state.
 
-### Agent Tasks and Agent Island
+### Agent Tasks
 
 The agent-session surface is a separate local runtime projection. It does not
 change pinned Codex membership, inferred project threads, project attention,
@@ -66,14 +66,7 @@ current starting, processing, approval, input, or idle work and groups those
 rows by exact client profile, so clients such as Claude Code and Cursor remain
 separate even when they share an integration adapter. Recent completions,
 errors, ended rows, and metadata-only verification rows do not appear there.
-
-`Show Agent Island` in Settings is on by default. Turning it off closes the
-floating notch or top-edge panel on every display while session discovery,
-Agent Tasks, event sounds, and opt-in metadata-only notifications continue.
-The next launch opens the regular Dashboard when consent already exists.
-Command-K exposes the matching `Turn Agent Island Off` or `Turn Agent Island
-On` action. This preference controls presentation only; integration consent
-and `HYPERLITE_AGENT_SESSIONS_PREVIEW=0` remain the broader runtime gates.
+There is no floating notch or Agent Island panel.
 
 On first agent-session launch, a centered welcome offers Enable Recommended,
 Review in Settings, and Not Now. Hyperlite performs one bounded detection-only
@@ -89,15 +82,7 @@ one metadata-only synthetic event through Hyperlite's private bridge, socket,
 store, and native decoder, then removes the synthetic row immediately. It
 does not contact a model, invoke a provider task, or approve anything.
 
-The collapsed physical-notch surface shows only the Hyperlite mark and active
-or attention counts. On a notchless or external display, the idle surface is
-entirely invisible while retaining an accessible top-center hit target;
-hovering that target reveals the metadata pill without expanding it. Click the
-pill to open the mini workspace. A newly urgent approval or input request may
-expand once, and active pointer, keyboard, or text-field interaction pauses
-timed dismissal. A physical-notch surface stays black while the revealed
-notchless fallback uses native material and shadow.
-The companion or Agent Tasks workspace may show at most six
+The Agent Tasks workspace may show at most six
 recent user/assistant messages, each capped at 2,000 characters, plus an 8,000-
 character latest final result or decision context. Native system typography is
 used for chrome and controls, while technical content remains monospaced.
@@ -325,7 +310,7 @@ agent input.
 - `Command+3` shows Agent Tasks unless agent sessions were explicitly disabled.
 - `Command+R` refreshes the focused Hyperlite application.
 - `Command+K` opens a searchable command palette with Show Dashboard, Show
-  Pinboard, Show Agent Tasks, Turn Agent Island On or Off, Add Pinboard Note,
+  Pinboard, Show Agent Tasks, Add Pinboard Note,
   Add Pinboard Section, Open Pinboard Archive, Refresh, Force Cache Refresh,
   Copy Open PR Merge Prompt, Settings, Add Project, Remove Project, and
   exact or on-device semantic matches from pinned and daily note filenames,

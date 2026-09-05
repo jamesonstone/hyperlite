@@ -2,25 +2,11 @@ import SwiftUI
 
 struct HyperliteAgentSessionSettings: View {
     @ObservedObject var state: HyperliteAgentSessionState
-    @ObservedObject var agentIsland: HyperliteAgentIslandPreference
     @AppStorage("hyperlite.agent-session-sounds") private var agentSounds = false
     @AppStorage("hyperlite.agent-session-notifications") private var agentNotifications = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Toggle(isOn: islandBinding) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Show Agent Island")
-                    Text("Show live agent status at the Mac notch or top edge.")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .toggleStyle(.switch)
-            .accessibilityLabel("Show Agent Island")
-            .accessibilityHint("Controls only the floating island. Agent Tasks keeps tracking.")
-            .accessibilityValue(agentIsland.isEnabled ? "On" : "Off")
-            Divider()
             if !state.hasConsent {
                 Label(
                     "Review the detected integrations, then start Agent Tasks.",
@@ -60,10 +46,6 @@ struct HyperliteAgentSessionSettings: View {
         .onAppear {
             if state.integrations.isEmpty { state.refreshIntegrations() }
         }
-    }
-
-    private var islandBinding: Binding<Bool> {
-        Binding(get: { agentIsland.isEnabled }, set: agentIsland.setEnabled)
     }
 
     @ViewBuilder

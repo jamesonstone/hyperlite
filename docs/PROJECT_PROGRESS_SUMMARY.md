@@ -19,6 +19,7 @@
 | 0013 | agent-island-toggle | `docs/specs/0013-agent-island-toggle` | deliver | no | 2026-08-24 | Add a persistent Agent Island presentation toggle and a live-only Agent Tasks workspace grouped by client profile. |
 | 0014 | open-pr-conflicts-hide-drafts | `docs/specs/0014-open-pr-conflicts-hide-drafts` | deliver | no | 2026-08-26 | Show confirmed merge conflicts in Open PRs and hide drafts with a quiet header checkbox. |
 | 0015 | copy-open-pr-merge-prompt | `docs/specs/0015-copy-open-pr-merge-prompt` | deliver | no | 2026-08-26 | Copy a durable merge-ready coding-agent prompt for the currently visible Open PRs. |
+| 0016 | remove-agent-island | `docs/specs/0016-remove-agent-island` | deliver | no | 2026-09-05 | Remove the floating Agent Island companion and keep Agent Tasks in the regular window. |
 
 ## PROJECT INTENT
 
@@ -260,8 +261,21 @@ changes that warrant human attention.
   issue #59 owns ready pull-request delivery through PR #58.
 - **POINTERS**: `docs/specs/0015-copy-open-pr-merge-prompt/SPEC.md`
 
+### remove-agent-island
+
+- **STATUS**: deliver
+- **PAUSED**: no
+- **INTENT**: Delete the unused floating Agent Island / notch companion that
+  pegged CPU, while keeping Agent Tasks and session tracking.
+- **APPROACH**: Remove the `NSPanel` host, island preference, Command-K toggle,
+  and island-first launch. Open the regular window on Dashboard or onboarding.
+- **OPEN ITEMS**: Issue #62 owns ready pull-request delivery.
+- **POINTERS**: `docs/specs/0016-remove-agent-island/SPEC.md`
+
 ## LAST UPDATED
 
+- 2026-09-05: Added feature `0016-remove-agent-island` to delete the floating
+  notch companion after it burned a CPU core and proved not useful.
 - 2026-08-26: Added feature `0015-copy-open-pr-merge-prompt` for a durable
   merge-ready clipboard prompt over currently visible Open PRs.
 - 2026-08-26: Added feature `0014-open-pr-conflicts-hide-drafts` for confirmed

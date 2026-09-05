@@ -20,9 +20,8 @@
   coalescing, resolved-input transitions, pre-store expiry, and redaction.
 - Swift executable tests cover v1/v2 agent snapshot decoding, queued action
   identity, health/control records, stale foreground refresh policy, and
-  physical notch versus top-edge geometry. They also cover the default-on
-  persisted Agent Island preference, consent/preference launch policy,
-  live-only Agent Tasks filtering, exact client-profile grouping, deterministic
+  window launch policy without a floating island. They also cover live-only
+  Agent Tasks filtering, exact client-profile grouping, deterministic
   group order, workspace order, and dynamic command-palette labels. Open PRs
   tests cover confirmed merge-conflict decoding, legacy cache compatibility,
   hide-drafts filtering, and conflict-column layout reservation. Copy Open PR
@@ -108,13 +107,11 @@
   operational state in the referenced projects.
 - Agent sessions are enabled by default, but full provider-parity evidence
   remains partial until every frozen provider passes a real local lifecycle
-  smoke, action-capable providers pass one bounded response round trip, and
-  both physical-notch and external/notchless display journeys pass.
+  smoke and action-capable providers pass one bounded response round trip.
   Deterministic fixtures do not replace that residual acceptance evidence.
 - Issue #49 live regression evidence proves current external idle transparency
-  and cross-process Codex discovery. Direct pointer-only hover remains a
-  deterministic policy assertion because the local Computer Use API exposes
-  clicks and drags rather than pointer-only motion.
+  and cross-process Codex discovery. The floating Agent Island companion was
+  later removed; pointer-only notch hover is no longer an acceptance path.
 - Feature 0012's short resource smoke proves the harness and bounded synthetic
   load, not the mandatory 30-minute combined-app sample or eight-hour soak;
   those remain `PARTIAL` until their full wall-clock observations complete.

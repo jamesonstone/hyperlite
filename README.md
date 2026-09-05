@@ -35,8 +35,8 @@ directly with `hyperlite scan /path/to/projects`.
 - Pinned and daily notes, open pull requests, and configured projects in the
   preserved Dashboard workspace
 - Read-only GitHub quota, review-feedback, merge-conflict, and pinned Codex task visibility
-- A grouped live Agent Tasks workspace plus an optional Mac notch/top-edge
-  companion with exact, capability-gated response controls
+- A grouped live Agent Tasks workspace with exact, capability-gated response
+  controls
 - CLI and JSON interfaces for project scanning and inferred attention
 - Local, permission-restricted state with no external project-management system
 

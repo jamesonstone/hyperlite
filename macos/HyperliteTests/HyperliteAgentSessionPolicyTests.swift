@@ -4,8 +4,6 @@ enum HyperliteAgentSessionPolicyTests {
     static func run() {
         testIntegrationOutcomes()
         testRouteResolution()
-        testDismissalPolicy()
-        testNotchVisibilityPolicy()
         testAttentionAccessibilityLabel()
         testSingleSubmissionAndStaleIdentity()
         testAnswerResetPolicy()
@@ -28,30 +26,6 @@ enum HyperliteAgentSessionPolicyTests {
                "integration verification timeout stays bounded")
     }
 
-    private static func testNotchVisibilityPolicy() {
-        expect(!HyperliteAgentNotchVisibilityPolicy.showsChrome(
-            hasPhysicalNotch: false, expanded: false, pointerInside: false
-        ), "idle notchless chrome stays hidden")
-        expect(HyperliteAgentNotchVisibilityPolicy.showsChrome(
-            hasPhysicalNotch: false, expanded: false, pointerInside: true
-        ), "hover reveals notchless chrome without expanding")
-        expect(HyperliteAgentNotchVisibilityPolicy.showsChrome(
-            hasPhysicalNotch: false, expanded: true, pointerInside: false
-        ), "expanded notchless companion stays visible")
-        expect(HyperliteAgentNotchVisibilityPolicy.showsChrome(
-            hasPhysicalNotch: true, expanded: false, pointerInside: false
-        ), "physical notch chrome remains visible")
-        expect(!HyperliteAgentNotchVisibilityPolicy.showsShadow(
-            hasPhysicalNotch: false, chromeVisible: false
-        ), "hidden notchless chrome casts no shadow")
-        expect(HyperliteAgentNotchVisibilityPolicy.showsShadow(
-            hasPhysicalNotch: false, chromeVisible: true
-        ), "revealed notchless chrome casts its native shadow")
-        expect(!HyperliteAgentNotchVisibilityPolicy.showsShadow(
-            hasPhysicalNotch: true, chromeVisible: true
-        ), "physical notch chrome never adds a floating shadow")
-    }
-
     private static func testAttentionAccessibilityLabel() {
         let pending = HyperliteAgentPendingAction(
             requestID: "request",
@@ -71,9 +45,9 @@ enum HyperliteAgentSessionPolicyTests {
                "fixture covers pending action during processing")
         let sharedLabel = HyperliteAgentAccessibilityPolicy.sessionLabel(active)
         expect(sharedLabel.contains("needs attention"),
-               "shared workspace and notch row label states pending attention explicitly")
+               "session label states pending attention explicitly")
         expect(sharedLabel.contains(active.profile),
-               "shared workspace and notch row label retains provider identity")
+               "session label retains provider identity")
     }
 
     private static func testIntegrationOutcomes() {
@@ -133,44 +107,6 @@ enum HyperliteAgentSessionPolicyTests {
         let finder = session(routing: routing(workspacePath: "/tmp/hyperlite"))
         expect(finder.routeDestination == .finder, "workspace-only route uses Finder")
         expect(finder.routeDestination?.label == "Reveal in Finder", "Finder label describes route")
-    }
-
-    private static func testDismissalPolicy() {
-        expect(HyperliteAgentDismissalPolicy.shouldSchedule(
-            expanded: true,
-            hasAutomaticDelay: true,
-            pointerInside: false,
-            editing: false,
-            companionFocused: false
-        ), "idle automatic popup dismisses")
-        expect(!HyperliteAgentDismissalPolicy.shouldSchedule(
-            expanded: true,
-            hasAutomaticDelay: true,
-            pointerInside: false,
-            editing: false,
-            companionFocused: true
-        ), "keyboard or VoiceOver focus pauses dismissal")
-        expect(!HyperliteAgentDismissalPolicy.shouldSchedule(
-            expanded: true,
-            hasAutomaticDelay: true,
-            pointerInside: true,
-            editing: false,
-            companionFocused: false
-        ), "pointer interaction pauses dismissal")
-        expect(!HyperliteAgentDismissalPolicy.shouldSchedule(
-            expanded: true,
-            hasAutomaticDelay: false,
-            pointerInside: false,
-            editing: false,
-            companionFocused: false
-        ), "manual expansion has no automatic dismissal")
-        expect(!HyperliteAgentDismissalPolicy.shouldSchedule(
-            expanded: false,
-            hasAutomaticDelay: true,
-            pointerInside: false,
-            editing: false,
-            companionFocused: false
-        ), "collapsed companion does not schedule dismissal")
     }
 
     private static func testSingleSubmissionAndStaleIdentity() {

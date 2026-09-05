@@ -23,7 +23,6 @@ struct HyperliteApp: App {
     @StateObject private var pinnedCodexThreads = HyperlitePinnedCodexThreadState.shared
     @StateObject private var pinboard = HyperlitePinboardState.shared
     @StateObject private var agentSessions = HyperliteAgentSessionState.shared
-    @StateObject private var agentIsland = HyperliteAgentIslandPreference.shared
 
     var body: some Scene {
         WindowGroup("Hyperlite", id: "hyperlite") {
@@ -32,7 +31,6 @@ struct HyperliteApp: App {
                 pinnedCodexThreads: pinnedCodexThreads,
                 pinboard: pinboard,
                 agentSessions: agentSessions,
-                agentIsland: agentIsland,
                 notepad: HyperliteNotepadState.shared
             )
                 .font(HyperliteTypography.regular(13))
@@ -74,8 +72,7 @@ struct HyperliteApp: App {
         Settings {
             HyperliteSettingsView(
                 state: state,
-                agentSessions: agentSessions,
-                agentIsland: agentIsland
+                agentSessions: agentSessions
             )
                 .font(HyperliteTypography.regular(13))
                 .hyperliteTheme()

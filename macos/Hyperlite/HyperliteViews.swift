@@ -55,7 +55,6 @@ struct HyperliteWindow: View {
     @ObservedObject var pinnedCodexThreads: HyperlitePinnedCodexThreadState
     @ObservedObject var pinboard: HyperlitePinboardState
     @ObservedObject var agentSessions: HyperliteAgentSessionState
-    @ObservedObject var agentIsland: HyperliteAgentIslandPreference
     let notepad: HyperliteNotepadState
     @StateObject private var dashboardLists = HyperliteDashboardListState()
     @State var selectedThread: HyperliteThread?
@@ -194,7 +193,6 @@ struct HyperliteWindow: View {
                             visibleOpenPullRequestCount: visibleOpenPullRequests.count,
                             mergePromptCopied: mergePromptCopied,
                             notepad: notepad,
-                            agentIsland: agentIsland,
                             onAction: handlePaletteAction,
                             onDismiss: state.dismissPalette
                         )

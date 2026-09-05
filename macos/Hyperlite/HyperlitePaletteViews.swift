@@ -8,7 +8,6 @@ struct HyperliteCommandPalette: View {
     let visibleOpenPullRequestCount: Int
     let mergePromptCopied: Bool
     @ObservedObject var notepad: HyperliteNotepadState
-    @ObservedObject var agentIsland: HyperliteAgentIslandPreference
     let onAction: (HyperlitePaletteAction) -> Void
     let onDismiss: () -> Void
 
@@ -22,7 +21,6 @@ struct HyperliteCommandPalette: View {
         case .commands:
             return HyperliteInteractionModel.commandEntries(
                 threads: threads,
-                agentIslandEnabled: agentIsland.isEnabled,
                 visibleOpenPullRequestCount: visibleOpenPullRequestCount,
                 mergePromptCopied: mergePromptCopied
             )

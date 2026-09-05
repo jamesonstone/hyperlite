@@ -26,8 +26,6 @@ extension HyperliteWindow {
             state.showWorkspace(.pinboard)
         case .showSessions:
             state.showWorkspace(.sessions)
-        case .toggleAgentIsland:
-            agentIsland.toggle()
         case .addPinboardNote:
             state.showWorkspace(.pinboard)
             pinboard.request(.addNote)

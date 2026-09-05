@@ -22,7 +22,6 @@ enum HyperlitePaletteAction: Equatable {
     case showDashboard
     case showPinboard
     case showSessions
-    case toggleAgentIsland
     case addPinboardNote
     case addPinboardSection
     case openPinboardArchive

@@ -21,7 +21,6 @@ struct HyperliteSectionHeader: View {
 struct HyperliteSettingsView: View {
     @ObservedObject var state: HyperliteState
     @ObservedObject var agentSessions: HyperliteAgentSessionState
-    @ObservedObject var agentIsland: HyperliteAgentIslandPreference
     @AppStorage("hyperlite.hotkey") private var hotkey = defaultHotKey
 
     var body: some View {
@@ -53,8 +52,7 @@ struct HyperliteSettingsView: View {
             if HyperliteFeatureFlags.agentSessionPresentation {
                 Section("Agent Tasks") {
                     HyperliteAgentSessionSettings(
-                        state: agentSessions,
-                        agentIsland: agentIsland
+                        state: agentSessions
                     )
                 }
             }
