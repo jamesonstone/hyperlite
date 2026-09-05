@@ -2,12 +2,7 @@ import Foundation
 
 enum HyperliteWorkspaceSizing {
     static let sectionSpacing: CGFloat = 14
-    static let sectionCount: CGFloat = 3
     static let minimumNotepadEditorHeight: CGFloat = 44
-
-    static func sectionHeight(availableHeight: CGFloat) -> CGFloat {
-        max(0, availableHeight - sectionSpacing * (sectionCount - 1)) / sectionCount
-    }
 }
 
 enum HyperlitePaletteMode: String, Hashable, Identifiable {
@@ -19,21 +14,15 @@ enum HyperlitePaletteMode: String, Hashable, Identifiable {
 }
 
 enum HyperlitePaletteAction: Equatable {
-    case showDashboard
-    case showPinboard
-    case showSessions
-    case toggleAgentIsland
-    case addPinboardNote
-    case addPinboardSection
-    case openPinboardArchive
     case refresh
     case forceCacheRefresh
     case copyOpenPRMergePrompt
+    case updateDefaultBranches
+    case sweepWorktrees
     case settings
     case addProject
     case chooseProjectToRemove
     case removeProject(String)
-    case reveal(String)
     case openPullRequest(String)
     case revealPath(String)
     case focusPinnedNote

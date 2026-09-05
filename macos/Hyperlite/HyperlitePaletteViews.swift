@@ -2,13 +2,11 @@ import AppKit
 import SwiftUI
 struct HyperliteCommandPalette: View {
     let mode: HyperlitePaletteMode
-    let threads: [HyperliteThread]
     let projects: [HyperliteProjectLocation]
     let pullRequests: HyperliteProjectPullRequestScan?
     let visibleOpenPullRequestCount: Int
     let mergePromptCopied: Bool
     @ObservedObject var notepad: HyperliteNotepadState
-    @ObservedObject var agentIsland: HyperliteAgentIslandPreference
     let onAction: (HyperlitePaletteAction) -> Void
     let onDismiss: () -> Void
 
@@ -21,8 +19,6 @@ struct HyperliteCommandPalette: View {
         switch mode {
         case .commands:
             return HyperliteInteractionModel.commandEntries(
-                threads: threads,
-                agentIslandEnabled: agentIsland.isEnabled,
                 visibleOpenPullRequestCount: visibleOpenPullRequestCount,
                 mergePromptCopied: mergePromptCopied
             )
@@ -146,12 +142,15 @@ struct HyperliteCommandPalette: View {
     private var paletteSymbol: String { HyperlitePaletteChrome.symbol(for: mode) }
     private var shortcutLabel: String { HyperlitePaletteChrome.shortcut(for: mode) }
     private var searchPrompt: String { HyperlitePaletteChrome.searchPrompt(for: mode) }
+    private var emptyListTitle: String {
+        mode == .commands ? "Type to search commands and notes" : "No configured projects"
+    }
 
     private var entryList: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 if entries.isEmpty {
-                    Text(query.isEmpty ? "No configured projects" : "No matches")
+                    Text(query.isEmpty ? emptyListTitle : "No matches")
                         .font(HyperliteTypography.regular(11))
                         .foregroundStyle(HyperliteTheme.mutedText.color)
                         .frame(maxWidth: .infinity, alignment: .leading)

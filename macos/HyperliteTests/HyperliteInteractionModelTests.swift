@@ -7,16 +7,12 @@ struct HyperliteInteractionModelTests {
         try testStructuredDiagnosticDecoding()
         testAttentionAndInformationalProjections()
         expect(!HyperliteFeatureFlags.inferredAttentionPresentation, "attention presentation hidden")
-        testAgentSessionFeatureFlag()
         testRowSummaryOnlyShowsAttention()
         HyperlitePaletteTests.run()
         testSelectionClamping()
         testHoverSummaryLimit()
         testProcessEnvironment()
-        HyperliteWorkspaceSizingTests.run()
-        try HyperliteAgentSessionTests.run()
-        HyperliteAgentIslandTests.run()
-        try await HyperlitePinboardTests.run()
+        HyperliteGitMaintenanceTests.run()
         HyperliteTypographyTests.run()
         try HyperliteProjectIndexTests.run()
         try HyperlitePullRequestTests.run()
@@ -25,39 +21,20 @@ struct HyperliteInteractionModelTests {
         try HyperliteDashboardListTests.run()
         try HyperlitePullRequestReviewMarkerTests.run()
         HyperliteRateLimitTests.run()
-        try await HyperlitePinnedCodexThreadTests.run()
         try await HyperliteNotepadTests.run()
         print("Hyperlite interaction model tests passed")
     }
 
-    private static func testAgentSessionFeatureFlag() {
-        expect(
-            HyperliteFeatureFlags.agentSessionPresentationEnabled(environment: [:]),
-            "agent sessions should be enabled when the preview variable is absent"
-        )
-        expect(
-            HyperliteFeatureFlags.agentSessionPresentationEnabled(environment: [
-                "HYPERLITE_AGENT_SESSIONS_PREVIEW": "1",
-            ]),
-            "the legacy preview opt-in should remain enabled"
-        )
-        expect(
-            !HyperliteFeatureFlags.agentSessionPresentationEnabled(environment: [
-                "HYPERLITE_AGENT_SESSIONS_PREVIEW": "0",
-            ]),
-            "an explicit zero should disable agent sessions"
-        )
-    }
-
     private static func testProcessEnvironment() {
+        let localBin = NSHomeDirectory() + "/.local/bin"
         let inherited = HyperliteProcessEnvironment.inheriting([
             "PATH": "/custom/bin:/opt/homebrew/bin:/usr/bin",
             "HYPERLITE_TEST": "preserved",
         ])
         expect(
             inherited["PATH"] ==
-                "/custom/bin:/opt/homebrew/bin:/usr/bin:/usr/local/bin",
-            "helper PATH should preserve order, avoid duplicates, and add the Intel Homebrew root"
+                "/custom/bin:/opt/homebrew/bin:/usr/bin:/usr/local/bin:\(localBin)",
+            "helper PATH should preserve order, avoid duplicates, and add Intel Homebrew and ~/.local/bin"
         )
         expect(inherited["HYPERLITE_TEST"] == "preserved",
                "helper environment should preserve unrelated inherited values")
@@ -65,8 +42,8 @@ struct HyperliteInteractionModelTests {
         let fallback = HyperliteProcessEnvironment.inheriting([:])
         expect(
             fallback["PATH"] ==
-                "/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin:/usr/local/bin",
-            "helper PATH should include system and Homebrew roots when PATH is absent"
+                "/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin:/usr/local/bin:\(localBin)",
+            "helper PATH should include system, Homebrew, and ~/.local/bin when PATH is absent"
         )
     }
 
