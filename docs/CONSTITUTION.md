@@ -30,34 +30,34 @@
   unrelated evidence revisions while the underlying coordination situation is
   unchanged.
 - Inferred attention remains available through CLI/JSON behind one native
-  presentation boundary. While that presentation is disabled, the app omits
-  thread and attention counts, rows, palette entries, and remote enrichment so
-  notes and open pull requests own the interface.
-- The configured-project map is a stable spatial reference, not a work-state
-  or attention projection. Every configured project remains in the source
-  projection; local filtering may temporarily hide a project, and clearing the
-  filter restores it without changing configuration. A presented project's
-  configured checkout is always identifiable, even when its subordinate lanes
-  are collapsed. A subordinate registered
-  worktree is visible only while its exact case-sensitive branch appears as an
-  open pull-request head in current project evidence. Cached or unavailable
-  pull-request data cannot retain a subordinate lane as active. No lane
-  receives attention styling, and hiding a lane never deletes or prunes it.
-  The Command-P palette is a navigation surface and may list every registered
-  lane, including detached lanes, without establishing activity or attention.
+  presentation boundary. The native window omits thread and attention counts,
+  rows, palette entries, and remote enrichment so notes and open pull requests
+  own the interface.
+- The native window is notes and Open PRs. It does not present a configured-
+  project map, Pinboard, Agent Tasks, Agent Island, pinned Codex, or a menu bar
+  extra. Launch and Refresh do not scan inferred threads or start those unused
+  surfaces.
+- Configured repositories remain the source list for Open PRs and local git
+  maintenance. Adding or removing a project changes Hyperlite's configuration
+  only; it never deletes a repository, worktree, or branch. Command-P is a
+  navigation lookup and may list configured checkouts and loaded pull requests
+  without establishing activity or attention.
 - Noninteractive configured-project add/remove changes are explicit user
   actions written atomically and serialized across concurrent helper processes.
-  Adding or removing a project changes Hyperlite's configuration only; it never
-  deletes a repository, worktree, or branch.
+- Update Default Branches may only fetch and fast-forward a configured default
+  branch when Git allows a clean fast-forward. Dirty trees, non-fast-forward
+  histories, and checked-out refs Git refuses to update are skipped with an
+  explicit reason. Hyperlite never resets, stashes, force-updates, or deletes
+  branches to complete that action.
+- Sweep Worktrees launches interactive `git wt sweep` in Terminal. Hyperlite
+  does not pass `--auto` and does not delete worktrees itself.
 - The configured-project pull-request index is a separate informational
   projection. Open pull requests from any author remain visible without
   establishing thread membership, liveness, lifecycle, or attention. Its
   GitHub access is read-only, bounded, cached separately from thread state, and
   refreshed only by startup or foreground staleness and explicit user action,
-  never by a continuous timer. A successful refresh is authoritative for
-  removing merged or closed PR branches from the visible Projects map. Cached
-  rows remain available in Open PRs during a failed refresh but are not
-  authoritative for active worktree visibility. Unresolved, non-outdated review
+  never by a continuous timer. Cached rows remain available in Open PRs during
+  a failed refresh. Unresolved, non-outdated review
   thread counts are informational metadata in this projection; they do not
   establish inferred attention or thread lifecycle state. Caller rate-limit
   metadata rides with those same bounded GraphQL requests and is cached only as
@@ -70,29 +70,15 @@
   create, replace, invalidate, or prune a marker, though the operator may clear
   an existing mark. The marker never publishes GitHub state or establishes
   approval, attention, readiness, merge order, or merge authorization.
-- Pinned Codex threads are a separate read-only operator projection, not
-  inferred Hyperlite threads, project evidence, lifecycle state, or attention.
-  A valid Desktop `pinned-thread-ids` array alone establishes membership;
-  read-only SQLite metadata may enrich those opaque IDs but may not add or
-  remove membership. Access is bounded and fail-closed, unavailable membership
-  removes every count and row, and incomplete metadata preserves the
-  authoritative count with explicit partial status. Refresh is limited to
-  startup, changed source signatures after foreground activation, and explicit
-  user action; Hyperlite does not poll, read transcripts, navigate, or mutate
-  Codex state.
-- Live coding-agent sessions are a separate ephemeral runtime projection, not
-  inferred project threads, project evidence, pinned Codex membership,
-  lifecycle authority, or durable task state. Exact provider and session
-  identifiers own membership; lower-authority rollout evidence may enrich but
-  may not heuristically merge sessions. Displayable prompts, responses,
-  approval context, and bounded recent messages remain memory-only and never
-  enter Hyperlite persistence, diagnostics, telemetry, or notifications.
-  Routing-only associations expire after twenty-four hours. Inline actions
-  require an exact current request, revision, complete redacted context, and a
-  live provider-native response channel; transport failure, incomplete
-  context, and notify-only providers preserve the owning client's authority.
-  Agent monitoring is event-driven and may use one next-deadline expiry timer,
-  but it does not re-enable continuous project scans or UI animation work.
+- Pinned Codex threads remain a CLI and helper contract, not a native-window
+  projection. When those commands run, a valid Desktop `pinned-thread-ids`
+  array alone establishes membership; read-only SQLite metadata may enrich
+  those opaque IDs but may not add or remove membership. Access is bounded and
+  fail-closed. The native window does not load, observe, or display Codex pins.
+- Live coding-agent sessions remain a CLI helper contract, not a native-window
+  projection. Exact provider and session identifiers own membership when that
+  helper runs. The native window does not start the agent helper, notch panel,
+  or Agent Tasks workspace.
 - Exact evidence owns thread membership. Semantic inference may relate
   separate threads, but it may not merge them, establish authoritative
   lifecycle state, suppress a thread, or close a goal.
@@ -105,15 +91,9 @@
   selection and derived search projection never become lifecycle authority.
   The pinned note safely adopts the prior single-document store without
   rewriting its content.
-- The global Pinboard is private graphical working memory, not project
-  evidence, Notepad/Daily content, task state, lifecycle state, attention, or
-  agent input. It remains one finite bounded board whose stable-ID sections own
-  every active note. Canonical Markdown content and timestamps are separate
-  from JSON geometry and membership so layout changes cannot falsify content
-  recency. Deletion is recoverable archive by default, and no section operation
-  may silently destroy contained notes. Pinboard access is local, bounded,
-  user-only, atomic, and fail-closed; it adds no network, repository scan,
-  polling, watcher, notification, or automatic movement behavior.
+- The global Pinboard store remains private graphical working memory for the
+  CLI, not project evidence, Notepad/Daily content, task state, lifecycle
+  state, attention, or agent input. The native window does not open Pinboard.
 - Technical and user-authored content, including editable notepad text, paths,
   commands, arguments, messages, and results, uses JetBrainsMono Nerd Font
   through one shared SwiftUI/AppKit resolver, with the system monospaced family

@@ -20,40 +20,31 @@ func openHyperliteSettings() {
 struct HyperliteApp: App {
     @NSApplicationDelegateAdaptor(HyperliteApplicationDelegate.self) private var applicationDelegate
     @StateObject private var state = HyperliteState.shared
-    @StateObject private var pinnedCodexThreads = HyperlitePinnedCodexThreadState.shared
-    @StateObject private var pinboard = HyperlitePinboardState.shared
-    @StateObject private var agentSessions = HyperliteAgentSessionState.shared
-    @StateObject private var agentIsland = HyperliteAgentIslandPreference.shared
 
     var body: some Scene {
         WindowGroup("Hyperlite", id: "hyperlite") {
             HyperliteWindow(
                 state: state,
-                pinnedCodexThreads: pinnedCodexThreads,
-                pinboard: pinboard,
-                agentSessions: agentSessions,
-                agentIsland: agentIsland,
                 notepad: HyperliteNotepadState.shared
             )
                 .font(HyperliteTypography.regular(13))
                 .background(HyperliteSettingsActionInstaller())
                 .hyperliteTheme()
         }
-        .defaultSize(width: 480, height: 650)
+        .defaultSize(width: 560, height: 720)
         .windowResizability(.contentMinSize)
         .commands {
             CommandMenu("Navigate") {
-                Button("Show Dashboard") { state.showWorkspace(.dashboard) }
-                    .keyboardShortcut("1", modifiers: .command)
-                Button("Show Pinboard") { state.showWorkspace(.pinboard) }
-                    .keyboardShortcut("2", modifiers: .command)
-                if HyperliteFeatureFlags.agentSessionPresentation {
-                    Button("Show Agent Tasks") { state.showWorkspace(.sessions) }
-                        .keyboardShortcut("3", modifiers: .command)
-                }
-                Divider()
                 Button("Refresh") { state.refreshAll() }
                     .keyboardShortcut("r", modifiers: .command)
+                Button("Update Default Branches") { state.updateDefaultBranches() }
+                Button("Sweep Worktrees") {
+                    do {
+                        try HyperliteGitMaintenance.startSweep()
+                    } catch {
+                        state.presentError(error.localizedDescription)
+                    }
+                }
                 Divider()
                 Button("Command Palette") { state.showPalette(.commands) }
                     .keyboardShortcut("k", modifiers: .command)
@@ -62,21 +53,8 @@ struct HyperliteApp: App {
             }
         }
 
-        MenuBarExtra {
-            HyperliteMenu(state: state)
-                .font(HyperliteTypography.regular(13))
-        } label: {
-            HyperliteMenuBarLabel(state: state)
-                .font(HyperliteTypography.regular(13))
-        }
-        .menuBarExtraStyle(.menu)
-
         Settings {
-            HyperliteSettingsView(
-                state: state,
-                agentSessions: agentSessions,
-                agentIsland: agentIsland
-            )
+            HyperliteSettingsView(state: state)
                 .font(HyperliteTypography.regular(13))
                 .hyperliteTheme()
         }

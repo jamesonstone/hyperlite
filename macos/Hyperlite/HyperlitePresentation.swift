@@ -2,13 +2,6 @@ import Foundation
 
 enum HyperliteFeatureFlags {
     static let inferredAttentionPresentation = false
-    static let agentSessionPresentation = agentSessionPresentationEnabled()
-
-    static func agentSessionPresentationEnabled(
-        environment: [String: String] = ProcessInfo.processInfo.environment
-    ) -> Bool {
-        environment["HYPERLITE_AGENT_SESSIONS_PREVIEW"] != "0"
-    }
 }
 
 enum HyperlitePresentation {

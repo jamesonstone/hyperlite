@@ -2,41 +2,29 @@ import Foundation
 
 extension HyperliteInteractionModel {
     static func commandEntries(
-        threads: [HyperliteThread],
-        agentIslandEnabled: Bool,
         visibleOpenPullRequestCount: Int = 0,
         mergePromptCopied: Bool = false
     ) -> [HyperlitePaletteEntry] {
-        var entries = [
-            actionEntry(
-                "action:show-dashboard", "Show Dashboard", "Switch to Dashboard · ⌘1",
-                "rectangle.grid.1x2", .showDashboard
-            ),
-            actionEntry(
-                "action:show-pinboard", "Show Pinboard", "Switch to Pinboard · ⌘2",
-                "rectangle.3.group", .showPinboard
-            ),
-            actionEntry(
-                "action:add-pinboard-note", "Add Pinboard Note",
-                "Create a private spatial note", "note.text.badge.plus", .addPinboardNote
-            ),
-            actionEntry(
-                "action:add-pinboard-section", "Add Pinboard Section",
-                "Create a bounded spatial region", "rectangle.badge.plus", .addPinboardSection
-            ),
-            actionEntry(
-                "action:open-pinboard-archive", "Open Pinboard Archive",
-                "Restore archived private notes", "archivebox", .openPinboardArchive
-            ),
+        [
             actionEntry(
                 "action:refresh", "Refresh",
-                "Refresh projects, open pull requests, and pinned Codex threads",
+                "Refresh open pull requests and the daily note date",
                 "arrow.clockwise", .refresh
             ),
             actionEntry(
                 "action:force-cache-refresh", "Force Cache Refresh",
                 "Retry GitHub data and replace cached errors",
                 "arrow.triangle.2.circlepath", .forceCacheRefresh
+            ),
+            actionEntry(
+                "action:update-default-branches", "Update Default Branches",
+                "Fast-forward each configured default branch when Git allows",
+                "arrow.down.circle", .updateDefaultBranches
+            ),
+            actionEntry(
+                "action:sweep-worktrees", "Sweep Worktrees",
+                "Open interactive git wt sweep in Terminal",
+                "trash", .sweepWorktrees
             ),
             actionEntry(
                 "action:copy-open-pr-merge-prompt",
@@ -62,36 +50,12 @@ extension HyperliteInteractionModel {
                 "gearshape.fill", .settings
             ),
         ]
-        if HyperliteFeatureFlags.agentSessionPresentation {
-            entries.insert(actionEntry(
-                "action:show-sessions", "Show Agent Tasks", "Switch to Agent Tasks · ⌘3",
-                "terminal.fill", .showSessions
-            ), at: 2)
-            entries.insert(actionEntry(
-                "action:toggle-agent-island",
-                agentIslandEnabled ? "Turn Agent Island Off" : "Turn Agent Island On",
-                agentIslandEnabled
-                    ? "Hide the floating island; Agent Tasks keeps tracking"
-                    : "Show live agent status at the Mac notch or top edge",
-                "rectangle.topthird.inset.filled",
-                .toggleAgentIsland
-            ), at: 3)
-        }
-        entries.append(contentsOf: threads.map { thread in
-            actionEntry(
-                "thread:\(thread.id)",
-                hoverTitle(for: thread),
-                hoverSummary(for: thread),
-                thread.phase.symbol,
-                .reveal(thread.id)
-            )
-        })
-        return entries
     }
 
     static func projectSummary(pullRequestCount: Int, laneCount: Int) -> String {
-        "\(pullRequestCount) PR\(pullRequestCount == 1 ? "" : "s") · " +
-            "\(laneCount) lane\(laneCount == 1 ? "" : "s")"
+        let pullRequests = "\(pullRequestCount) PR\(pullRequestCount == 1 ? "" : "s")"
+        guard laneCount > 0 else { return pullRequests }
+        return pullRequests + " · \(laneCount) lane\(laneCount == 1 ? "" : "s")"
     }
 
     static func actionEntry(

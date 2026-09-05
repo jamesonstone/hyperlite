@@ -20,141 +20,20 @@ or scan a source path directly with `hyperlite scan /path/to/projects`.
 
 ## Native workspace
 
-The release presentation has three full-content workspaces beneath one shared
-header. Dashboard keeps the existing notes, open pull requests, and projects
-surface. Pinboard is a separate private spatial-notes surface. Agent Tasks shows
-ephemeral local coding-agent activity. Use the compact segmented control beside
-the Hyperlite title or `Command+1`, `Command+2`, and `Command+3` to switch
-without changing Dashboard data or preferences.
+The native app is one window: Notepad/Daily above Open PRs. Launch always
+opens that window. It does not start a menu bar extra, workspace switcher,
+Projects map, Pinboard, Agent Tasks, Agent Island, or pinned Codex surface.
 
-Inferred attention remains available through CLI and JSON but is hidden behind
-a single native feature flag: the window, menu bar, and palettes show no thread
-or attention counts or entries, and the app skips remote attention enrichment.
+Inferred attention remains available through CLI and JSON but is hidden from
+the window. Launch and Refresh do not scan inferred threads. Refresh updates
+Open PRs and the current daily-note date. The header keeps the product name
+and ghost, GitHub GraphQL quota, Update Default Branches, Sweep Worktrees, a
+subtly orange Refresh action, and Settings.
 
-The fixed header contains the product name and ghost, the workspace switch,
-compact pinned Codex task and GitHub GraphQL quota indicators, a subtly orange
-Refresh action, and Settings. In Dashboard, Notes, Open PRs, and the
-single-column Projects list each own one third of the content workspace. Every
-section has its own vertical scroll boundary, so long notes, a large
-pull-request index, and a dense project map remain independently usable.
-Pull-request rows and header projections are informational only: none
-establishes thread activity or attention. Refresh updates its existing remote
-and scanned projections; it does not refresh the local Pinboard.
-
-### Pinned Codex tasks
-
-Pinned Codex tasks are a separate read-only operator projection. Hyperlite uses
-a valid Desktop `pinned-thread-ids` array as membership authority and enriches
-those opaque IDs from read-only SQLite metadata when available. The popover
-preserves the authoritative count when metadata is incomplete and shows
-unavailable instead of a stale or guessed count when membership cannot be read.
-
-Pinned tasks load at startup, recheck changed source signatures after foreground
-activation, and join explicit Refresh actions. Hyperlite does not poll or watch
-Codex files, read transcripts, navigate to tasks, or mutate Codex state.
-
-### Agent Tasks and Agent Island
-
-The agent-session surface is a separate local runtime projection. It does not
-change pinned Codex membership, inferred project threads, project attention,
-or any repository. A Go helper owns exact session identity, provider ingress,
-redaction, response revision checks, expiry, and routing-only persistence. The
-native app consumes versioned sanitized snapshots.
-
-Agent Tasks is the third full-window workspace after Pinboard. It shows only
-current starting, processing, approval, input, or idle work and groups those
-rows by exact client profile, so clients such as Claude Code and Cursor remain
-separate even when they share an integration adapter. Recent completions,
-errors, ended rows, and metadata-only verification rows do not appear there.
-
-`Show Agent Island` in Settings is on by default. Turning it off closes the
-floating notch or top-edge panel on every display while session discovery,
-Agent Tasks, event sounds, and opt-in metadata-only notifications continue.
-The next launch opens the regular Dashboard when consent already exists.
-Command-K exposes the matching `Turn Agent Island Off` or `Turn Agent Island
-On` action. This preference controls presentation only; integration consent
-and `HYPERLITE_AGENT_SESSIONS_PREVIEW=0` remain the broader runtime gates.
-
-On first agent-session launch, a centered welcome offers Enable Recommended,
-Review in Settings, and Not Now. Hyperlite performs one bounded detection-only
-request to describe installed clients, but does not start the long-running
-session service, provider watchers, or Codex app server until the operator
-makes a choice. Recommended includes only detected local clients. Ongoing
-provider toggles and integration health live in grouped Settings. Shared
-provider files retain unrelated settings; malformed, oversized, symlinked,
-wrong-owner, concurrently created, or concurrently changed configuration fails
-closed. Disabling an integration removes only exact Hyperlite-owned material.
-Each detected provider also has an on-demand Verify action. Verification sends
-one metadata-only synthetic event through Hyperlite's private bridge, socket,
-store, and native decoder, then removes the synthetic row immediately. It
-does not contact a model, invoke a provider task, or approve anything.
-
-The collapsed physical-notch surface shows only the Hyperlite mark and active
-or attention counts. On a notchless or external display, the idle surface is
-entirely invisible while retaining an accessible top-center hit target;
-hovering that target reveals the metadata pill without expanding it. Click the
-pill to open the mini workspace. A newly urgent approval or input request may
-expand once, and active pointer, keyboard, or text-field interaction pauses
-timed dismissal. A physical-notch surface stays black while the revealed
-notchless fallback uses native material and shadow.
-The companion or Agent Tasks workspace may show at most six
-recent user/assistant messages, each capped at 2,000 characters, plus an 8,000-
-character latest final result or decision context. Native system typography is
-used for chrome and controls, while technical content remains monospaced.
-Internal reasoning, arbitrary historical tool output, raw hook payloads,
-secrets, and generic environment data are excluded before state reaches the UI.
-
-Codex tasks running in another process may appear as `notLoaded` to Hyperlite's
-own app server. Hyperlite keeps that status unknown, uses only an exact safe
-rollout path to start one of a bounded number of incremental observers, and
-creates a row only after the rollout establishes exact session identity and
-runtime phase. Stored thread listings alone never create a live or idle row.
-Hyperlite also watches the current local Codex date directory so a new
-hookless rollout created after launch can appear without polling. Rollouts are
-read incrementally in bounded chunks, recover from truncation or replacement,
-and retain a watcher only while that exact session still needs observation.
-Foreground activation requests discovery only after the prior discovery is
-stale; the explicit Refresh control always requests it.
-
-The Codex app server is an adaptive discovery client rather than an
-always-running child. Hyperlite owns at most one stdio child, reuses it across
-bounded refreshes, and stops it after 120 seconds without discovery or live
-response work. Hooks and file events continue tracking after it exits.
-
-Allow Once, Deny, and Answer appear only for a current exact request with
-complete redacted context and a live blocking provider channel. Rollout-only,
-notify-only, stale, truncated, or redacted requests offer Open in client
-instead. Hyperlite never simulates session scope by repeatedly approving
-individual requests. A session can retain at most eight independent requests.
-The current request is shown with the total pending count; resolving or
-retracting it reveals the next request without changing any other request. A
-response submits once for its exact provider, session, request ID, and action
-revision; stale answer text is cleared when that identity changes. Routing
-buttons name the real capability, such as Open Codex or Reveal in Finder,
-instead of claiming an unavailable client route.
-
-Completed sessions remain for ten minutes. Other non-attention sessions expire
-after thirty minutes of inactivity, unresolved attention does not age-expire,
-and content disappears when the session expires or Hyperlite exits. Only
-provider/profile IDs, opaque session ID, working directory, app/terminal/tmux
-routing identifiers, and last-seen time may persist, for at most twenty-four
-hours.
-
-The runtime is deliberately bounded for indefinite use: at most 32 rollout
-watchers, 100 session rows, eight requests per session, six display messages,
-and 256 content-free phase transitions. Ordinary UI snapshots are coalesced to
-four per second during bursts; attention, input, and error remain immediate.
-There are no background self-tests, continuous UI timelines, transcript
-rescans, or periodic project scans.
-
-Sounds and native notifications are opt-in in Settings. Notifications contain
-only profile and project metadata. Agent sessions are enabled by default. Set
-the retained preview variable to zero for an explicit local rollback:
-
-```sh
-make macos-build
-HYPERLITE_AGENT_SESSIONS_PREVIEW=0 build/Hyperlite.app/Contents/MacOS/Hyperlite
-```
+Configured repositories still determine which Open PRs appear and which
+default branches Update Default Branches can fast-forward. Add or remove them
+from Settings or Command-K. Command-P is a cheap lookup of those repositories
+and their loaded pull requests; it is not a dashboard map.
 
 ### GitHub quota
 
@@ -180,8 +59,8 @@ every five minutes and uses bounded GraphQL batches instead of one `gh` process
 per repository. Refresh forces the index current; Force Cache Refresh in
 Command-K retries only this cache without refreshing unrelated projections.
 The packaged app preserves its inherited executable search path and adds the
-standard Apple Silicon and Intel Homebrew binary directories so Finder launches
-can resolve an installed `gh` executable.
+standard Apple Silicon and Intel Homebrew directories plus `~/.local/bin` so
+Finder launches can resolve `gh` and `git-wt`.
 
 Failed checks retain visibly cached rows. A project with no usable GitHub
 identity or cache is shown as unavailable. Pagination fails safely on a
@@ -232,23 +111,20 @@ does not post a comment, label, or review. A merge operator or coding agent must
 still refresh and verify the exact head, feedback, checks, conflicts, protection
 rules, and final merged state.
 
-### Projects and worktrees
+### Local git maintenance
 
-Projects always shows every configured checkout. Registered subordinate
-worktrees appear only when their exact case-sensitive branch is the head branch
-of a current open pull request for that project. Detached worktrees never appear
-as active even if their metadata retains a matching branch. Cached or
-unavailable pull-request data does not retain a subordinate worktree as active.
+Update Default Branches fetches each configured repository, then fast-forwards
+that repository's default branch when Git allows a clean fast-forward. If the
+working tree is dirty, the history is not a fast-forward, or Git refuses to
+update a checked-out ref, Hyperlite skips that repository and reports why. It
+never resets, stashes, force-updates, or deletes branches.
 
-After a successful refresh observes that pull request as merged or closed, its
-worktree row disappears. Hyperlite never deletes or prunes the local checkout.
+Sweep Worktrees opens Terminal running interactive `git wt sweep`. Hyperlite
+does not pass `--auto` and does not delete worktrees itself; confirmation stays
+in `git-wt`.
 
-Each project can collapse to a primary-branch summary. The quiet title-line
-controls collapse or expand the presented projects, filter the loaded map,
-choose a sort, or enter reorder mode. Filters temporarily expand matches without
-erasing saved collapse state. Sort, collapse, and committed custom order persist
-locally; they never rewrite project configuration. Reorder uses the same
-drag-handle, Done/Cancel, and accessible Move action model as Open PRs.
+Command-P lists configured repositories and can expand loaded open pull
+requests. It does not present a dashboard project map.
 
 ### Notepad
 
@@ -278,68 +154,24 @@ pending text flushes when the window or application yields.
 
 ### Pinboard
 
-Pinboard is one private, finite spatial workspace, not a Kanban workflow or an
-infinite drawing canvas. Its toolbar creates notes and sections and opens the
-recoverable archive. The board scrolls horizontally or vertically only when
-its fixed bounds exceed the visible window; it has no zoom, connectors,
-auto-layout, collaboration, background indexing, or automatic status changes.
-
-A section is a titled rectangular region with a stable identity. Use its title
-or context menu to rename it, its header handle to move it, and its lower-right
-handle to resize it within the board. Both handles are keyboard focusable;
-arrow keys nudge the focused move handle or adjust the focused resize handle,
-and the same directions are available as accessibility actions. The section
-`+` creates a note directly
-inside that section. Adding a note without a focused section uses the sole
-section or presents a destination chooser. An empty section requires
-confirmation before deletion. A nonempty section can be cancelled, emptied
-manually, or explicitly deleted with all contained notes moved into Archive;
-it never silently destroys them.
-
-Each fixed-size card has a required single-line title and a multiline plain
-Markdown-compatible description. Clicking the card opens an explicit
-Save/Cancel editor with read-only Created and Updated timestamps. Use the quiet
-card context menu or accessibility actions to Edit, Fork, or Delete. The small
-header grip drags a card freely inside its section; crossing another section
-reparents and clamps it there. Focus a card and use the arrow keys or its
-directional accessibility actions to nudge it without a pointer. Moving or
-resizing layout never changes Updated.
-
-Fork creates an independent note with copied content, a new opaque identity,
-new Created and Updated timestamps, retained source lineage, and a visible
-clamped cascade offset. Delete is recoverable: it removes the card from the
-active layout and records its original section and archive time. Archive can
-restore it to that section while it exists or to an explicitly selected
-destination after the original section is gone. Pinboard has no permanent
-delete action in this version.
-
-Pinboard content is local graphical working memory only. It is never searched
-as Notepad/Daily content and never becomes project evidence, thread or
-attention state, PR state, project configuration, task synchronization, or
-agent input.
+The native window no longer opens Pinboard. The CLI `hyperlite pinboard`
+commands and the private board store remain for existing local data.
 
 ### Keyboard shortcuts
 
-- `Command+1` shows Dashboard.
-- `Command+2` shows Pinboard.
-- `Command+3` shows Agent Tasks unless agent sessions were explicitly disabled.
-- `Command+R` refreshes the focused Hyperlite application.
-- `Command+K` opens a searchable command palette with Show Dashboard, Show
-  Pinboard, Show Agent Tasks, Turn Agent Island On or Off, Add Pinboard Note,
-  Add Pinboard Section, Open Pinboard Archive, Refresh, Force Cache Refresh,
-  Copy Open PR Merge Prompt, Settings, Add Project, Remove Project, and
-  exact or on-device semantic matches from pinned and daily note filenames,
-  dates, and contents.
+- `Command+R` refreshes Open PRs and the current daily-note date.
+- `Command+K` opens a searchable command palette with Refresh, Force Cache
+  Refresh, Update Default Branches, Sweep Worktrees, Copy Open PR Merge Prompt,
+  Settings, Add Project, Remove Project, and exact or on-device semantic
+  matches from pinned and daily note filenames, dates, and contents.
   Force Cache Refresh retries every configured GitHub repository regardless of
   cache age so a successful check replaces stale cached errors. Copy Open PR
   Merge Prompt copies the same durable merge-ready prompt as the Open PRs
   header for the currently visible rows and stays open to confirm the copy.
-  Selecting a
-  pinned result opens Notepad; selecting a daily result opens the matching
-  Daily date.
+  Selecting a pinned result opens Notepad; selecting a daily result opens the
+  matching Daily date.
 - `Command+P` opens the same searchable surface in configured-project mode.
-  Projects start collapsed and expand to show their open pull requests and
-  registered branch or worktree lanes.
+  Projects start collapsed and expand to show loaded open pull requests.
 
 Add Project is also available from Settings. Project selection changes are
 written atomically by the bundled helper. Hyperlite does not expose
@@ -355,8 +187,10 @@ hyperlite pull-requests --json
 hyperlite pull-requests --json --local
 hyperlite pull-requests --json --force
 hyperlite projects
+hyperlite projects list [--json]
 hyperlite projects add /path/to/repository
 hyperlite projects remove /path/to/repository
+hyperlite projects update-defaults [--json]
 hyperlite notepad
 hyperlite notepad show [--date YYYY-MM-DD] [--json]
 hyperlite notepad set --stdin [--date YYYY-MM-DD] [--json]
@@ -386,7 +220,7 @@ default. The pinned note is `pinned.md`; daily notes are
 or default `notepad.md` document as the pinned note without changing its
 content. Every document is limited to 256 KiB.
 
-The Pinboard follows the same private app-data root at
+The CLI Pinboard store remains at
 `$XDG_DATA_HOME/hyperlite/board`, or `~/.local/share/hyperlite/board` by
 default. `board.json` contains only the schema, finite board and section
 geometry, note membership, and note geometry. Active note content and metadata

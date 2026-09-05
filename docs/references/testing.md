@@ -9,26 +9,21 @@
 ## Current State
 
 - Go package tests cover deterministic scanner, correlation, state, inference,
-  CLI, and failure behavior.
+  CLI, git maintenance, and failure behavior.
 - Swift executable model tests and native type-checking cover schema and
   presentation behavior.
-- Go contract and integration tests cover the agent-session authority,
-  provider registry, exact actions, configuration safety, private
+- Go contract and integration tests cover the remaining CLI agent-session
+  authority, provider registry, exact actions, configuration safety, private
   socket, Codex stdio protocol, discovery-only `notLoaded` rollout fallback,
   incremental cursors, current-date discovery, replacement recovery, adaptive
   child ownership, exact process proof, action queues, health/self-test,
   coalescing, resolved-input transitions, pre-store expiry, and redaction.
-- Swift executable tests cover v1/v2 agent snapshot decoding, queued action
-  identity, health/control records, stale foreground refresh policy, and
-  physical notch versus top-edge geometry. They also cover the default-on
-  persisted Agent Island preference, consent/preference launch policy,
-  live-only Agent Tasks filtering, exact client-profile grouping, deterministic
-  group order, workspace order, and dynamic command-palette labels. Open PRs
-  tests cover confirmed merge-conflict decoding, legacy cache compatibility,
-  hide-drafts filtering, and conflict-column layout reservation. Copy Open PR
-  Merge Prompt tests cover the durable instruction, visible-row observations,
-  hide-drafts and reorder list selection, empty-list text, and Command-K copy
-  labels.
+- Swift executable tests cover Command-K without unused workspace actions,
+  helper PATH including `~/.local/bin`, default-branch update summaries, Open
+  PRs merge-conflict decoding, hide-drafts filtering, conflict-column layout
+  reservation, and Copy Open PR Merge Prompt labels. The native window no
+  longer compiles Agent Island, Agent Tasks, Pinboard, or pinned Codex
+  presentation tests.
 - A read-only local live-integration suite validates recovery of the selected
   R2 and Event Sink goal threads against current repository and GitHub
   evidence.

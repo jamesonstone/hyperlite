@@ -3,7 +3,11 @@ import Foundation
 
 enum HyperliteProcessEnvironment {
     private static let fallbackPath = ["/usr/bin", "/bin", "/usr/sbin", "/sbin"]
-    private static let supplementalPaths = ["/opt/homebrew/bin", "/usr/local/bin"]
+    private static let supplementalPaths = [
+        "/opt/homebrew/bin",
+        "/usr/local/bin",
+        NSHomeDirectory() + "/.local/bin",
+    ]
 
     static func inheriting(_ environment: [String: String]) -> [String: String] {
         var result = environment
@@ -25,7 +29,8 @@ enum HyperliteProcess {
     static func run(
         arguments: [String],
         operation: String,
-        standardInput: Data? = nil
+        standardInput: Data? = nil,
+        timeoutSeconds: TimeInterval = 60
     ) async throws -> Data {
         let executable = Bundle.main.bundleURL.appendingPathComponent("Contents/MacOS/hyperlite-cli")
         guard FileManager.default.isExecutableFile(atPath: executable.path) else {
@@ -43,7 +48,7 @@ enum HyperliteProcess {
                 let readers = DispatchGroup()
                 readers.enter()
                 readers.enter()
-                let timeout = DispatchWorkItem {
+                let timeoutWork = DispatchWorkItem {
                     guard process.isRunning, let continuation = completion.takeContinuation() else { return }
                     if process.isRunning { process.terminate() }
                     continuation.resume(throwing: HyperliteError.commandTimedOut(operation))
@@ -57,7 +62,7 @@ enum HyperliteProcess {
                 process.standardError = errors
                 if let input { process.standardInput = input }
                 process.terminationHandler = { process in
-                    timeout.cancel()
+                    timeoutWork.cancel()
                     DispatchQueue.global(qos: .utility).async {
                         readers.wait()
                         let captured = capture.values()
@@ -87,11 +92,11 @@ enum HyperliteProcess {
                         }
                     }
                     DispatchQueue.global(qos: .utility).asyncAfter(
-                        deadline: .now() + .seconds(60),
-                        execute: timeout
+                        deadline: .now() + .seconds(Int(timeoutSeconds)),
+                        execute: timeoutWork
                     )
                 } catch {
-                    timeout.cancel()
+                    timeoutWork.cancel()
                     completion.resume(throwing: error)
                 }
             }

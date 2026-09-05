@@ -20,29 +20,20 @@ extension HyperliteWindow {
         }
         state.dismissPalette()
         switch action {
-        case .showDashboard:
-            state.showWorkspace(.dashboard)
-        case .showPinboard:
-            state.showWorkspace(.pinboard)
-        case .showSessions:
-            state.showWorkspace(.sessions)
-        case .toggleAgentIsland:
-            agentIsland.toggle()
-        case .addPinboardNote:
-            state.showWorkspace(.pinboard)
-            pinboard.request(.addNote)
-        case .addPinboardSection:
-            state.showWorkspace(.pinboard)
-            pinboard.request(.addSection)
-        case .openPinboardArchive:
-            state.showWorkspace(.pinboard)
-            pinboard.request(.openArchive)
         case .refresh:
             state.refreshAll()
         case .forceCacheRefresh:
             state.forceCacheRefresh()
         case .copyOpenPRMergePrompt:
             break
+        case .updateDefaultBranches:
+            state.updateDefaultBranches()
+        case .sweepWorktrees:
+            do {
+                try HyperliteGitMaintenance.startSweep()
+            } catch {
+                state.presentError(error.localizedDescription)
+            }
         case .settings:
             openHyperliteSettings()
         case .addProject:
@@ -51,9 +42,7 @@ extension HyperliteWindow {
         case .chooseProjectToRemove:
             break
         case let .removeProject(path):
-            pendingProjectRemoval = configuredProjects.first { $0.path == path }
-        case let .reveal(threadID):
-            selectedThread = state.activeThreads().first { $0.id == threadID }
+            pendingProjectRemoval = state.configuredProjects.first { $0.path == path }
         case let .openPullRequest(rawURL):
             guard let url = URL(string: rawURL) else { return }
             NSWorkspace.shared.open(url)

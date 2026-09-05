@@ -75,8 +75,6 @@ enum HyperliteOpenPRMergePromptTests {
 
     private static func testCommandCopyLabels() {
         let idle = HyperliteInteractionModel.commandEntries(
-            threads: [],
-            agentIslandEnabled: true,
             visibleOpenPullRequestCount: 2,
             mergePromptCopied: false
         ).first { $0.id == "action:copy-open-pr-merge-prompt" }
@@ -87,8 +85,6 @@ enum HyperliteOpenPRMergePromptTests {
         expect(idle?.subtitle.contains("2 visible PRs") == true,
                "idle command subtitle should count visible rows")
         let copied = HyperliteInteractionModel.commandEntries(
-            threads: [],
-            agentIslandEnabled: false,
             visibleOpenPullRequestCount: 0,
             mergePromptCopied: true
         ).first { $0.id == "action:copy-open-pr-merge-prompt" }
@@ -97,8 +93,6 @@ enum HyperliteOpenPRMergePromptTests {
         expect(copied?.subtitle == "Copied to clipboard",
                "copied command subtitle should confirm the clipboard")
         let empty = HyperliteInteractionModel.commandEntries(
-            threads: [],
-            agentIslandEnabled: true,
             visibleOpenPullRequestCount: 0,
             mergePromptCopied: false
         ).first { $0.id == "action:copy-open-pr-merge-prompt" }
