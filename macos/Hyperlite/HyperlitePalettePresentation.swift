@@ -6,17 +6,25 @@ enum HyperlitePaletteChrome {
         case .commands: "Commands"
         case .projects: "Projects"
         case .removeProjects: "Remove Project"
+        case .themes: "Theme"
+        case .fontSizes: "Font Size"
         }
     }
 
     static func symbol(for mode: HyperlitePaletteMode) -> String {
-        mode == .commands ? "command" : "folder"
+        switch mode {
+        case .commands: "command"
+        case .projects, .removeProjects: "folder"
+        case .themes: "paintpalette"
+        case .fontSizes: "textformat.size"
+        }
     }
 
     static func shortcut(for mode: HyperlitePaletteMode) -> String {
         switch mode {
-        case .commands, .removeProjects: "⌘K"
+        case .commands: "⌘K"
         case .projects: "⌘P"
+        case .removeProjects, .themes, .fontSizes: "Esc"
         }
     }
 
@@ -25,6 +33,8 @@ enum HyperlitePaletteChrome {
         case .commands: "Search commands and notes"
         case .projects: "Search projects, PRs, and worktrees"
         case .removeProjects: "Search configured projects"
+        case .themes: "Search themes"
+        case .fontSizes: "Search font sizes"
         }
     }
 }

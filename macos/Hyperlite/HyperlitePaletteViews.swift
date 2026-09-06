@@ -7,6 +7,7 @@ struct HyperliteCommandPalette: View {
     let visibleOpenPullRequestCount: Int
     let mergePromptCopied: Bool
     @ObservedObject var notepad: HyperliteNotepadState
+    @ObservedObject private var appearance = HyperliteAppearance.shared
     let onAction: (HyperlitePaletteAction) -> Void
     let onDismiss: () -> Void
 
@@ -35,6 +36,10 @@ struct HyperliteCommandPalette: View {
             )
         case .removeProjects:
             return HyperliteInteractionModel.removeProjectEntries(projects: projects)
+        case .themes:
+            return HyperliteInteractionModel.themeEntries(currentID: appearance.themeID)
+        case .fontSizes:
+            return HyperliteInteractionModel.fontSizeEntries(current: appearance.fontSize)
         }
     }
 
@@ -52,9 +57,9 @@ struct HyperliteCommandPalette: View {
                 Text("↑↓ navigate")
                 Text("Enter select")
                 Spacer()
-                Text("Esc close")
+                Text(mode == .themes || mode == .fontSizes ? "Esc back" : "Esc close")
             }
-            .font(HyperliteTypography.regular(10))
+            .font(HyperliteTypography.compact)
             .foregroundStyle(HyperliteTheme.mutedText.color)
             .padding(10)
             .background(HyperliteTheme.canvas.color.opacity(0.38))
@@ -69,11 +74,14 @@ struct HyperliteCommandPalette: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .strokeBorder(HyperliteTheme.mutedText.color.opacity(0.42), lineWidth: 1)
         }
-        .shadow(color: .black.opacity(0.5), radius: 30, y: 18)
+        .shadow(
+            color: .black.opacity(appearance.palette.colorScheme == .light ? 0.18 : 0.5),
+            radius: 30,
+            y: 18
+        )
         .shadow(color: HyperliteTheme.blue.color.opacity(0.14), radius: 9, y: 2)
-        .environment(\.colorScheme, .dark)
         .background(HyperliteKeyCapture(onKeyDown: handleKey))
-        .onExitCommand(perform: onDismiss)
+        .onExitCommand(perform: handleEscape)
         .onAppear {
             DispatchQueue.main.async { searchFocused = true }
         }
@@ -88,11 +96,11 @@ struct HyperliteCommandPalette: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Label(paletteTitle, systemImage: paletteSymbol)
-                    .font(HyperliteTypography.semibold(13))
+                    .font(HyperliteTypography.heading)
                     .foregroundStyle(HyperliteTheme.primaryText.color)
                 Spacer()
                 Text(shortcutLabel)
-                    .font(HyperliteTypography.regular(11))
+                    .font(HyperliteTypography.compact)
                     .foregroundStyle(HyperliteTheme.mutedText.color)
             }
             HStack(spacing: 8) {
@@ -105,7 +113,7 @@ struct HyperliteCommandPalette: View {
                         .foregroundColor(HyperliteTheme.mutedText.color)
                 )
                     .textFieldStyle(.plain)
-                    .font(HyperliteTypography.regular(12))
+                    .font(HyperliteTypography.body)
                     .foregroundStyle(HyperliteTheme.primaryText.color)
                     .tint(HyperliteTheme.blue.color)
                     .focused($searchFocused)
@@ -143,7 +151,12 @@ struct HyperliteCommandPalette: View {
     private var shortcutLabel: String { HyperlitePaletteChrome.shortcut(for: mode) }
     private var searchPrompt: String { HyperlitePaletteChrome.searchPrompt(for: mode) }
     private var emptyListTitle: String {
-        mode == .commands ? "Type to search commands and notes" : "No configured projects"
+        switch mode {
+        case .commands: "Type to search commands and notes"
+        case .themes: "No matching themes"
+        case .fontSizes: "No matching font sizes"
+        case .projects, .removeProjects: "No configured projects"
+        }
     }
 
     private var entryList: some View {
@@ -151,7 +164,7 @@ struct HyperliteCommandPalette: View {
             ScrollView {
                 if entries.isEmpty {
                     Text(query.isEmpty ? emptyListTitle : "No matches")
-                        .font(HyperliteTypography.regular(11))
+                        .font(HyperliteTypography.compact)
                         .foregroundStyle(HyperliteTheme.mutedText.color)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(12)
@@ -180,7 +193,7 @@ struct HyperliteCommandPalette: View {
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: entry.symbol)
-                    .font(HyperliteTypography.semibold(13))
+                    .font(HyperliteTypography.heading)
                     .foregroundStyle(
                         selected
                             ? HyperliteTheme.primaryText.color
@@ -189,15 +202,11 @@ struct HyperliteCommandPalette: View {
                     .frame(width: 18)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(entry.title)
-                        .font(
-                            isProject(entry)
-                                ? HyperliteTypography.bold(12)
-                                : HyperliteTypography.semibold(12)
-                        )
+                        .font(HyperliteTypography.heading)
                         .lineLimit(1)
                     if !entry.subtitle.isEmpty {
                         Text(entry.subtitle)
-                            .font(HyperliteTypography.regular(11))
+                            .font(HyperliteTypography.compact)
                             .foregroundStyle(HyperliteTheme.secondaryText.color)
                             .lineLimit(2)
                     }
@@ -218,13 +227,21 @@ struct HyperliteCommandPalette: View {
         let disallowedModifiers: NSEvent.ModifierFlags = [.command, .control, .option]
         if !event.modifierFlags.isDisjoint(with: disallowedModifiers) { return false }
         switch event.keyCode {
-        case 53: onDismiss()
+        case 53: handleEscape()
         case 125: moveSelection(by: 1)
         case 126: moveSelection(by: -1)
         case 36, 76: activateSelectedEntry()
         default: return false
         }
         return true
+    }
+
+    private func handleEscape() {
+        if mode == .themes || mode == .fontSizes {
+            onAction(.showCommands)
+        } else {
+            onDismiss()
+        }
     }
 
     private func moveSelection(by delta: Int) {
@@ -269,11 +286,6 @@ struct HyperliteCommandPalette: View {
         } else {
             expandedProjects.insert(project)
         }
-    }
-
-    private func isProject(_ entry: HyperlitePaletteEntry) -> Bool {
-        if case .project = entry.kind { return true }
-        return false
     }
 
 }

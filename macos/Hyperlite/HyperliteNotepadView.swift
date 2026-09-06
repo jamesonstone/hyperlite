@@ -50,7 +50,7 @@ struct HyperliteNotepadView: View {
                 action: state.focusPinned
             ) {
                 Text("Notepad")
-                    .font(HyperliteTypography.semibold(11))
+                    .font(HyperliteTypography.heading)
             }
             Rectangle()
                 .fill(HyperliteTheme.elevatedSurface.color)
@@ -64,9 +64,9 @@ struct HyperliteNotepadView: View {
             ) {
                 HStack(spacing: 5) {
                     Text("Daily:")
-                        .font(HyperliteTypography.semibold(11))
+                        .font(HyperliteTypography.heading)
                     Text(state.displayName(for: state.selectedDateIdentifier))
-                        .font(HyperliteTypography.regular(10))
+                        .font(HyperliteTypography.compact)
                 }
             }
             Spacer(minLength: 6)
@@ -80,7 +80,7 @@ struct HyperliteNotepadView: View {
             isCalendarPresented.toggle()
         } label: {
             Image(systemName: "chevron.down")
-                .font(HyperliteTypography.semibold(13))
+                .font(HyperliteTypography.heading)
                 .foregroundStyle(HyperliteTheme.blue.color)
                 .frame(width: 20, height: 20)
                 .contentShape(Rectangle())
@@ -92,7 +92,7 @@ struct HyperliteNotepadView: View {
         .popover(isPresented: $isCalendarPresented, arrowEdge: .top) {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Daily note date")
-                    .font(HyperliteTypography.semibold(11))
+                    .font(HyperliteTypography.heading)
                     .foregroundStyle(HyperliteTheme.primaryText.color)
                 DatePicker(
                     "Select daily note date",
@@ -172,7 +172,7 @@ struct HyperliteNotepadView: View {
                 .accessibilityLabel("Saving notes")
         } else if let error = state.errorMessage {
             Label(error, systemImage: "exclamationmark.triangle.fill")
-                .font(HyperliteTypography.regular(10))
+                .font(HyperliteTypography.compact)
                 .foregroundStyle(HyperliteTheme.red.color)
                 .lineLimit(1)
                 .help(error)
@@ -198,7 +198,7 @@ struct HyperliteNotepadView: View {
             )
             if text.isEmpty {
                 Text(placeholder)
-                    .font(HyperliteTypography.regular(11))
+                    .font(HyperliteTypography.compact)
                     .foregroundStyle(HyperliteTheme.mutedText.color)
                     .padding(.horizontal, 7)
                     .padding(.vertical, 6)

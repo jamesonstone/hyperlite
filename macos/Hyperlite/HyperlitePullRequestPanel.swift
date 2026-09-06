@@ -3,87 +3,50 @@ import SwiftUI
 struct HyperlitePullRequestPanel: View {
     let scan: HyperliteProjectPullRequestScan
     @ObservedObject var organization: HyperliteDashboardListState
-    let mergePromptCopied: Bool
-    let onCopyMergePrompt: () -> Void
-    @State private var isFilterPresented = false
+    @ObservedObject var pins: HyperlitePullRequestPinStore
     @State private var draggedRowID: String?
 
     private var sourceRows: [HyperlitePullRequestRow] {
         HyperlitePullRequestPresentation.rows(scan: scan)
     }
 
-    private var rows: [HyperlitePullRequestRow] {
-        HyperliteDashboardListPresentation.displayedPullRequests(
-            sourceRows,
-            filter: organization.pullRequestFilter,
-            sort: organization.pullRequestSort,
-            customOrder: organization.orderedPullRequestIDs(sourceRows.map(\.id)),
-            reviewStatuses: reviewStatuses,
-            isReordering: organization.isReorderingPullRequests
-        )
-    }
-
-    private var reviewStatuses: [String: HyperlitePullRequestReviewStatus] {
-        sourceRows.reduce(into: [:]) { values, row in
-            values[row.id] = organization.pullRequestReviewStatus(for: row)
-        }
+    private var sections: HyperlitePullRequestPinning.Sections {
+        pins.sections(for: sourceRows)
     }
 
     private var availability: [HyperliteProjectPullRequests] {
-        let source = HyperlitePullRequestPresentation.availability(scan: scan)
-        guard !organization.isReorderingPullRequests else { return source }
-        return HyperliteDashboardListPresentation.availability(
-            source,
-            filter: organization.pullRequestFilter
-        )
-    }
-
-    private var repositories: [String] {
-        Array(Set(sourceRows.map(\.repository))).sorted()
-    }
-
-    private var countLabel: String {
-        if organization.pullRequestFilter.isActive,
-           !organization.isReorderingPullRequests
-        {
-            return "\(rows.count)/\(sourceRows.count)"
-        }
-        return "\(sourceRows.count)"
-    }
-
-    private var reviewedCount: Int {
-        Set(sourceRows.filter {
-            organization.pullRequestReviewStatus(for: $0) == .reviewed
-        }.map(\.reviewID)).count
+        HyperlitePullRequestPresentation.availability(scan: scan)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             header
-            if rows.isEmpty && availability.isEmpty {
-                Text(organization.pullRequestFilter.isActive
-                    ? "No matching pull requests" : "No open pull requests")
-                    .font(HyperliteTypography.regular(10))
+            if sourceRows.isEmpty && availability.isEmpty {
+                Text("No open pull requests")
+                    .font(HyperliteTypography.compact)
                     .foregroundStyle(HyperliteTheme.mutedText.color)
                     .padding(.vertical, 2)
             } else {
                 LazyVStack(alignment: .leading, spacing: 3) {
-                    ForEach(rows) { row in
-                        if organization.isReorderingPullRequests {
-                            HyperlitePullRequestReorderRow(
-                                row: row,
-                                reviewStatus: organization.pullRequestReviewStatus(for: row),
-                                draggedRowID: $draggedRowID,
-                                move: organization.movePullRequest,
-                                moveBy: organization.movePullRequest
-                            )
-                        } else {
-                            HyperlitePullRequestPanelRow(
-                                row: row,
-                                reviewStatus: organization.pullRequestReviewStatus(for: row),
-                                toggleReview: { organization.togglePullRequestReviewed(row) }
-                            )
-                        }
+                    sectionLabel("Pinned", count: sections.pinned.count)
+                    if sections.pinned.isEmpty {
+                        HyperlitePinnedSectionDropTarget(
+                            draggedRowID: $draggedRowID,
+                            pin: pins.pin
+                        )
+                    }
+                    ForEach(sections.pinned) { row in
+                        pullRequestRow(row, pinned: true)
+                    }
+                    sectionLabel("Open", count: sections.unpinned.count)
+                    if sections.unpinned.isEmpty {
+                        HyperlitePinnedSectionDropTarget(
+                            draggedRowID: $draggedRowID,
+                            pin: pins.unpin
+                        )
+                    }
+                    ForEach(sections.unpinned) { row in
+                        pullRequestRow(row, pinned: false)
                     }
                     ForEach(availability) { project in
                         HyperlitePullRequestAvailabilityRow(project: project)
@@ -102,114 +65,46 @@ struct HyperlitePullRequestPanel: View {
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 3) {
             Text("Open PRs")
-                .font(HyperliteTypography.semibold(11))
+                .font(HyperliteTypography.heading)
                 .foregroundStyle(HyperliteTheme.secondaryText.color)
-            Text(countLabel)
-                .font(HyperliteTypography.bold(10).monospacedDigit())
-                .foregroundStyle(HyperliteTheme.mutedText.color)
-            Text("\(reviewedCount) reviewed")
-                .font(HyperliteTypography.regular(10).monospacedDigit())
+            Text("\(sourceRows.count)")
+                .font(HyperliteTypography.compact.monospacedDigit())
                 .foregroundStyle(HyperliteTheme.mutedText.color)
             Spacer()
-            if organization.isReorderingPullRequests {
-                Text("Reordering all")
-                    .font(HyperliteTypography.regular(10))
-                    .foregroundStyle(HyperliteTheme.cyan.color)
-                Button("Cancel") {
-                    draggedRowID = nil
-                    organization.finishPullRequestReordering(commit: false)
-                }
-                Button("Done") {
-                    draggedRowID = nil
-                    organization.finishPullRequestReordering(commit: true)
-                }
-            } else {
-                HyperliteDashboardControlButton(
-                    systemName: HyperliteOpenPRMergePrompt.commandSymbol(
-                        copied: mergePromptCopied
-                    ),
-                    active: mergePromptCopied,
-                    label: mergePromptCopied
-                        ? HyperliteOpenPRMergePrompt.copiedAccessibilityLabel
-                        : HyperliteOpenPRMergePrompt.copyAccessibilityLabel,
-                    disabled: rows.isEmpty
-                ) { onCopyMergePrompt() }
-                HyperliteDashboardControlButton(
-                    systemName: "xmark.square",
-                    active: organization.pullRequestReviewMarkCount > 0,
-                    label: "Clear all reviewed pull request marks",
-                    disabled: organization.pullRequestReviewMarkCount == 0
-                ) { organization.clearPullRequestReviewMarks() }
-                HyperliteDashboardControlButton(
-                    systemName: organization.pullRequestFilter.hideDrafts
-                        ? "checkmark.square.fill" : "square",
-                    active: organization.pullRequestFilter.hideDrafts,
-                    label: organization.pullRequestFilter.hideDrafts
-                        ? "Show draft pull requests" : "Hide draft pull requests"
-                ) {
-                    var filter = organization.pullRequestFilter
-                    filter.hideDrafts.toggle()
-                    organization.setPullRequestFilter(filter)
-                }
-                HyperliteDashboardControlButton(
-                    systemName: "line.3.horizontal.decrease",
-                    active: organization.pullRequestFilter.popoverIsActive,
-                    label: "Filter open pull requests"
-                ) { isFilterPresented.toggle() }
-                .popover(isPresented: $isFilterPresented, arrowEdge: .top) {
-                    HyperlitePullRequestFilterPopover(
-                        filter: pullRequestFilterBinding,
-                        repositories: repositories
-                    )
-                }
-                pullRequestSortMenu
-                HyperliteDashboardControlButton(
-                    systemName: "line.3.horizontal",
-                    active: organization.pullRequestSort == .custom,
-                    label: "Reorder open pull requests",
-                    disabled: sourceRows.count < 2
-                ) {
-                    organization.beginPullRequestReordering(currentIDs: sourceRows.map(\.id))
-                }
-            }
             Text(HyperlitePullRequestPresentation.freshnessLabel(
                 observedAt: scan.observedAt
             ))
-                .font(HyperliteTypography.regular(10))
+                .font(HyperliteTypography.compact)
                 .foregroundStyle(HyperliteTheme.mutedText.color)
         }
     }
 
-    private var pullRequestSortMenu: some View {
-        Menu {
-            ForEach(HyperlitePullRequestSort.allCases) { sort in
-                Button {
-                    organization.setPullRequestSort(sort)
-                } label: {
-                    if organization.pullRequestSort == sort {
-                        Label(sort.title, systemImage: "checkmark")
-                    } else {
-                        Text(sort.title)
-                    }
-                }
-            }
-        } label: {
-            HyperliteDashboardHeaderIcon(
-                systemName: "arrow.up.arrow.down",
-                active: organization.pullRequestSort != .recent
-            )
+    private func sectionLabel(_ title: String, count: Int) -> some View {
+        HStack(spacing: 4) {
+            Text(title)
+                .font(HyperliteTypography.compact)
+                .foregroundStyle(HyperliteTheme.mutedText.color)
+            Text("\(count)")
+                .font(HyperliteTypography.compact.monospacedDigit())
+                .foregroundStyle(HyperliteTheme.mutedText.color)
         }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .fixedSize()
-        .help("Sort open pull requests")
-        .accessibilityLabel("Sort open pull requests")
+        .padding(.top, 2)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(title) pull requests, \(count)")
     }
 
-    private var pullRequestFilterBinding: Binding<HyperlitePullRequestFilter> {
-        Binding(
-            get: { organization.pullRequestFilter },
-            set: organization.setPullRequestFilter
+    private func pullRequestRow(
+        _ row: HyperlitePullRequestRow,
+        pinned: Bool
+    ) -> some View {
+        HyperlitePullRequestPanelRow(
+            row: row,
+            reviewStatus: organization.pullRequestReviewStatus(for: row),
+            pinned: pinned,
+            draggedRowID: $draggedRowID,
+            toggleReview: { organization.togglePullRequestReviewed(row) },
+            move: pins.move,
+            moveBy: pins.move
         )
     }
 }

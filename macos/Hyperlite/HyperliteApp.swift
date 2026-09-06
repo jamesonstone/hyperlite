@@ -22,12 +22,12 @@ struct HyperliteApp: App {
     @StateObject private var state = HyperliteState.shared
 
     var body: some Scene {
-        WindowGroup("Hyperlite", id: "hyperlite") {
+        WindowGroup(HyperliteWindowChrome.title, id: "hyperlite") {
             HyperliteWindow(
                 state: state,
                 notepad: HyperliteNotepadState.shared
             )
-                .font(HyperliteTypography.regular(13))
+                .font(HyperliteTypography.chrome)
                 .background(HyperliteSettingsActionInstaller())
                 .hyperliteTheme()
         }
@@ -55,7 +55,7 @@ struct HyperliteApp: App {
 
         Settings {
             HyperliteSettingsView(state: state)
-                .font(HyperliteTypography.regular(13))
+                .font(HyperliteTypography.chrome)
                 .hyperliteTheme()
         }
     }

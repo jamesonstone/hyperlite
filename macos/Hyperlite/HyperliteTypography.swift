@@ -8,6 +8,11 @@ enum HyperliteTypography {
         in: NSFontManager.shared.availableFontFamilies
     )
 
+    static var body: Font { regular(HyperliteAppearance.shared.bodySize) }
+    static var compact: Font { regular(HyperliteAppearance.shared.compactSize) }
+    static var heading: Font { semibold(HyperliteAppearance.shared.bodySize) }
+    static var chrome: Font { regular(HyperliteAppearance.shared.bodySize + 1) }
+
     static func regular(_ size: CGFloat) -> Font {
         swiftUIFont(size: size, weight: .regular)
     }
@@ -33,6 +38,10 @@ enum HyperliteTypography {
 
     static func plainTextAppKitFont(_ size: CGFloat) -> NSFont {
         appKitFont(size)
+    }
+
+    static func editorAppKitFont() -> NSFont {
+        appKitFont(HyperliteAppearance.shared.bodySize + 1)
     }
 
     static func resolveFamily(in installedFamilies: [String]) -> String? {

@@ -54,15 +54,50 @@ struct HyperliteProjectPullRequest: Codable, Equatable, Identifiable {
     let url: String
     let headRefName: String
     let headRefOID: String
+    var authorLogin: String = ""
+    var baseRefName: String = ""
+    var labels: [String] = []
+    var assignees: [String] = []
+    var reviewRequests: [String] = []
+    var reviewDecision: String = ""
+    var additions: Int = 0
+    var deletions: Int = 0
+    var changedFiles: Int = 0
+    var commentCount: Int = 0
+    var ciState: String = ""
     let isDraft: Bool
     let hasMergeConflict: Bool
     let unresolvedReviewThreads: Int?
     let updatedAt: Date
 
+    var glance: HyperlitePullRequestGlance {
+        HyperlitePullRequestGlance(
+            authorLogin: authorLogin,
+            headRefName: headRefName,
+            baseRefName: baseRefName,
+            labels: labels,
+            assignees: assignees,
+            reviewRequests: reviewRequests,
+            reviewDecision: reviewDecision,
+            additions: additions,
+            deletions: deletions,
+            changedFiles: changedFiles,
+            commentCount: commentCount,
+            ciState: ciState
+        )
+    }
+
     enum CodingKeys: String, CodingKey {
-        case id, number, title, url
+        case id, number, title, url, labels, assignees, additions, deletions
         case headRefName = "head_ref_name"
         case headRefOID = "head_ref_oid"
+        case authorLogin = "author_login"
+        case baseRefName = "base_ref_name"
+        case reviewRequests = "review_requests"
+        case reviewDecision = "review_decision"
+        case changedFiles = "changed_files"
+        case commentCount = "comment_count"
+        case ciState = "ci_state"
         case isDraft = "is_draft"
         case hasMergeConflict = "has_merge_conflict"
         case unresolvedReviewThreads = "unresolved_review_threads"
@@ -88,6 +123,17 @@ extension HyperliteProjectPullRequest {
             Int.self,
             forKey: .unresolvedReviewThreads
         )
+        authorLogin = try container.decodeIfPresent(String.self, forKey: .authorLogin) ?? ""
+        baseRefName = try container.decodeIfPresent(String.self, forKey: .baseRefName) ?? ""
+        labels = try container.decodeIfPresent([String].self, forKey: .labels) ?? []
+        assignees = try container.decodeIfPresent([String].self, forKey: .assignees) ?? []
+        reviewRequests = try container.decodeIfPresent([String].self, forKey: .reviewRequests) ?? []
+        reviewDecision = try container.decodeIfPresent(String.self, forKey: .reviewDecision) ?? ""
+        additions = try container.decodeIfPresent(Int.self, forKey: .additions) ?? 0
+        deletions = try container.decodeIfPresent(Int.self, forKey: .deletions) ?? 0
+        changedFiles = try container.decodeIfPresent(Int.self, forKey: .changedFiles) ?? 0
+        commentCount = try container.decodeIfPresent(Int.self, forKey: .commentCount) ?? 0
+        ciState = try container.decodeIfPresent(String.self, forKey: .ciState) ?? ""
         updatedAt = try container.decode(Date.self, forKey: .updatedAt)
     }
 }
@@ -105,6 +151,7 @@ struct HyperlitePullRequestRow: Equatable, Identifiable {
     let hasMergeConflict: Bool
     let unresolvedReviewThreads: Int?
     let updatedAt: Date
+    var glance: HyperlitePullRequestGlance = .empty
 }
 
 struct HyperlitePullRequestRowLayout: Equatable {
@@ -147,7 +194,8 @@ enum HyperlitePullRequestPresentation {
                     isDraft: pullRequest.isDraft,
                     hasMergeConflict: pullRequest.hasMergeConflict,
                     unresolvedReviewThreads: pullRequest.unresolvedReviewThreads,
-                    updatedAt: pullRequest.updatedAt
+                    updatedAt: pullRequest.updatedAt,
+                    glance: pullRequest.glance
                 )
             }
         }.sorted {

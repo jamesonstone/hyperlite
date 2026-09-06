@@ -23,18 +23,20 @@ or scan a source path directly with `hyperlite scan /path/to/projects`.
 The native app is one window: Notepad/Daily above Open PRs. Launch always
 opens that window. It does not start a menu bar extra, workspace switcher,
 Projects map, Pinboard, Agent Tasks, Agent Island, or pinned Codex surface.
-The default Control+Shift+H hotkey brings the window forward; becoming
-active still refreshes stale Open PRs, but the hotkey itself does not force
-GitHub work. Command-P, Remove Project, and Settings load the configured
-project list when opened, not at launch. Command-K indexes note text for
-literal search immediately and loads on-device sentence embeddings only
-when a query has no exact match.
+The window title is `👻 hyperlite`. The in-window header keeps GitHub GraphQL
+quota, Update Default Branches, Sweep Worktrees, a subtly orange Refresh
+action, and Settings. The default Control+Shift+H hotkey brings the window
+forward; becoming active still refreshes stale Open PRs, but the hotkey
+itself does not force GitHub work. Command-P, Remove Project, and Settings
+load the configured project list when opened, not at launch. Command-K
+indexes note text for literal search immediately and loads on-device
+sentence embeddings only when a query has no exact match. Theme and Font
+Size live only in Command-K nested lists; they are not in Settings or the
+header.
 
 Inferred attention remains available through CLI and JSON but is hidden from
 the window. Launch and Refresh do not scan inferred threads. Refresh updates
-Open PRs and the current daily-note date. The header keeps the product name
-and ghost, GitHub GraphQL quota, Update Default Branches, Sweep Worktrees, a
-subtly orange Refresh action, and Settings.
+Open PRs and the current daily-note date.
 
 Configured repositories still determine which Open PRs appear and which
 default branches Update Default Branches can fast-forward. Add or remove them
@@ -83,7 +85,10 @@ use the orange attention color, confirmed zero uses a quiet dash, and
 unavailable legacy cache data uses `?` until a complete refresh supplies an
 exact count. The row content opens the pull request; its separate leading
 checkbox, immediately before the repository name, changes only the private
-`Reviewed by me` marker.
+`Reviewed by me` marker. Hovering a row shows a delayed glance card with
+author, branch, labels, assignees, diffstat, review decision, review
+requests, comment count, CI, conflicts, feedback, age, short SHA, and URL
+from the already-fetched scan. Hover does not call GitHub.
 
 A review mark is stored locally for the exact observed head commit and survives
 relaunches. Marked rows stay in place and become subtly muted. When current
@@ -92,24 +97,23 @@ and shows an orange stale marker until the new revision is reviewed or the mark
 is cleared. Cached or unavailable evidence preserves the last mark; a cached
 row may clear that mark but cannot create or replace one.
 
-The quiet icons on the Open PRs title line copy a merge-ready coding-agent
-prompt for the currently visible rows, hide drafts, filter the loaded
-index, choose a sort order, clear all local review marks, or enter reorder
-mode. The title shows the count currently reviewed. Copy writes a durable
+The Open PRs list has a Pinned section above the remaining rows. Drag a row
+by its leading handle to reorder it, including into Pinned (which pins it)
+or out of Pinned (which unpins it). Pin membership and order persist locally
+and never call GitHub. Accessible Move up and Move down actions cross that
+same boundary. Sort, filter, hide-drafts, and enter/exit reorder chrome are
+not on the title line.
+
+Copy Open PR Merge Prompt remains in Command-K. Copy writes a durable
 instruction plus each visible pull request's identity, URL, draft/ready
 state, confirmed merge-conflict hint or `merge conflicts not confirmed`,
 and unresolved review-thread count to the clipboard, then confirms for two
-seconds. It does not call `gh`, open
-GitHub, or mutate pull requests. An empty visible list disables the control
-and leaves the clipboard unchanged. The hide-drafts checkbox
-removes draft rows from the visible list without changing the cached index;
-it is a temporary presentation toggle like other Open PRs filters and never
-queries GitHub. Filters include local Unreviewed, Reviewed, and
-Stale states; they are temporary and never refresh GitHub. Sort choices persist.
-Reorder shows every loaded row with drag handles, including drafts even while
-hide-drafts is on; Done saves a custom order, while Cancel restores the previous
-order. Accessible Move up and Move down actions provide the same control without
-dragging. Copy in reorder mode uses that same on-screen list.
+seconds. It does not call `gh`, open GitHub, or mutate pull requests. An
+empty visible list leaves the clipboard unchanged.
+
+Command-K Theme opens a nested list of eleven families with light and dark
+variants; the current theme is marked. Command-K Font Size chooses 12 pt
+(default) or 10 pt list type. Both persist locally.
 
 `Reviewed by me` is organization metadata, not GitHub approval, review-feedback
 resolution, passing checks, mergeability, or permission to merge. Hyperlite

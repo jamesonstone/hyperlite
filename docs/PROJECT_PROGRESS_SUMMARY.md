@@ -21,6 +21,7 @@
 | 0015 | copy-open-pr-merge-prompt | `docs/specs/0015-copy-open-pr-merge-prompt` | deliver | no | 2026-08-26 | Copy a durable merge-ready coding-agent prompt for the currently visible Open PRs. |
 | 0017 | lean-native-window | `docs/specs/0017-lean-native-window` | deliver | no | 2026-09-05 | Slim the native window to notes and Open PRs, with default-branch fast-forward and interactive git wt sweep. |
 | 0018 | runtime-resource-cut | `docs/specs/0018-runtime-resource-cut` | deliver | no | 2026-09-05 | Cut launch and idle helper, embedding, and unused-framework work while keeping notes, Open PRs, and on-device semantic search. |
+| 0019 | open-pr-workspace-scanability | `docs/specs/0019-open-pr-workspace-scanability` | deliver | no | 2026-09-05 | Larger type, Open PR hover glance fields, Command-K-only light/dark themes, pinned drag-reorder, and `👻 hyperlite` window chrome. |
 
 ## PROJECT INTENT
 
@@ -289,7 +290,25 @@ changes that warrant human attention.
   issue #66 owns ready pull-request delivery.
 - **POINTERS**: `docs/specs/0018-runtime-resource-cut/SPEC.md`
 
+### open-pr-workspace-scanability
+
+- **STATUS**: deliver
+- **PAUSED**: no
+- **INTENT**: Make Open PRs readable at a glance without extra GitHub calls or
+  header chrome: larger type, in-memory hover details, a pinned drag-reorder
+  section, and Command-K-only light and dark themes.
+- **APPROACH**: Persist theme and font size in UserDefaults; expand the
+  existing batched GraphQL nodes with glance fields; replace Open PR
+  organization chrome with always-on pin/reorder; window title `👻 hyperlite`.
+- **OPEN ITEMS**: Ready pull-request delivery through issue #68.
+- **POINTERS**: `docs/specs/0019-open-pr-workspace-scanability/SPEC.md`
+
 ## LAST UPDATED
+
+- 2026-09-05: Added feature `0019-open-pr-workspace-scanability` for Open PR
+  hover, pins, Command-K themes and font size, and lowercase ghost window title.
+  This supersedes Open PR sort, filter, hide-drafts, and enter/exit reorder
+  chrome from feature `0008`.
 
 - 2026-09-05: Added feature `0018-runtime-resource-cut` to cut launch and
   idle helper, embedding, and unused-framework work.

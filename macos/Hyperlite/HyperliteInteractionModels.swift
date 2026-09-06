@@ -9,6 +9,8 @@ enum HyperlitePaletteMode: String, Hashable, Identifiable {
     case commands
     case projects
     case removeProjects
+    case themes
+    case fontSizes
 
     var id: String { rawValue }
 }
@@ -27,6 +29,11 @@ enum HyperlitePaletteAction: Equatable {
     case revealPath(String)
     case focusPinnedNote
     case openDailyNote(String)
+    case showCommands
+    case showThemes
+    case showFontSizes
+    case setTheme(String)
+    case setFontSize(HyperliteFontSize)
 }
 
 struct HyperlitePaletteEntry: Equatable, Identifiable {

@@ -39,28 +39,6 @@ type pageRequest struct {
 	page       int
 }
 
-type rawPullRequest struct {
-	Number        int                        `json:"number"`
-	Title         string                     `json:"title"`
-	URL           string                     `json:"url"`
-	HeadRefName   string                     `json:"headRefName"`
-	HeadRefOID    string                     `json:"headRefOid"`
-	IsDraft       bool                       `json:"isDraft"`
-	Mergeable     string                     `json:"mergeable"`
-	UpdatedAt     time.Time                  `json:"updatedAt"`
-	ReviewThreads *rawReviewThreadConnection `json:"reviewThreads"`
-}
-
-type rawRepository struct {
-	PullRequests struct {
-		Nodes    []rawPullRequest `json:"nodes"`
-		PageInfo struct {
-			HasNextPage bool   `json:"hasNextPage"`
-			EndCursor   string `json:"endCursor"`
-		} `json:"pageInfo"`
-	} `json:"pullRequests"`
-}
-
 type rawGraphQLError struct {
 	Message string            `json:"message"`
 	Path    []json.RawMessage `json:"path"`

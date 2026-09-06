@@ -26,12 +26,14 @@ struct HyperlitePlainTextEditor: NSViewRepresentable {
         textView.string = text
         textView.isEditable = isEnabled
         textView.isSelectable = true
-        textView.font = HyperliteTypography.plainTextAppKitFont(13)
+        textView.font = HyperliteTypography.editorAppKitFont()
         textView.textColor = HyperliteTheme.primaryText.appKitColor
         textView.insertionPointColor = HyperliteTheme.blue.appKitColor
         textView.selectedTextAttributes = [
             .backgroundColor: HyperliteTheme.blue.appKitColor.withAlphaComponent(0.53),
-            .foregroundColor: NSColor.white,
+            .foregroundColor: HyperliteTheme.colorScheme == .light
+                ? HyperliteTheme.primaryText.appKitColor
+                : NSColor.white,
         ]
         textView.backgroundColor = .clear
         textView.drawsBackground = false
@@ -73,6 +75,15 @@ struct HyperlitePlainTextEditor: NSViewRepresentable {
             context.coordinator.byteCount = text.utf8.count
         }
         context.coordinator.applyFocus(to: textView)
+        textView.font = HyperliteTypography.editorAppKitFont()
+        textView.textColor = HyperliteTheme.primaryText.appKitColor
+        textView.insertionPointColor = HyperliteTheme.blue.appKitColor
+        textView.selectedTextAttributes = [
+            .backgroundColor: HyperliteTheme.blue.appKitColor.withAlphaComponent(0.53),
+            .foregroundColor: HyperliteTheme.colorScheme == .light
+                ? HyperliteTheme.primaryText.appKitColor
+                : NSColor.white,
+        ]
     }
 
     final class Coordinator: NSObject, NSTextViewDelegate {

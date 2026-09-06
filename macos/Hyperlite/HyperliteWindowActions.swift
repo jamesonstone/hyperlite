@@ -14,6 +14,26 @@ extension HyperliteWindow {
             state.showPalette(.removeProjects)
             return
         }
+        if action == .showThemes {
+            state.showPalette(.themes)
+            return
+        }
+        if action == .showFontSizes {
+            state.showPalette(.fontSizes)
+            return
+        }
+        if action == .showCommands {
+            state.showPalette(.commands)
+            return
+        }
+        if case let .setTheme(id) = action {
+            HyperliteAppearance.shared.setTheme(id)
+            return
+        }
+        if case let .setFontSize(size) = action {
+            HyperliteAppearance.shared.setFontSize(size)
+            return
+        }
         if action == .copyOpenPRMergePrompt {
             copyVisibleOpenPRMergePrompt()
             return
@@ -24,7 +44,8 @@ extension HyperliteWindow {
             state.refreshAll()
         case .forceCacheRefresh:
             state.forceCacheRefresh()
-        case .copyOpenPRMergePrompt:
+        case .copyOpenPRMergePrompt, .showCommands, .showThemes, .showFontSizes,
+             .setTheme, .setFontSize:
             break
         case .updateDefaultBranches:
             state.updateDefaultBranches()

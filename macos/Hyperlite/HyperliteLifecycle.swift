@@ -30,7 +30,7 @@ final class HyperliteApplicationDelegate: NSObject, NSApplicationDelegate, NSWin
             }
         }
         DispatchQueue.main.async { [weak self] in
-            self?.window = NSApp.windows.first(where: { $0.title == "Hyperlite" })
+            self?.window = NSApp.windows.first(where: { $0.title == HyperliteWindowChrome.title })
             self?.window?.delegate = self
             self?.showWindow()
         }
@@ -74,7 +74,7 @@ final class HyperliteApplicationDelegate: NSObject, NSApplicationDelegate, NSWin
 
     private func showWindow() {
         NSApp.activate(ignoringOtherApps: true)
-        let target = window ?? NSApp.windows.first(where: { $0.title == "Hyperlite" })
+        let target = window ?? NSApp.windows.first(where: { $0.title == HyperliteWindowChrome.title })
         target?.makeKeyAndOrderFront(nil)
     }
 }
