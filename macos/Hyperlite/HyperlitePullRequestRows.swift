@@ -144,9 +144,9 @@ private struct HyperlitePullRequestRowContent: View {
         for row: HyperlitePullRequestRow,
         reviewStatus: HyperlitePullRequestReviewStatus
     ) -> String {
-        HyperlitePullRequestHoverPresentation.lines(
+        HyperlitePullRequestHoverPresentation.snapshot(
             row: row, reviewStatus: reviewStatus
-        ).joined(separator: ", ")
+        ).accessibilityLabel
     }
 }
 

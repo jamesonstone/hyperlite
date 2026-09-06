@@ -20,6 +20,7 @@ type rawPullRequest struct {
 	Labels         *rawNamedNodes              `json:"labels"`
 	Assignees      *rawNamedNodes              `json:"assignees"`
 	Comments       *rawCount                   `json:"comments"`
+	BodyText       string                      `json:"bodyText"`
 	ReviewRequests *rawReviewRequestConnection `json:"reviewRequests"`
 	Commits        *rawCommitConnection        `json:"commits"`
 	ReviewThreads  *rawReviewThreadConnection  `json:"reviewThreads"`
@@ -47,6 +48,7 @@ type rawReviewRequestConnection struct {
 type rawCommitConnection struct {
 	Nodes []struct {
 		Commit struct {
+			MessageHeadline   string `json:"messageHeadline"`
 			StatusCheckRollup *struct {
 				State string `json:"state"`
 			} `json:"statusCheckRollup"`

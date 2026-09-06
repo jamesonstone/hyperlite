@@ -10,6 +10,7 @@ struct HyperliteInteractionModelTests {
         testRowSummaryOnlyShowsAttention()
         HyperlitePaletteTests.run()
         HyperliteAppearanceTests.run()
+        HyperlitePullRequestHoverTests.run()
         testSelectionClamping()
         testHoverSummaryLimit()
         testProcessEnvironment()

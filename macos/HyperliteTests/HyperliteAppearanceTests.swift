@@ -7,7 +7,6 @@ enum HyperliteAppearanceTests {
         testUnknownThemeFallsBackToSelenizedDark()
         testNestedThemeAndFontEntriesMarkCurrent()
         testIsolatedAppearancePersistence()
-        testHoverLinesIncludeGlanceFields()
         testWindowTitle()
     }
 
@@ -81,40 +80,6 @@ enum HyperliteAppearanceTests {
         expect(restored.fontSize == .compact && restored.compactSize == 8,
                "compact font size should persist with 8 pt chrome")
         defaults.removePersistentDomain(forName: suite)
-    }
-
-    private static func testHoverLinesIncludeGlanceFields() {
-        var glance = HyperlitePullRequestGlance.empty
-        glance.authorLogin = "jameson"
-        glance.headRefName = "GH-68"
-        glance.baseRefName = "main"
-        glance.labels = ["ready"]
-        glance.additions = 12
-        glance.deletions = 3
-        glance.changedFiles = 2
-        glance.ciState = "SUCCESS"
-        glance.reviewDecision = "REVIEW_REQUIRED"
-        glance.commentCount = 4
-        let row = HyperlitePullRequestRow(
-            id: "one#12", reviewID: "owner/one#12", repository: "owner/one",
-            status: .current, number: 12, title: "Ship hover",
-            url: URL(string: "https://github.com/owner/one/pull/12"),
-            headRefOID: "abcdef1", isDraft: false, hasMergeConflict: true,
-            unresolvedReviewThreads: 2,
-            updatedAt: Date(timeIntervalSince1970: 1_785_850_000),
-            glance: glance
-        )
-        let lines = HyperlitePullRequestHoverPresentation.lines(
-            row: row, reviewStatus: .unreviewed
-        )
-        expect(lines.contains { $0.contains("GH-68") && $0.contains("main") },
-               "hover should show the branch pair")
-        expect(lines.contains("author jameson"), "hover should show the author")
-        expect(lines.contains { $0.contains("+12") && $0.contains("-3") },
-               "hover should show the diffstat")
-        expect(lines.contains("CI success"), "hover should show CI")
-        expect(lines.contains("merge conflicts"), "hover should name conflicts")
-        expect(lines.contains("4 comments"), "hover should show comment count")
     }
 
     private static func testWindowTitle() {

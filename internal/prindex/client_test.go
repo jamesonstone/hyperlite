@@ -18,6 +18,9 @@ func TestGitHubClientBatchesRepositoriesAndPaginatesOnlyWhenNeeded(t *testing.T)
 			if !strings.Contains(query, `name: "one"`) ||
 				!strings.Contains(query, `name: "two"`) ||
 				!strings.Contains(query, "headRefOid") ||
+				!strings.Contains(query, "bodyText") ||
+				!strings.Contains(query, "messageHeadline") ||
+				!strings.Contains(query, "commits(last: 3)") ||
 				!strings.Contains(query, "author { login }") ||
 				!strings.Contains(query, "additions deletions changedFiles") ||
 				!strings.Contains(query, "statusCheckRollup { state }") ||

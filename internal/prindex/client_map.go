@@ -13,23 +13,28 @@ func mappedPullRequest(
 	unresolvedReviewThreads int,
 ) model.ProjectPullRequest {
 	return model.ProjectPullRequest{
-		ID:                      fmt.Sprintf("%s#%d", github, pullRequest.Number),
-		Number:                  pullRequest.Number,
-		Title:                   pullRequest.Title,
-		URL:                     pullRequest.URL,
-		HeadRefName:             pullRequest.HeadRefName,
-		HeadRefOID:              pullRequest.HeadRefOID,
-		BaseRefName:             strings.TrimSpace(pullRequest.BaseRefName),
-		AuthorLogin:             actorLogin(pullRequest.Author),
-		Labels:                  namedValues(pullRequest.Labels, true),
-		Assignees:               namedValues(pullRequest.Assignees, false),
-		ReviewRequests:          reviewRequestNames(pullRequest.ReviewRequests),
-		ReviewDecision:          strings.TrimSpace(pullRequest.ReviewDecision),
-		Additions:               pullRequest.Additions,
-		Deletions:               pullRequest.Deletions,
-		ChangedFiles:            pullRequest.ChangedFiles,
-		CommentCount:            commentCount(pullRequest.Comments),
-		CIState:                 ciState(pullRequest.Commits),
+		ID:             fmt.Sprintf("%s#%d", github, pullRequest.Number),
+		Number:         pullRequest.Number,
+		Title:          pullRequest.Title,
+		URL:            pullRequest.URL,
+		HeadRefName:    pullRequest.HeadRefName,
+		HeadRefOID:     pullRequest.HeadRefOID,
+		BaseRefName:    strings.TrimSpace(pullRequest.BaseRefName),
+		AuthorLogin:    actorLogin(pullRequest.Author),
+		Labels:         namedValues(pullRequest.Labels, true),
+		Assignees:      namedValues(pullRequest.Assignees, false),
+		ReviewRequests: reviewRequestNames(pullRequest.ReviewRequests),
+		ReviewDecision: strings.TrimSpace(pullRequest.ReviewDecision),
+		Additions:      pullRequest.Additions,
+		Deletions:      pullRequest.Deletions,
+		ChangedFiles:   pullRequest.ChangedFiles,
+		CommentCount:   commentCount(pullRequest.Comments),
+		CIState:        ciState(pullRequest.Commits),
+		Summary: glanceSummary(
+			pullRequest.Title,
+			pullRequest.BodyText,
+			commitHeadlines(pullRequest.Commits),
+		),
 		IsDraft:                 pullRequest.IsDraft,
 		HasMergeConflict:        mergeableIsConflicting(pullRequest.Mergeable),
 		UnresolvedReviewThreads: &unresolvedReviewThreads,
@@ -100,7 +105,7 @@ func ciState(commits *rawCommitConnection) string {
 	if commits == nil || len(commits.Nodes) == 0 {
 		return ""
 	}
-	rollup := commits.Nodes[0].Commit.StatusCheckRollup
+	rollup := commits.Nodes[len(commits.Nodes)-1].Commit.StatusCheckRollup
 	if rollup == nil {
 		return ""
 	}
