@@ -86,9 +86,10 @@ unavailable legacy cache data uses `?` until a complete refresh supplies an
 exact count. The row content opens the pull request; its separate leading
 checkbox, immediately before the repository name, changes only the private
 `Reviewed by me` marker. Hovering a row shows a delayed glance card with
-author, branch, labels, assignees, diffstat, review decision, review
-requests, comment count, CI, conflicts, feedback, age, short SHA, and URL
-from the already-fetched scan. Hover does not call GitHub.
+compact identity, the title, a short what-and-why when the scan has one, and
+one next step such as fix merge conflicts, failing CI, unresolved review
+threads, or waiting on review. Hover does not dump author, diffstat, SHA, or
+URL, and it does not call GitHub.
 
 A review mark is stored locally for the exact observed head commit and survives
 relaunches. Marked rows stay in place and become subtly muted. When current

@@ -22,6 +22,7 @@
 | 0017 | lean-native-window | `docs/specs/0017-lean-native-window` | deliver | no | 2026-09-05 | Slim the native window to notes and Open PRs, with default-branch fast-forward and interactive git wt sweep. |
 | 0018 | runtime-resource-cut | `docs/specs/0018-runtime-resource-cut` | deliver | no | 2026-09-05 | Cut launch and idle helper, embedding, and unused-framework work while keeping notes, Open PRs, and on-device semantic search. |
 | 0019 | open-pr-workspace-scanability | `docs/specs/0019-open-pr-workspace-scanability` | deliver | no | 2026-09-05 | Larger type, Open PR hover glance fields, Command-K-only light/dark themes, pinned drag-reorder, and `👻 hyperlite` window chrome. |
+| 0020 | open-pr-hover-why | `docs/specs/0020-open-pr-hover-why` | deliver | no | 2026-09-06 | Glanceable Open PR hover with a short what-and-why and one next step from the existing batched fetch. |
 
 ## PROJECT INTENT
 
@@ -303,13 +304,25 @@ changes that warrant human attention.
 - **OPEN ITEMS**: Ready pull-request delivery through issue #68.
 - **POINTERS**: `docs/specs/0019-open-pr-workspace-scanability/SPEC.md`
 
+### open-pr-hover-why
+
+- **STATUS**: deliver
+- **PAUSED**: no
+- **INTENT**: Make Open PR hover a readable glance of what the change is and
+  what to do next, without extra GitHub calls or a dense metadata dump.
+- **APPROACH**: Derive a truncated summary in `prindex` from body text then
+  recent commit headlines; present identity, summary, and one next step.
+- **OPEN ITEMS**: Ready pull-request delivery through issue #72.
+- **POINTERS**: `docs/specs/0020-open-pr-hover-why/SPEC.md`
+
 ## LAST UPDATED
 
+- 2026-09-06: Added feature `0020-open-pr-hover-why` for a glanceable Open PR
+  hover that shows what-and-why and one next step.
 - 2026-09-05: Added feature `0019-open-pr-workspace-scanability` for Open PR
   hover, pins, Command-K themes and font size, and lowercase ghost window title.
   This supersedes Open PR sort, filter, hide-drafts, and enter/exit reorder
   chrome from feature `0008`.
-
 - 2026-09-05: Added feature `0018-runtime-resource-cut` to cut launch and
   idle helper, embedding, and unused-framework work.
 - 2026-09-05: Added feature `0017-lean-native-window` to slim the native

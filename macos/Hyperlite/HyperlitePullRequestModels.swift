@@ -65,6 +65,7 @@ struct HyperliteProjectPullRequest: Codable, Equatable, Identifiable {
     var changedFiles: Int = 0
     var commentCount: Int = 0
     var ciState: String = ""
+    var summary: String = ""
     let isDraft: Bool
     let hasMergeConflict: Bool
     let unresolvedReviewThreads: Int?
@@ -83,7 +84,8 @@ struct HyperliteProjectPullRequest: Codable, Equatable, Identifiable {
             deletions: deletions,
             changedFiles: changedFiles,
             commentCount: commentCount,
-            ciState: ciState
+            ciState: ciState,
+            summary: summary
         )
     }
 
@@ -98,6 +100,7 @@ struct HyperliteProjectPullRequest: Codable, Equatable, Identifiable {
         case changedFiles = "changed_files"
         case commentCount = "comment_count"
         case ciState = "ci_state"
+        case summary
         case isDraft = "is_draft"
         case hasMergeConflict = "has_merge_conflict"
         case unresolvedReviewThreads = "unresolved_review_threads"
@@ -134,6 +137,7 @@ extension HyperliteProjectPullRequest {
         changedFiles = try container.decodeIfPresent(Int.self, forKey: .changedFiles) ?? 0
         commentCount = try container.decodeIfPresent(Int.self, forKey: .commentCount) ?? 0
         ciState = try container.decodeIfPresent(String.self, forKey: .ciState) ?? ""
+        summary = try container.decodeIfPresent(String.self, forKey: .summary) ?? ""
         updatedAt = try container.decode(Date.self, forKey: .updatedAt)
     }
 }

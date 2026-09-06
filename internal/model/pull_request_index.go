@@ -30,6 +30,7 @@ type ProjectPullRequest struct {
 	ChangedFiles            int       `json:"changed_files,omitempty"`
 	CommentCount            int       `json:"comment_count,omitempty"`
 	CIState                 string    `json:"ci_state,omitempty"`
+	Summary                 string    `json:"summary,omitempty"`
 	IsDraft                 bool      `json:"is_draft"`
 	HasMergeConflict        bool      `json:"has_merge_conflict,omitempty"`
 	UnresolvedReviewThreads *int      `json:"unresolved_review_threads,omitempty"`
