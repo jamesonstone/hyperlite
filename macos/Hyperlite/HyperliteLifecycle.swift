@@ -11,7 +11,6 @@ final class HyperliteApplicationDelegate: NSObject, NSApplicationDelegate, NSWin
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         hotKey = HyperliteHotKeyController { [weak self] in
-            HyperliteState.shared.refreshAll()
             self?.showWindow()
         }
         hotKey?.start()

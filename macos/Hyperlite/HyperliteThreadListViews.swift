@@ -39,5 +39,6 @@ struct HyperliteSettingsView: View {
         .formStyle(.grouped)
         .frame(width: 400)
         .padding()
+        .onAppear { state.refreshConfiguredProjects() }
     }
 }

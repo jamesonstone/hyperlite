@@ -56,44 +56,11 @@ actor HyperliteNoteSearchIndex {
     func search(_ rawQuery: String, limit: Int = maximumResults) -> [HyperliteNoteSearchResult] {
         let query = rawQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty, limit > 0 else { return [] }
-        let normalizedQuery = query.lowercased()
-        let queryVector = vector(for: query)
-        var results: [HyperliteNoteSearchResult] = []
-
-        for note in notes.values {
-            guard !Task.isCancelled else { return [] }
-            if note.literalText.contains(normalizedQuery) {
-                results.append(result(
-                    note: note,
-                    snippet: exactSnippet(in: note.document.content, query: query),
-                    kind: .exact,
-                    score: 2 + exactMetadataScore(note.document, query: normalizedQuery)
-                ))
-                continue
-            }
-            guard let queryVector else { continue }
-            let best = note.chunks.compactMap { chunk -> (String, Double)? in
-                guard let vector = chunk.vector else { return nil }
-                return (chunk.text, cosineSimilarity(queryVector, vector))
-            }.max { $0.1 < $1.1 }
-            guard let best, best.1 >= Self.minimumSemanticScore else { continue }
-            results.append(result(
-                note: note,
-                snippet: displaySnippet(best.0),
-                kind: .semantic,
-                score: best.1
-            ))
+        let exactResults = exactMatches(query: query)
+        if !exactResults.isEmpty {
+            return ranked(exactResults, limit: limit)
         }
-
-        let exactResults = results.filter { $0.matchKind == .exact }
-        let candidates = exactResults.isEmpty ? results : exactResults
-        return candidates.sorted {
-            if $0.matchKind != $1.matchKind { return $0.matchKind == .exact }
-            if $0.score != $1.score { return $0.score > $1.score }
-            return $0.filename > $1.filename
-        }
-        .prefix(limit)
-        .map { $0 }
+        return ranked(semanticMatches(query: query), limit: limit)
     }
 
     private func makeIndexedNote(_ document: HyperliteNoteDocument) -> IndexedNote {
@@ -106,8 +73,66 @@ actor HyperliteNoteSearchIndex {
         return IndexedNote(
             document: document,
             literalText: (metadata + "\n" + document.content).lowercased(),
-            chunks: sourceChunks.map { Chunk(text: $0, vector: vector(for: $0)) }
+            chunks: sourceChunks.map { Chunk(text: $0, vector: nil) }
         )
+    }
+
+    private func exactMatches(query: String) -> [HyperliteNoteSearchResult] {
+        let normalizedQuery = query.lowercased()
+        var results: [HyperliteNoteSearchResult] = []
+        for note in notes.values {
+            guard !Task.isCancelled else { return [] }
+            guard note.literalText.contains(normalizedQuery) else { continue }
+            results.append(result(
+                note: note,
+                snippet: exactSnippet(in: note.document.content, query: query),
+                kind: .exact,
+                score: 2 + exactMetadataScore(note.document, query: normalizedQuery)
+            ))
+        }
+        return results
+    }
+
+    private func semanticMatches(query: String) -> [HyperliteNoteSearchResult] {
+        fillMissingVectors()
+        guard let queryVector = vector(for: query) else { return [] }
+        var results: [HyperliteNoteSearchResult] = []
+        for note in notes.values {
+            guard !Task.isCancelled else { return [] }
+            let best = note.chunks.compactMap { chunk -> (String, Double)? in
+                guard let vector = chunk.vector else { return nil }
+                return (chunk.text, cosineSimilarity(queryVector, vector))
+            }.max { $0.1 < $1.1 }
+            guard let best, best.1 >= Self.minimumSemanticScore else { continue }
+            results.append(result(
+                note: note,
+                snippet: displaySnippet(best.0),
+                kind: .semantic,
+                score: best.1
+            ))
+        }
+        return results
+    }
+
+    private func fillMissingVectors() {
+        for (id, note) in notes {
+            guard note.chunks.contains(where: { $0.vector == nil }) else { continue }
+            notes[id] = IndexedNote(
+                document: note.document,
+                literalText: note.literalText,
+                chunks: note.chunks.map { Chunk(text: $0.text, vector: $0.vector ?? vector(for: $0.text)) }
+            )
+        }
+    }
+
+    private func ranked(_ results: [HyperliteNoteSearchResult], limit: Int) -> [HyperliteNoteSearchResult] {
+        results.sorted {
+            if $0.matchKind != $1.matchKind { return $0.matchKind == .exact }
+            if $0.score != $1.score { return $0.score > $1.score }
+            return $0.filename > $1.filename
+        }
+        .prefix(limit)
+        .map { $0 }
     }
 
     private func vector(for text: String) -> [Double]? {

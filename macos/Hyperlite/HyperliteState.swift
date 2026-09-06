@@ -22,7 +22,6 @@ final class HyperliteState: ObservableObject {
 
     init() {
         refreshPullRequests(mode: .local, continueIfStale: true)
-        refreshConfiguredProjects()
     }
 
     deinit {
@@ -52,6 +51,12 @@ final class HyperliteState: ObservableObject {
 
     func showPalette(_ mode: HyperlitePaletteMode) {
         paletteMode = mode
+        switch mode {
+        case .projects, .removeProjects:
+            refreshConfiguredProjects()
+        case .commands:
+            break
+        }
     }
 
     func dismissPalette() {

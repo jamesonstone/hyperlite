@@ -44,8 +44,10 @@ small direct scanner, a native window, and its own command-line entrypoint.
 - Scan only configured projects and report actionable local worktrees,
   changed main-branch work, and open authored pull requests.
 - Keep the native surface lightweight: initial local scan avoids network work;
-  explicit refresh and the Control+Shift+H global hotkey refresh using normal
-  scanner execution.
+  explicit refresh uses normal scanner execution. Feature
+  `0018-runtime-resource-cut` superseded hotkey-triggered refresh: the
+  Control+Shift+H global hotkey shows the window and does not force GitHub
+  work.
 - Retain a visible window, a compact count in the menu bar, hotkey settings,
   hover descriptions, and direct evidence actions.
 - Present active coordination regardless of age and omit completed or dormant
@@ -63,7 +65,8 @@ Git history mutation, or automatic configuration overwrite.
 2. Replace the old compatibility command with a compact `hyperlite` CLI and a
    Hyperlite-owned configuration migration boundary.
 3. Build a regular SwiftUI window and menu-bar entry around that CLI's JSON
-   output, with hotkey-triggered refresh and focus.
+   output, with hotkey-triggered focus. Feature `0018-runtime-resource-cut`
+   removed hotkey-triggered GitHub refresh.
 4. Remove the migrated command, app target, packaging, and documentation from
    Beacon in a separate, dependent delivery.
 
@@ -86,16 +89,16 @@ Git history mutation, or automatic configuration overwrite.
   evidence-backed goal threads, keeps active threads visible regardless of
   age, and omits inactive projections from the primary attention surface while
   retaining them in private state and scan output for continuity.
-- Source observation remains read-only with respect to selected repositories
-  and GitHub. Feature `0003-inferred-attention` added Hyperlite-owned local
-  state for cached evidence, inference results, aliases, seen revisions, and
-  optional notes; that state is presentation memory, not project authority.
+- On 2026-09-05, feature `0018-runtime-resource-cut` superseded hotkey-triggered
+  complete scan. The global hotkey shows the window; GitHub refresh remains
+  startup or foreground staleness plus explicit Refresh.
 
 ## DISCOVERIES
 
 - A local-first scan needs an explicit no-network mode: `--local` skips GitHub
-  pull-request lookup as well as `git fetch`, while the refresh control and
-  global hotkey use the complete scan.
+  pull-request lookup as well as `git fetch`. The refresh control uses the
+  complete scan. Feature `0018-runtime-resource-cut` superseded hotkey use of
+  that complete scan.
 - macOS filesystems are commonly case-insensitive, so the app executable
   `Hyperlite` cannot safely coexist with a bundled helper named `hyperlite`.
   The bundle uses `hyperlite-cli` while the public executable remains

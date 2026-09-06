@@ -20,6 +20,7 @@
 | 0014 | open-pr-conflicts-hide-drafts | `docs/specs/0014-open-pr-conflicts-hide-drafts` | deliver | no | 2026-08-26 | Show confirmed merge conflicts in Open PRs and hide drafts with a quiet header checkbox. |
 | 0015 | copy-open-pr-merge-prompt | `docs/specs/0015-copy-open-pr-merge-prompt` | deliver | no | 2026-08-26 | Copy a durable merge-ready coding-agent prompt for the currently visible Open PRs. |
 | 0017 | lean-native-window | `docs/specs/0017-lean-native-window` | deliver | no | 2026-09-05 | Slim the native window to notes and Open PRs, with default-branch fast-forward and interactive git wt sweep. |
+| 0018 | runtime-resource-cut | `docs/specs/0018-runtime-resource-cut` | deliver | no | 2026-09-05 | Cut launch and idle helper, embedding, and unused-framework work while keeping notes, Open PRs, and on-device semantic search. |
 
 ## PROJECT INTENT
 
@@ -275,8 +276,23 @@ changes that warrant human attention.
   issue #64 owns ready pull-request delivery.
 - **POINTERS**: `docs/specs/0017-lean-native-window/SPEC.md`
 
+### runtime-resource-cut
+
+- **STATUS**: deliver
+- **PAUSED**: no
+- **INTENT**: Cut remaining launch and idle CPU, memory, and helper work
+  without removing notes, Open PRs, or on-device semantic note search.
+- **APPROACH**: Show-only global hotkey, defer sentence embeddings until a
+  query has no literal match, load `projects list` from palettes and Settings,
+  and stop linking unused UserNotifications and sqlite3.
+- **OPEN ITEMS**: Local implementation and validation are finished;
+  issue #66 owns ready pull-request delivery.
+- **POINTERS**: `docs/specs/0018-runtime-resource-cut/SPEC.md`
+
 ## LAST UPDATED
 
+- 2026-09-05: Added feature `0018-runtime-resource-cut` to cut launch and
+  idle helper, embedding, and unused-framework work.
 - 2026-09-05: Added feature `0017-lean-native-window` to slim the native
   window to notes and Open PRs with local git maintenance.
 - 2026-08-26: Added feature `0015-copy-open-pr-merge-prompt` for a durable
