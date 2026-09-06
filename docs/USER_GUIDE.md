@@ -23,16 +23,15 @@ or scan a source path directly with `hyperlite scan /path/to/projects`.
 The native app is one window: Notepad/Daily above Open PRs. Launch always
 opens that window. It does not start a menu bar extra, workspace switcher,
 Projects map, Pinboard, Agent Tasks, Agent Island, or pinned Codex surface.
-The window title is `👻 hyperlite`. The in-window header keeps GitHub GraphQL
-quota, Update Default Branches, Sweep Worktrees, a subtly orange Refresh
-action, and Settings. The default Control+Shift+H hotkey brings the window
+The window title is `👻 hyperlite`. GitHub GraphQL quota, Update Default
+Branches, Sweep Worktrees, a subtly orange Refresh action, and Settings sit
+on the Notepad/Daily row. The default Control+Shift+H hotkey brings the window
 forward; becoming active still refreshes stale Open PRs, but the hotkey
 itself does not force GitHub work. Command-P, Remove Project, and Settings
 load the configured project list when opened, not at launch. Command-K
 indexes note text for literal search immediately and loads on-device
 sentence embeddings only when a query has no exact match. Theme and Font
-Size live only in Command-K nested lists; they are not in Settings or the
-header.
+Size live only in Command-K nested lists; they are not in Settings.
 
 Inferred attention remains available through CLI and JSON but is hidden from
 the window. Launch and Refresh do not scan inferred threads. Refresh updates
@@ -139,11 +138,11 @@ requests. It does not present a dashboard project map.
 
 ### Notepad
 
-The Notepad directly beneath the header is private operator memory, not another
-source of project truth. Its compact tab row keeps the permanent Notepad
-separate from `Daily: <formatted date>` with both a vertical divider and active
-tab styling. Daily opens today by default; selecting Notepad opens the durable
-note, and selecting Daily returns to the current dated note.
+The Notepad is private operator memory, not another source of project truth.
+Its compact tab row keeps the permanent Notepad separate from
+`Daily: <formatted date>` with both a vertical divider and active tab styling.
+Daily opens today by default; selecting Notepad opens the durable note, and
+selecting Daily returns to the current dated note.
 
 Daily continues following the current calendar day while Hyperlite remains
 open. Calendar-day, system-clock, and time-zone changes move it without
