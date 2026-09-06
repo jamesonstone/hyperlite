@@ -25,11 +25,11 @@ struct HyperliteWindow: View {
         let pullRequests = pullRequestScan
         return ZStack(alignment: .topLeading) {
             VStack(alignment: .leading, spacing: HyperliteWorkspaceSizing.sectionSpacing) {
-                header
-
-                HyperliteNotepadView(state: notepad)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .clipped()
+                HyperliteNotepadView(state: notepad) {
+                    windowActions
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipped()
 
                 ScrollView(.vertical, showsIndicators: true) {
                     VStack(alignment: .leading, spacing: 10) {
@@ -120,9 +120,8 @@ struct HyperliteWindow: View {
         }
     }
 
-    private var header: some View {
-        HStack(alignment: .center, spacing: 10) {
-            Spacer(minLength: 0)
+    private var windowActions: some View {
+        HStack(alignment: .center, spacing: 6) {
             HyperliteGitHubRateLimitIndicator(rateLimit: pullRequestScan?.rateLimit)
             Button { state.updateDefaultBranches() } label: {
                 Image(systemName: "arrow.down.circle")
@@ -150,5 +149,6 @@ struct HyperliteWindow: View {
                 .buttonStyle(.bordered)
                 .help("Settings")
         }
+        .controlSize(.small)
     }
 }

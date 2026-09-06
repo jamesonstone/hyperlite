@@ -23,6 +23,7 @@
 | 0018 | runtime-resource-cut | `docs/specs/0018-runtime-resource-cut` | deliver | no | 2026-09-05 | Cut launch and idle helper, embedding, and unused-framework work while keeping notes, Open PRs, and on-device semantic search. |
 | 0019 | open-pr-workspace-scanability | `docs/specs/0019-open-pr-workspace-scanability` | deliver | no | 2026-09-05 | Larger type, Open PR hover glance fields, Command-K-only light/dark themes, pinned drag-reorder, and `👻 hyperlite` window chrome. |
 | 0020 | open-pr-hover-why | `docs/specs/0020-open-pr-hover-why` | deliver | no | 2026-09-06 | Glanceable Open PR hover with a short what-and-why and one next step from the existing batched fetch. |
+| 0021 | notepad-row-window-actions | `docs/specs/0021-notepad-row-window-actions` | deliver | no | 2026-09-06 | Put GitHub quota and window actions on the Notepad/Daily row so the editor starts under one chrome line. |
 
 ## PROJECT INTENT
 
@@ -315,8 +316,21 @@ changes that warrant human attention.
 - **OPEN ITEMS**: Ready pull-request delivery through issue #72.
 - **POINTERS**: `docs/specs/0020-open-pr-hover-why/SPEC.md`
 
+### notepad-row-window-actions
+
+- **STATUS**: deliver
+- **PAUSED**: no
+- **INTENT**: Remove the empty header band by putting window actions on the
+  Notepad/Daily row.
+- **APPROACH**: Pass the existing quota and action controls into the notepad
+  tab header trailing slot and delete the standalone header stack.
+- **OPEN ITEMS**: Ready pull-request delivery through issue #70.
+- **POINTERS**: `docs/specs/0021-notepad-row-window-actions/SPEC.md`
+
 ## LAST UPDATED
 
+- 2026-09-06: Added feature `0021-notepad-row-window-actions` to put GitHub
+  quota and window actions on the Notepad/Daily row.
 - 2026-09-06: Added feature `0020-open-pr-hover-why` for a glanceable Open PR
   hover that shows what-and-why and one next step.
 - 2026-09-05: Added feature `0019-open-pr-workspace-scanability` for Open PR

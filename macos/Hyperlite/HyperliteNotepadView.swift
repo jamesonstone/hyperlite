@@ -9,9 +9,18 @@ private enum HyperliteCalendarPopoverLayout {
     static let popoverWidth = pickerWidth + contentPadding * 2
 }
 
-struct HyperliteNotepadView: View {
+struct HyperliteNotepadView<Toolbar: View>: View {
     @ObservedObject var state: HyperliteNotepadState
+    private let toolbar: Toolbar
     @State private var isCalendarPresented = false
+
+    init(
+        state: HyperliteNotepadState,
+        @ViewBuilder toolbar: () -> Toolbar
+    ) {
+        self.state = state
+        self.toolbar = toolbar()
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -71,6 +80,7 @@ struct HyperliteNotepadView: View {
             }
             Spacer(minLength: 6)
             saveStatus
+            toolbar
         }
         .frame(minHeight: 24)
     }
@@ -216,5 +226,11 @@ struct HyperliteNotepadView: View {
                 .strokeBorder(HyperliteTheme.elevatedSurface.color, lineWidth: 1)
         }
         .disabled(state.isNavigating)
+    }
+}
+
+extension HyperliteNotepadView where Toolbar == EmptyView {
+    init(state: HyperliteNotepadState) {
+        self.init(state: state) { EmptyView() }
     }
 }
