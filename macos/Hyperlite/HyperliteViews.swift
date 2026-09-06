@@ -5,6 +5,8 @@ struct HyperliteWindow: View {
     @ObservedObject var state: HyperliteState
     let notepad: HyperliteNotepadState
     @StateObject private var dashboardLists = HyperliteDashboardListState()
+    @StateObject private var pullRequestPins = HyperlitePullRequestPinStore()
+    @ObservedObject private var appearance = HyperliteAppearance.shared
     @State var pendingProjectRemoval: HyperliteProjectLocation?
     @State var mergePromptCopied = false
     @State var mergePromptCopyGeneration = 0
@@ -13,18 +15,10 @@ struct HyperliteWindow: View {
 
     var visibleOpenPullRequests: [HyperlitePullRequestRow] {
         guard let scan = pullRequestScan else { return [] }
-        let source = HyperlitePullRequestPresentation.rows(scan: scan)
-        let reviewStatuses = source.reduce(into: [:]) { values, row in
-            values[row.id] = dashboardLists.pullRequestReviewStatus(for: row)
-        }
-        return HyperliteDashboardListPresentation.displayedPullRequests(
-            source,
-            filter: dashboardLists.pullRequestFilter,
-            sort: dashboardLists.pullRequestSort,
-            customOrder: dashboardLists.orderedPullRequestIDs(source.map(\.id)),
-            reviewStatuses: reviewStatuses,
-            isReordering: dashboardLists.isReorderingPullRequests
+        let sections = pullRequestPins.sections(
+            for: HyperlitePullRequestPresentation.rows(scan: scan)
         )
+        return sections.pinned + sections.unpinned
     }
 
     var body: some View {
@@ -41,19 +35,18 @@ struct HyperliteWindow: View {
                     VStack(alignment: .leading, spacing: 10) {
                         if let errorMessage = state.errorMessage {
                             Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
-                                .font(HyperliteTypography.regular(12))
+                                .font(HyperliteTypography.body)
                                 .foregroundStyle(HyperliteTheme.red.color)
                         } else if let statusMessage = state.statusMessage {
                             Label(statusMessage, systemImage: "checkmark.circle")
-                                .font(HyperliteTypography.regular(12))
+                                .font(HyperliteTypography.body)
                                 .foregroundStyle(HyperliteTheme.secondaryText.color)
                         }
                         if let pullRequests {
                             HyperlitePullRequestPanel(
                                 scan: pullRequests,
                                 organization: dashboardLists,
-                                mergePromptCopied: mergePromptCopied,
-                                onCopyMergePrompt: copyVisibleOpenPRMergePrompt
+                                pins: pullRequestPins
                             )
                         } else {
                             ProgressView("Loading open pull requests…")
@@ -67,6 +60,7 @@ struct HyperliteWindow: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .padding(20)
+            .environment(\.colorScheme, appearance.palette.colorScheme)
 
             if let mode = state.paletteMode {
                 GeometryReader { paletteArea in
@@ -75,7 +69,7 @@ struct HyperliteWindow: View {
                         containerHeight: paletteArea.size.height
                     )
                     ZStack {
-                        Color.black.opacity(0.3)
+                        Color.primary.opacity(HyperliteTheme.colorScheme == .light ? 0.18 : 0.3)
                             .contentShape(Rectangle())
                             .onTapGesture { state.dismissPalette() }
                         HyperliteCommandPalette(
@@ -128,15 +122,7 @@ struct HyperliteWindow: View {
 
     private var header: some View {
         HStack(alignment: .center, spacing: 10) {
-            HStack(spacing: 7) {
-                Text("Hyperlite")
-                    .font(HyperliteTypography.bold(22))
-                    .fixedSize(horizontal: true, vertical: false)
-                Text("👻")
-                    .font(.system(size: 18))
-                    .accessibilityLabel("Ghost")
-            }
-            Spacer(minLength: 8)
+            Spacer(minLength: 0)
             HyperliteGitHubRateLimitIndicator(rateLimit: pullRequestScan?.rateLimit)
             Button { state.updateDefaultBranches() } label: {
                 Image(systemName: "arrow.down.circle")

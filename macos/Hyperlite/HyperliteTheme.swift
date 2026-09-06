@@ -21,29 +21,49 @@ struct HyperliteColorToken: Equatable {
     private var blue: Double { Double(hex & 0xff) / 255 }
 }
 
+struct HyperliteColorPalette: Equatable {
+    let colorScheme: ColorScheme
+    let canvas: HyperliteColorToken
+    let surface: HyperliteColorToken
+    let elevatedSurface: HyperliteColorToken
+    let mutedText: HyperliteColorToken
+    let secondaryText: HyperliteColorToken
+    let primaryText: HyperliteColorToken
+    let red: HyperliteColorToken
+    let orange: HyperliteColorToken
+    let green: HyperliteColorToken
+    let cyan: HyperliteColorToken
+    let blue: HyperliteColorToken
+}
+
 enum HyperliteTheme {
-    // Selene Selenized Dark workbench palette:
-    // github.com/santoso-wijaya/vscode-helios-selene/blob/main/themes/Selenized_Dark-color-theme.json
-    static let canvas = HyperliteColorToken(0x053d48)
-    static let surface = HyperliteColorToken(0x0e4956)
-    static let elevatedSurface = HyperliteColorToken(0x275b69)
-    static let mutedText = HyperliteColorToken(0x718b90)
-    static let secondaryText = HyperliteColorToken(0xadbcbc)
-    static let primaryText = HyperliteColorToken(0xc8d7d8)
-    static let red = HyperliteColorToken(0xfd564e)
-    static let orange = HyperliteColorToken(0xf38649)
-    static let green = HyperliteColorToken(0x80b83c)
-    static let cyan = HyperliteColorToken(0x39c7b9)
-    static let blue = HyperliteColorToken(0x0096f5)
+    static var canvas: HyperliteColorToken { current.canvas }
+    static var surface: HyperliteColorToken { current.surface }
+    static var elevatedSurface: HyperliteColorToken { current.elevatedSurface }
+    static var mutedText: HyperliteColorToken { current.mutedText }
+    static var secondaryText: HyperliteColorToken { current.secondaryText }
+    static var primaryText: HyperliteColorToken { current.primaryText }
+    static var red: HyperliteColorToken { current.red }
+    static var orange: HyperliteColorToken { current.orange }
+    static var green: HyperliteColorToken { current.green }
+    static var cyan: HyperliteColorToken { current.cyan }
+    static var blue: HyperliteColorToken { current.blue }
+    static var colorScheme: ColorScheme { current.colorScheme }
+
+    static var current: HyperliteColorPalette {
+        HyperliteAppearance.shared.palette
+    }
 }
 
 private struct HyperliteThemeModifier: ViewModifier {
+    @ObservedObject var appearance = HyperliteAppearance.shared
+
     func body(content: Content) -> some View {
         content
-            .foregroundStyle(HyperliteTheme.primaryText.color)
-            .tint(HyperliteTheme.blue.color)
-            .background(HyperliteTheme.canvas.color)
-            .environment(\.colorScheme, .dark)
+            .foregroundStyle(appearance.palette.primaryText.color)
+            .tint(appearance.palette.blue.color)
+            .background(appearance.palette.canvas.color)
+            .environment(\.colorScheme, appearance.palette.colorScheme)
     }
 }
 

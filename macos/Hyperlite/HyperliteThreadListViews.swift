@@ -10,7 +10,7 @@ struct HyperliteSettingsView: View {
             Section("Shortcut") {
                 TextField("Hot key", text: $hotkey)
                 Text("Default: \(defaultHotKey). Use modifier names joined with +, for example Command+Shift+H.")
-                    .font(HyperliteTypography.regular(11))
+                    .font(HyperliteTypography.compact)
                     .foregroundStyle(HyperliteTheme.secondaryText.color)
             }
             Section("Projects") {
@@ -25,7 +25,7 @@ struct HyperliteSettingsView: View {
                 }
                 if let error = state.errorMessage {
                     Label(error, systemImage: "exclamationmark.triangle.fill")
-                        .font(HyperliteTypography.regular(10))
+                        .font(HyperliteTypography.compact)
                         .foregroundStyle(HyperliteTheme.red.color)
                         .lineLimit(2)
                         .help(error)

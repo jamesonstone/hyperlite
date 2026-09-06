@@ -21,9 +21,11 @@
 - Swift executable tests cover Command-K without unused workspace actions,
   helper PATH including `~/.local/bin`, default-branch update summaries, Open
   PRs merge-conflict decoding, hide-drafts filtering, conflict-column layout
-  reservation, Copy Open PR Merge Prompt labels, and Command-K literal search
-  without loading sentence embeddings. The native window no longer compiles
-  Agent Island, Agent Tasks, Pinboard, or pinned Codex presentation tests.
+  reservation, Copy Open PR Merge Prompt labels, Command-K Theme and Font Size
+  nested lists, Open PR hover glance fields, pin/reorder presentation, and
+  Command-K literal search without loading sentence embeddings. The native
+  window no longer compiles Agent Island, Agent Tasks, Pinboard, or pinned Codex
+  presentation tests.
 - A read-only local live-integration suite validates recovery of the selected
   R2 and Event Sink goal threads against current repository and GitHub
   evidence.

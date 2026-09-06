@@ -4,7 +4,7 @@
 
 HYPERLITE_APP ?= $(CURDIR)/build/Hyperlite.app
 SWIFT_SOURCES := $(sort $(wildcard macos/Hyperlite/*.swift))
-SWIFT_MODEL_TEST_SOURCES := macos/Hyperlite/HyperliteModels.swift macos/Hyperlite/HyperliteProjectModels.swift macos/Hyperlite/HyperlitePullRequestModels.swift macos/Hyperlite/HyperlitePullRequestPanel.swift macos/Hyperlite/HyperlitePullRequestRows.swift macos/Hyperlite/HyperliteRateLimit.swift macos/Hyperlite/HyperliteRateLimitModels.swift macos/Hyperlite/HyperliteRateLimitIndicator.swift macos/Hyperlite/HyperliteRateLimitPopover.swift macos/Hyperlite/HyperlitePresentation.swift macos/Hyperlite/HyperliteInteractionModels.swift macos/Hyperlite/HyperliteInteractionEntries.swift macos/Hyperlite/HyperlitePalettePresentation.swift macos/Hyperlite/HyperliteTheme.swift
+SWIFT_MODEL_TEST_SOURCES := macos/Hyperlite/HyperliteModels.swift macos/Hyperlite/HyperliteProjectModels.swift macos/Hyperlite/HyperlitePullRequestModels.swift macos/Hyperlite/HyperlitePullRequestPanel.swift macos/Hyperlite/HyperlitePullRequestRows.swift macos/Hyperlite/HyperlitePullRequestHover.swift macos/Hyperlite/HyperlitePullRequestPinning.swift macos/Hyperlite/HyperlitePullRequestPinStore.swift macos/Hyperlite/HyperliteRateLimit.swift macos/Hyperlite/HyperliteRateLimitModels.swift macos/Hyperlite/HyperliteRateLimitIndicator.swift macos/Hyperlite/HyperliteRateLimitPopover.swift macos/Hyperlite/HyperlitePresentation.swift macos/Hyperlite/HyperliteInteractionModels.swift macos/Hyperlite/HyperliteInteractionEntries.swift macos/Hyperlite/HyperlitePalettePresentation.swift macos/Hyperlite/HyperliteTheme.swift macos/Hyperlite/HyperliteThemeCatalog.swift macos/Hyperlite/HyperliteThemePalettesDark.swift macos/Hyperlite/HyperliteThemePalettesLight.swift macos/Hyperlite/HyperliteAppearance.swift
 SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteDashboardListModels.swift macos/Hyperlite/HyperliteDashboardListState.swift macos/Hyperlite/HyperliteDashboardListControls.swift macos/Hyperlite/HyperlitePullRequestListFilters.swift macos/Hyperlite/HyperlitePullRequestReviewMarkers.swift
 SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteProcess.swift macos/Hyperlite/HyperliteProcessSupport.swift macos/Hyperlite/HyperliteNotepadModels.swift macos/Hyperlite/HyperliteNoteSearchIndex.swift macos/Hyperlite/HyperliteNotepadState.swift macos/Hyperlite/HyperliteNotepadNavigation.swift macos/Hyperlite/HyperliteNotepadPersistence.swift
 SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteGitMaintenance.swift macos/HyperliteTests/HyperliteGitMaintenanceTests.swift
@@ -16,6 +16,7 @@ SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperliteDashboardListTests.swi
 SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperliteOpenPRControlsTests.swift
 SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteOpenPRMergePrompt.swift macos/HyperliteTests/HyperliteOpenPRMergePromptTests.swift
 SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperlitePullRequestReviewMarkerTests.swift
+SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperliteAppearanceTests.swift macos/HyperliteTests/HyperlitePullRequestPinningTests.swift
 SWIFT_MODEL_TEST_BINARY := build/tests/HyperliteInteractionModelTests
 
 help:

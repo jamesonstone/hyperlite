@@ -54,7 +54,7 @@ final class HyperliteState: ObservableObject {
         switch mode {
         case .projects, .removeProjects:
             refreshConfiguredProjects()
-        case .commands:
+        case .commands, .themes, .fontSizes:
             break
         }
     }

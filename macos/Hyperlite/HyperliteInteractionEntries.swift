@@ -7,6 +7,16 @@ extension HyperliteInteractionModel {
     ) -> [HyperlitePaletteEntry] {
         [
             actionEntry(
+                "action:theme", "Theme",
+                "Choose a light or dark application theme",
+                "paintpalette", .showThemes
+            ),
+            actionEntry(
+                "action:font-size", "Font Size",
+                "Choose 12 pt or 10 pt list type",
+                "textformat.size", .showFontSizes
+            ),
+            actionEntry(
                 "action:refresh", "Refresh",
                 "Refresh open pull requests and the daily note date",
                 "arrow.clockwise", .refresh
@@ -50,6 +60,32 @@ extension HyperliteInteractionModel {
                 "gearshape.fill", .settings
             ),
         ]
+    }
+
+    static func themeEntries(currentID: String) -> [HyperlitePaletteEntry] {
+        HyperliteThemeCatalog.all.map { theme in
+            let current = theme.id == currentID
+            return HyperlitePaletteEntry(
+                id: "theme:\(theme.id)",
+                title: theme.title,
+                subtitle: current ? "Current" : (theme.isLight ? "Light" : "Dark"),
+                symbol: current ? "checkmark" : (theme.isLight ? "sun.max" : "moon"),
+                kind: .action(.setTheme(theme.id))
+            )
+        }
+    }
+
+    static func fontSizeEntries(current: HyperliteFontSize) -> [HyperlitePaletteEntry] {
+        HyperliteFontSize.allCases.map { size in
+            let selected = size == current
+            return HyperlitePaletteEntry(
+                id: "font-size:\(size.rawValue)",
+                title: size.title,
+                subtitle: selected ? "Current · \(size.subtitle)" : size.subtitle,
+                symbol: selected ? "checkmark" : "textformat.size",
+                kind: .action(.setFontSize(size))
+            )
+        }
     }
 
     static func projectSummary(pullRequestCount: Int, laneCount: Int) -> String {

@@ -103,6 +103,12 @@
   as the unavailable-font fallback. Native macOS chrome, controls, status
   labels, navigation, menus, and settings may use system typography so their
   hierarchy and accessibility remain consistent with the platform.
+- Application theme and list type size are local operator preferences.
+  Command-K is the only switch: Theme and Font Size nested lists mark the
+  current choice. Light themes recolor Hyperlite-painted surfaces and native
+  `colorScheme`. Default remains Selenized Dark at 12 pt list type.
+- Open PR pin membership and order are local presentation metadata. They do
+  not change GitHub state. Unpinning restores a row to the unpinned list.
 
 ### Kit-Managed Baseline Rules
 

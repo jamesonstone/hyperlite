@@ -6,10 +6,26 @@ struct HyperlitePullRequestPanelRow: View {
     static let layout = HyperlitePullRequestRowLayout.repositoryFirst
     let row: HyperlitePullRequestRow
     let reviewStatus: HyperlitePullRequestReviewStatus
+    let pinned: Bool
+    @Binding var draggedRowID: String?
     let toggleReview: () -> Void
+    let move: (String, String) -> Void
+    let moveBy: (String, Int) -> Void
+
+    @State private var hoverPresented = false
+    @State private var hoverTask: Task<Void, Never>?
 
     var body: some View {
         HStack(spacing: 4) {
+            Image(systemName: "line.3.horizontal")
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(HyperliteTheme.mutedText.color)
+                .frame(width: 16, height: 16)
+                .contentShape(Rectangle())
+                .onDrag {
+                    draggedRowID = row.id
+                    return NSItemProvider(object: row.id as NSString)
+                }
             HyperlitePullRequestReviewToggle(
                 row: row,
                 status: reviewStatus,
@@ -24,46 +40,10 @@ struct HyperlitePullRequestPanelRow: View {
             .buttonStyle(.plain)
             .disabled(row.url == nil)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .help(row.url?.absoluteString ?? "Pull request URL is unavailable")
             .accessibilityLabel(HyperlitePullRequestRowContent.accessibilityLabel(
                 for: row,
                 reviewStatus: reviewStatus
             ))
-        }
-    }
-
-    private func openPullRequest() {
-        guard let url = row.url else { return }
-        NSWorkspace.shared.open(url)
-    }
-}
-
-struct HyperlitePullRequestReorderRow: View {
-    let row: HyperlitePullRequestRow
-    let reviewStatus: HyperlitePullRequestReviewStatus
-    @Binding var draggedRowID: String?
-    let move: (String, String) -> Void
-    let moveBy: (String, Int) -> Void
-
-    private var rowAccessibilityLabel: String {
-        HyperlitePullRequestRowContent.accessibilityLabel(
-            for: row,
-            reviewStatus: reviewStatus
-        )
-    }
-
-    var body: some View {
-        HStack(spacing: 4) {
-            Image(systemName: "line.3.horizontal")
-                .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(HyperliteTheme.mutedText.color)
-                .frame(width: 16, height: 16)
-                .contentShape(Rectangle())
-                .onDrag {
-                    draggedRowID = row.id
-                    return NSItemProvider(object: row.id as NSString)
-                }
-            HyperlitePullRequestRowContent(row: row, reviewStatus: reviewStatus)
         }
         .contentShape(Rectangle())
         .onDrop(
@@ -74,10 +54,28 @@ struct HyperlitePullRequestReorderRow: View {
                 move: move
             )
         )
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Reorder \(rowAccessibilityLabel)")
+        .onHover(perform: handleHover)
+        .popover(isPresented: $hoverPresented, arrowEdge: .trailing) {
+            HyperlitePullRequestHoverCard(row: row, reviewStatus: reviewStatus)
+        }
         .accessibilityAction(named: "Move up") { moveBy(row.id, -1) }
         .accessibilityAction(named: "Move down") { moveBy(row.id, 1) }
+        .accessibilityValue(pinned ? "pinned" : "unpinned")
+    }
+
+    private func openPullRequest() {
+        guard let url = row.url else { return }
+        NSWorkspace.shared.open(url)
+    }
+
+    private func handleHover(_ hovering: Bool) {
+        hoverTask?.cancel()
+        hoverTask = Task { @MainActor in
+            let delay: Duration = hovering ? .milliseconds(350) : .milliseconds(200)
+            try? await Task.sleep(for: delay)
+            guard !Task.isCancelled else { return }
+            hoverPresented = hovering
+        }
     }
 }
 
@@ -109,7 +107,6 @@ private struct HyperlitePullRequestRowContent: View {
                 .foregroundStyle(review.needsAttention
                     ? HyperliteTheme.orange.color : HyperliteTheme.mutedText.color)
                 .monospacedDigit()
-                .help(review.accessibilityLabel)
             Text(row.title)
                 .foregroundStyle(row.status == .current
                     ? HyperliteTheme.secondaryText.color : HyperliteTheme.mutedText.color)
@@ -121,7 +118,7 @@ private struct HyperlitePullRequestRowContent: View {
                 .foregroundStyle(HyperliteTheme.mutedText.color)
                 .monospacedDigit()
         }
-        .font(HyperliteTypography.regular(10))
+        .font(HyperliteTypography.body)
         .foregroundStyle(HyperliteTheme.secondaryText.color)
         .contentShape(Rectangle())
         .opacity(reviewStatus == .reviewed ? 0.62 : 1)
@@ -134,7 +131,6 @@ private struct HyperlitePullRequestRowContent: View {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 9, weight: .semibold))
                     .foregroundStyle(HyperliteTheme.orange.color)
-                    .help("Merge conflicts")
             }
         }
         .frame(
@@ -148,28 +144,13 @@ private struct HyperlitePullRequestRowContent: View {
         for row: HyperlitePullRequestRow,
         reviewStatus: HyperlitePullRequestReviewStatus
     ) -> String {
-        let review = HyperlitePullRequestPresentation.reviewFeedback(
-            unresolvedThreads: row.unresolvedReviewThreads
-        )
-        var parts = [
-            "\(row.repository) pull request \(row.number)",
-            row.isDraft ? "draft" : "ready",
-        ]
-        if let conflict = HyperlitePullRequestPresentation.mergeConflictAccessibilityLabel(
-            hasMergeConflict: row.hasMergeConflict
-        ) {
-            parts.append(conflict)
-        }
-        parts.append(contentsOf: [
-            review.accessibilityLabel,
-            reviewStatus.accessibilityLabel,
-            row.title,
-        ])
-        return parts.joined(separator: ", ")
+        HyperlitePullRequestHoverPresentation.lines(
+            row: row, reviewStatus: reviewStatus
+        ).joined(separator: ", ")
     }
 }
 
-private struct HyperlitePullRequestReviewToggle: View {
+struct HyperlitePullRequestReviewToggle: View {
     let row: HyperlitePullRequestRow
     let status: HyperlitePullRequestReviewStatus
     let action: () -> Void
@@ -203,16 +184,12 @@ private struct HyperlitePullRequestReviewToggle: View {
             row.headRefOID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty:
             "Refresh current GitHub data before marking this pull request reviewed"
         case .unreviewed:
-            "Mark reviewed by me for head \(shortHead)"
+            "Mark reviewed by me for head \(String(row.headRefOID.prefix(7)))"
         case .reviewed:
             "Clear reviewed-by-me mark"
         case .stale:
-            "Review mark is stale; mark head \(shortHead) reviewed"
+            "Review mark is stale; mark head \(String(row.headRefOID.prefix(7))) reviewed"
         }
-    }
-
-    private var shortHead: String {
-        String(row.headRefOID.prefix(7))
     }
 
     var body: some View {
@@ -251,11 +228,44 @@ struct HyperlitePullRequestAvailabilityRow: View {
                 .layoutPriority(Self.layout.titleLayoutPriority)
             Spacer(minLength: 0)
         }
-        .font(HyperliteTypography.regular(10))
+        .font(HyperliteTypography.compact)
         .foregroundStyle(HyperliteTheme.mutedText.color)
         .help(project.message ?? "GitHub data is unavailable")
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(project.name), \(project.status.rawValue), " +
             "\(project.message ?? "GitHub data is unavailable")")
+    }
+}
+
+struct HyperlitePinnedSectionDropTarget: View {
+    @Binding var draggedRowID: String?
+    let pin: (String) -> Void
+
+    var body: some View {
+        Color.clear
+            .frame(height: 8)
+            .contentShape(Rectangle())
+            .onDrop(
+                of: [UTType.text.identifier],
+                delegate: HyperliteSectionPinDropDelegate(
+                    draggedID: $draggedRowID,
+                    pin: pin
+                )
+            )
+    }
+}
+
+private struct HyperliteSectionPinDropDelegate: DropDelegate {
+    @Binding var draggedID: String?
+    let pin: (String) -> Void
+
+    func performDrop(info _: DropInfo) -> Bool {
+        if let draggedID { pin(draggedID) }
+        draggedID = nil
+        return true
+    }
+
+    func dropUpdated(info _: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
     }
 }
