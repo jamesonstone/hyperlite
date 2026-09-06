@@ -36,7 +36,10 @@
 - The native window is notes and Open PRs. It does not present a configured-
   project map, Pinboard, Agent Tasks, Agent Island, pinned Codex, or a menu bar
   extra. Launch and Refresh do not scan inferred threads or start those unused
-  surfaces.
+  surfaces. The global hotkey shows the window and does not force a GitHub
+  refresh. Launch indexes note literals without loading the sentence
+  embedding, and it does not spawn `projects list` until Command-P, Remove
+  Project, Settings, or explicit Refresh needs the configured-project list.
 - Configured repositories remain the source list for Open PRs and local git
   maintenance. Adding or removing a project changes Hyperlite's configuration
   only; it never deletes a repository, worktree, or branch. Command-P is a

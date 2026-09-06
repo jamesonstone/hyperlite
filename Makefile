@@ -56,9 +56,9 @@ macos-build:
 	HYPERLITE_APP="$(HYPERLITE_APP)" ./scripts/build-macos-app.sh
 
 macos-test:
-	xcrun swiftc -parse-as-library -typecheck -framework SwiftUI -framework AppKit -framework Carbon -framework NaturalLanguage -framework UserNotifications -lsqlite3 $(SWIFT_SOURCES)
+	xcrun swiftc -parse-as-library -typecheck -framework SwiftUI -framework AppKit -framework Carbon -framework NaturalLanguage $(SWIFT_SOURCES)
 	mkdir -p "$(dir $(SWIFT_MODEL_TEST_BINARY))"
-	xcrun swiftc -parse-as-library -framework SwiftUI -framework AppKit -framework NaturalLanguage -lsqlite3 $(SWIFT_MODEL_TEST_SOURCES) -o "$(SWIFT_MODEL_TEST_BINARY)"
+	xcrun swiftc -parse-as-library -framework SwiftUI -framework AppKit -framework NaturalLanguage $(SWIFT_MODEL_TEST_SOURCES) -o "$(SWIFT_MODEL_TEST_BINARY)"
 	"$(SWIFT_MODEL_TEST_BINARY)"
 
 stop-hyper:

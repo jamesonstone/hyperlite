@@ -150,9 +150,10 @@ so the durable and dated notes read as one coherent Notepad feature.
   a pinned result focuses the pinned editor. Extend the existing Command-K
   result list directly; do not add a Notes palette mode.
 - R8: Load only pinned and the selected daily document into editor drafts.
-  Build the derived search index asynchronously, keep indexed chunks and
-  vectors rather than historical editor drafts, and upsert only a note whose
-  filesystem content changes through load or save.
+  Build the derived search index asynchronously, keep indexed chunks rather
+  than historical editor drafts, fill vectors only when a query has no
+  literal match, and upsert only a note whose filesystem content changes
+  through load or save.
 - R9: Calendar selection performs one direct daily-file read and never
   enumerates the daily directory. The initial asynchronous index build may
   enumerate and read historical Markdown files.
@@ -326,7 +327,9 @@ or overwrite the new daily-note files.
   so typing cannot race a direct date load, and focus intent remains pending
   until the editor has a window and accepts first responder.
 - Loading the system sentence embedding belongs inside the search-index actor
-  on first use, not in the main-actor feature-state initializer.
+  on first semantic search, not during launch indexing, exact search, or the
+  main-actor feature-state initializer. Feature `0018-runtime-resource-cut`
+  deferred chunk vectors until a query has no literal match.
 - Fixed tab selection belongs in `HyperliteNotepadState`, not view-local state,
   because Command-K note actions must activate the otherwise hidden editor
   before forwarding the existing focus request.

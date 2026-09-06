@@ -23,6 +23,12 @@ or scan a source path directly with `hyperlite scan /path/to/projects`.
 The native app is one window: Notepad/Daily above Open PRs. Launch always
 opens that window. It does not start a menu bar extra, workspace switcher,
 Projects map, Pinboard, Agent Tasks, Agent Island, or pinned Codex surface.
+The default Control+Shift+H hotkey brings the window forward; becoming
+active still refreshes stale Open PRs, but the hotkey itself does not force
+GitHub work. Command-P, Remove Project, and Settings load the configured
+project list when opened, not at launch. Command-K indexes note text for
+literal search immediately and loads on-device sentence embeddings only
+when a query has no exact match.
 
 Inferred attention remains available through CLI and JSON but is hidden from
 the window. Launch and Refresh do not scan inferred threads. Refresh updates

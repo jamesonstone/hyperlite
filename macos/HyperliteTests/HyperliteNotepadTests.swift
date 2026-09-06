@@ -13,6 +13,7 @@ enum HyperliteNotepadTests {
         try await testHistoricalDateRebasesAcrossTimeZoneChange()
         try await testDateRefreshQueuesDuringNavigation()
         try await testSearchIndexExactAndSemantic()
+        try await testSearchIndexDefersVectorsUntilSemantic()
         try await testDateAndSizeBoundaries()
         await HyperliteNotepadRecoveryTests.run()
     }
