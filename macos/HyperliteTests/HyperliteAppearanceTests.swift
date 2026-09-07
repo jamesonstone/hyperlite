@@ -8,6 +8,7 @@ enum HyperliteAppearanceTests {
         testNestedThemeAndFontEntriesMarkCurrent()
         testIsolatedAppearancePersistence()
         testWindowTitle()
+        testVerticalModeToggleAndPersistence()
     }
 
     private static func testCatalogHasElevenFamiliesWithLightAndDark() {
@@ -72,13 +73,20 @@ enum HyperliteAppearanceTests {
                "new appearance should default to Selenized Dark")
         expect(appearance.fontSize == .readable,
                "new appearance should default to 12 pt")
+        expect(!appearance.verticalMode,
+               "new appearance should default to stacked Open PRs above notes")
         appearance.setTheme("gruvbox-light")
         appearance.setFontSize(.compact)
+        appearance.setVerticalMode(true)
         let restored = HyperliteAppearance(defaults: defaults)
         expect(restored.themeID == "gruvbox-light" && restored.palette.colorScheme == .light,
                "theme choice should persist and flip native color scheme")
         expect(restored.fontSize == .compact && restored.compactSize == 8,
                "compact font size should persist with 8 pt chrome")
+        expect(restored.verticalMode &&
+                HyperliteWorkspaceArrangement.current(verticalMode: restored.verticalMode) ==
+                .verticalSplit,
+               "vertical mode should persist as a left-right split")
         defaults.removePersistentDomain(forName: suite)
     }
 
@@ -86,6 +94,24 @@ enum HyperliteAppearanceTests {
         expect(
             HyperliteWindowChrome.title == "👻 hyperlite",
             "the window title should use the lowercase ghost brand"
+        )
+    }
+
+    private static func testVerticalModeToggleAndPersistence() {
+        let off = HyperliteInteractionModel.commandEntries(verticalMode: false)
+        let on = HyperliteInteractionModel.commandEntries(verticalMode: true)
+        let idle = off.first { $0.id == "action:vertical-mode" }
+        let active = on.first { $0.id == "action:vertical-mode" }
+        expect(idle?.kind == .action(.toggleVerticalMode),
+               "Vertical Mode should toggle the workspace arrangement")
+        expect(idle?.symbol == "rectangle.split.2x1",
+               "stacked layout should show an unmarked Vertical Mode command")
+        expect(active?.symbol == "checkmark" &&
+                active?.subtitle.contains("Current") == true,
+               "enabled Vertical Mode should be marked in Command-K")
+        expect(
+            HyperliteWorkspaceArrangement.current(verticalMode: false) == .stacked,
+            "stacked arrangement is Open PRs above notes"
         )
     }
 

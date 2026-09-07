@@ -34,6 +34,10 @@ extension HyperliteWindow {
             HyperliteAppearance.shared.setFontSize(size)
             return
         }
+        if action == .toggleVerticalMode {
+            HyperliteAppearance.shared.toggleVerticalMode()
+            return
+        }
         if action == .copyOpenPRMergePrompt {
             copyVisibleOpenPRMergePrompt()
             return
@@ -45,7 +49,7 @@ extension HyperliteWindow {
         case .forceCacheRefresh:
             state.forceCacheRefresh()
         case .copyOpenPRMergePrompt, .showCommands, .showThemes, .showFontSizes,
-             .setTheme, .setFontSize:
+             .setTheme, .setFontSize, .toggleVerticalMode:
             break
         case .updateDefaultBranches:
             state.updateDefaultBranches()

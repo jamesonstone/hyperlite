@@ -20,12 +20,14 @@ or scan a source path directly with `hyperlite scan /path/to/projects`.
 
 ## Native workspace
 
-The native app is one window: Notepad/Daily above Open PRs. Launch always
+The native app is one window: Open PRs above Notepad/Daily. Launch always
 opens that window. It does not start a menu bar extra, workspace switcher,
 Projects map, Pinboard, Agent Tasks, Agent Island, or pinned Codex surface.
 The window title is `👻 hyperlite`. GitHub GraphQL quota, Update Default
 Branches, Sweep Worktrees, a subtly orange Refresh action, and Settings sit
-on the Notepad/Daily row. The default Control+Shift+H hotkey brings the window
+on the Notepad/Daily row. Command-K Vertical Mode is a persistent toggle that
+puts Open PRs on the left and notes on the right; the default stacked layout
+keeps Open PRs above notes. The default Control+Shift+H hotkey brings the window
 forward; becoming active still refreshes stale Open PRs, but the hotkey
 itself does not force GitHub work. Command-P, Remove Project, and Settings
 load the configured project list when opened, not at launch. Command-K
@@ -170,10 +172,11 @@ commands and the private board store remain for existing local data.
 ### Keyboard shortcuts
 
 - `Command+R` refreshes Open PRs and the current daily-note date.
-- `Command+K` opens a searchable command palette with Refresh, Force Cache
-  Refresh, Update Default Branches, Sweep Worktrees, Copy Open PR Merge Prompt,
-  Settings, Add Project, Remove Project, and exact or on-device semantic
-  matches from pinned and daily note filenames, dates, and contents.
+- `Command+K` opens a searchable command palette with Theme, Font Size,
+  Vertical Mode, Refresh, Force Cache Refresh, Update Default Branches, Sweep
+  Worktrees, Copy Open PR Merge Prompt, Settings, Add Project, Remove Project,
+  and exact or on-device semantic matches from pinned and daily note filenames,
+  dates, and contents.
   Force Cache Refresh retries every configured GitHub repository regardless of
   cache age so a successful check replaces stale cached errors. Copy Open PR
   Merge Prompt copies the same durable merge-ready prompt as the Open PRs

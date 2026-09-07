@@ -6,6 +6,15 @@ enum HyperliteWindowChrome {
     static let title = "👻 hyperlite"
 }
 
+enum HyperliteWorkspaceArrangement: Equatable {
+    case stacked
+    case verticalSplit
+
+    static func current(verticalMode: Bool) -> Self {
+        verticalMode ? .verticalSplit : .stacked
+    }
+}
+
 enum HyperliteFontSize: Int, CaseIterable, Identifiable {
     case readable = 12
     case compact = 10
@@ -27,6 +36,7 @@ final class HyperliteAppearance: ObservableObject {
 
     @Published private(set) var themeID: String
     @Published private(set) var fontSize: HyperliteFontSize
+    @Published private(set) var verticalMode: Bool
 
     private let defaults: UserDefaults
 
@@ -43,6 +53,7 @@ final class HyperliteAppearance: ObservableObject {
         themeID = HyperliteThemeCatalog.normalizedID(storedTheme)
         let storedSize = defaults.integer(forKey: Keys.fontSize)
         fontSize = HyperliteFontSize(rawValue: storedSize) ?? .readable
+        verticalMode = defaults.bool(forKey: Keys.verticalMode)
     }
 
     func setTheme(_ id: String) {
@@ -58,8 +69,19 @@ final class HyperliteAppearance: ObservableObject {
         defaults.set(size.rawValue, forKey: Keys.fontSize)
     }
 
+    func setVerticalMode(_ enabled: Bool) {
+        guard enabled != verticalMode else { return }
+        verticalMode = enabled
+        defaults.set(enabled, forKey: Keys.verticalMode)
+    }
+
+    func toggleVerticalMode() {
+        setVerticalMode(!verticalMode)
+    }
+
     private enum Keys {
         static let themeID = "hyperlite.appearance.theme-id"
         static let fontSize = "hyperlite.appearance.font-size"
+        static let verticalMode = "hyperlite.appearance.vertical-mode"
     }
 }

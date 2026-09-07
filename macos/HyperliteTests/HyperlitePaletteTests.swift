@@ -16,6 +16,7 @@ enum HyperlitePaletteTests {
         let ids = Set(entries.map(\.id))
         expect(ids.contains("action:theme"), "commands should include Theme")
         expect(ids.contains("action:font-size"), "commands should include Font Size")
+        expect(ids.contains("action:vertical-mode"), "commands should include Vertical Mode")
         expect(ids.contains("action:refresh"), "commands should include refresh")
         expect(ids.contains("action:force-cache-refresh"),
                "commands should include forced cache refresh")
