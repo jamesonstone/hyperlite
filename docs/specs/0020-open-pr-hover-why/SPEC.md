@@ -94,8 +94,8 @@ share one summary contract and need continuous judgment about what to omit.
   that are not merge commits and not duplicates of the title.
 - R5: Hover shows compact identity, title, optional summary (wrapped, at most
   three lines), one next step, and at most one supporting status line. Do not
-  dump author, labels, assignees, diffstat, comments, SHA, or URL. Hover
-  still never fetches.
+  dump author, labels, diffstat, comments, SHA, or URL. Hover still never
+  fetches. Feature `0024-open-pr-hover-assignee` adds assignee logins.
 - R6: Next step prefers merge conflicts, failing CI, unresolved review
   threads, a stale local review mark, draft, pending CI, then waiting on
   review. Approved with no blockers is "ready to merge". Blocking steps use
@@ -134,6 +134,8 @@ Observable acceptance:
 - Keep derivation in Go so CLI JSON and the app share one rule.
 - Omit SHA, URL, author, and diffstat from hover; the row already identifies
   the PR and the click opens GitHub.
+- Superseded for assignees by `0024-open-pr-hover-assignee`: ownership is
+  glanceable enough to keep on the card without restoring the dense dump.
 
 ## DISCOVERIES
 
@@ -159,7 +161,8 @@ Observable acceptance:
 Open PR hover shows compact identity, title, a truncated what-and-why when
 the scan has one, and one next step. Blocking steps use the attention color.
 Author, diffstat, SHA, and URL stay off the card. Summary comes from the
-existing batched fetch with no extra GitHub round trip.
+existing batched fetch with no extra GitHub round trip. Assignee presentation
+is owned by `0024-open-pr-hover-assignee`.
 
 ## REPOSITORY MEMORY
 

@@ -23,13 +23,14 @@ struct HyperlitePullRequestHoverSnapshot: Equatable {
     var identity = ""
     var title = ""
     var meta = ""
+    var assignee = ""
     var summary = ""
     var nextStep = ""
     var nextStepNeedsAttention = false
     var status = ""
 
     var accessibilityLabel: String {
-        [identity, title, meta, summary, nextStep, status]
+        [identity, title, meta, assignee, summary, nextStep, status]
             .filter { !$0.isEmpty }
             .joined(separator: ", ")
     }
@@ -46,6 +47,7 @@ enum HyperlitePullRequestHoverPresentation {
             identity: "\(row.repository) #\(row.number)",
             title: row.title,
             meta: "\(row.isDraft ? "draft" : "ready") · \(HyperlitePresentation.ageLabel(for: row.updatedAt))",
+            assignee: assigneeText(glance.assignees),
             summary: glance.summary,
             nextStep: next.text,
             nextStepNeedsAttention: next.needsAttention
@@ -86,6 +88,11 @@ enum HyperlitePullRequestHoverPresentation {
         return ("no blockers", false)
     }
 
+    private static func assigneeText(_ assignees: [String]) -> String {
+        if assignees.isEmpty { return "unassigned" }
+        return "assigned to \(assignees.joined(separator: ", "))"
+    }
+
     private static func shouldShowCI(_ ciState: String, nextStep: String) -> Bool {
         if ciState.isEmpty { return false }
         let step = nextStep.lowercased()
@@ -114,6 +121,11 @@ struct HyperlitePullRequestHoverCard: View {
             Text(card.title)
                 .font(HyperliteTypography.heading)
                 .foregroundStyle(HyperliteTheme.primaryText.color)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(card.assignee)
+                .font(HyperliteTypography.compact)
+                .foregroundStyle(HyperliteTheme.secondaryText.color)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
             if !card.summary.isEmpty {
