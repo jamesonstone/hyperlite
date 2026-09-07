@@ -24,6 +24,7 @@
 | 0019 | open-pr-workspace-scanability | `docs/specs/0019-open-pr-workspace-scanability` | deliver | no | 2026-09-05 | Larger type, Open PR hover glance fields, Command-K-only light/dark themes, pinned drag-reorder, and `👻 hyperlite` window chrome. |
 | 0020 | open-pr-hover-why | `docs/specs/0020-open-pr-hover-why` | deliver | no | 2026-09-06 | Glanceable Open PR hover with a short what-and-why and one next step from the existing batched fetch. |
 | 0021 | notepad-row-window-actions | `docs/specs/0021-notepad-row-window-actions` | deliver | no | 2026-09-06 | Put GitHub quota and window actions on the Notepad/Daily row so the editor starts under one chrome line. |
+| 0022 | pr-first-workspace-layout | `docs/specs/0022-pr-first-workspace-layout` | deliver | no | 2026-09-06 | Stack Open PRs above notes by default and add a persistent Command-K Vertical Mode for PRs left / notes right. |
 
 ## PROJECT INTENT
 
@@ -327,8 +328,21 @@ changes that warrant human attention.
 - **OPEN ITEMS**: Ready pull-request delivery through issue #70.
 - **POINTERS**: `docs/specs/0021-notepad-row-window-actions/SPEC.md`
 
+### pr-first-workspace-layout
+
+- **STATUS**: deliver
+- **PAUSED**: no
+- **INTENT**: Make Open PRs the first stacked surface and add a persistent
+  side-by-side Vertical Mode from Command-K.
+- **APPROACH**: Persist `verticalMode` on appearance; compose stacked vs
+  left-right panes; expose a Command-K toggle marked when current.
+- **OPEN ITEMS**: Ready pull-request delivery through issue #75.
+- **POINTERS**: `docs/specs/0022-pr-first-workspace-layout/SPEC.md`
+
 ## LAST UPDATED
 
+- 2026-09-06: Added feature `0022-pr-first-workspace-layout` for Open PRs
+  above notes and Command-K Vertical Mode.
 - 2026-09-06: Added feature `0021-notepad-row-window-actions` to put GitHub
   quota and window actions on the Notepad/Daily row.
 - 2026-09-06: Added feature `0020-open-pr-hover-why` for a glanceable Open PR

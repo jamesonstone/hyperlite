@@ -3,6 +3,9 @@ import Foundation
 enum HyperliteWorkspaceSizing {
     static let sectionSpacing: CGFloat = 14
     static let minimumNotepadEditorHeight: CGFloat = 44
+    static let stackedMinWidth: CGFloat = 480
+    static let verticalMinWidth: CGFloat = 720
+    static let minHeight: CGFloat = 580
 }
 
 enum HyperlitePaletteMode: String, Hashable, Identifiable {
@@ -34,6 +37,7 @@ enum HyperlitePaletteAction: Equatable {
     case showFontSizes
     case setTheme(String)
     case setFontSize(HyperliteFontSize)
+    case toggleVerticalMode
 }
 
 struct HyperlitePaletteEntry: Equatable, Identifiable {

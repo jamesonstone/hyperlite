@@ -24,39 +24,14 @@ struct HyperliteWindow: View {
     var body: some View {
         let pullRequests = pullRequestScan
         return ZStack(alignment: .topLeading) {
-            VStack(alignment: .leading, spacing: HyperliteWorkspaceSizing.sectionSpacing) {
+            HyperliteWorkspacePanes(verticalMode: appearance.verticalMode) {
+                pullRequestColumn
+            } notepad: {
                 HyperliteNotepadView(state: notepad) {
                     windowActions
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .clipped()
-
-                ScrollView(.vertical, showsIndicators: true) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        if let errorMessage = state.errorMessage {
-                            Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
-                                .font(HyperliteTypography.body)
-                                .foregroundStyle(HyperliteTheme.red.color)
-                        } else if let statusMessage = state.statusMessage {
-                            Label(statusMessage, systemImage: "checkmark.circle")
-                                .font(HyperliteTypography.body)
-                                .foregroundStyle(HyperliteTheme.secondaryText.color)
-                        }
-                        if let pullRequests {
-                            HyperlitePullRequestPanel(
-                                scan: pullRequests,
-                                organization: dashboardLists,
-                                pins: pullRequestPins
-                            )
-                        } else {
-                            ProgressView("Loading open pull requests…")
-                                .controlSize(.small)
-                                .frame(maxWidth: .infinity, alignment: .topLeading)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .topLeading)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .padding(20)
@@ -89,7 +64,12 @@ struct HyperliteWindow: View {
                 .id(mode)
             }
         }
-        .frame(minWidth: 480, minHeight: 580)
+        .frame(
+            minWidth: appearance.verticalMode
+                ? HyperliteWorkspaceSizing.verticalMinWidth
+                : HyperliteWorkspaceSizing.stackedMinWidth,
+            minHeight: HyperliteWorkspaceSizing.minHeight
+        )
         .task(id: mergePromptCopyGeneration) {
             guard mergePromptCopyGeneration > 0 else { return }
             mergePromptCopied = true
@@ -118,6 +98,35 @@ struct HyperliteWindow: View {
                     "Hyperlite's configuration. It does not delete the repository or its worktrees."
             )
         }
+    }
+
+    private var pullRequestColumn: some View {
+        ScrollView(.vertical, showsIndicators: true) {
+            VStack(alignment: .leading, spacing: 10) {
+                if let errorMessage = state.errorMessage {
+                    Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                        .font(HyperliteTypography.body)
+                        .foregroundStyle(HyperliteTheme.red.color)
+                } else if let statusMessage = state.statusMessage {
+                    Label(statusMessage, systemImage: "checkmark.circle")
+                        .font(HyperliteTypography.body)
+                        .foregroundStyle(HyperliteTheme.secondaryText.color)
+                }
+                if let pullRequests = pullRequestScan {
+                    HyperlitePullRequestPanel(
+                        scan: pullRequests,
+                        organization: dashboardLists,
+                        pins: pullRequestPins
+                    )
+                } else {
+                    ProgressView("Loading open pull requests…")
+                        .controlSize(.small)
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var windowActions: some View {

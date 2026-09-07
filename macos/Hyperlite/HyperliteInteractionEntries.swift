@@ -3,7 +3,8 @@ import Foundation
 extension HyperliteInteractionModel {
     static func commandEntries(
         visibleOpenPullRequestCount: Int = 0,
-        mergePromptCopied: Bool = false
+        mergePromptCopied: Bool = false,
+        verticalMode: Bool = false
     ) -> [HyperlitePaletteEntry] {
         [
             actionEntry(
@@ -15,6 +16,14 @@ extension HyperliteInteractionModel {
                 "action:font-size", "Font Size",
                 "Choose 12 pt or 10 pt list type",
                 "textformat.size", .showFontSizes
+            ),
+            actionEntry(
+                "action:vertical-mode", "Vertical Mode",
+                verticalMode
+                    ? "Current · Open PRs on the left, notes on the right"
+                    : "Put Open PRs on the left and notes on the right",
+                verticalMode ? "checkmark" : "rectangle.split.2x1",
+                .toggleVerticalMode
             ),
             actionEntry(
                 "action:refresh", "Refresh",
