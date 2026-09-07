@@ -25,6 +25,7 @@
 | 0020 | open-pr-hover-why | `docs/specs/0020-open-pr-hover-why` | deliver | no | 2026-09-06 | Glanceable Open PR hover with a short what-and-why and one next step from the existing batched fetch. |
 | 0021 | notepad-row-window-actions | `docs/specs/0021-notepad-row-window-actions` | deliver | no | 2026-09-06 | Put GitHub quota and window actions on the Notepad/Daily row so the editor starts under one chrome line. |
 | 0022 | pr-first-workspace-layout | `docs/specs/0022-pr-first-workspace-layout` | deliver | no | 2026-09-06 | Stack Open PRs above notes by default and add a persistent Command-K Vertical Mode for PRs left / notes right. |
+| 0023 | amber-ghost-app-icon | `docs/specs/0023-amber-ghost-app-icon` | deliver | no | 2026-09-07 | Replace the liquid-chrome Dock icon with a Blade Runner 2049 Officer K amber ghost so Hyperlite is distinct from Cursor. |
 
 ## PROJECT INTENT
 
@@ -339,8 +340,22 @@ changes that warrant human attention.
 - **OPEN ITEMS**: Ready pull-request delivery through issue #75.
 - **POINTERS**: `docs/specs/0022-pr-first-workspace-layout/SPEC.md`
 
+### amber-ghost-app-icon
+
+- **STATUS**: deliver
+- **PAUSED**: no
+- **INTENT**: Make the packaged Hyperlite app icon distinct from Cursor while
+  keeping the ghost-emoji silhouette.
+- **APPROACH**: Composite the selected Officer K amber 2049 render onto the
+  existing 1024 RGBA rounded-corner mask and rebuild `Hyperlite.icns`.
+- **OPEN ITEMS**: Ready pull-request delivery through issue #77.
+- **POINTERS**: `docs/specs/0023-amber-ghost-app-icon/SPEC.md`
+
 ## LAST UPDATED
 
+- 2026-09-07: Added feature `0023-amber-ghost-app-icon` for the amber dusk
+  Dock icon. This supersedes the packaged liquid-chrome master from
+  feature `0002`; the menu-bar silhouette is unchanged.
 - 2026-09-06: Added feature `0022-pr-first-workspace-layout` for Open PRs
   above notes and Command-K Vertical Mode.
 - 2026-09-06: Added feature `0021-notepad-row-window-actions` to put GitHub

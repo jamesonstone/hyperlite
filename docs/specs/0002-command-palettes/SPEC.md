@@ -222,6 +222,11 @@ R8's blanket prohibition on background indexing only for the bounded Notepad
 index; command construction remains eager-free, no continuous timer exists,
 and normal date navigation never scans historical files.
 
+Issue #77 and `docs/specs/0023-amber-ghost-app-icon/SPEC.md` supersede the
+packaged liquid-chrome app-icon master. The Dock and Finder icon is now the
+Officer K amber dusk ghost. The code-native monochrome menu-bar silhouette
+is unchanged.
+
 ## DELIVERY DECISION
 
 Implemented on issue #5 in branch and worktree `GH-5`. Ready pull request #6

@@ -1,25 +1,34 @@
 # Hyperlite Icon Generation
 
-Generated with the built-in image-generation tool, then resized to 1024 square
-and given transparent rounded corners for the macOS icon source.
+Generated with the built-in image-generation tool from the previous
+liquid-chrome master, then composited onto that master's 1024-square RGBA
+rounded-corner mask.
 
 ## Master Prompt
 
-Create a premium 1024-square macOS application icon: one centered,
-front-facing artifact with an instantly recognizable rounded ghost silhouette,
-gently tapered body, and simple three-wave lower edge. Reinterpret it as a
-neutral, mysterious engineered object made from highly polished liquid chrome,
-with mercury-like surface tension, mirror reflections, precise recessed
-channels, black-glass circular eye apertures, and a narrow engineered vent.
-Use dark HDR Apple-style product lighting, graphite and titanium reflections,
-and generous icon margins. Keep the silhouette bold at 16 pixels. Include no
-text, logos, particles, glow, color gradients, cartoon expression, fabric,
-mascot features, gears, screws, exposed machinery, or franchise references.
+Create a premium 1024-square macOS application icon. Keep the exact
+front-facing rounded ghost silhouette: smooth dome head, tapered body,
+three-wave lower edge, two circular recessed eye apertures with black-glass
+spheres, and a short horizontal pill-shaped vent mouth. Do not add arms,
+extra faces, text, logos, or cartoon features.
 
-## Refinement Prompt
+Blade Runner 2049 Officer K apartment / desert dusk treatment: the
+liquid-chrome ghost remains a polished engineered object, now lit by
+sodium-amber streetlight and burnt-orange dusk. Warm amber speculars along
+the dome, deep rust-orange rim light on one edge, faint ember glow in the
+eye recesses. Atmosphere is dusty, cinematic, HDR, like K's dim apartment
+mixed with the 2049 desert afterglow. Pitch-black background, generous
+margins, centered, instantly readable at 16 pixels. Photoreal Apple-product
+lighting plus amber neon, not a cartoon sticker.
 
-Preserve the liquid-chrome material, black studio background, centered scale,
-eye apertures, reflections, precision grooves, and lighting. Remove arm-like
-side lobes so both sides form one uninterrupted tapered body. Replace the long
-vertical opening with a short horizontal precision vent. Keep the result
-neutral, mysterious, uncluttered, and recognizable at 16 pixels.
+## Refinement
+
+Composite the generated RGB render onto the previous master's exact
+transparent rounded-corner alpha. Keep 1024 square, sRGB, and no partial
+alpha except the inherited corner mask.
+
+## Rejected Palettes
+
+The operator compared four generated options and selected Officer K amber.
+Not used: Joi hologram cyan and magenta, Las Vegas electric pink and
+violet, and rain-city teal and acid green.
