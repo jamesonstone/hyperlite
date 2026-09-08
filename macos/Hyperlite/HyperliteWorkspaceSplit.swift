@@ -24,6 +24,8 @@ enum HyperliteWorkspaceSplit {
     static let stackedColumnSpacing: CGFloat = 10
     static let stackedStatusHeight: CGFloat = 20
     static let stackedLoadingHeight: CGFloat = 28
+    static let stackedSnapBack: Double = 0.02
+    static let splitterMinimumDistance: CGFloat = 8
 
     static func clamped(_ value: Double) -> Double {
         min(max(value, minFraction), maxFraction)
@@ -70,6 +72,29 @@ enum HyperliteWorkspaceSplit {
         return Double(translation / container)
     }
 
+    static func liveStackedFraction(
+        origin: Double,
+        translation: CGFloat,
+        container: CGFloat,
+        startedFromFit: Bool,
+        fitDisplayed: Double
+    ) -> Double {
+        let raw = origin + fractionDelta(translation: translation, container: container)
+        let lower = startedFromFit ? min(fitDisplayed, minFraction) : minFraction
+        return min(max(raw, lower), maxFraction)
+    }
+
+    static func persistedStackedFraction(
+        live: Double,
+        origin: Double,
+        startedFromFit: Bool
+    ) -> Double {
+        if startedFromFit && abs(live - origin) < stackedSnapBack {
+            return fitContent
+        }
+        return clamped(live)
+    }
+
     static func notepadMeasureWidth(font: NSFont = HyperliteTypography.editorAppKitFont()) -> CGFloat {
         (font.maximumAdvancement.width * notepadColumns) + notepadMeasurePadding
     }
@@ -109,6 +134,7 @@ struct HyperliteWorkspaceSplitter: View {
     let onDrag: (CGFloat) -> Void
     let onEnd: () -> Void
     let onReset: () -> Void
+    @State private var ignoreDragEnd = false
 
     var body: some View {
         Rectangle()
@@ -131,14 +157,25 @@ struct HyperliteWorkspaceSplitter: View {
             }
             .contentShape(Rectangle())
             .onHover(perform: updateCursor)
+            .highPriorityGesture(
+                TapGesture(count: 2).onEnded {
+                    ignoreDragEnd = true
+                    onReset()
+                }
+            )
             .gesture(
-                DragGesture(minimumDistance: 4)
+                DragGesture(minimumDistance: HyperliteWorkspaceSplit.splitterMinimumDistance)
                     .onChanged { value in
                         onDrag(axis == .vertical ? value.translation.height : value.translation.width)
                     }
-                    .onEnded { _ in onEnd() }
+                    .onEnded { _ in
+                        if ignoreDragEnd {
+                            ignoreDragEnd = false
+                            return
+                        }
+                        onEnd()
+                    }
             )
-            .simultaneousGesture(TapGesture(count: 2).onEnded(onReset))
             .accessibilityLabel("Resize Open PRs and notes")
             .accessibilityHint("Drag to resize. Double-click to restore the default split.")
     }

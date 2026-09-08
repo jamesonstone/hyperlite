@@ -9,6 +9,7 @@ enum HyperliteWorkspaceSplitTests {
         testNotepadMeasureAndSummary()
         testTitleFirstAndCompactRows()
         testEstimatedStackedHeightUsesCounts()
+        testTinyStackedDragKeepsFitContent()
     }
 
     private static func testStackedFitUsesContentAndCap() {
@@ -87,6 +88,11 @@ enum HyperliteWorkspaceSplitTests {
                 "Open PRs 4 · Pinned 0",
             "Notes Only should summarize open and pinned counts"
         )
+        expect(
+            HyperliteWorkspaceSplit.summaryTitle(openCount: 3, pinnedCount: 2) ==
+                "Open PRs 3 · Pinned 2",
+            "Notes Only should include a nonzero pinned count"
+        )
     }
 
     private static func testTitleFirstAndCompactRows() {
@@ -143,6 +149,44 @@ enum HyperliteWorkspaceSplitTests {
         )
         expect(abs(fitted - short) < 0.5,
                "fit-content stacked height should use the row-count estimate")
+    }
+
+    private static func testTinyStackedDragKeepsFitContent() {
+        let fitDisplayed = 0.165
+        let nudged = HyperliteWorkspaceSplit.liveStackedFraction(
+            origin: fitDisplayed,
+            translation: 1,
+            container: 1000,
+            startedFromFit: true,
+            fitDisplayed: fitDisplayed
+        )
+        expect(abs(nudged - 0.166) < 0.0001,
+               "a one-pixel stacked drag from fit-content should not jump to 18 percent")
+        expect(
+            HyperliteWorkspaceSplit.persistedStackedFraction(
+                live: nudged,
+                origin: fitDisplayed,
+                startedFromFit: true
+            ) == HyperliteWorkspaceSplit.fitContent,
+            "a tiny stacked drag should snap back to content-sized Open PRs"
+        )
+        let intentional = HyperliteWorkspaceSplit.liveStackedFraction(
+            origin: fitDisplayed,
+            translation: 80,
+            container: 1000,
+            startedFromFit: true,
+            fitDisplayed: fitDisplayed
+        )
+        expect(
+            abs(
+                HyperliteWorkspaceSplit.persistedStackedFraction(
+                    live: intentional,
+                    origin: fitDisplayed,
+                    startedFromFit: true
+                ) - HyperliteWorkspaceSplit.clamped(intentional)
+            ) < 0.0001,
+            "an intentional stacked drag should persist a custom ratio"
+        )
     }
 
     private static func expect(_ condition: @autoclosure () -> Bool, _ message: String) {

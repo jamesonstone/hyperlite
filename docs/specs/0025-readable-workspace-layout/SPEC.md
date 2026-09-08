@@ -150,6 +150,11 @@ Observable acceptance:
 - Splitter writes UserDefaults on drag end only.
 - Stacked fit-content height is estimated from row counts so `LazyVStack` can
   stay lazy. Measuring the list with `fixedSize` would layout every row.
+- Tiny stacked drags snap back to fit-content so a short list does not jump
+  to the 18% minimum pane. Double-click reset takes gesture priority over drag.
+- Compact Vertical Mode titles stay one truncated line so the row is exactly
+  two lines: identity, then title plus age. Age uses intrinsic width so the
+  title truncates first.
 
 ## DISCOVERIES
 
@@ -164,9 +169,9 @@ Observable acceptance:
 ## VALIDATION
 
 - `make macos-test` PASS: stacked fit/cap and row-count estimate, 36% vertical
-  default, drag clamp, Notes Only and split persistence, Command-K Notes Only,
-  title-first Open PR rows, notepad 80-column measure, and availability rows
-  remaining repository-first.
+  default, drag clamp, tiny stacked-drag snap-back to fit-content, Notes Only
+  and split persistence, Command-K Notes Only, title-first Open PR rows,
+  notepad 80-column measure, and availability rows remaining repository-first.
 - `make macos-build` PASS: `build/Hyperlite.app`.
 - `make fmt-check` PASS.
 - `kit check --project` PASS.

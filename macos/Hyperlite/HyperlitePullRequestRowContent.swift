@@ -47,7 +47,6 @@ struct HyperlitePullRequestRowContent: View {
             reviewLabel
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 titleLabel
-                    .layoutPriority(HyperlitePullRequestRowLayout.titleFirst.titleLayoutPriority)
                 ageLabel
             }
             .layoutPriority(HyperlitePullRequestRowLayout.titleFirst.titleLayoutPriority)
@@ -106,7 +105,7 @@ struct HyperlitePullRequestRowContent: View {
     private var titleLabel: some View {
         Text(row.title)
             .foregroundStyle(titleColor)
-            .lineLimit(compact ? 2 : 1)
+            .lineLimit(1)
             .truncationMode(.tail)
     }
 
@@ -115,6 +114,8 @@ struct HyperlitePullRequestRowContent: View {
             .font(HyperliteTypography.compact)
             .foregroundStyle(HyperliteTheme.mutedText.color)
             .monospacedDigit()
+            .fixedSize()
+            .layoutPriority(2)
     }
 
     @ViewBuilder

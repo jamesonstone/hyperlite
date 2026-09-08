@@ -13,6 +13,7 @@ struct HyperliteWorkspacePanes<PullRequests: View, Notepad: View>: View {
     let notepad: Notepad
 
     @State private var dragOrigin: Double?
+    @State private var stackedDragStartedFromFit = false
     @State private var liveStackedFraction: Double?
     @State private var liveVerticalFraction: Double?
 
@@ -109,19 +110,25 @@ struct HyperliteWorkspacePanes<PullRequests: View, Notepad: View>: View {
     }
 
     private func applyStackedDrag(translation: CGFloat, containerHeight: CGFloat) {
+        let fitDisplayed = HyperliteWorkspaceSplit.displayedStackedFraction(
+            fraction: HyperliteWorkspaceSplit.fitContent,
+            contentHeight: stackedContentHeight,
+            containerHeight: containerHeight
+        )
         if dragOrigin == nil {
+            stackedDragStartedFromFit = stackedFraction <= HyperliteWorkspaceSplit.fitContent
             dragOrigin = HyperliteWorkspaceSplit.displayedStackedFraction(
                 fraction: stackedFraction,
                 contentHeight: stackedContentHeight,
                 containerHeight: containerHeight
             )
         }
-        liveStackedFraction = HyperliteWorkspaceSplit.clamped(
-            (dragOrigin ?? HyperliteWorkspaceSplit.stackedFitFallback)
-                + HyperliteWorkspaceSplit.fractionDelta(
-                    translation: translation,
-                    container: containerHeight
-                )
+        liveStackedFraction = HyperliteWorkspaceSplit.liveStackedFraction(
+            origin: dragOrigin ?? fitDisplayed,
+            translation: translation,
+            container: containerHeight,
+            startedFromFit: stackedDragStartedFromFit,
+            fitDisplayed: fitDisplayed
         )
     }
 
@@ -142,9 +149,16 @@ struct HyperliteWorkspacePanes<PullRequests: View, Notepad: View>: View {
 
     private func commitStackedDrag() {
         if let liveStackedFraction {
-            onStackedFraction(liveStackedFraction)
+            onStackedFraction(
+                HyperliteWorkspaceSplit.persistedStackedFraction(
+                    live: liveStackedFraction,
+                    origin: dragOrigin ?? liveStackedFraction,
+                    startedFromFit: stackedDragStartedFromFit
+                )
+            )
         }
         dragOrigin = nil
+        stackedDragStartedFromFit = false
         liveStackedFraction = nil
     }
 
@@ -158,6 +172,7 @@ struct HyperliteWorkspacePanes<PullRequests: View, Notepad: View>: View {
 
     private func resetStacked() {
         dragOrigin = nil
+        stackedDragStartedFromFit = false
         liveStackedFraction = nil
         onResetStacked()
     }
