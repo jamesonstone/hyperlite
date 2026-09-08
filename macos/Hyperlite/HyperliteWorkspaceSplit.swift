@@ -9,8 +9,6 @@ enum HyperliteWorkspaceSplit {
     static let stackedFitCap: Double = 0.48
     static let stackedFitFallback: Double = 0.28
     static let splitterHit: CGFloat = 8
-    static let notepadColumns: CGFloat = 80
-    static let notepadMeasurePadding: CGFloat = 16
     static let minimumStackedPullRequestHeight: CGFloat = 72
     static let stackedHeaderHeight: CGFloat = 20
     static let stackedSectionLabelHeight: CGFloat = 16
@@ -93,10 +91,6 @@ enum HyperliteWorkspaceSplit {
             return fitContent
         }
         return clamped(live)
-    }
-
-    static func notepadMeasureWidth(font: NSFont = HyperliteTypography.editorAppKitFont()) -> CGFloat {
-        (font.maximumAdvancement.width * notepadColumns) + notepadMeasurePadding
     }
 
     static func summaryTitle(openCount: Int, pinnedCount: Int) -> String {

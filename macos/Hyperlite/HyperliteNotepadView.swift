@@ -216,10 +216,6 @@ struct HyperliteNotepadView<Toolbar: View>: View {
             }
         }
         .frame(minHeight: HyperliteWorkspaceSizing.minimumNotepadEditorHeight, maxHeight: .infinity)
-        .frame(
-            maxWidth: HyperliteWorkspaceSplit.notepadMeasureWidth(),
-            alignment: .leading
-        )
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(
             HyperliteTheme.canvas.color,
