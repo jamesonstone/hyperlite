@@ -4,7 +4,8 @@ extension HyperliteInteractionModel {
     static func commandEntries(
         visibleOpenPullRequestCount: Int = 0,
         mergePromptCopied: Bool = false,
-        verticalMode: Bool = false
+        verticalMode: Bool = false,
+        notesOnly: Bool = false
     ) -> [HyperlitePaletteEntry] {
         [
             actionEntry(
@@ -24,6 +25,14 @@ extension HyperliteInteractionModel {
                     : "Put Open PRs on the left and notes on the right",
                 verticalMode ? "checkmark" : "rectangle.split.2x1",
                 .toggleVerticalMode
+            ),
+            actionEntry(
+                "action:notes-only", "Notes Only",
+                notesOnly
+                    ? "Current · Hide Open PRs and give the editor the window"
+                    : "Hide Open PRs and give the editor the rest of the window",
+                notesOnly ? "checkmark" : "note.text",
+                .toggleNotesOnly
             ),
             actionEntry(
                 "action:refresh", "Refresh",

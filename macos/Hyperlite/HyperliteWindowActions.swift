@@ -38,6 +38,10 @@ extension HyperliteWindow {
             HyperliteAppearance.shared.toggleVerticalMode()
             return
         }
+        if action == .toggleNotesOnly {
+            HyperliteAppearance.shared.toggleNotesOnly()
+            return
+        }
         if action == .copyOpenPRMergePrompt {
             copyVisibleOpenPRMergePrompt()
             return
@@ -49,7 +53,7 @@ extension HyperliteWindow {
         case .forceCacheRefresh:
             state.forceCacheRefresh()
         case .copyOpenPRMergePrompt, .showCommands, .showThemes, .showFontSizes,
-             .setTheme, .setFontSize, .toggleVerticalMode:
+             .setTheme, .setFontSize, .toggleVerticalMode, .toggleNotesOnly:
             break
         case .updateDefaultBranches:
             state.updateDefaultBranches()

@@ -38,6 +38,7 @@ enum HyperlitePaletteAction: Equatable {
     case setTheme(String)
     case setFontSize(HyperliteFontSize)
     case toggleVerticalMode
+    case toggleNotesOnly
 }
 
 struct HyperlitePaletteEntry: Equatable, Identifiable {

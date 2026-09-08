@@ -24,15 +24,7 @@ struct HyperliteWindow: View {
     var body: some View {
         let pullRequests = pullRequestScan
         return ZStack(alignment: .topLeading) {
-            HyperliteWorkspacePanes(verticalMode: appearance.verticalMode) {
-                pullRequestColumn
-            } notepad: {
-                HyperliteNotepadView(state: notepad) {
-                    windowActions
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .clipped()
-            }
+            workspace
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .padding(20)
             .environment(\.colorScheme, appearance.palette.colorScheme)
@@ -100,6 +92,86 @@ struct HyperliteWindow: View {
         }
     }
 
+    private var workspace: some View {
+        Group {
+            if appearance.notesOnly {
+                VStack(alignment: .leading, spacing: HyperliteWorkspaceSizing.sectionSpacing) {
+                    openPRSummaryBar
+                    notepadPane
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            } else {
+                HyperliteWorkspacePanes(
+                    verticalMode: appearance.verticalMode,
+                    stackedFraction: appearance.stackedSplitFraction,
+                    verticalFraction: appearance.verticalSplitFraction,
+                    onStackedFraction: { appearance.setStackedSplitFraction($0) },
+                    onVerticalFraction: { appearance.setVerticalSplitFraction($0) },
+                    onResetStacked: { appearance.resetStackedSplit() },
+                    onResetVertical: { appearance.resetVerticalSplit() },
+                    stackedContentHeight: stackedPullRequestContentHeight
+                ) {
+                    pullRequestColumn
+                } notepad: {
+                    notepadPane
+                }
+            }
+        }
+    }
+
+    private var notepadPane: some View {
+        HyperliteNotepadView(state: notepad) {
+            windowActions
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .clipped()
+    }
+
+    private var openPRSummaryBar: some View {
+        Button {
+            appearance.setNotesOnly(false)
+        } label: {
+            Text(HyperliteWorkspaceSplit.summaryTitle(
+                openCount: visibleOpenPullRequests.count,
+                pinnedCount: pinnedPullRequestCount
+            ))
+            .font(HyperliteTypography.heading)
+            .foregroundStyle(HyperliteTheme.secondaryText.color)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("Show Open PRs")
+        .accessibilityLabel("Show Open PRs")
+        .accessibilityValue(HyperliteWorkspaceSplit.summaryTitle(
+            openCount: visibleOpenPullRequests.count,
+            pinnedCount: pinnedPullRequestCount
+        ))
+    }
+
+    private var pinnedPullRequestCount: Int {
+        guard let scan = pullRequestScan else { return 0 }
+        return pullRequestPins.sections(
+            for: HyperlitePullRequestPresentation.rows(scan: scan)
+        ).pinned.count
+    }
+
+    private var stackedPullRequestContentHeight: CGFloat {
+        guard let scan = pullRequestScan else {
+            return HyperliteWorkspaceSplit.stackedLoadingHeight
+        }
+        let sections = pullRequestPins.sections(
+            for: HyperlitePullRequestPresentation.rows(scan: scan)
+        )
+        return HyperliteWorkspaceSplit.estimatedStackedContentHeight(
+            pinnedCount: sections.pinned.count,
+            openCount: sections.unpinned.count,
+            availabilityCount: HyperlitePullRequestPresentation.availability(scan: scan).count,
+            compactRows: false,
+            hasStatusMessage: state.errorMessage != nil || state.statusMessage != nil
+        )
+    }
+
     private var pullRequestColumn: some View {
         ScrollView(.vertical, showsIndicators: true) {
             VStack(alignment: .leading, spacing: 10) {
@@ -116,7 +188,11 @@ struct HyperliteWindow: View {
                     HyperlitePullRequestPanel(
                         scan: pullRequests,
                         organization: dashboardLists,
-                        pins: pullRequestPins
+                        pins: pullRequestPins,
+                        compactRows: HyperliteWorkspaceSplit.compactRows(
+                            verticalMode: appearance.verticalMode,
+                            notesOnly: appearance.notesOnly
+                        )
                     )
                 } else {
                     ProgressView("Loading open pull requests…")
@@ -126,7 +202,7 @@ struct HyperliteWindow: View {
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     private var windowActions: some View {

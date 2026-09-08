@@ -37,6 +37,9 @@ final class HyperliteAppearance: ObservableObject {
     @Published private(set) var themeID: String
     @Published private(set) var fontSize: HyperliteFontSize
     @Published private(set) var verticalMode: Bool
+    @Published private(set) var notesOnly: Bool
+    @Published private(set) var stackedSplitFraction: Double
+    @Published private(set) var verticalSplitFraction: Double
 
     private let defaults: UserDefaults
 
@@ -54,6 +57,14 @@ final class HyperliteAppearance: ObservableObject {
         let storedSize = defaults.integer(forKey: Keys.fontSize)
         fontSize = HyperliteFontSize(rawValue: storedSize) ?? .readable
         verticalMode = defaults.bool(forKey: Keys.verticalMode)
+        notesOnly = defaults.bool(forKey: Keys.notesOnly)
+        stackedSplitFraction = defaults.object(forKey: Keys.stackedSplitFraction) as? Double
+            ?? HyperliteWorkspaceSplit.fitContent
+        if let storedVertical = defaults.object(forKey: Keys.verticalSplitFraction) as? Double {
+            verticalSplitFraction = HyperliteWorkspaceSplit.clamped(storedVertical)
+        } else {
+            verticalSplitFraction = HyperliteWorkspaceSplit.defaultVerticalFraction
+        }
     }
 
     func setTheme(_ id: String) {
@@ -79,9 +90,46 @@ final class HyperliteAppearance: ObservableObject {
         setVerticalMode(!verticalMode)
     }
 
+    func setNotesOnly(_ enabled: Bool) {
+        guard enabled != notesOnly else { return }
+        notesOnly = enabled
+        defaults.set(enabled, forKey: Keys.notesOnly)
+    }
+
+    func toggleNotesOnly() {
+        setNotesOnly(!notesOnly)
+    }
+
+    func setStackedSplitFraction(_ value: Double) {
+        let next = value <= HyperliteWorkspaceSplit.fitContent
+            ? HyperliteWorkspaceSplit.fitContent
+            : HyperliteWorkspaceSplit.clamped(value)
+        guard next != stackedSplitFraction else { return }
+        stackedSplitFraction = next
+        defaults.set(next, forKey: Keys.stackedSplitFraction)
+    }
+
+    func setVerticalSplitFraction(_ value: Double) {
+        let next = HyperliteWorkspaceSplit.clamped(value)
+        guard next != verticalSplitFraction else { return }
+        verticalSplitFraction = next
+        defaults.set(next, forKey: Keys.verticalSplitFraction)
+    }
+
+    func resetStackedSplit() {
+        setStackedSplitFraction(HyperliteWorkspaceSplit.fitContent)
+    }
+
+    func resetVerticalSplit() {
+        setVerticalSplitFraction(HyperliteWorkspaceSplit.defaultVerticalFraction)
+    }
+
     private enum Keys {
         static let themeID = "hyperlite.appearance.theme-id"
         static let fontSize = "hyperlite.appearance.font-size"
         static let verticalMode = "hyperlite.appearance.vertical-mode"
+        static let notesOnly = "hyperlite.appearance.notes-only"
+        static let stackedSplitFraction = "hyperlite.appearance.stacked-split-fraction"
+        static let verticalSplitFraction = "hyperlite.appearance.vertical-split-fraction"
     }
 }

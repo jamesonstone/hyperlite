@@ -24,8 +24,9 @@
   reservation, Copy Open PR Merge Prompt labels, Command-K Theme and Font Size
   nested lists, Open PR hover what-and-why, assignee, and next-step presentation,
   pin/reorder presentation, stacked Open PRs above notes with Command-K
-  Vertical Mode, and Command-K literal search without loading sentence
-  embeddings. The native
+  Vertical Mode, Notes Only, content-sized and draggable splits, title-first
+  Open PR rows, notepad measure, and Command-K literal search without loading
+  sentence embeddings. The native
   window no longer compiles Agent Island, Agent Tasks, Pinboard, or pinned Codex
   presentation tests.
 - A read-only local live-integration suite validates recovery of the selected

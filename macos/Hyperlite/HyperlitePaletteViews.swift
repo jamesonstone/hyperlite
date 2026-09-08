@@ -22,7 +22,8 @@ struct HyperliteCommandPalette: View {
             return HyperliteInteractionModel.commandEntries(
                 visibleOpenPullRequestCount: visibleOpenPullRequestCount,
                 mergePromptCopied: mergePromptCopied,
-                verticalMode: appearance.verticalMode
+                verticalMode: appearance.verticalMode,
+                notesOnly: appearance.notesOnly
             )
         case .projects:
             let effectiveExpansion = HyperliteInteractionModel.effectiveProjectExpansion(
