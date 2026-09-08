@@ -1,12 +1,11 @@
 import Foundation
-import AppKit
 
 enum HyperliteWorkspaceSplitTests {
     static func run() {
         testStackedFitUsesContentAndCap()
         testVerticalDefaultIsNarrowerThanHalf()
         testFractionClampingAndDelta()
-        testNotepadMeasureAndSummary()
+        testNotesOnlySummary()
         testTitleFirstAndCompactRows()
         testEstimatedStackedHeightUsesCounts()
         testTinyStackedDragKeepsFitContent()
@@ -77,12 +76,7 @@ enum HyperliteWorkspaceSplitTests {
                "fit-content drag origin should start from the rendered Open PRs height")
     }
 
-    private static func testNotepadMeasureAndSummary() {
-        let font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
-        let width = HyperliteWorkspaceSplit.notepadMeasureWidth(font: font)
-        let expected = font.maximumAdvancement.width * 80 + 16
-        expect(abs(width - expected) < 0.5,
-               "notepad measure should be 80 columns of the editor font")
+    private static func testNotesOnlySummary() {
         expect(
             HyperliteWorkspaceSplit.summaryTitle(openCount: 4, pinnedCount: 0) ==
                 "Open PRs 4 · Pinned 0",

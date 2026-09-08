@@ -27,7 +27,8 @@
 | 0022 | pr-first-workspace-layout | `docs/specs/0022-pr-first-workspace-layout` | deliver | no | 2026-09-06 | Stack Open PRs above notes by default and add a persistent Command-K Vertical Mode for PRs left / notes right. |
 | 0023 | amber-ghost-app-icon | `docs/specs/0023-amber-ghost-app-icon` | deliver | no | 2026-09-07 | Replace the liquid-chrome Dock icon with a Blade Runner 2049 Officer K amber ghost so Hyperlite is distinct from Cursor. |
 | 0024 | open-pr-hover-assignee | `docs/specs/0024-open-pr-hover-assignee` | deliver | no | 2026-09-07 | Show GitHub assignees on the Open PR hover card from in-memory glance fields. |
-| 0025 | readable-workspace-layout | `docs/specs/0025-readable-workspace-layout` | deliver | no | 2026-09-08 | Size Open PRs to content, add a draggable split, Notes Only, title-first compact rows, and an 80-column notepad measure. |
+| 0025 | readable-workspace-layout | `docs/specs/0025-readable-workspace-layout` | deliver | no | 2026-09-08 | Size Open PRs to content, add a draggable split, Notes Only, title-first compact rows, and leftover height for notes. |
+| 0026 | notepad-fills-pane | `docs/specs/0026-notepad-fills-pane` | deliver | no | 2026-09-08 | Let Notepad/Daily wrap to leftover pane width instead of an 80-column cap. |
 
 ## PROJECT INTENT
 
@@ -368,16 +369,25 @@ changes that warrant human attention.
 
 - **STATUS**: deliver
 - **PAUSED**: no
-- **INTENT**: Make the native window readable and notes-first: Open PRs take only the space they need, Vertical Mode keeps titles readable, the operator can drag and collapse the split, and long notes wrap at a book measure.
-- **APPROACH**: 1. Persist Notes Only and independent stacked/vertical split ratios on appearance. 2. Content-size stacked Open PRs from a row-count estimate, default Vertical Mode to 36% width, and persist divider drags on mouse-up. 3. Skip rendering Open PR rows while Notes Only is on. 4. Title-first typography with two-line rows only in Vertical Mode. 5. Cap the editor at 80 columns of the editor font.
-- **OPEN ITEMS**: Ready pull-request delivery through issue #81.
+- **INTENT**: Make the native window readable and notes-first: Open PRs take only the space they need, Vertical Mode keeps titles readable, the operator can drag and collapse the split, and leftover height goes to notes. Feature 0026 owns notepad width.
+- **APPROACH**: 1. Persist Notes Only and independent stacked/vertical split ratios on appearance. 2. Content-size stacked Open PRs from a row-count estimate, default Vertical Mode to 36% width, and persist divider drags on mouse-up. 3. Skip rendering Open PR rows while Notes Only is on. 4. Title-first typography with two-line rows only in Vertical Mode. 5. Feature 0026 supersedes the 80-column editor cap.
+- **OPEN ITEMS**: Delivered through issue #81 and PR #82; notepad width moved to feature 0026.
 - **POINTERS**: `docs/specs/0025-readable-workspace-layout/SPEC.md`
+
+### notepad-fills-pane
+
+- **STATUS**: deliver
+- **PAUSED**: no
+- **INTENT**: Let Notepad/Daily wrap to leftover pane width instead of an 80-column cap.
+- **APPROACH**: 1. Remove the editor `maxWidth` measure cap. 2. Delete unused column-measure helpers. 3. Keep Notes Only summary tests. 4. Supersede feature 0025 R6.
+- **OPEN ITEMS**: Ready pull-request delivery through issue #83.
+- **POINTERS**: `docs/specs/0026-notepad-fills-pane/SPEC.md`
 
 ## LAST UPDATED
 
-- 2026-09-08: Added feature `0025-readable-workspace-layout` for content-sized
-  Open PRs, a draggable split, Notes Only, title-first compact rows, and an
-  80-column notepad measure.
+- 2026-09-08: Added feature `0026-notepad-fills-pane` so Notepad/Daily fills
+  leftover pane width. This supersedes the 80-column measure from feature
+  `0025`.
 - 2026-09-07: Added feature `0024-open-pr-hover-assignee` so Open PR hover
   names GitHub assignees or `unassigned`. This supersedes the assignee
   omission from feature `0020`.

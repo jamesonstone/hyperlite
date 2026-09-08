@@ -34,8 +34,8 @@ divider to persist a separate ratio for stacked and left-right layouts;
 double-click restores that layout's default. Command-K Notes Only hides the
 Open PR rows, leaves a one-line `Open PRs N · Pinned N` summary, and gives
 the editor the rest of the window; click the summary or toggle Notes Only
-again to restore the list. Notepad/Daily wraps near 80 columns instead of
-stretching to the pane width. The default Control+Shift+H hotkey brings the window
+again to restore the list. Notepad/Daily wraps to the leftover pane width.
+The default Control+Shift+H hotkey brings the window
 forward; becoming active still refreshes stale Open PRs, but the hotkey
 itself does not force GitHub work. Command-P, Remove Project, and Settings
 load the configured project list when opened, not at launch. Command-K
@@ -173,8 +173,8 @@ after the first edit.
 
 The active editor contains regular UTF-8 text rendered with JetBrainsMono Nerd
 Font through the shared application resolver and a system monospaced fallback.
-It wraps near 80 columns, left-aligned, so unused pane width stays margin. It
-does not render Markdown or feed content into thread inference or attention.
+It wraps to the leftover notepad pane width. It does not render Markdown
+or feed content into thread inference or attention.
 Typing stays in memory, the latest edit saves after three idle seconds, and
 pending text flushes when the window or application yields.
 

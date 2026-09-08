@@ -82,7 +82,8 @@ skills: []
 
 Make the native window readable and notes-first: Open PRs take only the space
 they need, Vertical Mode keeps titles readable, the operator can drag and
-collapse the split, and long notes wrap at a book measure.
+collapse the split, and leftover height goes to notes. Feature 0026
+supersedes the 80-column notepad measure.
 
 ## CONTEXT
 
@@ -95,7 +96,7 @@ Hyperlite must stay idle: no extra GitHub work, timers, markdown renderer, or
 per-row geometry.
 
 Orchestration: single-lane, because window composition, appearance, Open PR
-rows, and notepad measure share one tightly coupled layout contract.
+rows, and notepad width share one tightly coupled layout contract.
 
 ## REQUIREMENTS
 
@@ -110,7 +111,8 @@ rows, and notepad measure share one tightly coupled layout contract.
 - R5: Vertical Mode uses two-line Open PR rows. Stacked wide rows stay one
   line. Titles are the primary text; repository identity is muted; age sits
   beside the title instead of a far-right gutter.
-- R6: Notepad/Daily wraps near 80 monospaced columns, left-aligned.
+- R6: Superseded by feature 0026. Originally wrapped near 80 monospaced
+  columns, left-aligned; the cap left a large empty gutter.
 - R7: Keep handwritten source and test files at or under 300 lines.
 
 Non-goals:
@@ -126,7 +128,7 @@ Observable acceptance:
 - Vertical Mode shows two-line rows and a narrower-than-half PR pane.
 - Dragged ratios survive relaunch; double-click restores the default.
 - Notes Only hides rows and expands from the summary or Command-K.
-- Note text wraps near 80 columns with unused width as margin.
+- Note text wrapping is owned by feature 0026 (fills leftover pane width).
 
 ## ACCEPTED PLAN
 
@@ -136,9 +138,10 @@ Observable acceptance:
    default vertical split, and a drag-end splitter.
 3. Skip rendering Open PR rows while Notes Only is on.
 4. Pass a compact-row flag from arrangement, not per-row geometry.
-5. Cap the editor surface with the editor font's 80-column measure.
-6. Cover split math, persistence, Notes Only, compact rows, title-first
-   layout, and notepad measure with executable Swift tests.
+5. Feature 0026 removed the 80-column editor cap so notes fill leftover pane
+   width.
+6. Cover split math, persistence, Notes Only, compact rows, and title-first
+   layout with executable Swift tests.
 
 ## DECISIONS
 
@@ -158,6 +161,8 @@ Observable acceptance:
 - Compact metadata columns drop their wide-row reserved widths so a dragged
   18% Vertical Mode pane can truncate instead of clipping. The splitter is an
   adjustable VoiceOver control.
+- Feature 0026 supersedes the 80-column notepad measure. After stacked Open
+  PRs shrank, leftover pane width made the cap look like unused space.
 
 ## DISCOVERIES
 
@@ -174,7 +179,7 @@ Observable acceptance:
 - `make macos-test` PASS: stacked fit/cap and row-count estimate, 36% vertical
   default, drag clamp, tiny stacked-drag snap-back to fit-content, Notes Only
   and split persistence, Command-K Notes Only, title-first Open PR rows,
-  notepad 80-column measure, and availability rows remaining repository-first.
+  and availability rows remaining repository-first.
 - `make macos-build` PASS: `build/Hyperlite.app`.
 - `make fmt-check` PASS.
 - `kit check --project` PASS.
@@ -189,7 +194,7 @@ area, and leftover height goes to notes. Vertical Mode defaults to 36% width
 and two-line title-first rows. A drag-end splitter persists stacked and
 left-right ratios separately; double-click restores that layout's default.
 Command-K Notes Only hides Open PR rows and shows `Open PRs N · Pinned N`.
-Notepad wraps near 80 columns. Open PR `LazyVStack` stays lazy; UserDefaults
+Notepad width is owned by feature 0026. Open PR `LazyVStack` stays lazy; UserDefaults
 writes happen on mouse-up only. Markdown preview stayed out.
 
 ## REPOSITORY MEMORY
