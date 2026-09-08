@@ -57,11 +57,13 @@ struct HyperlitePullRequestRowContent: View {
         VStack(alignment: .leading, spacing: 1) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 repositoryLabel
+                    .layoutPriority(-1)
                 numberLabel
                 statusBadge
                 mergeConflictGlyph
                 reviewLabel
             }
+            .lineLimit(1)
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 titleLabel
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -79,7 +81,8 @@ struct HyperlitePullRequestRowContent: View {
     }
 
     private var numberLabel: some View {
-        Text("#\(row.number)").frame(width: 42, alignment: .leading)
+        Text("#\(row.number)")
+            .frame(width: compact ? nil : 42, alignment: .leading)
     }
 
     private var statusBadge: some View {
@@ -88,13 +91,15 @@ struct HyperlitePullRequestRowContent: View {
             .foregroundStyle(
                 row.isDraft ? HyperliteTheme.mutedText.color : HyperliteTheme.cyan.color
             )
-            .frame(width: 42, alignment: .leading)
+            .frame(width: compact ? nil : 42, alignment: .leading)
     }
 
     private var reviewLabel: some View {
         Text(review.text)
             .frame(
-                width: HyperlitePullRequestRowLayout.titleFirst.reviewFeedbackColumnWidth,
+                width: compact
+                    ? nil
+                    : HyperlitePullRequestRowLayout.titleFirst.reviewFeedbackColumnWidth,
                 alignment: .leading
             )
             .foregroundStyle(review.needsAttention
@@ -120,18 +125,25 @@ struct HyperlitePullRequestRowContent: View {
 
     @ViewBuilder
     private var mergeConflictGlyph: some View {
-        Group {
-            if row.hasMergeConflict {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(HyperliteTheme.orange.color)
-            }
+        if row.hasMergeConflict {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(HyperliteTheme.orange.color)
+                .frame(
+                    width: compact
+                        ? nil
+                        : HyperlitePullRequestRowLayout.titleFirst.mergeConflictColumnWidth,
+                    alignment: .leading
+                )
+                .accessibilityHidden(true)
+        } else if !compact {
+            Color.clear
+                .frame(
+                    width: HyperlitePullRequestRowLayout.titleFirst.mergeConflictColumnWidth,
+                    alignment: .leading
+                )
+                .accessibilityHidden(true)
         }
-        .frame(
-            width: HyperlitePullRequestRowLayout.titleFirst.mergeConflictColumnWidth,
-            alignment: .leading
-        )
-        .accessibilityHidden(true)
     }
 
     static func accessibilityLabel(

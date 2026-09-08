@@ -155,6 +155,9 @@ Observable acceptance:
 - Compact Vertical Mode titles stay one truncated line so the row is exactly
   two lines: identity, then title plus age. Age uses intrinsic width so the
   title truncates first.
+- Compact metadata columns drop their wide-row reserved widths so a dragged
+  18% Vertical Mode pane can truncate instead of clipping. The splitter is an
+  adjustable VoiceOver control.
 
 ## DISCOVERIES
 

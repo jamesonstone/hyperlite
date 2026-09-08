@@ -177,7 +177,15 @@ struct HyperliteWorkspaceSplitter: View {
                     }
             )
             .accessibilityLabel("Resize Open PRs and notes")
-            .accessibilityHint("Drag to resize. Double-click to restore the default split.")
+            .accessibilityHint("Drag to resize, or adjust. Double-click to restore the default split.")
+            .accessibilityAdjustableAction { direction in
+                switch direction {
+                case .increment: onDrag(Self.keyboardStep)
+                case .decrement: onDrag(-Self.keyboardStep)
+                @unknown default: return
+                }
+                onEnd()
+            }
     }
 
     private func updateCursor(_ hovering: Bool) {
@@ -193,4 +201,5 @@ struct HyperliteWorkspaceSplitter: View {
     }
 
     private static let hit = HyperliteWorkspaceSplit.splitterHit
+    private static let keyboardStep: CGFloat = 24
 }
