@@ -4,6 +4,7 @@ struct HyperlitePullRequestPanel: View {
     let scan: HyperliteProjectPullRequestScan
     @ObservedObject var organization: HyperliteDashboardListState
     @ObservedObject var pins: HyperlitePullRequestPinStore
+    var compactRows = false
     @State private var draggedRowID: String?
 
     private var sourceRows: [HyperlitePullRequestRow] {
@@ -101,6 +102,7 @@ struct HyperlitePullRequestPanel: View {
             row: row,
             reviewStatus: organization.pullRequestReviewStatus(for: row),
             pinned: pinned,
+            compact: compactRows,
             draggedRowID: $draggedRowID,
             toggleReview: { organization.togglePullRequestReviewed(row) },
             move: pins.move,

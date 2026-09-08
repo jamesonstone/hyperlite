@@ -103,6 +103,8 @@ Observable acceptance:
 
 - Command-K command entries are rebuilt from current appearance, so the
   Vertical Mode checkmark updates without leaving the palette.
+- Feature `0025-readable-workspace-layout` supersedes the drag-resize splitter
+  non-goal.
 
 ## VALIDATION
 

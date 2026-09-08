@@ -27,6 +27,7 @@
 | 0022 | pr-first-workspace-layout | `docs/specs/0022-pr-first-workspace-layout` | deliver | no | 2026-09-06 | Stack Open PRs above notes by default and add a persistent Command-K Vertical Mode for PRs left / notes right. |
 | 0023 | amber-ghost-app-icon | `docs/specs/0023-amber-ghost-app-icon` | deliver | no | 2026-09-07 | Replace the liquid-chrome Dock icon with a Blade Runner 2049 Officer K amber ghost so Hyperlite is distinct from Cursor. |
 | 0024 | open-pr-hover-assignee | `docs/specs/0024-open-pr-hover-assignee` | deliver | no | 2026-09-07 | Show GitHub assignees on the Open PR hover card from in-memory glance fields. |
+| 0025 | readable-workspace-layout | `docs/specs/0025-readable-workspace-layout` | deliver | no | 2026-09-08 | Size Open PRs to content, add a draggable split, Notes Only, title-first compact rows, and an 80-column notepad measure. |
 
 ## PROJECT INTENT
 
@@ -363,8 +364,20 @@ changes that warrant human attention.
 - **OPEN ITEMS**: Ready pull-request delivery through issue #79.
 - **POINTERS**: `docs/specs/0024-open-pr-hover-assignee/SPEC.md`
 
+### readable-workspace-layout
+
+- **STATUS**: deliver
+- **PAUSED**: no
+- **INTENT**: Make the native window readable and notes-first: Open PRs take only the space they need, Vertical Mode keeps titles readable, the operator can drag and collapse the split, and long notes wrap at a book measure.
+- **APPROACH**: 1. Persist Notes Only and independent stacked/vertical split ratios on appearance. 2. Content-size stacked Open PRs from a row-count estimate, default Vertical Mode to 36% width, and persist divider drags on mouse-up. 3. Skip rendering Open PR rows while Notes Only is on. 4. Title-first typography with two-line rows only in Vertical Mode. 5. Cap the editor at 80 columns of the editor font.
+- **OPEN ITEMS**: Ready pull-request delivery through issue #81.
+- **POINTERS**: `docs/specs/0025-readable-workspace-layout/SPEC.md`
+
 ## LAST UPDATED
 
+- 2026-09-08: Added feature `0025-readable-workspace-layout` for content-sized
+  Open PRs, a draggable split, Notes Only, title-first compact rows, and an
+  80-column notepad measure.
 - 2026-09-07: Added feature `0024-open-pr-hover-assignee` so Open PR hover
   names GitHub assignees or `unassigned`. This supersedes the assignee
   omission from feature `0020`.

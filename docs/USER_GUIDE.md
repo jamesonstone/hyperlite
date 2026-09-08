@@ -27,13 +27,22 @@ The window title is `👻 hyperlite`. GitHub GraphQL quota, Update Default
 Branches, Sweep Worktrees, a subtly orange Refresh action, and Settings sit
 on the Notepad/Daily row. Command-K Vertical Mode is a persistent toggle that
 puts Open PRs on the left and notes on the right; the default stacked layout
-keeps Open PRs above notes. The default Control+Shift+H hotkey brings the window
+keeps Open PRs above notes and sizes the list to its content so leftover
+height goes to the editor. Vertical Mode defaults Open PRs to a narrower
+left pane and wraps each row onto two lines so titles stay readable. Drag the
+divider to persist a separate ratio for stacked and left-right layouts;
+double-click restores that layout's default. Command-K Notes Only hides the
+Open PR rows, leaves a one-line `Open PRs N · Pinned N` summary, and gives
+the editor the rest of the window; click the summary or toggle Notes Only
+again to restore the list. Notepad/Daily wraps near 80 columns instead of
+stretching to the pane width. The default Control+Shift+H hotkey brings the window
 forward; becoming active still refreshes stale Open PRs, but the hotkey
 itself does not force GitHub work. Command-P, Remove Project, and Settings
 load the configured project list when opened, not at launch. Command-K
 indexes note text for literal search immediately and loads on-device
-sentence embeddings only when a query has no exact match. Theme and Font
-Size live only in Command-K nested lists; they are not in Settings.
+sentence embeddings only when a query has no exact match. Theme, Font Size,
+Vertical Mode, and Notes Only live only in Command-K; they are not in
+Settings.
 
 Inferred attention remains available through CLI and JSON but is hidden from
 the window. Launch and Refresh do not scan inferred threads. Refresh updates
@@ -76,21 +85,25 @@ identity or cache is shown as unavailable. Pagination fails safely on a
 repeated cursor or bounded page limit instead of risking an unbounded GitHub
 query loop.
 
-Each row places a merge-conflict icon after its ready or draft state when
-GitHub reports the pull request as `CONFLICTING`. The column stays aligned when
-there is no confirmed conflict; `MERGEABLE`, `UNKNOWN`, and older cache entries
-without the field stay blank. VoiceOver names confirmed conflicts only and
-omits unconfirmed `MERGEABLE`, `UNKNOWN`, and legacy rows. The actionable
-review-feedback count follows that column. Only unresolved, non-outdated GitHub review threads count. Nonzero counts
-use the orange attention color, confirmed zero uses a quiet dash, and
-unavailable legacy cache data uses `?` until a complete refresh supplies an
-exact count. The row content opens the pull request; its separate leading
-checkbox, immediately before the repository name, changes only the private
-`Reviewed by me` marker. Hovering a row shows a delayed glance card with
-compact identity, the title, who is assigned or `unassigned`, a short
-what-and-why when the scan has one, and one next step such as fix merge
-conflicts, failing CI, unresolved review threads, or waiting on review. Hover
-does not dump author, diffstat, SHA, or URL, and it does not call GitHub.
+Each row leads with muted repository identity, then number, a compact
+ready/draft badge, optional merge-conflict icon, and the review-feedback
+count. The pull-request title is the primary scanned text. Age sits beside
+the title instead of floating to the far right. In Vertical Mode identity
+stays on the first line and the title plus age wrap onto the second. The
+conflict column stays aligned when there is no confirmed conflict;
+`MERGEABLE`, `UNKNOWN`, and older cache entries without the field stay blank.
+VoiceOver names confirmed conflicts only and omits unconfirmed `MERGEABLE`,
+`UNKNOWN`, and legacy rows. Only unresolved, non-outdated GitHub review
+threads count. Nonzero counts use the orange attention color, confirmed zero
+uses a quiet dash, and unavailable legacy cache data uses `?` until a
+complete refresh supplies an exact count. The row content opens the pull
+request; its separate leading checkbox, immediately before the repository
+name, changes only the private `Reviewed by me` marker. Hovering a row shows
+a delayed glance card with compact identity, the title, who is assigned or
+`unassigned`, a short what-and-why when the scan has one, and one next step
+such as fix merge conflicts, failing CI, unresolved review threads, or
+waiting on review. Hover does not dump author, diffstat, SHA, or URL, and it
+does not call GitHub.
 
 A review mark is stored locally for the exact observed head commit and survives
 relaunches. Marked rows stay in place and become subtly muted. When current
@@ -160,7 +173,8 @@ after the first edit.
 
 The active editor contains regular UTF-8 text rendered with JetBrainsMono Nerd
 Font through the shared application resolver and a system monospaced fallback.
-It does not render Markdown or feed content into thread inference or attention.
+It wraps near 80 columns, left-aligned, so unused pane width stays margin. It
+does not render Markdown or feed content into thread inference or attention.
 Typing stays in memory, the latest edit saves after three idle seconds, and
 pending text flushes when the window or application yields.
 
@@ -173,9 +187,10 @@ commands and the private board store remain for existing local data.
 
 - `Command+R` refreshes Open PRs and the current daily-note date.
 - `Command+K` opens a searchable command palette with Theme, Font Size,
-  Vertical Mode, Refresh, Force Cache Refresh, Update Default Branches, Sweep
-  Worktrees, Copy Open PR Merge Prompt, Settings, Add Project, Remove Project,
-  and exact or on-device semantic matches from pinned and daily note filenames,
+  Vertical Mode, Notes Only, Refresh, Force Cache Refresh, Update Default
+  Branches, Sweep Worktrees, Copy Open PR Merge Prompt, Settings, Add Project,
+  Remove Project, and exact or on-device semantic matches from pinned and daily
+  note filenames,
   dates, and contents.
   Force Cache Refresh retries every configured GitHub repository regardless of
   cache age so a successful check replaces stale cached errors. Copy Open PR

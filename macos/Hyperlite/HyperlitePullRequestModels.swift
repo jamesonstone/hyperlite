@@ -174,6 +174,15 @@ struct HyperlitePullRequestRowLayout: Equatable {
         repositoryLayoutPriority: 1,
         titleLayoutPriority: -1
     )
+
+    static let titleFirst = HyperlitePullRequestRowLayout(
+        repositoryColumnWidth: 148,
+        reviewFeedbackColumnWidth: 28,
+        mergeConflictColumnWidth: 16,
+        availabilityMetadataColumnWidth: 149,
+        repositoryLayoutPriority: -1,
+        titleLayoutPriority: 1
+    )
 }
 
 struct HyperliteReviewFeedbackPresentation: Equatable {

@@ -3,10 +3,11 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct HyperlitePullRequestPanelRow: View {
-    static let layout = HyperlitePullRequestRowLayout.repositoryFirst
+    static let layout = HyperlitePullRequestRowLayout.titleFirst
     let row: HyperlitePullRequestRow
     let reviewStatus: HyperlitePullRequestReviewStatus
     let pinned: Bool
+    let compact: Bool
     @Binding var draggedRowID: String?
     let toggleReview: () -> Void
     let move: (String, String) -> Void
@@ -34,7 +35,8 @@ struct HyperlitePullRequestPanelRow: View {
             Button(action: openPullRequest) {
                 HyperlitePullRequestRowContent(
                     row: row,
-                    reviewStatus: reviewStatus
+                    reviewStatus: reviewStatus,
+                    compact: compact
                 )
             }
             .buttonStyle(.plain)
@@ -76,77 +78,6 @@ struct HyperlitePullRequestPanelRow: View {
             guard !Task.isCancelled else { return }
             hoverPresented = hovering
         }
-    }
-}
-
-private struct HyperlitePullRequestRowContent: View {
-    let row: HyperlitePullRequestRow
-    let reviewStatus: HyperlitePullRequestReviewStatus
-
-    private var review: HyperliteReviewFeedbackPresentation {
-        HyperlitePullRequestPresentation.reviewFeedback(
-            unresolvedThreads: row.unresolvedReviewThreads
-        )
-    }
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 7) {
-            Text(row.repository)
-                .frame(width: HyperlitePullRequestPanelRow.layout.repositoryColumnWidth,
-                       alignment: .leading)
-                .foregroundStyle(HyperliteTheme.mutedText.color)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .layoutPriority(HyperlitePullRequestPanelRow.layout.repositoryLayoutPriority)
-            Text("#\(row.number)").frame(width: 42, alignment: .leading)
-            Text(row.isDraft ? "draft" : "ready").frame(width: 42, alignment: .leading)
-            mergeConflictGlyph
-            Text(review.text)
-                .frame(width: HyperlitePullRequestPanelRow.layout.reviewFeedbackColumnWidth,
-                       alignment: .leading)
-                .foregroundStyle(review.needsAttention
-                    ? HyperliteTheme.orange.color : HyperliteTheme.mutedText.color)
-                .monospacedDigit()
-            Text(row.title)
-                .foregroundStyle(row.status == .current
-                    ? HyperliteTheme.secondaryText.color : HyperliteTheme.mutedText.color)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .layoutPriority(HyperlitePullRequestPanelRow.layout.titleLayoutPriority)
-            Spacer(minLength: 6)
-            Text(HyperlitePresentation.ageLabel(for: row.updatedAt))
-                .foregroundStyle(HyperliteTheme.mutedText.color)
-                .monospacedDigit()
-        }
-        .font(HyperliteTypography.body)
-        .foregroundStyle(HyperliteTheme.secondaryText.color)
-        .contentShape(Rectangle())
-        .opacity(reviewStatus == .reviewed ? 0.62 : 1)
-    }
-
-    @ViewBuilder
-    private var mergeConflictGlyph: some View {
-        Group {
-            if row.hasMergeConflict {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(HyperliteTheme.orange.color)
-            }
-        }
-        .frame(
-            width: HyperlitePullRequestPanelRow.layout.mergeConflictColumnWidth,
-            alignment: .leading
-        )
-        .accessibilityHidden(true)
-    }
-
-    static func accessibilityLabel(
-        for row: HyperlitePullRequestRow,
-        reviewStatus: HyperlitePullRequestReviewStatus
-    ) -> String {
-        HyperlitePullRequestHoverPresentation.snapshot(
-            row: row, reviewStatus: reviewStatus
-        ).accessibilityLabel
     }
 }
 
