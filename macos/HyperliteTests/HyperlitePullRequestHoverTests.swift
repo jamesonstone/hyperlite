@@ -5,7 +5,9 @@ enum HyperlitePullRequestHoverTests {
         testHoverShowsSummaryAndConflictNextStep()
         testHoverOmitsDenseMetadata()
         testHoverPrefersReviewWaitWhenClear()
+        testHoverShowsAssignees()
         testHoverDecodesSummary()
+        testHoverDecodesAssignees()
     }
 
     private static func testHoverShowsSummaryAndConflictNextStep() {
@@ -65,6 +67,27 @@ enum HyperlitePullRequestHoverTests {
         expect(card.status == "CI success", "supporting CI should remain when review is next")
     }
 
+    private static func testHoverShowsAssignees() {
+        var assigned = HyperlitePullRequestGlance.empty
+        assigned.assignees = ["reviewer", "octocat"]
+        assigned.ciState = "PENDING"
+        let assignedCard = HyperlitePullRequestHoverPresentation.snapshot(
+            row: row(glance: assigned, conflict: false, threads: 0),
+            reviewStatus: .unreviewed
+        )
+        expect(assignedCard.assignee == "assigned to reviewer, octocat",
+               "hover should name every assignee")
+        expect(assignedCard.accessibilityLabel.contains("assigned to reviewer, octocat"),
+               "assignee should be spoken on hover")
+
+        let emptyCard = HyperlitePullRequestHoverPresentation.snapshot(
+            row: row(glance: .empty, conflict: false, threads: 0),
+            reviewStatus: .unreviewed
+        )
+        expect(emptyCard.assignee == "unassigned",
+               "hover should say unassigned when GitHub has none")
+    }
+
     private static func testHoverDecodesSummary() {
         let data = Data("""
         {
@@ -88,6 +111,32 @@ enum HyperlitePullRequestHoverTests {
                    "scan JSON should decode the derived summary")
         } catch {
             expect(false, "summary JSON should decode")
+        }
+    }
+
+    private static func testHoverDecodesAssignees() {
+        let data = Data("""
+        {
+          "id": "owner/one#12",
+          "number": 12,
+          "title": "Ship hover",
+          "url": "https://github.com/owner/one/pull/12",
+          "head_ref_name": "GH-12",
+          "head_ref_oid": "abcdef1",
+          "is_draft": false,
+          "has_merge_conflict": false,
+          "updated_at": "2026-09-05T12:00:00Z",
+          "assignees": ["reviewer"]
+        }
+        """.utf8)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        do {
+            let pullRequest = try decoder.decode(HyperliteProjectPullRequest.self, from: data)
+            expect(pullRequest.glance.assignees == ["reviewer"],
+                   "scan JSON should decode assignees onto glance")
+        } catch {
+            expect(false, "assignee JSON should decode")
         }
     }
 

@@ -26,6 +26,7 @@
 | 0021 | notepad-row-window-actions | `docs/specs/0021-notepad-row-window-actions` | deliver | no | 2026-09-06 | Put GitHub quota and window actions on the Notepad/Daily row so the editor starts under one chrome line. |
 | 0022 | pr-first-workspace-layout | `docs/specs/0022-pr-first-workspace-layout` | deliver | no | 2026-09-06 | Stack Open PRs above notes by default and add a persistent Command-K Vertical Mode for PRs left / notes right. |
 | 0023 | amber-ghost-app-icon | `docs/specs/0023-amber-ghost-app-icon` | deliver | no | 2026-09-07 | Replace the liquid-chrome Dock icon with a Blade Runner 2049 Officer K amber ghost so Hyperlite is distinct from Cursor. |
+| 0024 | open-pr-hover-assignee | `docs/specs/0024-open-pr-hover-assignee` | deliver | no | 2026-09-07 | Show GitHub assignees on the Open PR hover card from in-memory glance fields. |
 
 ## PROJECT INTENT
 
@@ -351,8 +352,22 @@ changes that warrant human attention.
 - **OPEN ITEMS**: Ready pull-request delivery through issue #77.
 - **POINTERS**: `docs/specs/0023-amber-ghost-app-icon/SPEC.md`
 
+### open-pr-hover-assignee
+
+- **STATUS**: deliver
+- **PAUSED**: no
+- **INTENT**: Show who is assigned to an Open PR on the delayed hover card
+  without restoring the dense glance dump.
+- **APPROACH**: Render one compact assignee line from already-decoded glance
+  logins; show `unassigned` when GitHub has none.
+- **OPEN ITEMS**: Ready pull-request delivery through issue #79.
+- **POINTERS**: `docs/specs/0024-open-pr-hover-assignee/SPEC.md`
+
 ## LAST UPDATED
 
+- 2026-09-07: Added feature `0024-open-pr-hover-assignee` so Open PR hover
+  names GitHub assignees or `unassigned`. This supersedes the assignee
+  omission from feature `0020`.
 - 2026-09-07: Added feature `0023-amber-ghost-app-icon` for the amber dusk
   Dock icon. This supersedes the packaged liquid-chrome master from
   feature `0002`; the menu-bar silhouette is unchanged.
