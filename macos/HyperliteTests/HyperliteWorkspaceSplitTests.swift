@@ -103,7 +103,7 @@ enum HyperliteWorkspaceSplitTests {
         )
         expect(
             HyperliteWorkspaceSplit.compactRows(verticalMode: true, notesOnly: false),
-            "Vertical Mode should use two-line Open PR rows"
+            "Vertical Mode should keep compact two-line rows for mixed pinned identity"
         )
         expect(
             !HyperliteWorkspaceSplit.compactRows(verticalMode: false, notesOnly: false),
@@ -119,6 +119,7 @@ enum HyperliteWorkspaceSplitTests {
         let short = HyperliteWorkspaceSplit.estimatedStackedContentHeight(
             pinnedCount: 0,
             openCount: 4,
+            projectSectionCount: 2,
             availabilityCount: 0,
             compactRows: false,
             hasStatusMessage: false
@@ -130,6 +131,7 @@ enum HyperliteWorkspaceSplitTests {
         let empty = HyperliteWorkspaceSplit.estimatedStackedContentHeight(
             pinnedCount: 0,
             openCount: 0,
+            projectSectionCount: 0,
             availabilityCount: 0,
             compactRows: false,
             hasStatusMessage: false
@@ -143,6 +145,26 @@ enum HyperliteWorkspaceSplitTests {
         )
         expect(abs(fitted - short) < 0.5,
                "fit-content stacked height should use the row-count estimate")
+        let emptyPinned = HyperliteWorkspaceSplit.estimatedStackedContentHeight(
+            pinnedCount: 0,
+            openCount: 4,
+            projectSectionCount: 2,
+            availabilityCount: 0,
+            compactRows: false,
+            hasStatusMessage: false
+        )
+        expect(emptyPinned == 190,
+               "empty Pinned plus two project sections should count every LazyVStack child")
+        let withAvailability = HyperliteWorkspaceSplit.estimatedStackedContentHeight(
+            pinnedCount: 0,
+            openCount: 2,
+            projectSectionCount: 1,
+            availabilityCount: 1,
+            compactRows: false,
+            hasStatusMessage: false
+        )
+        expect(withAvailability == 140,
+               "availability rows should count in the stacked spacing estimate")
     }
 
     private static func testTinyStackedDragKeepsFitContent() {

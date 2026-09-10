@@ -29,6 +29,7 @@
 | 0024 | open-pr-hover-assignee | `docs/specs/0024-open-pr-hover-assignee` | deliver | no | 2026-09-07 | Show GitHub assignees on the Open PR hover card from in-memory glance fields. |
 | 0025 | readable-workspace-layout | `docs/specs/0025-readable-workspace-layout` | deliver | no | 2026-09-08 | Size Open PRs to content, add a draggable split, Notes Only, title-first compact rows, and leftover height for notes. |
 | 0026 | notepad-fills-pane | `docs/specs/0026-notepad-fills-pane` | deliver | no | 2026-09-08 | Let Notepad/Daily wrap to leftover pane width instead of an 80-column cap. |
+| 0027 | open-pr-project-sections | `docs/specs/0027-open-pr-project-sections` | deliver | no | 2026-09-10 | Group unpinned Open PRs under prominent repository section headers. |
 
 ## PROJECT INTENT
 
@@ -383,8 +384,20 @@ changes that warrant human attention.
 - **OPEN ITEMS**: Ready pull-request delivery through issue #83.
 - **POINTERS**: `docs/specs/0026-notepad-fills-pane/SPEC.md`
 
+### open-pr-project-sections
+
+- **STATUS**: deliver
+- **PAUSED**: no
+- **INTENT**: Make it obvious which project an Open PR belongs to by grouping unpinned rows under prominent repository headers.
+- **APPROACH**: 1. Group unpinned rows by repository in first-seen order. 2. Hide per-row repository identity inside those sections. 3. Keep Pinned mixed with per-row repository labels. 4. Make drag/keyboard move section-aware.
+- **OPEN ITEMS**: Ready pull-request delivery through issue #86.
+- **POINTERS**: `docs/specs/0027-open-pr-project-sections/SPEC.md`
+
 ## LAST UPDATED
 
+- 2026-09-10: Added feature `0027-open-pr-project-sections` so unpinned Open
+  PRs group under prominent repository headings. This supersedes per-row
+  muted repository identity from feature `0025` for unpinned rows.
 - 2026-09-08: Added feature `0026-notepad-fills-pane` so Notepad/Daily fills
   leftover pane width. This supersedes the 80-column measure from feature
   `0025`.

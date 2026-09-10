@@ -29,7 +29,8 @@ on the Notepad/Daily row. Command-K Vertical Mode is a persistent toggle that
 puts Open PRs on the left and notes on the right; the default stacked layout
 keeps Open PRs above notes and sizes the list to its content so leftover
 height goes to the editor. Vertical Mode defaults Open PRs to a narrower
-left pane and wraps each row onto two lines so titles stay readable. Drag the
+left pane. Pinned mixed rows wrap onto two lines so repository identity stays
+readable; unpinned project-section rows stay one line under the heading. Drag the
 divider to persist a separate ratio for stacked and left-right layouts;
 double-click restores that layout's default. Command-K Notes Only hides the
 Open PR rows, leaves a one-line `Open PRs N · Pinned N` summary, and gives
@@ -85,20 +86,22 @@ identity or cache is shown as unavailable. Pagination fails safely on a
 repeated cursor or bounded page limit instead of risking an unbounded GitHub
 query loop.
 
-Each row leads with muted repository identity, then number, a compact
-ready/draft badge, optional merge-conflict icon, and the review-feedback
-count. The pull-request title is the primary scanned text. Age sits beside
-the title instead of floating to the far right. In Vertical Mode identity
-stays on the first line and the title plus age wrap onto the second. The
-conflict column stays aligned when there is no confirmed conflict;
+Each row leads with number, a compact ready/draft badge, optional
+merge-conflict icon, and the review-feedback count. Unpinned rows sit under a
+semibold repository section heading so the project name is obvious without
+repeating on every line. The pull-request title is the primary scanned text.
+Age sits beside the title. Pinned rows keep a muted repository label because
+that list can mix projects. In Vertical Mode, pinned mixed rows still use two
+lines (identity, then title plus age); project-section rows stay one line.
+The conflict column stays aligned when there is no confirmed conflict;
 `MERGEABLE`, `UNKNOWN`, and older cache entries without the field stay blank.
 VoiceOver names confirmed conflicts only and omits unconfirmed `MERGEABLE`,
 `UNKNOWN`, and legacy rows. Only unresolved, non-outdated GitHub review
 threads count. Nonzero counts use the orange attention color, confirmed zero
 uses a quiet dash, and unavailable legacy cache data uses `?` until a
 complete refresh supplies an exact count. The row content opens the pull
-request; its separate leading checkbox, immediately before the repository
-name, changes only the private `Reviewed by me` marker. Hovering a row shows
+request; its separate leading checkbox, immediately before the row text,
+changes only the private `Reviewed by me` marker. Hovering a row shows
 a delayed glance card with compact identity, the title, who is assigned or
 `unassigned`, a short what-and-why when the scan has one, and one next step
 such as fix merge conflicts, failing CI, unresolved review threads, or
@@ -112,12 +115,14 @@ and shows an orange stale marker until the new revision is reviewed or the mark
 is cleared. Cached or unavailable evidence preserves the last mark; a cached
 row may clear that mark but cannot create or replace one.
 
-The Open PRs list has a Pinned section above the remaining rows. Drag a row
-by its leading handle to reorder it, including into Pinned (which pins it)
-or out of Pinned (which unpins it). Pin membership and order persist locally
-and never call GitHub. Accessible Move up and Move down actions cross that
-same boundary. Sort, filter, hide-drafts, and enter/exit reorder chrome are
-not on the title line.
+The Open PRs list has a Pinned section above repository sections for the
+remaining rows. Drag a row by its leading handle to reorder it, including into
+Pinned (which pins it) or out of Pinned (which unpins it). Dragging inside a
+repository section reorders that project's rows; dragging onto another
+repository moves the whole project group. Pin membership and order persist
+locally and never call GitHub. Accessible Move up and Move down actions cross
+the pin boundary and move project groups the same way. Sort, filter,
+hide-drafts, and enter/exit reorder chrome are not on the title line.
 
 Copy Open PR Merge Prompt remains in Command-K. Copy writes a durable
 instruction plus each visible pull request's identity, URL, draft/ready

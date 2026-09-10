@@ -39,15 +39,23 @@ struct HyperlitePullRequestPanel: View {
                     ForEach(sections.pinned) { row in
                         pullRequestRow(row, pinned: true)
                     }
-                    sectionLabel("Open", count: sections.unpinned.count)
                     if sections.unpinned.isEmpty {
+                        sectionLabel("Open", count: 0)
                         HyperlitePinnedSectionDropTarget(
                             draggedRowID: $draggedRowID,
                             pin: pins.unpin
                         )
                     }
-                    ForEach(sections.unpinned) { row in
-                        pullRequestRow(row, pinned: false)
+                    ForEach(sections.unpinnedGroups) { group in
+                        HyperliteProjectSectionHeader(
+                            repository: group.repository,
+                            count: group.rows.count,
+                            draggedRowID: $draggedRowID,
+                            drop: { pins.move($0, over: group.rows[0].id, rows: sourceRows) }
+                        )
+                        ForEach(group.rows) { row in
+                            pullRequestRow(row, pinned: false)
+                        }
                     }
                     ForEach(availability) { project in
                         HyperlitePullRequestAvailabilityRow(project: project)
@@ -103,10 +111,11 @@ struct HyperlitePullRequestPanel: View {
             reviewStatus: organization.pullRequestReviewStatus(for: row),
             pinned: pinned,
             compact: compactRows,
+            showRepository: pinned,
             draggedRowID: $draggedRowID,
             toggleReview: { organization.togglePullRequestReviewed(row) },
-            move: pins.move,
-            moveBy: pins.move
+            move: { pins.move($0, over: $1, rows: sourceRows) },
+            moveBy: { pins.move($0, by: $1, rows: sourceRows) }
         )
     }
 }

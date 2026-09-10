@@ -4,6 +4,7 @@ struct HyperlitePullRequestRowContent: View {
     let row: HyperlitePullRequestRow
     let reviewStatus: HyperlitePullRequestReviewStatus
     let compact: Bool
+    var showRepository = true
 
     private var review: HyperliteReviewFeedbackPresentation {
         HyperlitePullRequestPresentation.reviewFeedback(
@@ -19,7 +20,7 @@ struct HyperlitePullRequestRowContent: View {
 
     var body: some View {
         Group {
-            if compact {
+            if compact && showRepository {
                 compactStack
             } else {
                 wideRow
@@ -33,14 +34,16 @@ struct HyperlitePullRequestRowContent: View {
 
     private var wideRow: some View {
         HStack(alignment: .firstTextBaseline, spacing: 7) {
-            repositoryLabel
-                .frame(
-                    minWidth: 72,
-                    idealWidth: 132,
-                    maxWidth: HyperlitePullRequestRowLayout.titleFirst.repositoryColumnWidth,
-                    alignment: .leading
-                )
-                .layoutPriority(HyperlitePullRequestRowLayout.titleFirst.repositoryLayoutPriority)
+            if showRepository {
+                repositoryLabel
+                    .frame(
+                        minWidth: 72,
+                        idealWidth: 132,
+                        maxWidth: HyperlitePullRequestRowLayout.titleFirst.repositoryColumnWidth,
+                        alignment: .leading
+                    )
+                    .layoutPriority(HyperlitePullRequestRowLayout.titleFirst.repositoryLayoutPriority)
+            }
             numberLabel
             statusBadge
             mergeConflictGlyph
