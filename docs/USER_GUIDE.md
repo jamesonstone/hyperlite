@@ -87,12 +87,14 @@ repeated cursor or bounded page limit instead of risking an unbounded GitHub
 query loop.
 
 Each row leads with number, a compact ready/draft badge, optional
-merge-conflict icon, and the review-feedback count. Unpinned rows sit under a
+merge-conflict icon, and the review-feedback count. Number and ready/draft
+stay whole words; a long title truncates instead of wrapping. Unpinned rows sit under a
 semibold repository section heading so the project name is obvious without
 repeating on every line. The pull-request title is the primary scanned text.
 Age sits beside the title. Pinned rows keep a muted repository label because
 that list can mix projects. In Vertical Mode, pinned mixed rows still use two
-lines (identity, then title plus age); project-section rows stay one line.
+lines (identity, then title plus age); project-section rows stay one line,
+with `ready`/`draft` remaining a whole word on that line.
 The conflict column stays aligned when there is no confirmed conflict;
 `MERGEABLE`, `UNKNOWN`, and older cache entries without the field stay blank.
 VoiceOver names confirmed conflicts only and omits unconfirmed `MERGEABLE`,

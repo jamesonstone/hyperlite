@@ -164,6 +164,7 @@ struct HyperlitePullRequestRowLayout: Equatable {
     let mergeConflictColumnWidth: CGFloat
     let availabilityMetadataColumnWidth: CGFloat
     let repositoryLayoutPriority: Double
+    let metadataLayoutPriority: Double
     let titleLayoutPriority: Double
 
     static let repositoryFirst = HyperlitePullRequestRowLayout(
@@ -172,6 +173,7 @@ struct HyperlitePullRequestRowLayout: Equatable {
         mergeConflictColumnWidth: 16,
         availabilityMetadataColumnWidth: 149,
         repositoryLayoutPriority: 1,
+        metadataLayoutPriority: 2,
         titleLayoutPriority: -1
     )
 
@@ -181,8 +183,13 @@ struct HyperlitePullRequestRowLayout: Equatable {
         mergeConflictColumnWidth: 16,
         availabilityMetadataColumnWidth: 149,
         repositoryLayoutPriority: -1,
+        metadataLayoutPriority: 2,
         titleLayoutPriority: 1
     )
+
+    static func usesCompactStack(compact: Bool, showRepository: Bool) -> Bool {
+        compact && showRepository
+    }
 }
 
 struct HyperliteReviewFeedbackPresentation: Equatable {
