@@ -8,6 +8,7 @@ enum HyperlitePullRequestPinningTests {
         testUnpinnedRowsGroupByRepository()
         testSameProjectDropReordersInsideTheGroup()
         testCrossProjectDropMovesTheGroup()
+        testAdjacentDownwardGroupDropMovesTheGroup()
         testKeyboardMoveAtGroupBoundaryMovesTheGroup()
     }
 
@@ -105,6 +106,30 @@ enum HyperlitePullRequestPinningTests {
                "moving a later row should still move its whole project group")
     }
 
+    private static func testAdjacentDownwardGroupDropMovesTheGroup() {
+        var pinned: [String] = []
+        var unpinned: [String] = ["a1", "a2", "b1"]
+        HyperlitePullRequestPinning.move(
+            "a1",
+            over: "b1",
+            pinned: &pinned,
+            unpinned: &unpinned,
+            repositories: repositories()
+        )
+        expect(unpinned == ["b1", "a1", "a2"],
+               "dropping a project onto the next project should move that group down")
+        unpinned = ["a1", "b1", "c1"]
+        HyperlitePullRequestPinning.move(
+            "a1",
+            over: "c1",
+            pinned: &pinned,
+            unpinned: &unpinned,
+            repositories: repositories()
+        )
+        expect(unpinned == ["b1", "a1", "c1"],
+               "dropping onto a later project should insert immediately before it")
+    }
+
     private static func testKeyboardMoveAtGroupBoundaryMovesTheGroup() {
         var pinned: [String] = []
         var unpinned: [String] = ["a1", "a2", "b1"]
@@ -157,6 +182,7 @@ enum HyperlitePullRequestPinningTests {
             "a1": "owner/one",
             "a2": "owner/one",
             "b1": "owner/two",
+            "c1": "owner/three",
         ]
     }
 

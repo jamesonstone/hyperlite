@@ -20,7 +20,7 @@ final class HyperlitePullRequestPinStore: ObservableObject {
         )
     }
 
-    func move(_ id: String, over targetID: String, rows: [HyperlitePullRequestRow] = []) {
+    func move(_ id: String, over targetID: String, rows: [HyperlitePullRequestRow]) {
         var pinned = pinnedIDs
         var unpinned = unpinnedIDs
         HyperlitePullRequestPinning.move(
@@ -33,7 +33,7 @@ final class HyperlitePullRequestPinStore: ObservableObject {
         persist(pinned: pinned, unpinned: unpinned)
     }
 
-    func move(_ id: String, by offset: Int, rows: [HyperlitePullRequestRow] = []) {
+    func move(_ id: String, by offset: Int, rows: [HyperlitePullRequestRow]) {
         var pinned = pinnedIDs
         var unpinned = unpinnedIDs
         HyperlitePullRequestPinning.move(

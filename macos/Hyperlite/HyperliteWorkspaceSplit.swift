@@ -112,8 +112,10 @@ enum HyperliteWorkspaceSplit {
             height += stackedEmptyListHeight
         } else {
             let sectionCount = 1 + max(projectSectionCount, openCount == 0 ? 1 : 0)
+            let emptyDropCount = (pinnedCount == 0 ? 1 : 0) + (openCount == 0 ? 1 : 0)
+            let lazyChildCount = sectionCount + rows + availabilityCount + emptyDropCount
             height += stackedSectionLabelHeight * CGFloat(sectionCount)
-            height += stackedLazySpacing * CGFloat(2 + sectionCount)
+            height += stackedLazySpacing * CGFloat(max(lazyChildCount - 1, 0))
             height += CGFloat(rows) * rowHeight
             height += CGFloat(availabilityCount) * stackedAvailabilityRowHeight
             if pinnedCount == 0 { height += stackedEmptyDropHeight }

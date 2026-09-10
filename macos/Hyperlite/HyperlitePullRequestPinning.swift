@@ -157,8 +157,15 @@ enum HyperlitePullRequestPinning {
               sourceIndex != targetIndex
         else { return }
         let group = groups.remove(at: sourceIndex)
-        let adjusted = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex
-        groups.insert(group, at: adjusted)
+        guard let newTarget = groups.firstIndex(where: { $0.repository == targetRepo }) else {
+            groups.append(group)
+            return
+        }
+        if sourceIndex < targetIndex && newTarget == sourceIndex {
+            groups.insert(group, at: newTarget + 1)
+        } else {
+            groups.insert(group, at: newTarget)
+        }
     }
 
     private static func place(

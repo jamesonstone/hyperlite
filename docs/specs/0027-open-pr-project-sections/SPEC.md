@@ -150,8 +150,12 @@ Observable acceptance:
   wholesale. Restored the curated index and added only the 0027 row and summary.
 - Pin-store moves need the row repository map. Empty maps keep the previous
   flat ID-list behavior so existing pin tests stay valid.
-- Vertical Mode compact two-line stacks are only needed while a row still
-  shows repository identity. Project-section rows can stay one line.
+- Adjacent downward group drops were a no-op because insert-before after
+  removal restored the original index. Adjacent-next now places the group
+  after the target, matching keyboard group swap; later targets still insert
+  immediately before the drop target.
+- Stacked fit-content height now counts every `LazyVStack` child, including
+  empty pin drop targets, PR rows, and availability rows.
 
 ## VALIDATION
 
