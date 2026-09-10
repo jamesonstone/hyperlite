@@ -110,8 +110,9 @@
   layouts. Light themes recolor Hyperlite-painted surfaces and native
   `colorScheme`. Default remains Selenized Dark at 12 pt list type, stacked
   Open PRs above notes, and a content-sized Open PRs pane.
-- Open PR pin membership and order are local presentation metadata. They do
-  not change GitHub state. Unpinning restores a row to the unpinned list.
+- Open PR pin membership and order are local presentation metadata. Unpinned
+  Open PRs group by repository as local presentation. They do not change
+  GitHub state. Unpinning restores a row to its project section.
 
 ### Kit-Managed Baseline Rules
 

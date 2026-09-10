@@ -166,6 +166,7 @@ struct HyperliteWindow: View {
         return HyperliteWorkspaceSplit.estimatedStackedContentHeight(
             pinnedCount: sections.pinned.count,
             openCount: sections.unpinned.count,
+            projectSectionCount: sections.unpinnedGroups.count,
             availabilityCount: HyperlitePullRequestPresentation.availability(scan: scan).count,
             compactRows: false,
             hasStatusMessage: state.errorMessage != nil || state.statusMessage != nil

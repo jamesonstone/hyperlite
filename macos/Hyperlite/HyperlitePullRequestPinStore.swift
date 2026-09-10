@@ -20,20 +20,28 @@ final class HyperlitePullRequestPinStore: ObservableObject {
         )
     }
 
-    func move(_ id: String, over targetID: String) {
+    func move(_ id: String, over targetID: String, rows: [HyperlitePullRequestRow] = []) {
         var pinned = pinnedIDs
         var unpinned = unpinnedIDs
         HyperlitePullRequestPinning.move(
-            id, over: targetID, pinned: &pinned, unpinned: &unpinned
+            id,
+            over: targetID,
+            pinned: &pinned,
+            unpinned: &unpinned,
+            repositories: repositories(from: rows)
         )
         persist(pinned: pinned, unpinned: unpinned)
     }
 
-    func move(_ id: String, by offset: Int) {
+    func move(_ id: String, by offset: Int, rows: [HyperlitePullRequestRow] = []) {
         var pinned = pinnedIDs
         var unpinned = unpinnedIDs
         HyperlitePullRequestPinning.move(
-            id, by: offset, pinned: &pinned, unpinned: &unpinned
+            id,
+            by: offset,
+            pinned: &pinned,
+            unpinned: &unpinned,
+            repositories: repositories(from: rows)
         )
         persist(pinned: pinned, unpinned: unpinned)
     }
@@ -53,6 +61,10 @@ final class HyperlitePullRequestPinStore: ObservableObject {
             unpinned.insert(id, at: 0)
         }
         persist(pinned: pinned, unpinned: unpinned)
+    }
+
+    private func repositories(from rows: [HyperlitePullRequestRow]) -> [String: String] {
+        Dictionary(uniqueKeysWithValues: rows.map { ($0.id, $0.repository) })
     }
 
     private func persist(pinned: [String], unpinned: [String]) {

@@ -103,7 +103,7 @@ enum HyperliteWorkspaceSplitTests {
         )
         expect(
             HyperliteWorkspaceSplit.compactRows(verticalMode: true, notesOnly: false),
-            "Vertical Mode should use two-line Open PR rows"
+            "Vertical Mode should keep compact two-line rows for mixed pinned identity"
         )
         expect(
             !HyperliteWorkspaceSplit.compactRows(verticalMode: false, notesOnly: false),
@@ -119,6 +119,7 @@ enum HyperliteWorkspaceSplitTests {
         let short = HyperliteWorkspaceSplit.estimatedStackedContentHeight(
             pinnedCount: 0,
             openCount: 4,
+            projectSectionCount: 2,
             availabilityCount: 0,
             compactRows: false,
             hasStatusMessage: false
@@ -130,6 +131,7 @@ enum HyperliteWorkspaceSplitTests {
         let empty = HyperliteWorkspaceSplit.estimatedStackedContentHeight(
             pinnedCount: 0,
             openCount: 0,
+            projectSectionCount: 0,
             availabilityCount: 0,
             compactRows: false,
             hasStatusMessage: false

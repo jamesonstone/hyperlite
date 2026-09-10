@@ -100,6 +100,7 @@ enum HyperliteWorkspaceSplit {
     static func estimatedStackedContentHeight(
         pinnedCount: Int,
         openCount: Int,
+        projectSectionCount: Int,
         availabilityCount: Int,
         compactRows: Bool,
         hasStatusMessage: Bool
@@ -110,7 +111,9 @@ enum HyperliteWorkspaceSplit {
         if rows == 0 && availabilityCount == 0 {
             height += stackedEmptyListHeight
         } else {
-            height += stackedSectionLabelHeight * 2 + stackedLazySpacing * 4
+            let sectionCount = 1 + max(projectSectionCount, openCount == 0 ? 1 : 0)
+            height += stackedSectionLabelHeight * CGFloat(sectionCount)
+            height += stackedLazySpacing * CGFloat(2 + sectionCount)
             height += CGFloat(rows) * rowHeight
             height += CGFloat(availabilityCount) * stackedAvailabilityRowHeight
             if pinnedCount == 0 { height += stackedEmptyDropHeight }

@@ -110,7 +110,10 @@ rows, and notepad width share one tightly coupled layout contract.
   The choice persists locally.
 - R5: Vertical Mode uses two-line Open PR rows. Stacked wide rows stay one
   line. Titles are the primary text; repository identity is muted; age sits
-  beside the title instead of a far-right gutter.
+  beside the title instead of a far-right gutter. Feature 0027 supersedes
+  per-row repository identity for unpinned rows: those rows sit under project
+  section headings and stay one line in Vertical Mode. Pinned mixed rows keep
+  the two-line compact stack.
 - R6: Superseded by feature 0026. Originally wrapped near 80 monospaced
   columns, left-aligned; the cap left a large empty gutter.
 - R7: Keep handwritten source and test files at or under 300 lines.

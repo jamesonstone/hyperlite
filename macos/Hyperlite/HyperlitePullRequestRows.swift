@@ -8,6 +8,7 @@ struct HyperlitePullRequestPanelRow: View {
     let reviewStatus: HyperlitePullRequestReviewStatus
     let pinned: Bool
     let compact: Bool
+    var showRepository = true
     @Binding var draggedRowID: String?
     let toggleReview: () -> Void
     let move: (String, String) -> Void
@@ -36,7 +37,8 @@ struct HyperlitePullRequestPanelRow: View {
                 HyperlitePullRequestRowContent(
                     row: row,
                     reviewStatus: reviewStatus,
-                    compact: compact
+                    compact: compact,
+                    showRepository: showRepository
                 )
             }
             .buttonStyle(.plain)
@@ -183,6 +185,38 @@ struct HyperlitePinnedSectionDropTarget: View {
                     pin: pin
                 )
             )
+    }
+}
+
+struct HyperliteProjectSectionHeader: View {
+    let repository: String
+    let count: Int
+    @Binding var draggedRowID: String?
+    let drop: (String) -> Void
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Text(repository)
+                .font(HyperliteTypography.heading)
+                .foregroundStyle(HyperliteTheme.secondaryText.color)
+                .lineLimit(1)
+                .truncationMode(.tail)
+            Text("\(count)")
+                .font(HyperliteTypography.compact.monospacedDigit())
+                .foregroundStyle(HyperliteTheme.mutedText.color)
+        }
+        .padding(.top, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+        .onDrop(
+            of: [UTType.text.identifier],
+            delegate: HyperliteSectionPinDropDelegate(
+                draggedID: $draggedRowID,
+                pin: drop
+            )
+        )
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(repository) pull requests, \(count)")
     }
 }
 
