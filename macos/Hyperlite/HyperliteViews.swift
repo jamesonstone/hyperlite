@@ -131,28 +131,18 @@ struct HyperliteWindow: View {
         Button {
             appearance.setNotesOnly(false)
         } label: {
-            HyperliteOpenPRRefreshPulseChrome(
-                isRefreshing: state.isRefreshingPullRequests
-            ) { opacity in
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    if HyperliteOpenPRRefreshPulse.showsGlyph(
-                        state.isRefreshingPullRequests
-                    ) {
-                        Text(HyperliteOpenPRRefreshPulse.glyph)
-                            .font(HyperliteTypography.compact)
-                            .opacity(opacity)
-                            .accessibilityHidden(true)
-                    }
-                    Text(HyperliteWorkspaceSplit.summaryTitle(
-                        openCount: visibleOpenPullRequests.count,
-                        pinnedCount: pinnedPullRequestCount
-                    ))
-                    .font(HyperliteTypography.heading)
-                    .foregroundStyle(HyperliteTheme.secondaryText.color)
-                    .opacity(opacity)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
-                }
+            Text(HyperliteWorkspaceSplit.summaryTitle(
+                openCount: visibleOpenPullRequests.count,
+                pinnedCount: pinnedPullRequestCount
+            ))
+            .font(HyperliteTypography.heading)
+            .foregroundStyle(HyperliteTheme.secondaryText.color)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .overlay {
+                HyperliteOpenPRRefreshGhostOverlay(
+                    isRefreshing: state.isRefreshingPullRequests
+                )
             }
         }
         .buttonStyle(.plain)
@@ -217,15 +207,22 @@ struct HyperliteWindow: View {
                         ),
                         isRefreshing: state.isRefreshingPullRequests
                     )
-                } else {
-                    HyperliteOpenPRTitleCluster(
-                        count: nil,
-                        isRefreshing: state.isRefreshingPullRequests
-                    )
-                    .frame(maxWidth: .infinity, alignment: .topLeading)
-                }
+                    } else {
+                        HyperliteOpenPRTitleCluster(count: nil)
+                            .frame(maxWidth: .infinity, alignment: .topLeading)
+                            .accessibilityValue(
+                                state.isRefreshingPullRequests
+                                    ? HyperliteOpenPRRefreshPulse.accessibilityRefreshing
+                                    : ""
+                            )
+                    }
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
+        .overlay {
+            HyperliteOpenPRRefreshGhostOverlay(
+                isRefreshing: state.isRefreshingPullRequests
+            )
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }

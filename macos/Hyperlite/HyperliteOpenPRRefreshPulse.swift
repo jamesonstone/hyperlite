@@ -1,51 +1,61 @@
 import SwiftUI
 
 enum HyperliteOpenPRRefreshPulse {
-    static let interval: TimeInterval = 1.2
-    static let dimOpacity: Double = 0.42
     static let glyph = "👻"
     static let accessibilityRefreshing = "Refreshing open pull requests from GitHub"
+    static let spinDuration: TimeInterval = 1.15
+    static let pauseDuration: TimeInterval = 0.4
+    static let tickInterval: TimeInterval = 1.0 / 12.0
+    static let overlayOpacity: Double = 0.36
+    static let fillRatio: CGFloat = 0.68
 
-    static func isBright(at date: Date) -> Bool {
-        Int(date.timeIntervalSinceReferenceDate / interval) % 2 == 0
+    static var cycleDuration: TimeInterval { spinDuration + pauseDuration }
+
+    static func rotationDegrees(isRefreshing: Bool, at date: Date) -> Double {
+        guard isRefreshing else { return 0 }
+        var elapsed = date.timeIntervalSinceReferenceDate
+            .truncatingRemainder(dividingBy: cycleDuration)
+        if elapsed < 0 { elapsed += cycleDuration }
+        if elapsed >= spinDuration { return 0 }
+        return (elapsed / spinDuration) * 360
     }
 
-    static func titleOpacity(isRefreshing: Bool, at date: Date) -> Double {
-        guard isRefreshing else { return 1 }
-        return isBright(at: date) ? 1 : dimOpacity
-    }
-
-    static func showsGlyph(_ isRefreshing: Bool) -> Bool {
+    static func showsOverlay(_ isRefreshing: Bool) -> Bool {
         isRefreshing
     }
 }
 
-struct HyperliteOpenPRRefreshPulseChrome<Content: View>: View {
+struct HyperliteOpenPRRefreshGhostOverlay: View {
     let isRefreshing: Bool
-    let content: (Double) -> Content
-
-    init(
-        isRefreshing: Bool,
-        @ViewBuilder content: @escaping (Double) -> Content
-    ) {
-        self.isRefreshing = isRefreshing
-        self.content = content
-    }
 
     var body: some View {
         Group {
-            if isRefreshing {
+            if HyperliteOpenPRRefreshPulse.showsOverlay(isRefreshing) {
                 TimelineView(
-                    .periodic(from: .now, by: HyperliteOpenPRRefreshPulse.interval)
-                ) { context in
-                    content(
-                        HyperliteOpenPRRefreshPulse.titleOpacity(
-                            isRefreshing: true, at: context.date
-                        )
+                    .periodic(
+                        from: .now,
+                        by: HyperliteOpenPRRefreshPulse.tickInterval
                     )
+                ) { context in
+                    GeometryReader { geo in
+                        let side = min(geo.size.width, geo.size.height)
+                        Text(HyperliteOpenPRRefreshPulse.glyph)
+                            .font(.system(size: side * HyperliteOpenPRRefreshPulse.fillRatio))
+                            .opacity(HyperliteOpenPRRefreshPulse.overlayOpacity)
+                            .rotationEffect(
+                                .degrees(
+                                    HyperliteOpenPRRefreshPulse.rotationDegrees(
+                                        isRefreshing: true,
+                                        at: context.date
+                                    )
+                                )
+                            )
+                            .frame(width: geo.size.width, height: geo.size.height)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-            } else {
-                content(1)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
             }
         }
         .transaction { $0.animation = nil }
@@ -54,33 +64,17 @@ struct HyperliteOpenPRRefreshPulseChrome<Content: View>: View {
 
 struct HyperliteOpenPRTitleCluster: View {
     let count: Int?
-    let isRefreshing: Bool
 
     var body: some View {
-        HyperliteOpenPRRefreshPulseChrome(isRefreshing: isRefreshing) { opacity in
-            HStack(alignment: .firstTextBaseline, spacing: 3) {
-                Text("Open PRs")
-                    .font(HyperliteTypography.heading)
-                    .foregroundStyle(HyperliteTheme.secondaryText.color)
-                    .opacity(opacity)
-                if HyperliteOpenPRRefreshPulse.showsGlyph(isRefreshing) {
-                    Text(HyperliteOpenPRRefreshPulse.glyph)
-                        .font(HyperliteTypography.compact)
-                        .opacity(opacity)
-                        .accessibilityHidden(true)
-                }
-                if let count {
-                    Text("\(count)")
-                        .font(HyperliteTypography.compact.monospacedDigit())
-                        .foregroundStyle(HyperliteTheme.mutedText.color)
-                }
+        HStack(alignment: .firstTextBaseline, spacing: 3) {
+            Text("Open PRs")
+                .font(HyperliteTypography.heading)
+                .foregroundStyle(HyperliteTheme.secondaryText.color)
+            if let count {
+                Text("\(count)")
+                    .font(HyperliteTypography.compact.monospacedDigit())
+                    .foregroundStyle(HyperliteTheme.mutedText.color)
             }
-            .accessibilityElement(children: .combine)
-            .accessibilityValue(
-                HyperliteOpenPRRefreshPulse.showsGlyph(isRefreshing)
-                    ? HyperliteOpenPRRefreshPulse.accessibilityRefreshing
-                    : ""
-            )
         }
     }
 }

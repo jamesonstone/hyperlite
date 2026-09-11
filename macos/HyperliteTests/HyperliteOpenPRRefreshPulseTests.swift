@@ -2,52 +2,65 @@ import Foundation
 
 enum HyperliteOpenPRRefreshPulseTests {
     static func run() {
-        testIdleHeaderStaysFullyOpaqueWithoutAGlyph()
-        testRefreshingPulseAlternatesAndKeepsTheGhost()
+        testIdleGhostRestsAtZeroWithoutAnOverlay()
+        testRefreshingSpinCompletesATurnThenPausesAtZero()
         testAccessibilityNamesTheRefresh()
     }
 
-    private static func testIdleHeaderStaysFullyOpaqueWithoutAGlyph() {
+    private static func testIdleGhostRestsAtZeroWithoutAnOverlay() {
         let date = Date(timeIntervalSinceReferenceDate: 0)
         expect(
-            HyperliteOpenPRRefreshPulse.titleOpacity(isRefreshing: false, at: date) == 1,
-            "idle Open PRs title should stay fully opaque"
+            HyperliteOpenPRRefreshPulse.rotationDegrees(isRefreshing: false, at: date) == 0,
+            "idle Open PRs overlay should rest at 0 degrees"
         )
         expect(
-            !HyperliteOpenPRRefreshPulse.showsGlyph(false),
-            "idle Open PRs should not keep a refresh ghost in layout"
+            !HyperliteOpenPRRefreshPulse.showsOverlay(false),
+            "idle Open PRs should not keep a refresh overlay in the tree"
         )
     }
 
-    private static func testRefreshingPulseAlternatesAndKeepsTheGhost() {
-        let bright = Date(timeIntervalSinceReferenceDate: 0)
-        let dim = Date(
-            timeIntervalSinceReferenceDate: HyperliteOpenPRRefreshPulse.interval
+    private static func testRefreshingSpinCompletesATurnThenPausesAtZero() {
+        let start = Date(timeIntervalSinceReferenceDate: 0)
+        let halfway = Date(
+            timeIntervalSinceReferenceDate: HyperliteOpenPRRefreshPulse.spinDuration / 2
+        )
+        let pause = Date(
+            timeIntervalSinceReferenceDate: HyperliteOpenPRRefreshPulse.spinDuration
+        )
+        let stillPaused = Date(
+            timeIntervalSinceReferenceDate: HyperliteOpenPRRefreshPulse.spinDuration
+                + HyperliteOpenPRRefreshPulse.pauseDuration / 2
         )
         expect(
-            HyperliteOpenPRRefreshPulse.isBright(at: bright),
-            "even interval buckets should be the bright pulse phase"
+            HyperliteOpenPRRefreshPulse.rotationDegrees(isRefreshing: true, at: start) == 0,
+            "a new spin should start at 0 degrees"
+        )
+        let halfwayDegrees = HyperliteOpenPRRefreshPulse.rotationDegrees(
+            isRefreshing: true, at: halfway
         )
         expect(
-            !HyperliteOpenPRRefreshPulse.isBright(at: dim),
-            "odd interval buckets should be the dim pulse phase"
+            abs(halfwayDegrees - 180) < 0.01,
+            "mid-spin should face the opposite way"
         )
         expect(
-            HyperliteOpenPRRefreshPulse.titleOpacity(isRefreshing: true, at: bright) == 1,
-            "bright refresh ticks should keep full title opacity"
+            HyperliteOpenPRRefreshPulse.rotationDegrees(isRefreshing: true, at: pause) == 0,
+            "completed turns should pause at 0 degrees"
         )
         expect(
-            HyperliteOpenPRRefreshPulse.titleOpacity(isRefreshing: true, at: dim) ==
-                HyperliteOpenPRRefreshPulse.dimOpacity,
-            "dim refresh ticks should use the quiet opacity"
+            HyperliteOpenPRRefreshPulse.rotationDegrees(isRefreshing: true, at: stillPaused) == 0,
+            "the rest pause should hold at 0 degrees"
         )
         expect(
-            HyperliteOpenPRRefreshPulse.showsGlyph(true),
-            "refresh should keep the ghost in layout so the header does not jump"
+            HyperliteOpenPRRefreshPulse.showsOverlay(true),
+            "refresh should keep the overlay in the pane"
         )
         expect(
-            HyperliteOpenPRRefreshPulse.interval >= 1,
-            "pulse ticks should stay well below display refresh"
+            HyperliteOpenPRRefreshPulse.tickInterval >= 1.0 / 15.0,
+            "overlay ticks should stay well below display refresh"
+        )
+        expect(
+            HyperliteOpenPRRefreshPulse.pauseDuration > 0,
+            "each turn should pause at rest before spinning again"
         )
     }
 

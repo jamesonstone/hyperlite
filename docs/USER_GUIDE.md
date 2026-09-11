@@ -77,8 +77,8 @@ configured repositories on startup or foreground activation no more often than
 every five minutes and uses bounded GraphQL batches instead of one `gh` process
 per repository. Refresh forces the index current; Force Cache Refresh in
 Command-K retries only this cache without refreshing unrelated projections.
-While that fetch is in flight, the Open PRs heading quietly pulses and a small
-👻 appears so the list does not look frozen; cached rows stay on screen.
+While that fetch is in flight, a large 👻 overlays the Open PRs pane and
+spins a full turn, pauses at rest, then spins again; cached rows stay on screen.
 The packaged app preserves its inherited executable search path and adds the
 standard Apple Silicon and Intel Homebrew directories plus `~/.local/bin` so
 Finder launches can resolve `gh` and `git-wt`.

@@ -150,3 +150,6 @@ unchanged: cached rows during refresh is already a project-wide invariant, and
 the pulse is feature-local presentation. User guide and testing reference
 updated.
 
+Feature 0030 supersedes the heading-only pulse with a pane-filling spinning
+overlay.
+
