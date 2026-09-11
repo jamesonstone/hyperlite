@@ -19,12 +19,16 @@ struct HyperlitePullRequestRowContent: View {
             : HyperliteTheme.mutedText.color
     }
 
+    private var usesCompactStack: Bool {
+        HyperlitePullRequestRowLayout.usesCompactStack(
+            compact: compact,
+            showRepository: showRepository
+        )
+    }
+
     var body: some View {
         Group {
-            if HyperlitePullRequestRowLayout.usesCompactStack(
-                compact: compact,
-                showRepository: showRepository
-            ) {
+            if usesCompactStack {
                 compactStack
             } else {
                 wideRow
@@ -147,13 +151,13 @@ struct HyperlitePullRequestRowContent: View {
                 .font(.system(size: 9, weight: .semibold))
                 .foregroundStyle(HyperliteTheme.orange.color)
                 .frame(
-                    width: compact
+                    width: usesCompactStack
                         ? nil
                         : Self.layout.mergeConflictColumnWidth,
                     alignment: .leading
                 )
                 .accessibilityHidden(true)
-        } else if !compact {
+        } else if !usesCompactStack {
             Color.clear
                 .frame(
                     width: Self.layout.mergeConflictColumnWidth,

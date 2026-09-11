@@ -190,6 +190,13 @@ struct HyperlitePullRequestRowLayout: Equatable {
     static func usesCompactStack(compact: Bool, showRepository: Bool) -> Bool {
         compact && showRepository
     }
+
+    static func reservesAlignedConflictColumn(
+        compact: Bool,
+        showRepository: Bool
+    ) -> Bool {
+        !usesCompactStack(compact: compact, showRepository: showRepository)
+    }
 }
 
 struct HyperliteReviewFeedbackPresentation: Equatable {

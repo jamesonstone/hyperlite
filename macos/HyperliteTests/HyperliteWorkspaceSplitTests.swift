@@ -140,6 +140,18 @@ enum HyperliteWorkspaceSplitTests {
             layout.metadataLayoutPriority > layout.titleLayoutPriority,
             "ready/draft and number should keep intrinsic width before the title truncates"
         )
+        expect(
+            HyperlitePullRequestRowLayout.reservesAlignedConflictColumn(
+                compact: true, showRepository: false
+            ),
+            "one-line project-section rows should reserve conflict width"
+        )
+        expect(
+            !HyperlitePullRequestRowLayout.reservesAlignedConflictColumn(
+                compact: true, showRepository: true
+            ),
+            "two-line compact stacks should not insert a conflict spacer"
+        )
     }
 
     private static func testEstimatedStackedHeightUsesCounts() {

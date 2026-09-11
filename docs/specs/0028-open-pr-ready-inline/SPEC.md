@@ -121,12 +121,16 @@ Observable acceptance:
 - `kit spec open-pr-ready-inline` rewrote `docs/PROJECT_PROGRESS_SUMMARY.md`
   wholesale. Restored the curated index and added only the 0028 row and
   summary.
+- One-line Vertical Mode rows still received `compact == true`, so the merge-
+  conflict glyph skipped the reserved column and shifted title/age when a
+  conflict was present. Conflict sizing now follows `usesCompactStack`.
 
 ## VALIDATION
 
 - `make macos-test` PASS: type-check plus executable tests, including compact
-  vs one-line selection and metadata layout priority above the title.
-- Source-file-size audit: edited source and test files are 174, 291, and 241
+  vs one-line selection, metadata layout priority, and reserved conflict
+  width on one-line rows.
+- Source-file-size audit: edited source and test files are 178, 298, and 253
   lines.
 - Interactive packaged-app walkthrough SKIPPED.
 
@@ -134,7 +138,8 @@ Observable acceptance:
 
 Unpinned project-section rows stay one line. Number, `ready`/`draft`, and
 review count keep intrinsic width so they cannot wrap letter-by-letter; the
-title truncates. Pinned mixed rows still use the two-line compact stack.
+title truncates. One-line rows reserve aligned conflict width. Pinned mixed
+rows still use the two-line compact stack.
 
 ## REPOSITORY MEMORY
 
