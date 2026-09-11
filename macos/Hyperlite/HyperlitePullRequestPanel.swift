@@ -5,6 +5,7 @@ struct HyperlitePullRequestPanel: View {
     @ObservedObject var organization: HyperliteDashboardListState
     @ObservedObject var pins: HyperlitePullRequestPinStore
     var compactRows = false
+    var isRefreshing = false
     @State private var draggedRowID: String?
 
     private var sourceRows: [HyperlitePullRequestRow] {
@@ -66,6 +67,9 @@ struct HyperlitePullRequestPanel: View {
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Open pull requests across configured projects")
+        .accessibilityValue(
+            isRefreshing ? HyperliteOpenPRRefreshPulse.accessibilityRefreshing : ""
+        )
         .task(id: scan.generatedAt) {
             organization.reconcilePullRequestReviewMarks(scan: scan)
         }
@@ -73,12 +77,10 @@ struct HyperlitePullRequestPanel: View {
 
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 3) {
-            Text("Open PRs")
-                .font(HyperliteTypography.heading)
-                .foregroundStyle(HyperliteTheme.secondaryText.color)
-            Text("\(sourceRows.count)")
-                .font(HyperliteTypography.compact.monospacedDigit())
-                .foregroundStyle(HyperliteTheme.mutedText.color)
+            HyperliteOpenPRTitleCluster(
+                count: sourceRows.count,
+                isRefreshing: isRefreshing
+            )
             Spacer()
             Text(HyperlitePullRequestPresentation.freshnessLabel(
                 observedAt: scan.observedAt

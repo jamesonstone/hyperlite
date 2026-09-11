@@ -31,6 +31,7 @@
 | 0026 | notepad-fills-pane | `docs/specs/0026-notepad-fills-pane` | deliver | no | 2026-09-08 | Let Notepad/Daily wrap to leftover pane width instead of an 80-column cap. |
 | 0027 | open-pr-project-sections | `docs/specs/0027-open-pr-project-sections` | deliver | no | 2026-09-10 | Group unpinned Open PRs under prominent repository section headers. |
 | 0028 | open-pr-ready-inline | `docs/specs/0028-open-pr-ready-inline` | deliver | no | 2026-09-10 | Keep Open PR ready/draft badges as whole words on narrow one-line rows. |
+| 0029 | open-pr-refresh-ghost | `docs/specs/0029-open-pr-refresh-ghost` | deliver | no | 2026-09-11 | Pulse the Open PRs heading with a tiny ghost while GitHub is still fetching. |
 
 ## PROJECT INTENT
 
@@ -403,10 +404,22 @@ changes that warrant human attention.
 - **OPEN ITEMS**: Ready pull-request delivery through issue #88.
 - **POINTERS**: `docs/specs/0028-open-pr-ready-inline/SPEC.md`
 
+### open-pr-refresh-ghost
+
+- **STATUS**: deliver
+- **PAUSED**: no
+- **INTENT**: Let the operator see that Open PRs are still fetching GitHub data without spinning the list or spending idle CPU.
+- **APPROACH**: 1. Pulse the Open PRs heading and a 👻 on ~1.2s ticks only while `isRefreshingPullRequests` is true. 2. Keep cached rows visible. 3. Use the same header pulse on first load instead of ProgressView. 4. Pulse Notes Only the same way.
+- **OPEN ITEMS**: Ready pull-request delivery through issue #92.
+- **POINTERS**: `docs/specs/0029-open-pr-refresh-ghost/SPEC.md`
+
 ## LAST UPDATED
 
+- 2026-09-11: Added feature `0029-open-pr-refresh-ghost` so the Open PRs
+  heading pulses a tiny ghost while GitHub is still fetching.
 - 2026-09-10: Added feature `0028-open-pr-ready-inline` so Open PR ready/draft
   badges stay whole words on narrow one-line project-section rows.
+- 2026-09-10: Added feature `0027-open-pr-project-sections` so unpinned Open
   PRs group under prominent repository headings. This supersedes per-row
   muted repository identity from feature `0025` for unpinned rows.
 - 2026-09-08: Added feature `0026-notepad-fills-pane` so Notepad/Daily fills
