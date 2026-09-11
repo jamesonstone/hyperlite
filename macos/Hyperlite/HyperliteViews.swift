@@ -131,22 +131,43 @@ struct HyperliteWindow: View {
         Button {
             appearance.setNotesOnly(false)
         } label: {
-            Text(HyperliteWorkspaceSplit.summaryTitle(
-                openCount: visibleOpenPullRequests.count,
-                pinnedCount: pinnedPullRequestCount
-            ))
-            .font(HyperliteTypography.heading)
-            .foregroundStyle(HyperliteTheme.secondaryText.color)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
+            HyperliteOpenPRRefreshPulseChrome(
+                isRefreshing: state.isRefreshingPullRequests
+            ) { opacity in
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    if HyperliteOpenPRRefreshPulse.showsGlyph(
+                        state.isRefreshingPullRequests
+                    ) {
+                        Text(HyperliteOpenPRRefreshPulse.glyph)
+                            .font(HyperliteTypography.compact)
+                            .opacity(opacity)
+                            .accessibilityHidden(true)
+                    }
+                    Text(HyperliteWorkspaceSplit.summaryTitle(
+                        openCount: visibleOpenPullRequests.count,
+                        pinnedCount: pinnedPullRequestCount
+                    ))
+                    .font(HyperliteTypography.heading)
+                    .foregroundStyle(HyperliteTheme.secondaryText.color)
+                    .opacity(opacity)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+            }
         }
         .buttonStyle(.plain)
         .help("Show Open PRs")
         .accessibilityLabel("Show Open PRs")
-        .accessibilityValue(HyperliteWorkspaceSplit.summaryTitle(
+        .accessibilityValue(notesOnlyAccessibilityValue)
+    }
+
+    private var notesOnlyAccessibilityValue: String {
+        let summary = HyperliteWorkspaceSplit.summaryTitle(
             openCount: visibleOpenPullRequests.count,
             pinnedCount: pinnedPullRequestCount
-        ))
+        )
+        guard state.isRefreshingPullRequests else { return summary }
+        return "\(summary). \(HyperliteOpenPRRefreshPulse.accessibilityRefreshing)"
     }
 
     private var pinnedPullRequestCount: Int {
@@ -193,12 +214,15 @@ struct HyperliteWindow: View {
                         compactRows: HyperliteWorkspaceSplit.compactRows(
                             verticalMode: appearance.verticalMode,
                             notesOnly: appearance.notesOnly
-                        )
+                        ),
+                        isRefreshing: state.isRefreshingPullRequests
                     )
                 } else {
-                    ProgressView("Loading open pull requests…")
-                        .controlSize(.small)
-                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                    HyperliteOpenPRTitleCluster(
+                        count: nil,
+                        isRefreshing: state.isRefreshingPullRequests
+                    )
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
