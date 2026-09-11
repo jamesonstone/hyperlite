@@ -125,6 +125,9 @@ Observable acceptance:
 
 - `kit spec` rewrites `docs/PROJECT_PROGRESS_SUMMARY.md` wholesale. Keep the
   curated index and add only the 0030 row and summary.
+- First load has no pull-request panel, so VoiceOver must ride the title
+  cluster. The overlay stays accessibility-hidden so cached rows remain
+  the primary accessible content after a scan exists.
 
 ## VALIDATION
 
@@ -132,7 +135,7 @@ Observable acceptance:
   rest at 0°, mid-spin 180°, pause-at-zero, overlay visibility, 12 Hz ticks, and
   VoiceOver copy.
 - Source-file-size audit of the affected handwritten scope:
-  `HyperliteOpenPRRefreshPulse.swift` 80, `HyperliteViews.swift` 256,
+  `HyperliteOpenPRRefreshPulse.swift` 80, `HyperliteViews.swift` 261,
   `HyperlitePullRequestPanel.swift` 122,
   `HyperliteOpenPRRefreshPulseTests.swift` 81,
   `HyperliteInteractionModelTests.swift` 277.

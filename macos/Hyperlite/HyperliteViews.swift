@@ -207,10 +207,15 @@ struct HyperliteWindow: View {
                         ),
                         isRefreshing: state.isRefreshingPullRequests
                     )
-                } else {
-                    HyperliteOpenPRTitleCluster(count: nil)
-                        .frame(maxWidth: .infinity, alignment: .topLeading)
-                }
+                    } else {
+                        HyperliteOpenPRTitleCluster(count: nil)
+                            .frame(maxWidth: .infinity, alignment: .topLeading)
+                            .accessibilityValue(
+                                state.isRefreshingPullRequests
+                                    ? HyperliteOpenPRRefreshPulse.accessibilityRefreshing
+                                    : ""
+                            )
+                    }
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
