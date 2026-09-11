@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct HyperlitePullRequestRowContent: View {
+    static let layout = HyperlitePullRequestRowLayout.titleFirst
     let row: HyperlitePullRequestRow
     let reviewStatus: HyperlitePullRequestReviewStatus
     let compact: Bool
@@ -18,9 +19,16 @@ struct HyperlitePullRequestRowContent: View {
             : HyperliteTheme.mutedText.color
     }
 
+    private var usesCompactStack: Bool {
+        HyperlitePullRequestRowLayout.usesCompactStack(
+            compact: compact,
+            showRepository: showRepository
+        )
+    }
+
     var body: some View {
         Group {
-            if compact && showRepository {
+            if usesCompactStack {
                 compactStack
             } else {
                 wideRow
@@ -39,10 +47,10 @@ struct HyperlitePullRequestRowContent: View {
                     .frame(
                         minWidth: 72,
                         idealWidth: 132,
-                        maxWidth: HyperlitePullRequestRowLayout.titleFirst.repositoryColumnWidth,
+                        maxWidth: Self.layout.repositoryColumnWidth,
                         alignment: .leading
                     )
-                    .layoutPriority(HyperlitePullRequestRowLayout.titleFirst.repositoryLayoutPriority)
+                    .layoutPriority(Self.layout.repositoryLayoutPriority)
             }
             numberLabel
             statusBadge
@@ -50,9 +58,10 @@ struct HyperlitePullRequestRowContent: View {
             reviewLabel
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 titleLabel
+                    .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
                 ageLabel
             }
-            .layoutPriority(HyperlitePullRequestRowLayout.titleFirst.titleLayoutPriority)
+            .layoutPriority(Self.layout.titleLayoutPriority)
         }
     }
 
@@ -69,7 +78,7 @@ struct HyperlitePullRequestRowContent: View {
             .lineLimit(1)
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 titleLabel
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
                 ageLabel
             }
         }
@@ -85,7 +94,10 @@ struct HyperlitePullRequestRowContent: View {
 
     private var numberLabel: some View {
         Text("#\(row.number)")
-            .frame(width: compact ? nil : 42, alignment: .leading)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+            .layoutPriority(Self.layout.metadataLayoutPriority)
+            .frame(minWidth: compact ? 0 : 42, alignment: .leading)
     }
 
     private var statusBadge: some View {
@@ -94,15 +106,21 @@ struct HyperlitePullRequestRowContent: View {
             .foregroundStyle(
                 row.isDraft ? HyperliteTheme.mutedText.color : HyperliteTheme.cyan.color
             )
-            .frame(width: compact ? nil : 42, alignment: .leading)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+            .layoutPriority(Self.layout.metadataLayoutPriority)
+            .frame(minWidth: compact ? 0 : 42, alignment: .leading)
     }
 
     private var reviewLabel: some View {
         Text(review.text)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+            .layoutPriority(Self.layout.metadataLayoutPriority)
             .frame(
-                width: compact
-                    ? nil
-                    : HyperlitePullRequestRowLayout.titleFirst.reviewFeedbackColumnWidth,
+                minWidth: compact
+                    ? 0
+                    : Self.layout.reviewFeedbackColumnWidth,
                 alignment: .leading
             )
             .foregroundStyle(review.needsAttention
@@ -123,7 +141,7 @@ struct HyperlitePullRequestRowContent: View {
             .foregroundStyle(HyperliteTheme.mutedText.color)
             .monospacedDigit()
             .fixedSize()
-            .layoutPriority(2)
+            .layoutPriority(Self.layout.metadataLayoutPriority)
     }
 
     @ViewBuilder
@@ -133,16 +151,16 @@ struct HyperlitePullRequestRowContent: View {
                 .font(.system(size: 9, weight: .semibold))
                 .foregroundStyle(HyperliteTheme.orange.color)
                 .frame(
-                    width: compact
+                    width: usesCompactStack
                         ? nil
-                        : HyperlitePullRequestRowLayout.titleFirst.mergeConflictColumnWidth,
+                        : Self.layout.mergeConflictColumnWidth,
                     alignment: .leading
                 )
                 .accessibilityHidden(true)
-        } else if !compact {
+        } else if !usesCompactStack {
             Color.clear
                 .frame(
-                    width: HyperlitePullRequestRowLayout.titleFirst.mergeConflictColumnWidth,
+                    width: Self.layout.mergeConflictColumnWidth,
                     alignment: .leading
                 )
                 .accessibilityHidden(true)

@@ -7,6 +7,7 @@ enum HyperliteWorkspaceSplitTests {
         testFractionClampingAndDelta()
         testNotesOnlySummary()
         testTitleFirstAndCompactRows()
+        testProjectSectionRowsKeepReadyInline()
         testEstimatedStackedHeightUsesCounts()
         testTinyStackedDragKeepsFitContent()
     }
@@ -112,6 +113,44 @@ enum HyperliteWorkspaceSplitTests {
         expect(
             !HyperliteWorkspaceSplit.compactRows(verticalMode: true, notesOnly: true),
             "Notes Only should not keep compact rows in memory"
+        )
+    }
+
+    private static func testProjectSectionRowsKeepReadyInline() {
+        expect(
+            HyperlitePullRequestRowLayout.usesCompactStack(
+                compact: true, showRepository: true
+            ),
+            "pinned mixed Vertical Mode rows should keep the two-line stack"
+        )
+        expect(
+            !HyperlitePullRequestRowLayout.usesCompactStack(
+                compact: true, showRepository: false
+            ),
+            "project-section rows should stay one line under the heading"
+        )
+        expect(
+            !HyperlitePullRequestRowLayout.usesCompactStack(
+                compact: false, showRepository: false
+            ),
+            "stacked project-section rows should stay one line"
+        )
+        let layout = HyperlitePullRequestPanelRow.layout
+        expect(
+            layout.metadataLayoutPriority > layout.titleLayoutPriority,
+            "ready/draft and number should keep intrinsic width before the title truncates"
+        )
+        expect(
+            HyperlitePullRequestRowLayout.reservesAlignedConflictColumn(
+                compact: true, showRepository: false
+            ),
+            "one-line project-section rows should reserve conflict width"
+        )
+        expect(
+            !HyperlitePullRequestRowLayout.reservesAlignedConflictColumn(
+                compact: true, showRepository: true
+            ),
+            "two-line compact stacks should not insert a conflict spacer"
         )
     }
 

@@ -30,6 +30,7 @@
 | 0025 | readable-workspace-layout | `docs/specs/0025-readable-workspace-layout` | deliver | no | 2026-09-08 | Size Open PRs to content, add a draggable split, Notes Only, title-first compact rows, and leftover height for notes. |
 | 0026 | notepad-fills-pane | `docs/specs/0026-notepad-fills-pane` | deliver | no | 2026-09-08 | Let Notepad/Daily wrap to leftover pane width instead of an 80-column cap. |
 | 0027 | open-pr-project-sections | `docs/specs/0027-open-pr-project-sections` | deliver | no | 2026-09-10 | Group unpinned Open PRs under prominent repository section headers. |
+| 0028 | open-pr-ready-inline | `docs/specs/0028-open-pr-ready-inline` | deliver | no | 2026-09-10 | Keep Open PR ready/draft badges as whole words on narrow one-line rows. |
 
 ## PROJECT INTENT
 
@@ -393,9 +394,19 @@ changes that warrant human attention.
 - **OPEN ITEMS**: Ready pull-request delivery through issue #86.
 - **POINTERS**: `docs/specs/0027-open-pr-project-sections/SPEC.md`
 
+### open-pr-ready-inline
+
+- **STATUS**: deliver
+- **PAUSED**: no
+- **INTENT**: Keep `ready` and `draft` as whole words on Open PR rows when Vertical Mode is narrow.
+- **APPROACH**: 1. Keep one-line project-section rows. 2. Give number, ready/draft, and review count intrinsic width and higher layout priority than the title. 3. Truncate long titles.
+- **OPEN ITEMS**: Ready pull-request delivery through issue #88.
+- **POINTERS**: `docs/specs/0028-open-pr-ready-inline/SPEC.md`
+
 ## LAST UPDATED
 
-- 2026-09-10: Added feature `0027-open-pr-project-sections` so unpinned Open
+- 2026-09-10: Added feature `0028-open-pr-ready-inline` so Open PR ready/draft
+  badges stay whole words on narrow one-line project-section rows.
   PRs group under prominent repository headings. This supersedes per-row
   muted repository identity from feature `0025` for unpinned rows.
 - 2026-09-08: Added feature `0026-notepad-fills-pane` so Notepad/Daily fills
