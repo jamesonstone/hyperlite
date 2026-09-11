@@ -32,6 +32,7 @@
 | 0027 | open-pr-project-sections | `docs/specs/0027-open-pr-project-sections` | deliver | no | 2026-09-10 | Group unpinned Open PRs under prominent repository section headers. |
 | 0028 | open-pr-ready-inline | `docs/specs/0028-open-pr-ready-inline` | deliver | no | 2026-09-10 | Keep Open PR ready/draft badges as whole words on narrow one-line rows. |
 | 0029 | open-pr-refresh-ghost | `docs/specs/0029-open-pr-refresh-ghost` | deliver | no | 2026-09-11 | Pulse the Open PRs heading with a tiny ghost while GitHub is still fetching. |
+| 0030 | open-pr-refresh-ghost-overlay | `docs/specs/0030-open-pr-refresh-ghost-overlay` | deliver | no | 2026-09-11 | Overlay a large spinning ghost across the Open PRs pane while GitHub is still fetching. |
 
 ## PROJECT INTENT
 
@@ -413,8 +414,20 @@ changes that warrant human attention.
 - **OPEN ITEMS**: Ready pull-request delivery through issue #92.
 - **POINTERS**: `docs/specs/0029-open-pr-refresh-ghost/SPEC.md`
 
+### open-pr-refresh-ghost-overlay
+
+- **STATUS**: deliver
+- **PAUSED**: no
+- **INTENT**: Make the in-flight Open PR refresh obvious with a large spinning ghost over the whole pane.
+- **APPROACH**: 1. Overlay a large 👻 on the Open PR pane only while `isRefreshingPullRequests` is true. 2. Spin 360° on low-rate ticks, pause at 0°, then repeat. 3. Keep cached rows visible and clickable. 4. Use the same overlay on first load and Notes Only.
+- **OPEN ITEMS**: Ready pull-request delivery through issue #94.
+- **POINTERS**: `docs/specs/0030-open-pr-refresh-ghost-overlay/SPEC.md`
+
 ## LAST UPDATED
 
+- 2026-09-11: Added feature `0030-open-pr-refresh-ghost-overlay` so a large
+  spinning ghost covers the Open PRs pane while GitHub is still fetching.
+  This supersedes the heading-only pulse from feature `0029`.
 - 2026-09-11: Added feature `0029-open-pr-refresh-ghost` so the Open PRs
   heading pulses a tiny ghost while GitHub is still fetching.
 - 2026-09-10: Added feature `0028-open-pr-ready-inline` so Open PR ready/draft

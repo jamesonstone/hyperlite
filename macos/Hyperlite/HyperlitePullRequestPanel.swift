@@ -78,8 +78,7 @@ struct HyperlitePullRequestPanel: View {
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 3) {
             HyperliteOpenPRTitleCluster(
-                count: sourceRows.count,
-                isRefreshing: isRefreshing
+                count: sourceRows.count
             )
             Spacer()
             Text(HyperlitePullRequestPresentation.freshnessLabel(
