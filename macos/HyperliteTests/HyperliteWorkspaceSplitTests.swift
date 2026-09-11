@@ -152,6 +152,19 @@ enum HyperliteWorkspaceSplitTests {
             ),
             "two-line compact stacks should not insert a conflict spacer"
         )
+        // compact:true + showRepository:false is the unpinned project-section row case.
+        // usesCompactStack is false, so wideRow is used — metadata minWidths must be non-zero.
+        let usesCompact = HyperlitePullRequestRowLayout.usesCompactStack(
+            compact: true, showRepository: false
+        )
+        expect(
+            !usesCompact,
+            "compact:true showRepository:false must use wideRow, not compactStack"
+        )
+        expect(
+            layout.reviewFeedbackColumnWidth > 0,
+            "reviewFeedbackColumnWidth must be positive so wideRow review column has width"
+        )
     }
 
     private static func testEstimatedStackedHeightUsesCounts() {

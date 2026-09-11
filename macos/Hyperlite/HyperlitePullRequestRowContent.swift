@@ -97,7 +97,7 @@ struct HyperlitePullRequestRowContent: View {
             .lineLimit(1)
             .fixedSize(horizontal: true, vertical: false)
             .layoutPriority(Self.layout.metadataLayoutPriority)
-            .frame(minWidth: compact ? 0 : 42, alignment: .leading)
+            .frame(minWidth: usesCompactStack ? 0 : 42, alignment: .leading)
     }
 
     private var statusBadge: some View {
@@ -109,7 +109,7 @@ struct HyperlitePullRequestRowContent: View {
             .lineLimit(1)
             .fixedSize(horizontal: true, vertical: false)
             .layoutPriority(Self.layout.metadataLayoutPriority)
-            .frame(minWidth: compact ? 0 : 42, alignment: .leading)
+            .frame(minWidth: usesCompactStack ? 0 : 42, alignment: .leading)
     }
 
     private var reviewLabel: some View {
@@ -118,7 +118,7 @@ struct HyperlitePullRequestRowContent: View {
             .fixedSize(horizontal: true, vertical: false)
             .layoutPriority(Self.layout.metadataLayoutPriority)
             .frame(
-                minWidth: compact
+                minWidth: usesCompactStack
                     ? 0
                     : Self.layout.reviewFeedbackColumnWidth,
                 alignment: .leading
