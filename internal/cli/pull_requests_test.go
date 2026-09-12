@@ -33,6 +33,7 @@ func TestRunPullRequestsSelectsLocalStaleAndForceModes(t *testing.T) {
 		{pullRequestOptions{localOnly: true, jsonOutput: true}, prindex.RefreshLocal},
 		{pullRequestOptions{jsonOutput: true}, prindex.RefreshStale},
 		{pullRequestOptions{force: true, jsonOutput: true}, prindex.RefreshForce},
+		{pullRequestOptions{activity: true, jsonOutput: true}, prindex.RefreshActivity},
 	} {
 		output.Reset()
 		if err := app.runPullRequests(t.Context(), configPath, test.options); err != nil {
@@ -44,12 +45,16 @@ func TestRunPullRequestsSelectsLocalStaleAndForceModes(t *testing.T) {
 	}
 }
 
-func TestRunPullRequestsRejectsLocalForceCombination(t *testing.T) {
-	err := (App{}).runPullRequests(
-		t.Context(), "", pullRequestOptions{localOnly: true, force: true},
-	)
-	if err == nil || ExitCode(err) != 2 {
-		t.Fatalf("err = %v", err)
+func TestRunPullRequestsRejectsExclusiveModeCombinations(t *testing.T) {
+	for _, options := range []pullRequestOptions{
+		{localOnly: true, force: true},
+		{localOnly: true, activity: true},
+		{force: true, activity: true},
+	} {
+		err := (App{}).runPullRequests(t.Context(), "", options)
+		if err == nil || ExitCode(err) != 2 {
+			t.Fatalf("options %+v err = %v", options, err)
+		}
 	}
 }
 

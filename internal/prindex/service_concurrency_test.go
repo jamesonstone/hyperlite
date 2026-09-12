@@ -58,6 +58,10 @@ func cloneCache(source cacheState) cacheState {
 	cloned := emptyCache()
 	cloned.UpdatedAt = source.UpdatedAt
 	cloned.RateLimit = cloneRateLimit(source.RateLimit)
+	if source.Activity != nil {
+		activity := *source.Activity
+		cloned.Activity = &activity
+	}
 	for path, repository := range source.Projects {
 		cloned.Projects[filepath.Clean(path)] = repository
 	}
@@ -65,6 +69,7 @@ func cloneCache(source cacheState) cacheState {
 		entry.PullRequests = append(
 			[]model.ProjectPullRequest(nil), entry.PullRequests...,
 		)
+		entry.Workflows = cloneWorkflowActivity(entry.Workflows)
 		cloned.Repositories[key] = entry
 	}
 	return cloned

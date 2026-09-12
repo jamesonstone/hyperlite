@@ -142,34 +142,6 @@ struct HyperlitePullRequestReviewToggle: View {
     }
 }
 
-struct HyperlitePullRequestAvailabilityRow: View {
-    static let layout = HyperlitePullRequestRowLayout.repositoryFirst
-    let project: HyperliteProjectPullRequests
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 7) {
-            Text(project.repository ?? project.name)
-                .frame(width: Self.layout.repositoryColumnWidth, alignment: .leading)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .layoutPriority(Self.layout.repositoryLayoutPriority)
-            Text(project.status == .cached ? "cached" : "unavailable")
-                .frame(width: Self.layout.availabilityMetadataColumnWidth, alignment: .leading)
-            Text(project.message ?? "GitHub data is unavailable")
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .layoutPriority(Self.layout.titleLayoutPriority)
-            Spacer(minLength: 0)
-        }
-        .font(HyperliteTypography.compact)
-        .foregroundStyle(HyperliteTheme.mutedText.color)
-        .help(project.message ?? "GitHub data is unavailable")
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(project.name), \(project.status.rawValue), " +
-            "\(project.message ?? "GitHub data is unavailable")")
-    }
-}
-
 struct HyperlitePinnedSectionDropTarget: View {
     @Binding var draggedRowID: String?
     let pin: (String) -> Void
@@ -188,39 +160,7 @@ struct HyperlitePinnedSectionDropTarget: View {
     }
 }
 
-struct HyperliteProjectSectionHeader: View {
-    let repository: String
-    let count: Int
-    @Binding var draggedRowID: String?
-    let drop: (String) -> Void
-
-    var body: some View {
-        HStack(spacing: 4) {
-            Text(repository)
-                .font(HyperliteTypography.heading)
-                .foregroundStyle(HyperliteTheme.secondaryText.color)
-                .lineLimit(1)
-                .truncationMode(.tail)
-            Text("\(count)")
-                .font(HyperliteTypography.compact.monospacedDigit())
-                .foregroundStyle(HyperliteTheme.mutedText.color)
-        }
-        .padding(.top, 6)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
-        .onDrop(
-            of: [UTType.text.identifier],
-            delegate: HyperliteSectionPinDropDelegate(
-                draggedID: $draggedRowID,
-                pin: drop
-            )
-        )
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(repository) pull requests, \(count)")
-    }
-}
-
-private struct HyperliteSectionPinDropDelegate: DropDelegate {
+struct HyperliteSectionPinDropDelegate: DropDelegate {
     @Binding var draggedID: String?
     let pin: (String) -> Void
 

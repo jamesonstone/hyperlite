@@ -33,6 +33,8 @@ directly with `hyperlite scan /path/to/projects`.
 - Header actions to fast-forward configured default branches and to open
   interactive `git wt sweep`
 - Read-only GitHub quota, review-feedback, and merge-conflict visibility
+- Per-project workflow strips with a quota-governed poll that shows running
+  GitHub Actions and deployments, plus Pulls and Actions links
 - CLI and JSON interfaces for project scanning and inferred attention
 - Local, permission-restricted state with no external project-management system
 

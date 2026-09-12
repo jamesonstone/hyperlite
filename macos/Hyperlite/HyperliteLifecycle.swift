@@ -32,6 +32,9 @@ final class HyperliteApplicationDelegate: NSObject, NSApplicationDelegate, NSWin
         DispatchQueue.main.async { [weak self] in
             self?.window = NSApp.windows.first(where: { $0.title == HyperliteWindowChrome.title })
             self?.window?.delegate = self
+            if let window = self?.window {
+                HyperliteState.shared.setWindowVisible(window.occlusionState.contains(.visible))
+            }
             self?.showWindow()
         }
     }
@@ -42,6 +45,11 @@ final class HyperliteApplicationDelegate: NSObject, NSApplicationDelegate, NSWin
 
     func applicationDidResignActive(_ notification: Notification) {
         Task { await HyperliteNotepadState.shared.flush() }
+    }
+
+    func windowDidChangeOcclusionState(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow else { return }
+        HyperliteState.shared.setWindowVisible(window.occlusionState.contains(.visible))
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {

@@ -6,7 +6,9 @@ struct HyperlitePullRequestPanel: View {
     @ObservedObject var pins: HyperlitePullRequestPinStore
     var compactRows = false
     var isRefreshing = false
+    var isPollingActivity = false
     @State private var draggedRowID: String?
+    @State private var chipClock = Date()
 
     private var sourceRows: [HyperlitePullRequestRow] {
         HyperlitePullRequestPresentation.rows(scan: scan)
@@ -16,15 +18,15 @@ struct HyperlitePullRequestPanel: View {
         pins.sections(for: sourceRows)
     }
 
-    private var availability: [HyperliteProjectPullRequests] {
-        HyperlitePullRequestPresentation.availability(scan: scan)
+    private var projectSections: [HyperliteProjectSection] {
+        HyperlitePullRequestSectionPlan.sections(scan: scan, groups: sections.unpinnedGroups)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             header
-            if sourceRows.isEmpty && availability.isEmpty {
-                Text("No open pull requests")
+            if scan.projects.isEmpty {
+                Text("No configured projects")
                     .font(HyperliteTypography.compact)
                     .foregroundStyle(HyperliteTheme.mutedText.color)
                     .padding(.vertical, 2)
@@ -40,26 +42,26 @@ struct HyperlitePullRequestPanel: View {
                     ForEach(sections.pinned) { row in
                         pullRequestRow(row, pinned: true)
                     }
-                    if sections.unpinned.isEmpty {
-                        sectionLabel("Open", count: 0)
-                        HyperlitePinnedSectionDropTarget(
-                            draggedRowID: $draggedRowID,
-                            pin: pins.unpin
-                        )
-                    }
-                    ForEach(sections.unpinnedGroups) { group in
+                    ForEach(projectSections) { section in
                         HyperliteProjectSectionHeader(
-                            repository: group.repository,
-                            count: group.rows.count,
+                            section: section,
+                            chips: chips(for: section),
+                            compact: compactRows,
                             draggedRowID: $draggedRowID,
-                            drop: { pins.move($0, over: group.rows[0].id, rows: sourceRows) }
+                            drop: { dropped in
+                                if let first = section.rows.first {
+                                    pins.move(dropped, over: first.id, rows: sourceRows)
+                                } else {
+                                    pins.unpin(dropped)
+                                }
+                            }
                         )
-                        ForEach(group.rows) { row in
+                        if section.rows.isEmpty {
+                            HyperliteProjectIdleRow(section: section)
+                        }
+                        ForEach(section.rows) { row in
                             pullRequestRow(row, pinned: false)
                         }
-                    }
-                    ForEach(availability) { project in
-                        HyperlitePullRequestAvailabilityRow(project: project)
                     }
                 }
             }
@@ -67,12 +69,18 @@ struct HyperlitePullRequestPanel: View {
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Open pull requests across configured projects")
-        .accessibilityValue(
-            isRefreshing ? HyperliteOpenPRRefreshPulse.accessibilityRefreshing : ""
-        )
+        .accessibilityValue(accessibilityValue)
         .task(id: scan.generatedAt) {
             organization.reconcilePullRequestReviewMarks(scan: scan)
+            await advanceChipClock()
         }
+    }
+
+    private var accessibilityValue: String {
+        var parts: [String] = []
+        if isRefreshing { parts.append(HyperliteOpenPRRefreshPulse.accessibilityRefreshing) }
+        if isPollingActivity { parts.append(HyperliteWorkflowRunGlide.accessibilityPolling) }
+        return parts.joined(separator: ". ")
     }
 
     private var header: some View {
@@ -86,6 +94,24 @@ struct HyperlitePullRequestPanel: View {
             ))
                 .font(HyperliteTypography.compact)
                 .foregroundStyle(HyperliteTheme.mutedText.color)
+        }
+    }
+
+    private func chips(for section: HyperliteProjectSection) -> [HyperliteWorkflowChip] {
+        HyperliteWorkflowStripPresentation.chips(activity: section.project.workflows, now: chipClock)
+    }
+
+    /// Re-renders once each time a fresh running chip would turn stale, so a
+    /// hidden or denied poll cannot leave the ghost gliding on old data.
+    private func advanceChipClock() async {
+        chipClock = Date()
+        while let expiry = HyperliteWorkflowStripPresentation.nextFreshnessExpiry(scan: scan, now: chipClock) {
+            let delay = expiry.timeIntervalSince(Date())
+            if delay > 0 {
+                try? await Task.sleep(for: .seconds(delay))
+            }
+            guard !Task.isCancelled else { return }
+            chipClock = Date()
         }
     }
 

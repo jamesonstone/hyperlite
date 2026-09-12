@@ -21,11 +21,12 @@ const cacheVersion = 1
 var cacheMutex sync.Mutex
 
 type cacheEntry struct {
-	Repository   string                     `json:"repository"`
-	CheckedAt    time.Time                  `json:"checked_at,omitempty"`
-	ObservedAt   time.Time                  `json:"observed_at"`
-	LastError    string                     `json:"last_error,omitempty"`
-	PullRequests []model.ProjectPullRequest `json:"pull_requests"`
+	Repository   string                         `json:"repository"`
+	CheckedAt    time.Time                      `json:"checked_at,omitempty"`
+	ObservedAt   time.Time                      `json:"observed_at"`
+	LastError    string                         `json:"last_error,omitempty"`
+	PullRequests []model.ProjectPullRequest     `json:"pull_requests"`
+	Workflows    *model.ProjectWorkflowActivity `json:"workflows,omitempty"`
 }
 
 type cacheState struct {
@@ -33,6 +34,7 @@ type cacheState struct {
 	Projects     map[string]string      `json:"projects"`
 	Repositories map[string]cacheEntry  `json:"repositories"`
 	RateLimit    *model.GitHubRateLimit `json:"rate_limit,omitempty"`
+	Activity     *cachedActivityState   `json:"activity,omitempty"`
 	UpdatedAt    time.Time              `json:"updated_at"`
 }
 
@@ -263,8 +265,9 @@ func validateCache(state *cacheState) error {
 		}
 		if entry.PullRequests == nil {
 			entry.PullRequests = []model.ProjectPullRequest{}
-			state.Repositories[key] = entry
 		}
+		normalizeWorkflowActivity(entry.Workflows)
+		state.Repositories[key] = entry
 	}
 	return nil
 }
@@ -277,6 +280,7 @@ func sortCache(state *cacheState) {
 			}
 			return entry.PullRequests[i].Number < entry.PullRequests[j].Number
 		})
+		sortWorkflowActivity(entry.Workflows)
 		state.Repositories[key] = entry
 	}
 }

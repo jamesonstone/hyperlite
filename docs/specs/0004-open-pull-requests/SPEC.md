@@ -129,7 +129,9 @@ thread scanner cadence or starting continuous background work.
 - R9: Preserve configuration order for project availability and use
   deterministic recent-first ordering for pull-request rows.
 - R10: Keep configured repositories and GitHub read-only. Do not add polling,
-  notifications, repository mutation, or pull-request mutation.
+  notifications, repository mutation, or pull-request mutation. Feature 0031
+  adds the single bounded exception: a quota-governed workflow-activity poll
+  that never lists pull requests.
 - R11: Include each pull request's head branch in the lightweight projection.
   Use that exact case-sensitive branch to show only matching registered
   worktrees in Projects when that project's pull-request status is current.

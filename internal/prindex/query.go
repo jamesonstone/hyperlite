@@ -42,6 +42,7 @@ func buildQuery(requests []pageRequest) (string, map[string]pageRequest) {
 		query.WriteString("      }\n")
 		query.WriteString("      pageInfo { hasNextPage endCursor }\n")
 		query.WriteString("    }\n")
+		writeRepositoryActivitySelections(&query, "    ")
 		query.WriteString("  }\n")
 	}
 	writeRateLimit(&query)

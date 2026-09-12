@@ -17,9 +17,10 @@ const RefreshInterval = 5 * time.Minute
 type RefreshMode string
 
 const (
-	RefreshLocal RefreshMode = "local"
-	RefreshStale RefreshMode = "stale"
-	RefreshForce RefreshMode = "force"
+	RefreshLocal    RefreshMode = "local"
+	RefreshStale    RefreshMode = "stale"
+	RefreshForce    RefreshMode = "force"
+	RefreshActivity RefreshMode = "activity"
 )
 
 type RepositoryDiscoverer interface {
@@ -30,17 +31,37 @@ type PullRequestClient interface {
 	ListOpen(context.Context, []config.Repository) ClientResult
 }
 
+// WorkflowClient owns the two small follow-up queries: workflow catalogs for
+// changed trees and the activity poll for repositories with running work.
+type WorkflowClient interface {
+	FetchCatalogs(context.Context, []config.Repository) CatalogResult
+	PollActivity(context.Context, []ActivityRequest) ActivityResult
+}
+
 type Scanner struct {
 	Discovery RepositoryDiscoverer
 	Client    PullRequestClient
+	Workflows WorkflowClient
 	Store     CacheStore
 	Now       func() time.Time
 }
 
+// scanContext carries the shared inputs of one scan across refresh modes.
+type scanContext struct {
+	cache        cacheState
+	cacheWarning string
+	sources      []config.Source
+	discovered   discovery.Result
+	resolved     map[string]config.Repository
+	now          time.Time
+}
+
 func New(runner command.Runner) Scanner {
+	client := GitHubClient{Runner: runner}
 	return Scanner{
 		Discovery: discovery.Discoverer{Runner: runner},
-		Client:    GitHubClient{Runner: runner},
+		Client:    client,
+		Workflows: client,
 		Store:     Store{},
 		Now:       time.Now,
 	}
@@ -54,7 +75,9 @@ func (s Scanner) Scan(
 	if s.Discovery == nil || s.Store == nil {
 		return model.ProjectPullRequestScan{}, errors.New("pull request scanner is not fully configured")
 	}
-	if mode != RefreshLocal && mode != RefreshStale && mode != RefreshForce {
+	switch mode {
+	case RefreshLocal, RefreshStale, RefreshForce, RefreshActivity:
+	default:
 		return model.ProjectPullRequestScan{}, errors.New("invalid pull request refresh mode")
 	}
 	if s.Now == nil {
@@ -67,22 +90,27 @@ func (s Scanner) Scan(
 	}
 	sources := configuredProjectSources(cfg)
 	discovered := s.Discovery.Discover(ctx, sources)
-	resolved := repositoriesByPath(discovered.Repositories)
+	scan := scanContext{
+		cache: cache, cacheWarning: cacheWarning, sources: sources,
+		discovered: discovered, resolved: repositoriesByPath(discovered.Repositories), now: now,
+	}
+	if mode == RefreshActivity {
+		return s.scanActivity(ctx, scan)
+	}
 	queryResults := map[string]RepositoryResult{}
-	var rateLimit *GitHubRateLimit
-
 	if mode != RefreshLocal {
 		if s.Client == nil {
 			return model.ProjectPullRequestScan{}, errors.New("pull request client is not configured")
 		}
-		repositories := repositoriesToRefresh(sources, resolved, cache, mode, now)
+		var rateLimit *GitHubRateLimit
+		var catalogs map[string]CatalogEntry
+		repositories := repositoriesToRefresh(sources, scan.resolved, cache, mode, now)
 		if len(repositories) > 0 {
 			clientResult := s.Client.ListOpen(ctx, repositories)
 			queryResults = clientResult.Repositories
 			if queryResults == nil {
 				queryResults = make(map[string]RepositoryResult, len(repositories))
 			}
-			rateLimit = clientResult.RateLimit
 			for _, repository := range repositories {
 				key := repositoryKey(repository.GitHub)
 				if _, found := queryResults[key]; !found {
@@ -91,10 +119,13 @@ func (s Scanner) Scan(
 					}
 				}
 			}
+			rateLimit = clientResult.RateLimit
+			catalogs, rateLimit = s.fetchChangedCatalogs(ctx, repositories, queryResults, cache, rateLimit)
 		}
-		cache, err = s.Store.Update(func(current *cacheState) {
-			updateProjectMappings(current, sources, resolved)
-			applyQueryResults(current, repositories, queryResults, now)
+		scan.cache, err = s.Store.Update(func(current *cacheState) {
+			updateProjectMappings(current, sources, scan.resolved)
+			applyQueryResults(current, repositories, queryResults, catalogs, now)
+			recordActivityBurst(current, configuredRepositoryKeys(sources, scan.resolved), now)
 			if observed := observedRateLimit(rateLimit, now); observed != nil {
 				current.RateLimit = applyRateLimitBurnRate(observed, current.RateLimit)
 			}
@@ -103,46 +134,8 @@ func (s Scanner) Scan(
 			return model.ProjectPullRequestScan{}, err
 		}
 	}
-
-	result := model.ProjectPullRequestScan{
-		SchemaVersion: model.ProjectPullRequestScanSchemaVersion,
-		GeneratedAt:   now, RefreshIntervalSeconds: int64(RefreshInterval / time.Second),
-		RateLimit: cloneRateLimit(cache.RateLimit),
-		Projects:  []model.ProjectPullRequests{},
-		Errors:    []model.ScanError{}, Warnings: []model.ScanError{},
-	}
-	if cacheWarning != "" {
-		result.Warnings = append(result.Warnings, model.ScanError{
-			Stage: "pull-request-cache", Message: cacheWarning,
-		})
-	}
-	warnings := warningsByPath(discovered.Warnings)
-	checksComplete := true
-	for _, source := range sources {
-		repository := resolved[filepath.Clean(source.Path)]
-		project := buildProject(
-			source, repository, cache,
-			queryResults, warnings[filepath.Clean(source.Path)], mode, now,
-		)
-		result.Projects = append(result.Projects, project)
-		if repository.GitHub != "" {
-			if project.CheckedAt == nil {
-				checksComplete = false
-			} else if result.CheckedAt == nil ||
-				project.CheckedAt.Before(*result.CheckedAt) {
-				checkedAt := *project.CheckedAt
-				result.CheckedAt = &checkedAt
-			}
-		}
-		if project.ObservedAt != nil &&
-			(result.ObservedAt == nil || project.ObservedAt.Before(*result.ObservedAt)) {
-			observedAt := *project.ObservedAt
-			result.ObservedAt = &observedAt
-		}
-	}
-	if !checksComplete {
-		result.CheckedAt = nil
-	}
+	result := buildScanResult(scan, queryResults, mode)
+	result.ActivityPolicy = activityPolicy(scan)
 	return result, nil
 }
 
@@ -180,10 +173,7 @@ func repositoriesToRefresh(
 			continue
 		}
 		entry, cached := cache.Repositories[key]
-		if cached && entry.LastError == "" && cacheEntryNeedsHeadRefs(entry) {
-			cached = false
-		}
-		if cached && entry.LastError == "" && cacheEntryNeedsReviewCounts(entry) {
+		if cached && entry.LastError == "" && cacheEntryNeedsHydration(entry) {
 			cached = false
 		}
 		lastCheck := entry.CheckedAt
@@ -198,6 +188,14 @@ func repositoriesToRefresh(
 		result = append(result, repository)
 	}
 	return result
+}
+
+// cacheEntryNeedsHydration reports whether a successful legacy entry predates
+// a projection field and must refresh once inside the five-minute floor.
+func cacheEntryNeedsHydration(entry cacheEntry) bool {
+	return cacheEntryNeedsHeadRefs(entry) ||
+		cacheEntryNeedsReviewCounts(entry) ||
+		cacheEntryNeedsWorkflowActivity(entry)
 }
 
 func cacheEntryNeedsHeadRefs(entry cacheEntry) bool {
@@ -218,6 +216,10 @@ func cacheEntryNeedsReviewCounts(entry cacheEntry) bool {
 	return false
 }
 
+func cacheEntryNeedsWorkflowActivity(entry cacheEntry) bool {
+	return entry.Workflows == nil
+}
+
 func updateProjectMappings(
 	cache *cacheState,
 	sources []config.Source,
@@ -235,6 +237,7 @@ func applyQueryResults(
 	cache *cacheState,
 	repositories []config.Repository,
 	results map[string]RepositoryResult,
+	catalogs map[string]CatalogEntry,
 	now time.Time,
 ) {
 	for _, repository := range repositories {
@@ -261,6 +264,11 @@ func applyQueryResults(
 		entry.ObservedAt = now
 		entry.LastError = ""
 		entry.PullRequests = pullRequests
+		var catalog *CatalogEntry
+		if fetched, hasCatalog := catalogs[key]; hasCatalog {
+			catalog = &fetched
+		}
+		entry.Workflows = refreshedWorkflowActivity(entry.Workflows, result.Activity, catalog, now)
 		cache.Repositories[key] = entry
 	}
 }

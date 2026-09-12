@@ -115,8 +115,7 @@ enum HyperlitePullRequestTests {
         expect(rows[0].url?.absoluteString == "https://github.com/owner/two/pull/9",
                "row URL should remain directly actionable")
         expect(
-            HyperlitePullRequestPresentation.availability(scan: scan).map(\.name) ==
-                ["one", "local"],
+            scan.projects.filter { $0.status != .current }.map(\.name) == ["one", "local"],
             "cached and unavailable projects should remain distinguishable"
         )
         return scan
@@ -247,22 +246,22 @@ enum HyperlitePullRequestTests {
     }
 
     private static func testRowLayoutPrioritizesRepositoryIdentity() {
-        let layout = HyperlitePullRequestAvailabilityRow.layout
+        let layout = HyperlitePullRequestRowLayout.repositoryFirst
         expect(
             layout.repositoryColumnWidth >= 180,
-            "availability row repository column should distinguish common project names"
+            "repository-first layout column should distinguish common project names"
         )
         expect(
             layout.repositoryLayoutPriority > layout.titleLayoutPriority,
-            "availability row title should yield space before repository identity"
+            "repository-first layout title should yield space before repository identity"
         )
         expect(
             layout.reviewFeedbackColumnWidth >= 24,
-            "availability row should reserve an aligned feedback column"
+            "repository-first layout should reserve an aligned feedback column"
         )
         expect(
             layout.availabilityMetadataColumnWidth > 91,
-            "availability text should align with the widened metadata"
+            "repository-first metadata column should stay aligned with the widened metadata"
         )
     }
 

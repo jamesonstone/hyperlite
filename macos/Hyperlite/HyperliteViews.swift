@@ -174,13 +174,18 @@ struct HyperliteWindow: View {
         let sections = pullRequestPins.sections(
             for: HyperlitePullRequestPresentation.rows(scan: scan)
         )
+        let plan = HyperlitePullRequestSectionPlan.sections(scan: scan, groups: sections.unpinnedGroups)
+        let now = Date()
         return HyperliteWorkspaceSplit.estimatedStackedContentHeight(
             pinnedCount: sections.pinned.count,
             openCount: sections.unpinned.count,
-            projectSectionCount: sections.unpinnedGroups.count,
-            availabilityCount: HyperlitePullRequestPresentation.availability(scan: scan).count,
+            projectSectionCount: plan.count,
             compactRows: false,
-            hasStatusMessage: state.errorMessage != nil || state.statusMessage != nil
+            hasStatusMessage: state.errorMessage != nil || state.statusMessage != nil,
+            idleProjectCount: plan.filter { $0.rows.isEmpty }.count,
+            workflowStripCount: plan.filter {
+                !HyperliteWorkflowStripPresentation.chips(activity: $0.project.workflows, now: now).isEmpty
+            }.count
         )
     }
 
@@ -205,7 +210,8 @@ struct HyperliteWindow: View {
                             verticalMode: appearance.verticalMode,
                             notesOnly: appearance.notesOnly
                         ),
-                        isRefreshing: state.isRefreshingPullRequests
+                        isRefreshing: state.isRefreshingPullRequests,
+                        isPollingActivity: state.isPollingActivity
                     )
                     } else {
                         HyperliteOpenPRTitleCluster(count: nil)

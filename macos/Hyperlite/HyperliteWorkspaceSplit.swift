@@ -16,6 +16,7 @@ enum HyperliteWorkspaceSplit {
     static let stackedWideRowHeight: CGFloat = 22
     static let stackedCompactRowHeight: CGFloat = 36
     static let stackedAvailabilityRowHeight: CGFloat = 16
+    static let stackedWorkflowStripHeight: CGFloat = 18
     static let stackedEmptyListHeight: CGFloat = 20
     static let stackedPanelSpacing: CGFloat = 5
     static let stackedLazySpacing: CGFloat = 3
@@ -101,25 +102,26 @@ enum HyperliteWorkspaceSplit {
         pinnedCount: Int,
         openCount: Int,
         projectSectionCount: Int,
-        availabilityCount: Int,
         compactRows: Bool,
-        hasStatusMessage: Bool
+        hasStatusMessage: Bool,
+        idleProjectCount: Int = 0,
+        workflowStripCount: Int = 0
     ) -> CGFloat {
         let rowHeight = compactRows ? stackedCompactRowHeight : stackedWideRowHeight
         let rows = pinnedCount + openCount
         var height = stackedHeaderHeight + stackedPanelSpacing
-        if rows == 0 && availabilityCount == 0 {
+        if rows == 0 && idleProjectCount == 0 {
             height += stackedEmptyListHeight
         } else {
-            let sectionCount = 1 + max(projectSectionCount, openCount == 0 ? 1 : 0)
-            let emptyDropCount = (pinnedCount == 0 ? 1 : 0) + (openCount == 0 ? 1 : 0)
-            let lazyChildCount = sectionCount + rows + availabilityCount + emptyDropCount
+            let sectionCount = 1 + projectSectionCount
+            let emptyDropCount = pinnedCount == 0 ? 1 : 0
+            let lazyChildCount = sectionCount + rows + idleProjectCount + emptyDropCount
             height += stackedSectionLabelHeight * CGFloat(sectionCount)
             height += stackedLazySpacing * CGFloat(max(lazyChildCount - 1, 0))
             height += CGFloat(rows) * rowHeight
-            height += CGFloat(availabilityCount) * stackedAvailabilityRowHeight
+            height += CGFloat(idleProjectCount) * stackedAvailabilityRowHeight
+            height += CGFloat(workflowStripCount) * stackedWorkflowStripHeight
             if pinnedCount == 0 { height += stackedEmptyDropHeight }
-            if openCount == 0 { height += stackedEmptyDropHeight }
         }
         if hasStatusMessage {
             height += stackedStatusHeight + stackedColumnSpacing

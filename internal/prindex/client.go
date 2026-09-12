@@ -26,6 +26,7 @@ const (
 
 type RepositoryResult struct {
 	PullRequests []model.ProjectPullRequest
+	Activity     *repositoryActivity
 	Error        string
 }
 
@@ -162,6 +163,7 @@ func (c GitHubClient) collectBatch(
 					)
 				}
 			}
+			result.Activity = repositoryActivityFromRaw(result.Activity, raw, request.repository.GitHub)
 			results[key] = result
 			if result.Error != "" {
 				continue
@@ -197,6 +199,7 @@ func (c GitHubClient) collectBatch(
 		pending = next
 	}
 	c.collectReviewThreadPages(ctx, reviewThreadPages, results, collector)
+	c.collectPendingHeadRuns(ctx, results, collector)
 	for key, result := range results {
 		sort.Slice(result.PullRequests, func(i, j int) bool {
 			if !result.PullRequests[i].UpdatedAt.Equal(result.PullRequests[j].UpdatedAt) {
