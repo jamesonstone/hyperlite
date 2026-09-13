@@ -34,6 +34,9 @@ func buildProject(
 	}
 	key := repositoryKey(project.Repository)
 	entry, cached := cache.Repositories[key]
+	if cached {
+		project.Workflows = cloneWorkflowActivity(entry.Workflows)
+	}
 	hasObservation := cached && !entry.ObservedAt.IsZero()
 	if cached && !entry.CheckedAt.IsZero() {
 		checkedAt := entry.CheckedAt
@@ -86,6 +89,56 @@ func buildProject(
 	}
 	project.Status = model.ProjectPullRequestsCurrent
 	return project
+}
+
+// buildScanResult projects every configured source from the cache plus this
+// scan's query results, folding per-project freshness into scan-level
+// checked and observed times.
+func buildScanResult(
+	scan scanContext,
+	queryResults map[string]RepositoryResult,
+	mode RefreshMode,
+) model.ProjectPullRequestScan {
+	result := model.ProjectPullRequestScan{
+		SchemaVersion: model.ProjectPullRequestScanSchemaVersion,
+		GeneratedAt:   scan.now, RefreshIntervalSeconds: int64(RefreshInterval / time.Second),
+		RateLimit: cloneRateLimit(scan.cache.RateLimit),
+		Projects:  []model.ProjectPullRequests{},
+		Errors:    []model.ScanError{}, Warnings: []model.ScanError{},
+	}
+	if scan.cacheWarning != "" {
+		result.Warnings = append(result.Warnings, model.ScanError{
+			Stage: "pull-request-cache", Message: scan.cacheWarning,
+		})
+	}
+	warnings := warningsByPath(scan.discovered.Warnings)
+	checksComplete := true
+	for _, source := range scan.sources {
+		repository := scan.resolved[filepath.Clean(source.Path)]
+		project := buildProject(
+			source, repository, scan.cache,
+			queryResults, warnings[filepath.Clean(source.Path)], mode, scan.now,
+		)
+		result.Projects = append(result.Projects, project)
+		if repository.GitHub != "" {
+			if project.CheckedAt == nil {
+				checksComplete = false
+			} else if result.CheckedAt == nil ||
+				project.CheckedAt.Before(*result.CheckedAt) {
+				checkedAt := *project.CheckedAt
+				result.CheckedAt = &checkedAt
+			}
+		}
+		if project.ObservedAt != nil &&
+			(result.ObservedAt == nil || project.ObservedAt.Before(*result.ObservedAt)) {
+			observedAt := *project.ObservedAt
+			result.ObservedAt = &observedAt
+		}
+	}
+	if !checksComplete {
+		result.CheckedAt = nil
+	}
+	return result
 }
 
 func warningsByPath(warnings []discovery.Warning) map[string]string {

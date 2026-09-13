@@ -11,6 +11,7 @@ struct HyperlitePullRequestPanelRow: View {
     var showRepository = true
     @Binding var draggedRowID: String?
     let toggleReview: () -> Void
+    let togglePin: () -> Void
     let move: (String, String) -> Void
     let moveBy: (String, Int) -> Void
 
@@ -28,26 +29,40 @@ struct HyperlitePullRequestPanelRow: View {
                     draggedRowID = row.id
                     return NSItemProvider(object: row.id as NSString)
                 }
+            Button(action: togglePin) {
+                Image(systemName: pinned ? "pin.fill" : "pin")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(pinned ? HyperliteTheme.cyan.color : HyperliteTheme.mutedText.color)
+                    .frame(width: 16, height: 16)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(pinned ? "Unpin from top" : "Pin to top")
+            .accessibilityLabel(pinned ? "Unpin pull request" : "Pin pull request")
             HyperlitePullRequestReviewToggle(
                 row: row,
                 status: reviewStatus,
                 action: toggleReview
             )
-            Button(action: openPullRequest) {
-                HyperlitePullRequestRowContent(
-                    row: row,
-                    reviewStatus: reviewStatus,
-                    compact: compact,
-                    showRepository: showRepository
-                )
-            }
-            .buttonStyle(.plain)
-            .disabled(row.url == nil)
+            HyperlitePullRequestRowContent(
+                row: row,
+                reviewStatus: reviewStatus,
+                compact: compact,
+                showRepository: showRepository,
+                openNumber: openNumber,
+                openPullRequest: openPullRequest
+            )
             .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isButton)
             .accessibilityLabel(HyperlitePullRequestRowContent.accessibilityLabel(
                 for: row,
                 reviewStatus: reviewStatus
             ))
+            .accessibilityAction { openPullRequest() }
+            .accessibilityAction(
+                named: Text(row.numberOpensIssue ? "Open linked issue" : "Open pull request number")
+            ) { openNumber() }
         }
         .contentShape(Rectangle())
         .onDrop(
@@ -69,6 +84,11 @@ struct HyperlitePullRequestPanelRow: View {
 
     private func openPullRequest() {
         guard let url = row.url else { return }
+        NSWorkspace.shared.open(url)
+    }
+
+    private func openNumber() {
+        guard let url = row.numberURL else { return }
         NSWorkspace.shared.open(url)
     }
 
@@ -142,34 +162,6 @@ struct HyperlitePullRequestReviewToggle: View {
     }
 }
 
-struct HyperlitePullRequestAvailabilityRow: View {
-    static let layout = HyperlitePullRequestRowLayout.repositoryFirst
-    let project: HyperliteProjectPullRequests
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 7) {
-            Text(project.repository ?? project.name)
-                .frame(width: Self.layout.repositoryColumnWidth, alignment: .leading)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .layoutPriority(Self.layout.repositoryLayoutPriority)
-            Text(project.status == .cached ? "cached" : "unavailable")
-                .frame(width: Self.layout.availabilityMetadataColumnWidth, alignment: .leading)
-            Text(project.message ?? "GitHub data is unavailable")
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .layoutPriority(Self.layout.titleLayoutPriority)
-            Spacer(minLength: 0)
-        }
-        .font(HyperliteTypography.compact)
-        .foregroundStyle(HyperliteTheme.mutedText.color)
-        .help(project.message ?? "GitHub data is unavailable")
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(project.name), \(project.status.rawValue), " +
-            "\(project.message ?? "GitHub data is unavailable")")
-    }
-}
-
 struct HyperlitePinnedSectionDropTarget: View {
     @Binding var draggedRowID: String?
     let pin: (String) -> Void
@@ -188,39 +180,7 @@ struct HyperlitePinnedSectionDropTarget: View {
     }
 }
 
-struct HyperliteProjectSectionHeader: View {
-    let repository: String
-    let count: Int
-    @Binding var draggedRowID: String?
-    let drop: (String) -> Void
-
-    var body: some View {
-        HStack(spacing: 4) {
-            Text(repository)
-                .font(HyperliteTypography.heading)
-                .foregroundStyle(HyperliteTheme.secondaryText.color)
-                .lineLimit(1)
-                .truncationMode(.tail)
-            Text("\(count)")
-                .font(HyperliteTypography.compact.monospacedDigit())
-                .foregroundStyle(HyperliteTheme.mutedText.color)
-        }
-        .padding(.top, 6)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
-        .onDrop(
-            of: [UTType.text.identifier],
-            delegate: HyperliteSectionPinDropDelegate(
-                draggedID: $draggedRowID,
-                pin: drop
-            )
-        )
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(repository) pull requests, \(count)")
-    }
-}
-
-private struct HyperliteSectionPinDropDelegate: DropDelegate {
+struct HyperliteSectionPinDropDelegate: DropDelegate {
     @Binding var draggedID: String?
     let pin: (String) -> Void
 

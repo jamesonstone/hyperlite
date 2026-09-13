@@ -15,6 +15,7 @@ import (
 type pullRequestOptions struct {
 	localOnly  bool
 	force      bool
+	activity   bool
 	jsonOutput bool
 }
 
@@ -30,6 +31,7 @@ func (a App) pullRequestsCommand(configPath *string) *cobra.Command {
 	}
 	command.Flags().BoolVar(&options.localOnly, "local", false, "read cached pull requests without GitHub")
 	command.Flags().BoolVar(&options.force, "force", false, "refresh every resolved project regardless of cache age")
+	command.Flags().BoolVar(&options.activity, "activity", false, "poll only running workflow activity when the quota governor allows")
 	command.Flags().BoolVar(&options.jsonOutput, "json", false, "emit JSON only")
 	return command
 }
@@ -39,8 +41,14 @@ func (a App) runPullRequests(
 	configPath string,
 	options pullRequestOptions,
 ) error {
-	if options.localOnly && options.force {
-		return usageError{fmt.Errorf("--local and --force cannot be used together")}
+	exclusive := 0
+	for _, flag := range []bool{options.localOnly, options.force, options.activity} {
+		if flag {
+			exclusive++
+		}
+	}
+	if exclusive > 1 {
+		return usageError{fmt.Errorf("--local, --force, and --activity are mutually exclusive")}
 	}
 	path, err := config.EnsureDefaultConfig(configPath)
 	if err != nil {
@@ -53,10 +61,13 @@ func (a App) runPullRequests(
 	cfg.Sources = append([]config.Source(nil), cfg.Projects...)
 	cfg.Repositories = nil
 	mode := prindex.RefreshStale
-	if options.localOnly {
+	switch {
+	case options.localOnly:
 		mode = prindex.RefreshLocal
-	} else if options.force {
+	case options.force:
 		mode = prindex.RefreshForce
+	case options.activity:
+		mode = prindex.RefreshActivity
 	}
 	result, err := a.pullRequestScanner().Scan(ctx, cfg, mode)
 	if err != nil {

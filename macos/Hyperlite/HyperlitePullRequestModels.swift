@@ -7,6 +7,7 @@ struct HyperliteProjectPullRequestScan: Codable, Equatable {
     let observedAt: Date?
     let rateLimit: HyperliteGitHubRateLimit?
     let refreshIntervalSeconds: Int
+    var activityPolicy: HyperliteActivityPollDecision? = nil
     let projects: [HyperliteProjectPullRequests]
     let errors: [HyperliteDiagnostic]
     let warnings: [HyperliteDiagnostic]
@@ -19,6 +20,7 @@ struct HyperliteProjectPullRequestScan: Codable, Equatable {
         case observedAt = "observed_at"
         case rateLimit = "rate_limit"
         case refreshIntervalSeconds = "refresh_interval_seconds"
+        case activityPolicy = "activity_policy"
     }
 }
 
@@ -38,9 +40,10 @@ struct HyperliteProjectPullRequests: Codable, Equatable, Identifiable {
     let checkedAt: Date?
     let observedAt: Date?
     let pullRequests: [HyperliteProjectPullRequest]
+    var workflows: HyperliteProjectWorkflowActivity? = nil
 
     enum CodingKeys: String, CodingKey {
-        case id, name, path, repository, status, message
+        case id, name, path, repository, status, message, workflows
         case checkedAt = "checked_at"
         case observedAt = "observed_at"
         case pullRequests = "pull_requests"
@@ -145,58 +148,24 @@ extension HyperliteProjectPullRequest {
 struct HyperlitePullRequestRow: Equatable, Identifiable {
     let id: String
     let reviewID: String
+    var projectID: String = ""
     let repository: String
     let status: HyperliteProjectPullRequestStatus
     let number: Int
     let title: String
     let url: URL?
+    var headRefName: String = ""
     let headRefOID: String
     let isDraft: Bool
     let hasMergeConflict: Bool
     let unresolvedReviewThreads: Int?
     let updatedAt: Date
     var glance: HyperlitePullRequestGlance = .empty
-}
 
-struct HyperlitePullRequestRowLayout: Equatable {
-    let repositoryColumnWidth: CGFloat
-    let reviewFeedbackColumnWidth: CGFloat
-    let mergeConflictColumnWidth: CGFloat
-    let availabilityMetadataColumnWidth: CGFloat
-    let repositoryLayoutPriority: Double
-    let metadataLayoutPriority: Double
-    let titleLayoutPriority: Double
-
-    static let repositoryFirst = HyperlitePullRequestRowLayout(
-        repositoryColumnWidth: 190,
-        reviewFeedbackColumnWidth: 28,
-        mergeConflictColumnWidth: 16,
-        availabilityMetadataColumnWidth: 149,
-        repositoryLayoutPriority: 1,
-        metadataLayoutPriority: 2,
-        titleLayoutPriority: -1
-    )
-
-    static let titleFirst = HyperlitePullRequestRowLayout(
-        repositoryColumnWidth: 148,
-        reviewFeedbackColumnWidth: 28,
-        mergeConflictColumnWidth: 16,
-        availabilityMetadataColumnWidth: 149,
-        repositoryLayoutPriority: -1,
-        metadataLayoutPriority: 2,
-        titleLayoutPriority: 1
-    )
-
-    static func usesCompactStack(compact: Bool, showRepository: Bool) -> Bool {
-        compact && showRepository
-    }
-
-    static func reservesAlignedConflictColumn(
-        compact: Bool,
-        showRepository: Bool
-    ) -> Bool {
-        !usesCompactStack(compact: compact, showRepository: showRepository)
-    }
+    /// Section grouping key. Two configured projects can share a repository,
+    /// so rows group by project identity; hand-built rows without a project
+    /// id fall back to the repository.
+    var groupKey: String { projectID.isEmpty ? repository : projectID }
 }
 
 struct HyperliteReviewFeedbackPresentation: Equatable {
@@ -212,11 +181,13 @@ enum HyperlitePullRequestPresentation {
                 HyperlitePullRequestRow(
                     id: "\(project.id)\u{1F}\(pullRequest.id)",
                     reviewID: pullRequest.id,
+                    projectID: project.id,
                     repository: project.repository ?? project.name,
                     status: project.status,
                     number: pullRequest.number,
                     title: pullRequest.title,
                     url: URL(string: pullRequest.url),
+                    headRefName: pullRequest.headRefName,
                     headRefOID: pullRequest.headRefOID,
                     isDraft: pullRequest.isDraft,
                     hasMergeConflict: pullRequest.hasMergeConflict,
@@ -230,12 +201,6 @@ enum HyperlitePullRequestPresentation {
             if $0.repository != $1.repository { return $0.repository < $1.repository }
             return $0.number < $1.number
         }
-    }
-
-    static func availability(
-        scan: HyperliteProjectPullRequestScan
-    ) -> [HyperliteProjectPullRequests] {
-        scan.projects.filter { $0.status != .current }
     }
 
     static func isStale(

@@ -4,9 +4,17 @@ enum HyperlitePullRequestRefreshMode: Equatable {
     case local
     case stale
     case force
+    case activity
 }
 
 enum HyperlitePullRequestRefresh {
+    /// One bounded activity poll: cached rows plus refreshed running workflow
+    /// state, gated by the helper's quota governor.
+    @MainActor
+    static func activity() async throws -> HyperliteProjectPullRequestScan {
+        try await scan(mode: .activity)
+    }
+
     @MainActor
     static func run(
         mode: HyperlitePullRequestRefreshMode,
@@ -39,6 +47,8 @@ enum HyperlitePullRequestRefresh {
             break
         case .force:
             arguments.append("--force")
+        case .activity:
+            arguments.append("--activity")
         }
         let data = try await HyperliteProcess.run(
             arguments: arguments,

@@ -47,6 +47,7 @@ type ProjectPullRequests struct {
 	CheckedAt    *time.Time               `json:"checked_at,omitempty"`
 	ObservedAt   *time.Time               `json:"observed_at,omitempty"`
 	PullRequests []ProjectPullRequest     `json:"pull_requests"`
+	Workflows    *ProjectWorkflowActivity `json:"workflows,omitempty"`
 }
 
 type GitHubRateLimit struct {
@@ -73,6 +74,7 @@ type ProjectPullRequestScan struct {
 	ObservedAt             *time.Time            `json:"observed_at,omitempty"`
 	RateLimit              *GitHubRateLimit      `json:"rate_limit,omitempty"`
 	RefreshIntervalSeconds int64                 `json:"refresh_interval_seconds"`
+	ActivityPolicy         *ActivityPollDecision `json:"activity_policy,omitempty"`
 	Projects               []ProjectPullRequests `json:"projects"`
 	Errors                 []ScanError           `json:"errors"`
 	Warnings               []ScanError           `json:"warnings"`

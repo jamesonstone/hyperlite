@@ -33,6 +33,7 @@
 | 0028 | open-pr-ready-inline | `docs/specs/0028-open-pr-ready-inline` | deliver | no | 2026-09-10 | Keep Open PR ready/draft badges as whole words on narrow one-line rows. |
 | 0029 | open-pr-refresh-ghost | `docs/specs/0029-open-pr-refresh-ghost` | deliver | no | 2026-09-11 | Pulse the Open PRs heading with a tiny ghost while GitHub is still fetching. |
 | 0030 | open-pr-refresh-ghost-overlay | `docs/specs/0030-open-pr-refresh-ghost-overlay` | deliver | no | 2026-09-11 | Overlay a large spinning ghost across the Open PRs pane while GitHub is still fetching. |
+| 0031 | open-pr-workflow-activity | `docs/specs/0031-open-pr-workflow-activity` | deliver | no | 2026-09-12 | Show running GitHub Actions workflows and deployments per project with a quota-governed poll and Pulls/Actions links. |
 
 ## PROJECT INTENT
 
@@ -423,8 +424,23 @@ changes that warrant human attention.
 - **OPEN ITEMS**: Ready pull-request delivery through issue #94.
 - **POINTERS**: `docs/specs/0030-open-pr-refresh-ghost-overlay/SPEC.md`
 
+### open-pr-workflow-activity
+
+- **STATUS**: deliver
+- **PAUSED**: no
+- **INTENT**: Show which GitHub Actions workflow or deployment is running for each configured project, with every workflow listed and the running one highlighted, plus Pulls and Actions links, without taxing the GitHub quota.
+- **APPROACH**: 1. Add repository-level tip check suites, deployments, and the workflows tree OID to the existing batch; read workflow files only when the OID changes; fetch pending pull-request heads in one follow-up. 2. Add a `--activity` mode and a pure quota governor with floor, projected reserve, window, burst, and interval limits. 3. Give every configured project a section with two icon buttons and a workflow strip whose running chip glides a ghost only on observations younger than two minutes. 4. Poll from the native app at most once a minute while something is running, the window is visible on screen, and the governor allows.
+- **OPEN ITEMS**: Ready pull-request delivery through issue #96.
+- **POINTERS**: `docs/specs/0031-open-pr-workflow-activity/SPEC.md`
+
 ## LAST UPDATED
 
+- 2026-09-12: Added feature `0031-open-pr-workflow-activity` so every
+  configured project owns an Open PRs section with Pulls and Actions links and
+  a workflow strip whose running chip glides a ghost, kept current by a
+  quota-governed, window-gated poll that costs one point per minute only
+  while something is running. Amended the Constitution's timer invariant to
+  permit exactly that bounded follow-up.
 - 2026-09-11: Added feature `0030-open-pr-refresh-ghost-overlay` so a large
   spinning ghost covers the Open PRs pane while GitHub is still fetching.
   This supersedes the heading-only pulse from feature `0029`.

@@ -15,7 +15,7 @@ func TestStoreRoundTripUsesPrivateAtomicCache(t *testing.T) {
 	projected := now.Add(time.Duration(float64(4875) / 2400 * float64(time.Hour)))
 	path := filepath.Join(t.TempDir(), "state", "pull-requests.json")
 	store := Store{Path: path, Now: func() time.Time { return now }}
-	updated, err := store.Update(func(state *cacheState) {
+	updated, err := store.Update(func(state *cacheState) bool {
 		state.Projects["/repo/one"] = "owner/one"
 		state.RateLimit = &model.GitHubRateLimit{
 			Limit: 5000, Used: 125, Remaining: 4875,
@@ -33,6 +33,7 @@ func TestStoreRoundTripUsesPrivateAtomicCache(t *testing.T) {
 				HeadRefName: "GH-1", HeadRefOID: "head-1",
 			}},
 		}
+		return true
 	})
 	if err != nil {
 		t.Fatal(err)

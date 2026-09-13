@@ -58,14 +58,24 @@
   projection. Open pull requests from any author remain visible without
   establishing thread membership, liveness, lifecycle, or attention. Its
   GitHub access is read-only, bounded, cached separately from thread state, and
-  refreshed only by startup or foreground staleness and explicit user action,
-  never by a continuous timer. Cached rows remain available in Open PRs during
-  a failed refresh. Unresolved, non-outdated review
-  thread counts are informational metadata in this projection; they do not
-  establish inferred attention or thread lifecycle state. Caller rate-limit
-  metadata rides with those same bounded GraphQL requests and is cached only as
-  a complete observation; quota visibility never adds polling, changes refresh
-  authority, or establishes attention. A local `Reviewed by me` marker is
+  refreshed only by startup or foreground staleness and explicit user action.
+  The sole automatic follow-up is the bounded workflow-activity poll: at most
+  once per minute, only while a scan reports an Actions run or deployment in
+  progress, only while the window is visible on screen, never longer than
+  thirty minutes after a burst starts, at most sixty polls per
+  quota window, and only when the cached quota observation keeps at least the
+  larger of 1,000 points or thirty percent of the limit plus a projected
+  twenty percent at reset. That poll never lists pull requests or reads
+  workflow files, and a denied governor decision is reported, not retried.
+  Cached rows remain available in Open PRs during a failed refresh.
+  Unresolved, non-outdated review thread counts and observed workflow runs
+  are informational metadata in this projection; they do not establish
+  inferred attention or thread lifecycle state, and only an observation
+  younger than two minutes may present a run as currently running. Caller
+  rate-limit metadata rides with those same bounded GraphQL requests and is
+  cached only as a complete observation; quota visibility never adds polling
+  or changes refresh authority, and the quota governor may only deny the
+  activity poll, never enable other requests. A local `Reviewed by me` marker is
   private presentation metadata bound to the exact observed pull-request head
   commit. Only current repository evidence with a nonempty head may create or
   replace a marker. A new current head invalidates that review, and only current
@@ -110,9 +120,11 @@
   layouts. Light themes recolor Hyperlite-painted surfaces and native
   `colorScheme`. Default remains Selenized Dark at 12 pt list type, stacked
   Open PRs above notes, and a content-sized Open PRs pane.
-- Open PR pin membership and order are local presentation metadata. Unpinned
-  Open PRs group by repository as local presentation. They do not change
-  GitHub state. Unpinning restores a row to its project section.
+- Open PR pin membership and order are local presentation metadata. Every
+  configured project owns one Open PRs section, including projects with no
+  open pull requests, and unpinned rows group under it as local presentation.
+  They do not change GitHub state. Unpinning restores a row to its project
+  section.
 
 ### Kit-Managed Baseline Rules
 

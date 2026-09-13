@@ -26,7 +26,10 @@
   pin/reorder presentation, stacked Open PRs above notes with Command-K
   Vertical Mode, Notes Only, content-sized and draggable splits, title-first
   Open PR rows grouped by repository section, inline ready/draft badges, Open PR
-  refresh ghost overlay, notepad pane-fill wrapping, and Command-K literal search without loading
+  refresh ghost overlay, notepad pane-fill wrapping, per-project workflow
+  activity decoding, chip derivation with the two-minute freshness boundary,
+  gliding-ghost math, every-project section plans with Pulls/Actions links,
+  the bounded activity poll schedule, and Command-K literal search without loading
   sentence embeddings. The native
   window no longer compiles Agent Island, Agent Tasks, Pinboard, or pinned Codex
   presentation tests.

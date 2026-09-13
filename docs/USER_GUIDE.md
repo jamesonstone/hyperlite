@@ -64,7 +64,9 @@ another click or native dismissal.
 
 Only complete observations replace the separately cached quota snapshot.
 Healthy capacity stays quiet, 20 percent remaining warns in orange, and 10
-percent remaining is critical in red. Once two valid observations exist in the
+percent remaining is critical in red. The same cached observation and burn
+rate gate the automatic workflow-activity poll; the governor can only deny
+that poll, never add requests. Once two valid observations exist in the
 same reset window, the popover shows the trailing quota-point burn rate, sample
 duration, projected depletion time, and whether depletion falls before or
 after reset. Reset crossings, counter decreases, and samples shorter than one
@@ -87,6 +89,44 @@ Failed checks retain visibly cached rows. A project with no usable GitHub
 identity or cache is shown as unavailable. Pagination fails safely on a
 repeated cursor or bounded page limit instead of risking an unbounded GitHub
 query loop.
+
+Every configured project has its own section, even with no open pull
+requests. The section header carries the repository name, its row count, a
+strip of the project's workflows, and two small buttons that open the
+repository's Pulls and Actions pages on GitHub. Clicking the repository name
+opens the repository itself. A project with nothing open shows one quiet
+`no open pull requests` line; cached or unavailable projects show their
+availability text there instead. Idle projects are hidden by default; the
+toggle beside the `Pinned` count shows or hides them, and a project stays
+visible while it has an open pull request or a workflow that is running or
+failing, so a post-merge deploy is never hidden.
+
+Each row carries a pin button next to its drag handle, so pinning a pull
+request to the top no longer requires a drag. In a row, the number opens the
+issue the pull request tracks when its branch or title names one through the
+`GH-<n>` convention (and shows that issue number); the title always opens the
+pull request, and rows with no tracked issue keep the pull request number.
+
+The workflow strip lists every file under `.github/workflows` on the default
+branch, named by the file's `name:` key, plus any observed dynamic workflow
+such as CodeQL. A workflow or environment deployment that GitHub reported
+running within the last two minutes becomes a cyan chip with a small 👻
+gliding along a track and the elapsed run time. Older active data shows a
+quiet `last seen HH:mm` instead; Hyperlite never animates stale data.
+Finished workflows show a green, red, or muted dot. Hovering a chip shows the
+run status, trigger, deployment environment, and links to the run and
+deployment log. In Vertical Mode the strip shows only running, stale, and
+failed chips with a `+N` count.
+
+While a scan reports running work, Hyperlite polls that activity about once a
+minute with one small GraphQL query for only the affected repositories. The
+poll runs only while the window is visible on screen (it may sit beside your
+editor), stops after thirty minutes, and defers to the quota governor: it
+needs at least the larger
+of 1,000 points or thirty percent of the limit remaining, a projected twenty
+percent left at reset, and at most sixty polls per quota window. Refresh and
+Force Cache Refresh cancel the loop and remain the only ways to fetch pull
+requests early.
 
 Each row leads with number, a compact ready/draft badge, optional
 merge-conflict icon, and the review-feedback count. Number and ready/draft
