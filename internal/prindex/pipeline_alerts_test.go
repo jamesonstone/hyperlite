@@ -100,3 +100,68 @@ func TestReconcilePipelineAlertsDeploySources(t *testing.T) {
 		t.Fatalf("green deploy workflow and environment should clear: %#v", cleared)
 	}
 }
+
+func TestReconcilePipelineAlertsMatchingSource(t *testing.T) {
+	now := time.Date(2026, 9, 13, 20, 0, 0, 0, time.UTC)
+	failed := model.WorkflowRun{
+		File: "main.yaml", Name: "main", Scope: model.WorkflowRunScopeTip,
+		Status: "COMPLETED", Conclusion: "FAILURE", URL: "https://example.com/main",
+		UpdatedAt: now.Add(-time.Hour),
+	}
+	alerts := ReconcilePipelineAlerts(nil, model.ProjectWorkflowActivity{Runs: []model.WorkflowRun{failed}}, now)
+	ciGreen := model.WorkflowRun{
+		File: "ci.yml", Name: "CI", Scope: model.WorkflowRunScopeTip,
+		Status: "COMPLETED", Conclusion: "SUCCESS", UpdatedAt: now,
+	}
+	kept := ReconcilePipelineAlerts(alerts, model.ProjectWorkflowActivity{Runs: []model.WorkflowRun{ciGreen}}, now)
+	if len(kept) != 1 || kept[0].File != "main.yaml" {
+		t.Fatalf("ci success must not clear main.yaml: %#v", kept)
+	}
+	green := failed
+	green.Conclusion = "SUCCESS"
+	green.UpdatedAt = now
+	if cleared := ReconcilePipelineAlerts(alerts, model.ProjectWorkflowActivity{Runs: []model.WorkflowRun{green}}, now); len(cleared) != 0 {
+		t.Fatalf("matching later success must clear: %#v", cleared)
+	}
+}
+
+func TestReconcilePipelineAlertsChronology(t *testing.T) {
+	now := time.Date(2026, 9, 13, 20, 0, 0, 0, time.UTC)
+	cached := []model.PipelineAlert{{
+		Kind: model.PipelineAlertKindMain, File: "main.yaml", Name: "main",
+		Conclusion: "FAILURE", URL: "https://example.com/main", ObservedAt: now.Add(-time.Minute),
+	}}
+	olderGreen := model.WorkflowRun{
+		File: "main.yaml", Name: "main", Scope: model.WorkflowRunScopeTip,
+		Status: "COMPLETED", Conclusion: "SUCCESS", UpdatedAt: now.Add(-2 * time.Hour),
+	}
+	kept := ReconcilePipelineAlerts(cached, model.ProjectWorkflowActivity{Runs: []model.WorkflowRun{olderGreen}}, now)
+	if len(kept) != 1 || kept[0].URL != cached[0].URL {
+		t.Fatalf("older success must not clear: %#v", kept)
+	}
+	olderFail := olderGreen
+	olderFail.Conclusion = "FAILURE"
+	olderFail.URL = "https://example.com/old"
+	replaced := ReconcilePipelineAlerts(cached, model.ProjectWorkflowActivity{Runs: []model.WorkflowRun{olderFail}}, now)
+	if len(replaced) != 1 || replaced[0].URL != cached[0].URL {
+		t.Fatalf("older failure must not replace: %#v", replaced)
+	}
+}
+
+func TestReconcilePipelineAlertsDeployEnvDoesNotClearWorkflow(t *testing.T) {
+	now := time.Date(2026, 9, 13, 20, 0, 0, 0, time.UTC)
+	failed := model.WorkflowRun{
+		File: "deploy.yaml", Name: "deploy", Scope: model.WorkflowRunScopeTip,
+		Status: "COMPLETED", Conclusion: "FAILURE", URL: "https://example.com/deploy",
+		UpdatedAt: now.Add(-time.Minute),
+	}
+	alerts := ReconcilePipelineAlerts(nil, model.ProjectWorkflowActivity{Runs: []model.WorkflowRun{failed}}, now)
+	greenEnv := model.Deployment{
+		Environment: "prod", State: "ACTIVE", LogURL: "https://example.com/log",
+		UpdatedAt: now,
+	}
+	kept := ReconcilePipelineAlerts(alerts, model.ProjectWorkflowActivity{Deployments: []model.Deployment{greenEnv}}, now)
+	if len(kept) != 1 || kept[0].File != "deploy.yaml" {
+		t.Fatalf("env success without a deploy run must not clear: %#v", kept)
+	}
+}

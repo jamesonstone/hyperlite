@@ -47,10 +47,31 @@ func isSuccessfulDeployment(state string) bool {
 	return false
 }
 
-// ReconcilePipelineAlerts keeps cached main/deploy failures until a newer
+func laterThanAlert(existing model.PipelineAlert, at time.Time) bool {
+	if existing.Kind == "" {
+		return true
+	}
+	return !at.IsZero() && at.After(existing.ObservedAt)
+}
+
+func matchesAlertSource(existing model.PipelineAlert, file, name string) bool {
+	if existing.Kind == "" {
+		return true
+	}
+	if strings.TrimSpace(existing.File) != "" {
+		return strings.EqualFold(strings.TrimSpace(existing.File), strings.TrimSpace(file))
+	}
+	if strings.TrimSpace(existing.Name) != "" && ClassifyPipeline("", existing.Name) != "" {
+		return strings.EqualFold(strings.TrimSpace(existing.Name), strings.TrimSpace(name))
+	}
+	return true
+}
+
+// ReconcilePipelineAlerts keeps cached main/deploy failures until a later
 // matching tip completion is green. Pull-request runs are ignored. Missing
-// observations keep the previous alert so a new tip SHA without suites does
-// not drop a still-red pipeline.
+// or older observations keep the previous alert so a new tip SHA without
+// suites, a sibling workflow success, or a stale cached run does not drop
+// a still-red pipeline.
 func ReconcilePipelineAlerts(
 	existing []model.PipelineAlert,
 	activity model.ProjectWorkflowActivity,
@@ -77,17 +98,7 @@ func reconcileMainAlert(
 	activity model.ProjectWorkflowActivity,
 	now time.Time,
 ) (model.PipelineAlert, bool) {
-	run, ok := latestCompletedTip(activity.Runs, model.PipelineAlertKindMain)
-	if !ok {
-		return existing, existing.Kind == model.PipelineAlertKindMain
-	}
-	if isFailedConclusion(run.Conclusion) {
-		return alertFromRun(model.PipelineAlertKindMain, run, now), true
-	}
-	if isSuccessfulConclusion(run.Conclusion) {
-		return model.PipelineAlert{}, false
-	}
-	return existing, existing.Kind == model.PipelineAlertKindMain
+	return reconcileKindFromRuns(existing, model.PipelineAlertKindMain, activity.Runs, now)
 }
 
 func reconcileDeployAlert(
@@ -95,24 +106,55 @@ func reconcileDeployAlert(
 	activity model.ProjectWorkflowActivity,
 	now time.Time,
 ) (model.PipelineAlert, bool) {
-	run, hasRun := latestCompletedTip(activity.Runs, model.PipelineAlertKindDeploy)
+	next, keep := reconcileKindFromRuns(existing, model.PipelineAlertKindDeploy, activity.Runs, now)
 	failedEnv, hasFailedEnv := latestFailedEnvironment(activity.Deployments)
-	if hasFailedEnv {
+	if hasFailedEnv && laterThanAlert(existing, failedEnv.UpdatedAt) && (!keep || failedEnv.UpdatedAt.After(next.ObservedAt)) {
 		return alertFromDeployment(failedEnv, now), true
 	}
-	if hasRun && isFailedConclusion(run.Conclusion) {
-		return alertFromRun(model.PipelineAlertKindDeploy, run, now), true
+	if existing.Kind == model.PipelineAlertKindDeploy && existing.File == "" {
+		if hasFailedEnv {
+			return next, keep
+		}
+		if !keep {
+			return model.PipelineAlert{}, false
+		}
+		successEnv, hasSuccessEnv := latestSuccessfulEnvironment(activity.Deployments)
+		if hasSuccessEnv && laterThanAlert(existing, successEnv.UpdatedAt) {
+			return model.PipelineAlert{}, false
+		}
+		return next, true
 	}
-	if hasRun && isSuccessfulConclusion(run.Conclusion) {
-		return model.PipelineAlert{}, false
+	if keep {
+		return next, true
 	}
-	if hasSuccessfulEnvironment(activity.Deployments) && !hasRun {
-		return model.PipelineAlert{}, false
-	}
-	return existing, existing.Kind == model.PipelineAlertKindDeploy
+	return model.PipelineAlert{}, false
 }
 
-func latestCompletedTip(runs []model.WorkflowRun, kind string) (model.WorkflowRun, bool) {
+func reconcileKindFromRuns(
+	existing model.PipelineAlert,
+	kind string,
+	runs []model.WorkflowRun,
+	now time.Time,
+) (model.PipelineAlert, bool) {
+	failed, hasFail := latestTipWhere(runs, kind, func(run model.WorkflowRun) bool {
+		return isFailedConclusion(run.Conclusion)
+	})
+	if hasFail && laterThanAlert(existing, failed.UpdatedAt) {
+		return alertFromRun(kind, failed, now), true
+	}
+	if existing.Kind != kind {
+		return model.PipelineAlert{}, false
+	}
+	success, hasSuccess := latestTipWhere(runs, kind, func(run model.WorkflowRun) bool {
+		return isSuccessfulConclusion(run.Conclusion) && matchesAlertSource(existing, run.File, run.Name)
+	})
+	if hasSuccess && laterThanAlert(existing, success.UpdatedAt) {
+		return model.PipelineAlert{}, false
+	}
+	return existing, true
+}
+
+func latestTipWhere(runs []model.WorkflowRun, kind string, pred func(model.WorkflowRun) bool) (model.WorkflowRun, bool) {
 	var latest model.WorkflowRun
 	found := false
 	for _, run := range runs {
@@ -120,6 +162,9 @@ func latestCompletedTip(runs []model.WorkflowRun, kind string) (model.WorkflowRu
 			continue
 		}
 		if ClassifyPipeline(run.File, run.Name) != kind {
+			continue
+		}
+		if !pred(run) {
 			continue
 		}
 		if !found || run.UpdatedAt.After(latest.UpdatedAt) {
@@ -155,13 +200,19 @@ func latestFailedEnvironment(deployments []model.Deployment) (model.Deployment, 
 	return failed, found
 }
 
-func hasSuccessfulEnvironment(deployments []model.Deployment) bool {
+func latestSuccessfulEnvironment(deployments []model.Deployment) (model.Deployment, bool) {
+	var latest model.Deployment
+	found := false
 	for _, deployment := range deployments {
-		if !deployment.IsActive() && isSuccessfulDeployment(deployment.State) {
-			return true
+		if deployment.IsActive() || !isSuccessfulDeployment(deployment.State) {
+			continue
+		}
+		if !found || deployment.UpdatedAt.After(latest.UpdatedAt) {
+			latest = deployment
+			found = true
 		}
 	}
-	return false
+	return latest, found
 }
 
 func alertFromRun(kind string, run model.WorkflowRun, now time.Time) model.PipelineAlert {

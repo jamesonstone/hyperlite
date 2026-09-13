@@ -92,9 +92,14 @@ one presentation contract and need continuous design judgment.
   failed environment deployment). Badges stay on the heading until cleared.
 - R2: A badge is set from a completed default-branch (`tip`) failure
   (`FAILURE`, `TIMED_OUT`, `ACTION_REQUIRED`, `STARTUP_FAILURE`) or a finished
-  environment deployment in `FAILURE`/`ERROR`. A later matching tip success, or
-  a finished non-failed deployment with no remaining failed environments,
-  clears that kind. An in-progress run does not clear a stored failure.
+  environment deployment in `FAILURE`/`ERROR`. A later matching tip success of
+  the same workflow file (or name when no file is stored), or a later finished
+  non-failed deployment with no remaining failed environments, clears that kind.
+  A successful `ci` run does not clear a stored `main.yaml` failure. An older
+  terminal observation does not clear or replace a newer cached alert.
+  Environment success without a matching deploy workflow completion does not
+  clear a workflow-sourced deploy alert. An in-progress run does not clear a
+  stored failure.
 - R3: Pull-request-scoped runs never set or clear these badges. A scan or poll
   that does not observe a newer matching completion keeps the cached alert.
   A failed GitHub activity poll does not rewrite alerts.
@@ -151,14 +156,23 @@ Observable acceptance:
 - Default-branch suites are only those on the current tip commit. Caching the
   last failed completion is required to survive a fast-forward that has not
   run yet.
+- `main` and `ci` share the **main** badge, but they are distinct workflow
+  sources. Grouping them only as a kind let a later `ci.yml` success clear an
+  unresolved `main.yaml` failure.
+- The Actions cache can return an older completed suite or deployment than the
+  cached alert. Reconcile must compare `UpdatedAt` with `ObservedAt` so an
+  older terminal observation cannot clear or replace a newer failure.
 
 ## VALIDATION
 
 - `make fmt-check vet test test-race` PASS. Go coverage includes pipeline
   classification, tip-failure persistence across pull-request success and
-  missing observations, in-progress tip not clearing, green tip clearing,
-  failed deploy workflow and environment sources, cache round-trip of
-  `pipeline_alerts`, and unchanged batch/`--activity` query shape.
+  missing observations, in-progress tip not clearing, matching-file green tip
+  clearing, `ci` success not clearing `main.yaml`, older terminal observations
+  not clearing or replacing a newer cached alert, failed deploy workflow and
+  environment sources, environment success not clearing a workflow-sourced
+  deploy alert, cache round-trip of `pipeline_alerts`, and unchanged
+  batch/`--activity` query shape.
 - `make macos-test macos-build` PASS. Swift coverage includes legacy decode
   without `pipeline_alerts`, heading badge membership, hide-idle notable
   membership, and orange alert lantern vs cyan running lantern.
