@@ -452,7 +452,7 @@ changes that warrant human attention.
 - **STATUS**: deliver
 - **PAUSED**: no
 - **INTENT**: Make Vertical Mode's Open PRs pane a readable watch stage with lantern-marked project clusters, two-line titles, and leftover height filled with a solar system of hidden idle projects.
-- **APPROACH**: Use the compact stack for every Vertical Mode row, mark clusters with a thin lantern, render one Reduce-Motion-safe orbit of named celestial bodies sized from heavily cached commit counts, and keep a few decorative ghosts as comets.
+- **APPROACH**: Use the compact stack for every Vertical Mode row, mark clusters with a thin lantern, and render one Reduce-Motion-safe orbit of named emoji bodies sized from heavily cached commit counts.
 - **OPEN ITEMS**: Ready pull-request delivery through issue #102.
 - **POINTERS**: `docs/specs/0033-open-pr-watch-stage/SPEC.md`
 

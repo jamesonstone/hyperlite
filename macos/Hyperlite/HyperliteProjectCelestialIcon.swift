@@ -2,31 +2,26 @@ import SwiftUI
 
 struct HyperliteProjectCelestialIcon: View {
     let kind: HyperliteProjectCelestialKind
+    var id: String = ""
     var diameter: CGFloat? = nil
+    var spin = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var spinning = false
 
     private var size: CGFloat { diameter ?? kind.listDiameter }
 
     var body: some View {
-        Image(systemName: kind.symbolName)
-            .font(.system(size: size * 0.72))
-            .foregroundStyle(tint)
+        Text(kind.emoji(for: id))
+            .font(.system(size: size * 0.86))
             .frame(width: size, height: size)
-            .overlay {
-                if kind == .planet || kind == .giant {
-                    Circle()
-                        .stroke(tint.opacity(0.55), lineWidth: 1)
-                        .frame(width: size, height: size)
-                }
-            }
+            .rotationEffect(spinning && spin && !reduceMotion ? .degrees(360) : .zero)
+            .onAppear { spinning = true }
+            .animation(
+                spin && !reduceMotion
+                    ? .linear(duration: kind.spinPeriod).repeatForever(autoreverses: false)
+                    : nil,
+                value: spinning
+            )
             .accessibilityHidden(true)
-    }
-
-    private var tint: Color {
-        switch kind {
-        case .star: HyperliteTheme.mutedText.color
-        case .moon: HyperliteTheme.secondaryText.color
-        case .planet: HyperliteTheme.cyan.color
-        case .giant: HyperliteTheme.orange.color
-        }
     }
 }

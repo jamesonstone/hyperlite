@@ -92,9 +92,23 @@ enum HyperliteOpenPRWatchStageTests {
                 HyperliteProjectOrbitPresentation.classify(count: 48000) == .giant,
             "commit count should pick star, moon, planet, or giant"
         )
+        let star = HyperliteProjectCelestialKind.star.emoji(for: "a")
         expect(
-            HyperliteProjectOrbitPresentation.cometCount == 3,
-            "decorative ghosts should stay a handful of comets"
+            hasEmoji(star, 0x2B50) || hasEmoji(star, 0x1F31F),
+            "stars should render as star emoji; got \(star.unicodeScalars.map(\.value))"
+        )
+        let moon = HyperliteProjectCelestialKind.moon.emoji(for: "a")
+        expect(
+            hasEmoji(moon, 0x1F315) || hasEmoji(moon, 0x1F316) || hasEmoji(moon, 0x1F317),
+            "moons should render as moon emoji; got \(moon.unicodeScalars.map(\.value))"
+        )
+        expect(
+            hasEmoji(HyperliteProjectOrbitPresentation.sunEmoji, 0x2600),
+            "the orbit should keep a sun as the reference"
+        )
+        expect(
+            HyperliteProjectOrbitPresentation.revolutionPeriod >= 60,
+            "revolution should stay a slow Core Animation, not a 12 Hz tick"
         )
         let size = CGSize(width: 240, height: 180)
         let inset = HyperliteProjectOrbitPresentation.inset
@@ -159,6 +173,10 @@ enum HyperliteOpenPRWatchStageTests {
             status: .current, message: nil, checkedAt: nil, observedAt: nil,
             pullRequests: [], commitCount: count
         )
+    }
+
+    private static func hasEmoji(_ value: String, _ scalar: UInt32) -> Bool {
+        value.unicodeScalars.contains { $0.value == scalar }
     }
 
     private static func expect(_ condition: @autoclosure () -> Bool, _ message: String) {

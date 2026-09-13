@@ -30,30 +30,49 @@ struct HyperliteHiddenProjectGhostSky: View {
     let sections: [HyperliteProjectSection]
     let kinds: [String: HyperliteProjectCelestialKind]
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var revolving = false
 
     var body: some View {
         GeometryReader { geo in
+            let sun = HyperliteProjectOrbitPresentation.center(in: geo.size)
+            let anchor = HyperliteProjectOrbitPresentation.sunAnchor(in: geo.size)
             ZStack {
                 orbitRing(in: geo.size)
-                sun(in: geo.size)
-                ForEach(0..<HyperliteProjectOrbitPresentation.cometCount, id: \.self) { index in
-                    HyperliteOrbitComet(index: index, canvas: geo.size)
-                }
-                caption
-                ForEach(Array(sections.enumerated()), id: \.element.id) { index, section in
-                    HyperliteHiddenProjectOrbitBody(
-                        section: section,
-                        kind: kinds[section.project.id] ?? .star,
-                        origin: HyperliteProjectOrbitPresentation.bodyPoint(
-                            index: index, count: sections.count, in: geo.size
+                sunView(at: sun)
+                ZStack {
+                    ForEach(Array(sections.enumerated()), id: \.element.id) { index, section in
+                        HyperliteHiddenProjectOrbitBody(
+                            section: section,
+                            kind: kinds[section.project.id] ?? .star,
+                            origin: HyperliteProjectOrbitPresentation.bodyPoint(
+                                index: index, count: sections.count, in: geo.size
+                            ),
+                            revolving: revolving
                         )
-                    )
+                    }
                 }
+                .rotationEffect(
+                    revolving ? .degrees(360) : .zero,
+                    anchor: UnitPoint(x: anchor.x, y: anchor.y)
+                )
+                .animation(revolutionAnimation, value: revolving)
+                caption
             }
+        }
+        .onAppear {
+            guard !reduceMotion else { return }
+            revolving = true
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Hidden idle projects, \(sections.count)")
+    }
+
+    private var revolutionAnimation: Animation? {
+        reduceMotion
+            ? nil
+            : .linear(duration: HyperliteProjectOrbitPresentation.revolutionPeriod)
+                .repeatForever(autoreverses: false)
     }
 
     private func orbitRing(in size: CGSize) -> some View {
@@ -66,18 +85,20 @@ struct HyperliteHiddenProjectGhostSky: View {
             .accessibilityHidden(true)
     }
 
-    private func sun(in size: CGSize) -> some View {
-        Image(systemName: "sun.max.fill")
-            .font(.system(size: HyperliteProjectOrbitPresentation.sunSize))
-            .foregroundStyle(HyperliteTheme.orange.color)
-            .position(HyperliteProjectOrbitPresentation.center(in: size))
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
+    private func sunView(at origin: CGPoint) -> some View {
+        HyperliteOrbitSpinningEmoji(
+            emoji: HyperliteProjectOrbitPresentation.sunEmoji,
+            size: HyperliteProjectOrbitPresentation.sunSize,
+            period: HyperliteProjectOrbitPresentation.sunSpinPeriod
+        )
+        .position(origin)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 
     private var caption: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Text(HyperliteOpenPRRefreshPulse.glyph)
+            Text(HyperliteProjectOrbitPresentation.sunEmoji)
                 .font(.system(size: 13))
             Text(HyperliteHiddenProjectGhostSkyPresentation.caption)
                 .font(HyperliteTypography.compact)
@@ -93,33 +114,24 @@ struct HyperliteHiddenProjectGhostSky: View {
     }
 }
 
-struct HyperliteOrbitComet: View {
-    let index: Int
-    let canvas: CGSize
+struct HyperliteOrbitSpinningEmoji: View {
+    let emoji: String
+    let size: CGFloat
+    let period: TimeInterval
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var drifting = false
+    @State private var spinning = false
 
     var body: some View {
-        Text(HyperliteOpenPRRefreshPulse.glyph)
-            .font(.system(size: 11))
-            .opacity(reduceMotion ? 0.28 : 0.42)
-            .position(HyperliteProjectOrbitPresentation.cometHome(index: index, in: canvas))
-            .offset(
-                drifting && !reduceMotion
-                    ? HyperliteProjectOrbitPresentation.cometDrift(index: index)
-                    : .zero
-            )
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
-            .onAppear { drifting = true }
+        Text(emoji)
+            .font(.system(size: size * 0.86))
+            .frame(width: size, height: size)
+            .rotationEffect(spinning && !reduceMotion ? .degrees(360) : .zero)
+            .onAppear { spinning = true }
             .animation(
                 reduceMotion
                     ? nil
-                    : .easeInOut(
-                        duration: HyperliteProjectOrbitPresentation.cometDriftDuration(index: index)
-                    )
-                    .repeatForever(autoreverses: true),
-                value: drifting
+                    : .linear(duration: period).repeatForever(autoreverses: false),
+                value: spinning
             )
     }
 }
@@ -128,6 +140,7 @@ struct HyperliteHiddenProjectOrbitBody: View {
     let section: HyperliteProjectSection
     let kind: HyperliteProjectCelestialKind
     let origin: CGPoint
+    var revolving = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hovering = false
     @State private var dragging = false
@@ -135,8 +148,13 @@ struct HyperliteHiddenProjectOrbitBody: View {
 
     var body: some View {
         VStack(spacing: 2) {
-            HyperliteProjectCelestialIcon(kind: kind, diameter: kind.diameter)
-                .scaleEffect(hovering || dragging ? 1.18 : 1)
+            HyperliteProjectCelestialIcon(
+                kind: kind,
+                id: section.project.id,
+                diameter: kind.diameter,
+                spin: true
+            )
+            .scaleEffect(hovering || dragging ? 1.18 : 1)
             Text(HyperliteHiddenProjectGhostSkyPresentation.shortName(section.repository))
                 .font(.system(size: 8, design: .monospaced))
                 .foregroundStyle(
@@ -152,6 +170,8 @@ struct HyperliteHiddenProjectOrbitBody: View {
             height: max(HyperliteProjectOrbitPresentation.hitSize, 44)
         )
         .contentShape(Rectangle())
+        .rotationEffect(revolving && !reduceMotion ? .degrees(-360) : .zero)
+        .animation(revolutionAnimation, value: revolving)
         .offset(offset)
         .position(origin)
         .zIndex(dragging ? 1 : 0)
@@ -162,6 +182,13 @@ struct HyperliteHiddenProjectOrbitBody: View {
         .accessibilityLabel("\(section.repository), \(section.idleText)")
         .accessibilityHint(section.repositoryURL == nil ? "" : "Opens the repository on GitHub")
         .accessibilityAction(named: "Open repository") { open() }
+    }
+
+    private var revolutionAnimation: Animation? {
+        reduceMotion
+            ? nil
+            : .linear(duration: HyperliteProjectOrbitPresentation.revolutionPeriod)
+                .repeatForever(autoreverses: false)
     }
 
     private var pull: some Gesture {

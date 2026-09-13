@@ -100,23 +100,23 @@ contract and need continuous design judgment.
   by a thin left lantern. Running or failing work lights that lantern cyan.
   No filled cards.
 - R3: When hide-idle is on in Vertical Mode and leftover pane height remains,
-  hidden idle projects appear in that leftover as bodies on one orbit
-  around a sun. Every hidden project is a selectable star, moon, planet,
-  or giant sized from cached commit count, with its short name visible.
-  Pull a body and it springs back to its slot. A few decorative 👻 comets
-  drift and are not projects. Click a body to open the repository. Help
-  keeps the idle availability text. Hide-idle membership does not change.
-  Stacked fit-content does not grow a sky; leftover height there still goes
-  to notes.
+  hidden idle projects appear in that leftover as emoji bodies on one orbit
+  around a ☀️. Every hidden project is a selectable ⭐️, 🌕, 🌍, or 🪐
+  sized from cached commit count, with its short name visible. Bodies
+  revolve around the sun and spin in place with implicit Core Animation.
+  Pull a body and it springs back to its slot. Click a body to open the
+  repository. Help keeps the idle availability text. Hide-idle membership
+  does not change. Stacked fit-content does not grow a sky; leftover height
+  there still goes to notes. No decorative leftover ghosts.
 - R4: Drag handles, unpinned pins, and empty review boxes are quieter at rest
   and full on row hover. Number→issue, title→PR, Pulls/Actions, running
   chips, hover cards, and the refresh overlay stay. Compact Pulls/Actions
   wait on heading hover. Visible project headings show the same celestial
   glyph as the leftover body for that project.
-- R5: Leftover sky has no idle `TimelineView` or poll timer. Bodies rest on
-  a static orbit. Drag offsets a body; release returns it with one Core
-  Animation spring. Three comets use implicit Core Animation drift. Reduce
-  Motion stills comets and snaps bodies home with no spring.
+- R5: Leftover sky has no idle `TimelineView` or poll timer. Revolution and
+  spin use implicit Core Animation. Drag offsets a body; release returns it
+  with one Core Animation spring. Reduce Motion stills revolution and spin
+  and snaps bodies home with no spring.
 - R6: Keep handwritten source and test files at or under 300 lines.
 - R7: Commit counts are a cached pull-request-index field. Local `git
   rev-list --count HEAD` may seed a missing count. GitHub
@@ -138,7 +138,7 @@ Observable acceptance:
   and unwrapped.
 - Project work is marked by a thin lantern, not a filled card.
 - Hidden idle projects fill leftover Vertical Mode height as one orbit of
-  named, clickable, tug-and-spring bodies; a few ghosts drift as decoration.
+  named emoji bodies that revolve around a sun; pull-and-spring still works.
 - Open-PR project headings show a matching size glyph.
 - Hover cards, pins, review toggles, and GitHub buttons still work.
 
@@ -150,9 +150,9 @@ Observable acceptance:
    only for running or failing work. In compact layout, wait to show
    Pulls/Actions until the heading is hovered.
 3. Measure the Open PRs list against the Vertical Mode pane and, when
-   leftover height remains under hide-idle, render a sun plus one static
-   orbit of named project bodies, tug-and-spring drag, and a few
-   non-interactive comets. Keep stacked height content-sized.
+   leftover height remains under hide-idle, render a ☀️ plus one orbit of
+   named emoji bodies that revolve, spin, and tug-and-spring. Keep stacked
+   height content-sized.
 4. Fade drag handles, unpinned pins, and empty review boxes at rest. Cover
    layout, sky membership, one-body-per-hidden-project, celestial
    classification, orbit bounds, stacked lantern padding, and commit-count
@@ -173,16 +173,15 @@ Observable acceptance:
   lantern chunks the list without boxing every heading, chip, and button.
 - Wrapping `👻 name` tokens and a sunflower of unlabeled emoji-ghosts were
   both wrong: too much text, then too many ghosts with only one obvious
-  hit target. One orbit around a sun, with a named body per hidden project
-  and a few decorative comets, is the space treatment.
+  hit target. One orbit around a ☀️, with a named emoji body per hidden
+  project, is the space treatment.
 - Body kind is absolute from commit count (star / moon / planet / giant),
   not a peer percentile, so a project's glyph stays stable when neighbors
   hide and two similar repos stay the same kind.
 - A 12 Hz leftover `TimelineView` was too expensive for idle decoration.
-  Bodies sit on a static ring. Pull uses a gesture offset; bounce-back is
-  one underdamped Core Animation spring on the released body only. Three
-  comets keep implicit Core Animation drift. Reduce Motion stills the field
-  and snaps home.
+  Revolution and spin use implicit Core Animation. Pull uses a gesture
+  offset; bounce-back is one underdamped Core Animation spring on the
+  released body only. Reduce Motion stills the field and snaps home.
 - Commit-count GitHub access is part of an already authorized pull-request
   refresh, not a new automatic poll. Excess remaining (at least the larger
   of 2,000 points or 40% of the limit) is the quiet-period gate. The activity
@@ -204,12 +203,14 @@ Observable acceptance:
   paint.
 - A leftover `TimelineView` at 12 Hz rebuilt every body on the ring.
   Gesture offset plus one spring on release keeps idle CPU near zero.
+  Revolution and spin stay on implicit Core Animation so SwiftUI does not
+  tick the leftover sky. Decorative leftover ghosts were removed; project
+  bodies use ☀️⭐️🌕🌍🪐 emoji.
 
 ## VALIDATION
 
-- `make macos-test` passed after lanterns, two-line compact rows, leftover
-  orbit membership, quieter rest chrome, stacked padding, celestial
-  classification, and tug-and-spring return.
+- `make macos-test` passed after leftover emoji orbit, revolution, spin,
+  tug-and-spring return, and removal of leftover ghosts.
 - `go test ./internal/prindex/...` passed for commit-count query shape, daily
   TTL, excess-quota denial, local seed, and cache preserve on PR refresh.
 - `make macos-build` produced `build/Hyperlite.app` and relaunched it.

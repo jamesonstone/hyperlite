@@ -68,7 +68,10 @@ struct HyperliteProjectSectionHeader: View {
 
     private var label: some View {
         HStack(spacing: 6) {
-            HyperliteProjectCelestialIcon(kind: celestialKind)
+            HyperliteProjectCelestialIcon(
+                kind: celestialKind,
+                id: section.project.id
+            )
             Text(compact
                 ? HyperliteHiddenProjectGhostSkyPresentation.shortName(section.repository)
                 : section.repository)
