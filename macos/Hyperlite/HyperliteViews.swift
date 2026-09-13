@@ -191,32 +191,12 @@ struct HyperliteWindow: View {
         )
     }
 
-    private var hiddenIdleProjectSections: [HyperliteProjectSection] {
-        guard let scan = pullRequestScan else { return [] }
-        let groups = pullRequestPins.sections(
-            for: HyperlitePullRequestPresentation.rows(scan: scan)
-        )
-        return HyperliteOpenPRProjectFilter.hiddenSections(
-            HyperlitePullRequestSectionPlan.sections(
-                scan: scan, groups: groups.unpinnedGroups
-            ),
-            hideIdle: hideIdleProjects,
-            now: Date()
-        )
-    }
-
     private var pullRequestColumn: some View {
         let compact = HyperliteWorkspaceSplit.compactRows(
             verticalMode: appearance.verticalMode,
             notesOnly: appearance.notesOnly
         )
         return HyperliteOpenPRWatchColumn(
-            compact: compact,
-            hideIdle: hideIdleProjects,
-            hiddenSections: hiddenIdleProjectSections,
-            celestialKinds: HyperliteProjectOrbitPresentation.kinds(
-                for: pullRequestScan?.projects ?? []
-            ),
             isRefreshing: state.isRefreshingPullRequests
         ) {
             VStack(alignment: .leading, spacing: 10) {

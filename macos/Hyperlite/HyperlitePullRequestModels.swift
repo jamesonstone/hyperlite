@@ -41,14 +41,12 @@ struct HyperliteProjectPullRequests: Codable, Equatable, Identifiable {
     let observedAt: Date?
     let pullRequests: [HyperliteProjectPullRequest]
     var workflows: HyperliteProjectWorkflowActivity? = nil
-    var commitCount: Int? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, name, path, repository, status, message, workflows
         case checkedAt = "checked_at"
         case observedAt = "observed_at"
         case pullRequests = "pull_requests"
-        case commitCount = "commit_count"
     }
 }
 

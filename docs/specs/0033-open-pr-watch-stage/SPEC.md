@@ -47,7 +47,7 @@ references:
     target: docs/specs/0018-runtime-resource-cut/SPEC.md
     relation: constrains
     read_policy: must
-    used_for: leftover sky has no idle TimelineView; drag return is one Core Animation spring
+    used_for: hidden-idle list has no idle TimelineView or size poll
     status: active
   - id: frontend-architecture
     name: Frontend Application Architecture
@@ -72,23 +72,23 @@ skills: []
 
 ## PURPOSE
 
-Make Vertical Mode's Open PRs pane a readable watch stage: lantern-marked
-project clusters, two-line titles, and leftover height filled with a solar
-system of hidden idle projects.
+Make Vertical Mode's Open PRs pane readable: lantern-marked project
+clusters, two-line titles, quieter drag chrome, and hidden idle projects
+kept in a standard collapsible list.
 
 ## CONTEXT
 
 The two-pane split and notes pane are the right shape. After 0032 the Open
 PRs column still reads as a sparse utility list: unpinned titles share one
 line with `ready`/`draft` and truncate, drag chrome competes at rest, and
-hide-idle leaves a large empty well instead of using the leftover column
-height. Feature 0028 kept unpinned compact rows on one line so `ready`
-would not wrap; this pass keeps `ready` a whole word by moving it onto the
-identity line and giving the title its own line.
+hide-idle simply drops idle projects with no way to glance at them. Feature
+0028 kept unpinned compact rows on one line so `ready` would not wrap; this
+pass keeps `ready` a whole word by moving it onto the identity line and
+giving the title its own line.
 
-Orchestration: single-lane, because stages, compact-row stacking, leftover
-orbit, celestial sizing, and the commit-count cache share one presentation
-contract and need continuous design judgment.
+Orchestration: single-lane, because stages, compact-row stacking, and the
+hidden-idle collapsible list share one presentation contract and need
+continuous design judgment.
 
 ## REQUIREMENTS
 
@@ -99,50 +99,39 @@ contract and need continuous design judgment.
 - R2: Each visible project cluster, and Pinned when it has rows, is marked
   by a thin left lantern. Running or failing work lights that lantern cyan.
   No filled cards.
-- R3: When hide-idle is on in Vertical Mode and leftover pane height remains,
-  hidden idle projects appear in that leftover as emoji bodies on one orbit
-  around a ☀️. Every hidden project is a selectable ⭐️, 🌕, 🌍, or 🪐
-  sized from cached commit count, with its short name visible. Bodies
-  revolve around the sun and spin in place with implicit Core Animation.
-  Pull a body and it springs back to its slot, staying inside leftover;
-  the sky clips draw and hit-testing so bodies cannot cover the visible
-  list. Click a body to open the repository. Help keeps the idle
-  availability text. Hide-idle membership does not change. Stacked
-  fit-content does not grow a sky; leftover height there still goes to
-  notes. No decorative leftover ghosts.
+- R3: When hide-idle is on in Vertical Mode, hidden idle projects appear
+  below the open work in a standard collapsible list captioned `watching
+  the quiet ones` with the hidden count. It is collapsed by default;
+  expanding it shows each hidden project's heading with the same idle
+  availability text, workflow chips, and Pulls/Actions links as an inline
+  idle section. Hide-idle membership does not change. Showing idle projects
+  (eye off) lists them inline instead. Stacked (non-compact) layout shows no
+  collapsible list, so its leftover height still goes to notes.
 - R4: Drag handles, unpinned pins, and empty review boxes are quieter at rest
   and full on row hover. Number→issue, title→PR, Pulls/Actions, running
   chips, hover cards, and the refresh overlay stay. Compact Pulls/Actions
-  wait on heading hover. Visible project headings show the same celestial
-  glyph as the leftover body for that project. Running GitHub Actions
-  chips keep their 12 Hz gliding 👻; leftover sky must not cover them.
-- R5: Leftover sky has no idle `TimelineView` or poll timer. Revolution and
-  spin use implicit Core Animation. Drag offsets a body; release returns it
-  with one Core Animation spring. Reduce Motion stills revolution and spin
-  and snaps bodies home with no spring.
+  wait on heading hover. Compact headings use the short repository name;
+  hover names the full GitHub path. Running GitHub Actions chips keep their
+  12 Hz gliding 👻.
+- R5: The hidden-idle list uses a native `DisclosureGroup` with no idle
+  `TimelineView` or poll timer, so idle CPU stays near zero. Native keyboard
+  activation and VoiceOver come from the disclosure control.
 - R6: Keep handwritten source and test files at or under 300 lines.
-- R7: Commit counts are a cached pull-request-index field. Local `git
-  rev-list --count HEAD` may seed a missing count. GitHub
-  `history { totalCount }` may refresh a count only during an already
-  authorized stale or force scan, at most once per 24 hours per
-  repository, and only when the cached quota observation has excess remaining.
-  The activity poll never fetches sizes. Size queries never join the hot
-  pull-request query.
 
 Non-goals:
 
 - Changing Notes Only, splitter behavior, or hide-idle membership.
 - Replacing the two-pane Vertical Mode split.
-- A new automatic GitHub poll for project size.
+- Any extra GitHub fetch for project size or commit count. Issue #102 lists
+  extra GitHub fetches as a non-goal, so no size pipeline is added.
 
 Observable acceptance:
 
 - Vertical Mode titles are readable on their own line; `ready` stays cyan
   and unwrapped.
 - Project work is marked by a thin lantern, not a filled card.
-- Hidden idle projects fill leftover Vertical Mode height as one orbit of
-  named emoji bodies that revolve around a sun; pull-and-spring still works.
-- Open-PR project headings show a matching size glyph.
+- Hidden idle projects collapse into a `watching the quiet ones` disclosure
+  list below the open work; expanding it reveals their headings.
 - Hover cards, pins, review toggles, and GitHub buttons still work.
 
 ## ACCEPTED PLAN
@@ -152,90 +141,80 @@ Observable acceptance:
 2. Mark Pinned and each project section with a thin lantern. Light it cyan
    only for running or failing work. In compact layout, wait to show
    Pulls/Actions until the heading is hovered.
-3. Measure the Open PRs list against the Vertical Mode pane and, when
-   leftover height remains under hide-idle, render a ☀️ plus one orbit of
-   named emoji bodies that revolve, spin, and tug-and-spring. Clip the
-   leftover and keep the list above it so hover and running chips stay
-   live. Keep stacked height content-sized.
+3. When hide-idle is on in compact Vertical Mode, collect the hidden idle
+   sections and present them in a native `DisclosureGroup` captioned
+   `watching the quiet ones` below the open work, collapsed by default.
+   Reuse the inline project-section stage for each hidden heading. Keep the
+   stacked layout unchanged so its leftover height stays with notes.
 4. Fade drag handles, unpinned pins, and empty review boxes at rest. Cover
-   layout, sky membership, one-body-per-hidden-project, celestial
-   classification, orbit bounds, leftover drag clamp, stacked lantern
-   padding, and commit-count cache policy with tests.
-5. Seed missing counts from local git. Fetch GitHub counts in a batched
-   follow-up after a successful stale or force scan when the count is older
-   than 24 hours and quota remaining is excess. Never fetch sizes from the
-   activity poll or the hot pull-request query.
+   layout, hide-idle membership, hidden-section complement, stacked lantern
+   padding, and the collapsible-list caption with tests.
+
+## SUPERSEDED PLAN
+
+- An earlier pass filled leftover Vertical Mode height with a ☀️ and one
+  orbit of named ⭐️/🌕/🌍/🪐 bodies sized from a GitHub-backed commit-count
+  cache, with revolve/spin/tug-and-spring animation. It was removed in favor
+  of a standard collapsible list, and the commit-count pipeline
+  (`internal/prindex` client, policy, scan, cache fields, model field, and
+  projection) was deleted because extra GitHub fetches are a non-goal of
+  issue #102.
 
 ## DECISIONS
 
 - Supersede 0028's one-line unpinned Vertical Mode rows. `ready` remains a
   whole word because it lives on the identity line of the two-line stack,
   not because the title is forced to share that line.
-- Leftover sky is presentation of projects already hidden by 0032 hide-idle.
-  It does not keep those projects in the main list.
+- Hidden idle projects are a presentation of projects already hidden by 0032
+  hide-idle. They live in a collapsed disclosure list below the open work,
+  not in the main list, so the open work stays scannable while the quiet
+  projects remain one expand away.
+- A standard `DisclosureGroup` was chosen over the earlier leftover orbit:
+  it scrolls with the list, gives native keyboard activation and VoiceOver,
+  needs no idle animation ticks, and needs no commit-count sizing data. The
+  orbit read as whimsical decoration and pulled in a GitHub commit-count
+  fetch that issue #102 explicitly excludes.
 - Filled rounded stages made Vertical Mode look like a dashboard. A thin
   lantern chunks the list without boxing every heading, chip, and button.
-- Wrapping `👻 name` tokens and a sunflower of unlabeled emoji-ghosts were
-  both wrong: too much text, then too many ghosts with only one obvious
-  hit target. One orbit around a ☀️, with a named emoji body per hidden
-  project, is the space treatment.
-- Body kind is absolute from commit count (star / moon / planet / giant),
-  not a peer percentile, so a project's glyph stays stable when neighbors
-  hide and two similar repos stay the same kind.
-- A 12 Hz leftover `TimelineView` was too expensive for idle decoration.
-  Revolution and spin use implicit Core Animation. Pull uses a gesture
-  offset; bounce-back is one underdamped Core Animation spring on the
-  released body only. Reduce Motion stills the field and snaps home.
-- Commit-count GitHub access is part of an already authorized pull-request
-  refresh, not a new automatic poll. Excess remaining (at least the larger
-  of 2,000 points or 40% of the limit) is the quiet-period gate. The activity
-  quota governor still only denies the activity poll.
+- The GitHub commit-count pipeline (client, quota policy, daily-TTL scan,
+  cache fields, model field, projection) only existed to size the orbit
+  bodies. Removing the orbit removed its only consumer, so the whole pipeline
+  was deleted rather than left as dead, out-of-scope data.
 
 ## DISCOVERIES
 
-- ScrollView children report viewport height unless the list is
-  `fixedSize(horizontal: false, vertical: true)`. The leftover ghost sky
-  depends on that intrinsic measure; otherwise leftover is always zero.
-  `LazyVStack` still under-measures inside that ScrollView, so the
-  compact panel uses a `VStack` and leftover starts only below the last
-  visible row.
-- Unclipped `.position()` orbit bodies drew and hit-tested into the
-  visible list, stealing heading hover and covering running Actions
-  chips. Leftover is clipped, the list wins z-order, drag is clamped to
-  leftover, and the orbit radius scales to leftover size.
-- A first pass boxed every project and labeled every hidden ghost. That
-  read as busy chrome. Lanterns plus a nameless constellation were calmer
-  to watch but failed association: tiny `.position()` glyphs made only
-  one name (`status`) feel selectable. Named bodies with a 36pt hit
-  target are the fix.
-- `defaultBranchRef { target { ... on Commit { history(first: 1) {
-  totalCount } } } }` is cheap, but it must not ride the five-minute
-  pull-request query. Local `rev-list --count HEAD` is enough for first
-  paint.
-- A leftover `TimelineView` at 12 Hz rebuilt every body on the ring.
-  Gesture offset plus one spring on release keeps idle CPU near zero.
-  Revolution and spin stay on implicit Core Animation so SwiftUI does not
-  tick the leftover sky. Decorative leftover ghosts were removed; project
-  bodies use ☀️⭐️🌕🌍🪐 emoji.
+- Presenting hidden idle projects inline as a native `DisclosureGroup` reuses
+  the existing project-section stage, so an idle heading looks the same
+  whether it is shown inline (eye off) or inside the collapsed list (eye on).
+- The hidden set is the exact complement of the visible set under the same
+  hide-idle filter, so `HyperliteOpenPRProjectFilter.hiddenSections` and
+  `visibleSections` partition the project sections and stay in sync.
+- The earlier leftover orbit needed the ScrollView content measured with
+  `fixedSize` and clipped `.position()` bodies to avoid covering running
+  Actions chips. Dropping the orbit for a list removed that measurement,
+  the clip, and the z-order juggling entirely.
 
 ## VALIDATION
 
-- `make macos-test` passed after leftover clip, scaled orbit, drag clamp,
-  list-over-sky z-order, and restoring running-chip layout priority.
-- `go test ./internal/prindex/...` passed for commit-count query shape, daily
-  TTL, excess-quota denial, local seed, and cache preserve on PR refresh.
-- `make macos-build` produced `build/Hyperlite.app` and relaunched it.
-  Native screenshot evidence is SKIPPED (ScreenCaptureKit).
+- `make macos-test` passed: full app typecheck plus the Swift model tests,
+  including two-line compact rows, lantern stage kinds, drag-chrome opacity,
+  hidden-section complement, and the collapsible-list caption.
+- `go test ./...` and `go vet ./...` passed after removing the commit-count
+  client, policy, scan, cache fields, model field, and projection.
+- `make macos-build` produced `build/Hyperlite.app`. Native screenshot
+  evidence is SKIPPED (ScreenCaptureKit).
 
 ## OUTCOME
 
-- Vertical Mode Open PRs is a quieter watch stage: lantern-marked clusters,
-  two-line titles, and a leftover hidden-idle solar system. Ready
-  pull-request delivery through issue #102.
+- Vertical Mode Open PRs is quieter and readable: lantern-marked clusters,
+  two-line titles, muted resting drag chrome, and hidden idle projects in a
+  standard collapsible `watching the quiet ones` list. The leftover orbit and
+  its GitHub commit-count sizing pipeline were removed. Ready pull-request
+  delivery through issue #102.
 
 ## REPOSITORY MEMORY
 
-- Feature rationale lives in this spec. USER_GUIDE and testing.md record the
-  operator-visible stages, two-line compact rows, leftover orbit, and
-  heavily cached commit counts. Constitution records that size fetches are
-  part of the pull-request index refresh, not a new automatic poll.
+- Feature rationale lives in this spec, including the superseded orbit plan.
+  USER_GUIDE and testing.md record the operator-visible stages, two-line
+  compact rows, and the collapsible hidden-project list. The Constitution no
+  longer records a commit-count size fetch, because that pipeline was removed.

@@ -21,15 +21,12 @@ const cacheVersion = 1
 var cacheMutex sync.Mutex
 
 type cacheEntry struct {
-	Repository            string                         `json:"repository"`
-	CheckedAt             time.Time                      `json:"checked_at,omitempty"`
-	ObservedAt            time.Time                      `json:"observed_at"`
-	LastError             string                         `json:"last_error,omitempty"`
-	PullRequests          []model.ProjectPullRequest     `json:"pull_requests"`
-	Workflows             *model.ProjectWorkflowActivity `json:"workflows,omitempty"`
-	CommitCount           *int                           `json:"commit_count,omitempty"`
-	CommitCountObservedAt time.Time                      `json:"commit_count_observed_at,omitempty"`
-	CommitCountSource     string                         `json:"commit_count_source,omitempty"`
+	Repository   string                         `json:"repository"`
+	CheckedAt    time.Time                      `json:"checked_at,omitempty"`
+	ObservedAt   time.Time                      `json:"observed_at"`
+	LastError    string                         `json:"last_error,omitempty"`
+	PullRequests []model.ProjectPullRequest     `json:"pull_requests"`
+	Workflows    *model.ProjectWorkflowActivity `json:"workflows,omitempty"`
 }
 
 type cacheState struct {

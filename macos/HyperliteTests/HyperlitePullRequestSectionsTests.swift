@@ -113,7 +113,7 @@ enum HyperlitePullRequestSectionsTests {
                "hidden idle sections are the complement of the visible list; got \(hidden.map(\.id))")
         expect(
             HyperliteOpenPRProjectFilter.hiddenSections(sections, hideIdle: false, now: now).isEmpty,
-            "showing all projects leaves the ghost sky empty"
+            "showing all projects leaves the collapsible idle list empty"
         )
     }
 

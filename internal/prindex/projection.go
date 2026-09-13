@@ -36,7 +36,6 @@ func buildProject(
 	entry, cached := cache.Repositories[key]
 	if cached {
 		project.Workflows = cloneWorkflowActivity(entry.Workflows)
-		project.CommitCount = entry.CommitCount
 	}
 	hasObservation := cached && !entry.ObservedAt.IsZero()
 	if cached && !entry.CheckedAt.IsZero() {

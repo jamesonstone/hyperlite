@@ -35,7 +35,7 @@
 | 0030 | open-pr-refresh-ghost-overlay | `docs/specs/0030-open-pr-refresh-ghost-overlay` | deliver | no | 2026-09-11 | Overlay a large spinning ghost across the Open PRs pane while GitHub is still fetching. |
 | 0031 | open-pr-workflow-activity | `docs/specs/0031-open-pr-workflow-activity` | deliver | no | 2026-09-12 | Show running GitHub Actions workflows and deployments per project with a quota-governed poll and Pulls/Actions links. |
 | 0032 | open-pr-design-pass | `docs/specs/0032-open-pr-design-pass` | deliver | no | 2026-09-13 | Stronger Open PRs title, brighter project headings, folded idle lines, aligned content column, and no compact `+N` idle-workflow count. |
-| 0033 | open-pr-watch-stage | `docs/specs/0033-open-pr-watch-stage` | deliver | no | 2026-09-13 | Vertical Mode Open PRs watch stage: lantern-marked clusters, two-line compact titles, leftover solar system of hidden projects. |
+| 0033 | open-pr-watch-stage | `docs/specs/0033-open-pr-watch-stage` | deliver | no | 2026-09-13 | Vertical Mode Open PRs readability pass: lantern-marked clusters, two-line compact titles, and hidden idle projects in a standard collapsible list. |
 
 ## PROJECT INTENT
 
@@ -451,17 +451,17 @@ changes that warrant human attention.
 
 - **STATUS**: deliver
 - **PAUSED**: no
-- **INTENT**: Make Vertical Mode's Open PRs pane a readable watch stage with lantern-marked project clusters, two-line titles, and leftover height filled with a solar system of hidden idle projects.
-- **APPROACH**: Use the compact stack for every Vertical Mode row, mark clusters with a thin lantern, and render one Reduce-Motion-safe orbit of named emoji bodies sized from heavily cached commit counts.
+- **INTENT**: Make Vertical Mode's Open PRs pane readable with lantern-marked project clusters, two-line compact titles, and hidden idle projects kept in a standard collapsible list.
+- **APPROACH**: Use the compact stack for every Vertical Mode row, mark clusters with a thin lantern, quiet drag chrome at rest, and collapse hide-idle projects into a `DisclosureGroup` below the open work.
 - **OPEN ITEMS**: Ready pull-request delivery through issue #102.
 - **POINTERS**: `docs/specs/0033-open-pr-watch-stage/SPEC.md`
 
 ## LAST UPDATED
 
-- 2026-09-13: Added feature `0033-open-pr-watch-stage` so Vertical Mode Open
-  PRs use lantern-marked clusters, two-line compact titles, and a leftover
-  solar system of hidden idle projects sized from heavily cached commit
-  counts.
+- 2026-09-13: Reworked feature `0033-open-pr-watch-stage` to present hidden
+  idle projects in a standard collapsible list and removed the leftover orbit
+  animation and its GitHub commit-count sizing pipeline (out of scope for
+  issue #102).
 - 2026-09-13: Added feature `0032-open-pr-design-pass` so Open PRs read as
   title, then project, then rows; idle projects collapse to one compact muted
   line and compact workflow strips no longer show a noise-only `+N`.

@@ -29,6 +29,12 @@ struct HyperlitePullRequestPanel: View {
         )
     }
 
+    private var hiddenProjectSections: [HyperliteProjectSection] {
+        HyperliteOpenPRProjectFilter.hiddenSections(
+            projectSections, hideIdle: hideIdleProjects, now: chipClock
+        )
+    }
+
     private var hiddenProjectCount: Int {
         projectSections.count - visibleProjectSections.count
     }
@@ -57,28 +63,12 @@ struct HyperlitePullRequestPanel: View {
                         }
                     }
                     ForEach(visibleProjectSections) { section in
-                        let sectionChips = chips(for: section)
-                        HyperliteOpenPRProjectStage(
-                            kind: .forSection(section, chips: sectionChips)
-                        ) {
-                            HyperliteProjectSectionHeader(
-                                section: section,
-                                chips: sectionChips,
-                                compact: compactRows,
-                                celestialKind: HyperliteProjectOrbitPresentation.classify(
-                                    count: section.project.commitCount
-                                ),
-                                draggedRowID: $draggedRowID,
-                                drop: { dropped in
-                                    if let first = section.rows.first {
-                                        pins.move(dropped, over: first.id, rows: sourceRows)
-                                    } else {
-                                        pins.unpin(dropped)
-                                    }
-                                }
-                            )
-                            ForEach(section.rows) { row in
-                                pullRequestRow(row, pinned: false)
+                        projectSectionStage(section)
+                    }
+                    if compactRows && !hiddenProjectSections.isEmpty {
+                        HyperliteHiddenProjectList(count: hiddenProjectSections.count) {
+                            ForEach(hiddenProjectSections) { section in
+                                projectSectionStage(section)
                             }
                         }
                     }
@@ -109,13 +99,6 @@ struct HyperlitePullRequestPanel: View {
             )
             .layoutPriority(1)
             Spacer(minLength: 4)
-            if hiddenProjectCount > 0 {
-                Text(HyperliteOpenPRRefreshPulse.glyph)
-                    .font(.system(size: 13))
-                    .opacity(0.42)
-                    .accessibilityHidden(true)
-                    .help("\(hiddenProjectCount) idle projects are watching from below")
-            }
             HyperliteDashboardControlButton(
                 systemName: hideIdleProjects ? "eye.slash" : "eye",
                 active: !hideIdleProjects,
@@ -172,6 +155,29 @@ struct HyperlitePullRequestPanel: View {
         .padding(.top, HyperliteWorkspaceSplit.stackedPinnedLabelTopPadding)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Pinned pull requests, \(sections.pinned.count)")
+    }
+
+    @ViewBuilder
+    private func projectSectionStage(_ section: HyperliteProjectSection) -> some View {
+        let sectionChips = chips(for: section)
+        HyperliteOpenPRProjectStage(kind: .forSection(section, chips: sectionChips)) {
+            HyperliteProjectSectionHeader(
+                section: section,
+                chips: sectionChips,
+                compact: compactRows,
+                draggedRowID: $draggedRowID,
+                drop: { dropped in
+                    if let first = section.rows.first {
+                        pins.move(dropped, over: first.id, rows: sourceRows)
+                    } else {
+                        pins.unpin(dropped)
+                    }
+                }
+            )
+            ForEach(section.rows) { row in
+                pullRequestRow(row, pinned: false)
+            }
+        }
     }
 
     private func pullRequestRow(

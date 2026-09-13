@@ -114,14 +114,12 @@ projects are hidden, and
 brightens only when those projects are shown. Workflow chips sit on the
 heading row after the repository name so pull-request rows follow the heading
 immediately. The Pinned caption appears only while something is pinned. In
-Vertical Mode, leftover height under the list becomes a solar system for
-hidden idle projects (`watching the quiet ones`): a ☀️, one orbit of
-named ⭐️/🌕/🌍/🪐 bodies sized from cached commit count. Bodies slowly
-revolve around the sun and spin in place. Pull a body and it springs back
-to its orbit slot; click it to open the repository. The idle availability
-text stays on help. Projects with open pull requests show the same emoji on
-their heading. Reduce Motion stills the orbit and snaps bodies home. Stacked
-layout still gives leftover height to notes instead of a sky.
+Vertical Mode, when the hide-idle eye is on, the hidden idle projects collapse
+into a standard disclosure list (`watching the quiet ones`) below the open
+work. It stays collapsed by default; expand it to see each hidden project's
+heading, with the same idle availability text, workflow chips, and
+Pulls/Actions links as an inline project. Showing all projects (eye off) lists
+them inline instead. Stacked layout still gives leftover height to notes.
 
 Each row carries a pin button next to its drag handle, so pinning a pull
 request to the top no longer requires a drag. In a row, the number opens the

@@ -31,7 +31,7 @@
   gliding-ghost math, every-project section plans with Pulls/Actions links,
   the bounded activity poll schedule, Open PR title hierarchy and folded idle
   headings, compact workflow strips without a leftover `+N`, Vertical Mode
-  project lanterns and leftover hidden-project solar system, two-line compact
+  project lanterns and the collapsible hidden-project list, two-line compact
   Open PR rows, and Command-K
   literal search without loading
   sentence embeddings. The native
