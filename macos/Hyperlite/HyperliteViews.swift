@@ -192,7 +192,13 @@ struct HyperliteWindow: View {
     }
 
     private var pullRequestColumn: some View {
-        ScrollView(.vertical, showsIndicators: true) {
+        let compact = HyperliteWorkspaceSplit.compactRows(
+            verticalMode: appearance.verticalMode,
+            notesOnly: appearance.notesOnly
+        )
+        return HyperliteOpenPRWatchColumn(
+            isRefreshing: state.isRefreshingPullRequests
+        ) {
             VStack(alignment: .leading, spacing: 10) {
                 if let errorMessage = state.errorMessage {
                     Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
@@ -208,31 +214,22 @@ struct HyperliteWindow: View {
                         scan: pullRequests,
                         organization: dashboardLists,
                         pins: pullRequestPins,
-                        compactRows: HyperliteWorkspaceSplit.compactRows(
-                            verticalMode: appearance.verticalMode,
-                            notesOnly: appearance.notesOnly
-                        ),
+                        compactRows: compact,
                         isRefreshing: state.isRefreshingPullRequests,
                         isPollingActivity: state.isPollingActivity
                     )
-                    } else {
-                        HyperliteOpenPRTitleCluster(count: nil)
-                            .frame(maxWidth: .infinity, alignment: .topLeading)
-                            .accessibilityValue(
-                                state.isRefreshingPullRequests
-                                    ? HyperliteOpenPRRefreshPulse.accessibilityRefreshing
-                                    : ""
-                            )
-                    }
+                } else {
+                    HyperliteOpenPRTitleCluster(count: nil)
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                        .accessibilityValue(
+                            state.isRefreshingPullRequests
+                                ? HyperliteOpenPRRefreshPulse.accessibilityRefreshing
+                                : ""
+                        )
+                }
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
-        .overlay {
-            HyperliteOpenPRRefreshGhostOverlay(
-                isRefreshing: state.isRefreshingPullRequests
-            )
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     private var windowActions: some View {

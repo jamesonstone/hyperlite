@@ -15,14 +15,19 @@ struct HyperlitePullRequestPanelRow: View {
     let move: (String, String) -> Void
     let moveBy: (String, Int) -> Void
 
+    static let dragHandleRestOpacity: Double = 0.18
+    static let pinRestOpacity: Double = 0.2
+
     @State private var hoverPresented = false
     @State private var hoverTask: Task<Void, Never>?
+    @State private var rowHovering = false
 
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: "line.3.horizontal")
                 .font(.system(size: 9, weight: .medium))
                 .foregroundStyle(HyperliteTheme.mutedText.color)
+                .opacity(rowHovering ? 1 : Self.dragHandleRestOpacity)
                 .frame(width: 16, height: 16)
                 .contentShape(Rectangle())
                 .onDrag {
@@ -33,6 +38,7 @@ struct HyperlitePullRequestPanelRow: View {
                 Image(systemName: pinned ? "pin.fill" : "pin")
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(pinned ? HyperliteTheme.cyan.color : HyperliteTheme.mutedText.color)
+                    .opacity(pinned || rowHovering ? 1 : Self.pinRestOpacity)
                     .frame(width: 16, height: 16)
                     .contentShape(Rectangle())
             }
@@ -42,6 +48,7 @@ struct HyperlitePullRequestPanelRow: View {
             HyperlitePullRequestReviewToggle(
                 row: row,
                 status: reviewStatus,
+                quiet: !rowHovering,
                 action: toggleReview
             )
             HyperlitePullRequestRowContent(
@@ -93,6 +100,7 @@ struct HyperlitePullRequestPanelRow: View {
     }
 
     private func handleHover(_ hovering: Bool) {
+        rowHovering = hovering
         hoverTask?.cancel()
         hoverTask = Task { @MainActor in
             let delay: Duration = hovering ? .milliseconds(350) : .milliseconds(200)
@@ -106,6 +114,7 @@ struct HyperlitePullRequestPanelRow: View {
 struct HyperlitePullRequestReviewToggle: View {
     let row: HyperlitePullRequestRow
     let status: HyperlitePullRequestReviewStatus
+    var quiet = false
     let action: () -> Void
 
     private var canToggle: Bool {
@@ -150,6 +159,7 @@ struct HyperlitePullRequestReviewToggle: View {
             Image(systemName: icon)
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(color)
+                .opacity(quiet && status == .unreviewed ? 0.28 : 1)
                 .frame(width: 20, height: 18)
                 .contentShape(Rectangle())
         }

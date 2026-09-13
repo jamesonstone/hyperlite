@@ -42,6 +42,7 @@ type Scanner struct {
 	Discovery RepositoryDiscoverer
 	Client    PullRequestClient
 	Workflows WorkflowClient
+	Git       command.Runner
 	Store     CacheStore
 	Now       func() time.Time
 }
@@ -62,6 +63,7 @@ func New(runner command.Runner) Scanner {
 		Discovery: discovery.Discoverer{Runner: runner},
 		Client:    client,
 		Workflows: client,
+		Git:       runner,
 		Store:     Store{},
 		Now:       time.Now,
 	}

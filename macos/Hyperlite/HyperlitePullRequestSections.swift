@@ -15,6 +15,10 @@ struct HyperliteProjectSection: Equatable, Identifiable {
         guard let repo = project.repository, repo.contains("/") else { return nil }
         return URL(string: "https://github.com/\(repo)")
     }
+    /// The trailing path segment (`owner/name` → `name`) for compact headings.
+    var shortName: String {
+        repository.split(separator: "/").last.map(String.init) ?? repository
+    }
     var pullsButtonLabel: String { "Open pull requests for \(repository) on GitHub" }
     var actionsButtonLabel: String { "Open GitHub Actions for \(repository)" }
 
@@ -125,5 +129,14 @@ enum HyperliteOpenPRProjectFilter {
     ) -> [HyperliteProjectSection] {
         guard hideIdle else { return sections }
         return sections.filter { !isIdle($0, now: now) }
+    }
+
+    static func hiddenSections(
+        _ sections: [HyperliteProjectSection],
+        hideIdle: Bool,
+        now: Date
+    ) -> [HyperliteProjectSection] {
+        guard hideIdle else { return [] }
+        return sections.filter { isIdle($0, now: now) }
     }
 }

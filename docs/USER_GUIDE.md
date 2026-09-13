@@ -105,10 +105,21 @@ open PRs use primary semibold type; idle headings drop to compact muted type
 so they recede. A no-PR project with a running or failing workflow stays one
 line in secondary text. Repository names, workflow
 chips, and pull-request text share one left edge past the drag/pin/review
-rail. The hide-idle eye stays quiet while idle projects are hidden, and
+rail. Each visible project, and Pinned when it has rows, is marked by a thin
+left lantern instead of a filled card; running or failing work lights that
+lantern cyan. Drag handles, unpinned pins, and empty review boxes stay quiet
+until the row is hovered. In Vertical Mode, Pulls and Actions wait on heading
+hover so the name can breathe. The hide-idle eye stays quiet while idle
+projects are hidden, and
 brightens only when those projects are shown. Workflow chips sit on the
 heading row after the repository name so pull-request rows follow the heading
-immediately. The Pinned caption appears only while something is pinned.
+immediately. The Pinned caption appears only while something is pinned. In
+Vertical Mode, when the hide-idle eye is on, the hidden idle projects collapse
+into a standard disclosure list (`watching the quiet ones`) below the open
+work. It stays collapsed by default; expand it to see each hidden project's
+heading, with the same idle availability text, workflow chips, and
+Pulls/Actions links as an inline project. Showing all projects (eye off) lists
+them inline instead. Stacked layout still gives leftover height to notes.
 
 Each row carries a pin button next to its drag handle, so pinning a pull
 request to the top no longer requires a drag. In a row, the number opens the
@@ -144,9 +155,10 @@ stay whole words; a long title truncates instead of wrapping. Unpinned rows sit 
 semibold repository section heading so the project name is obvious without
 repeating on every line. The pull-request title is the primary scanned text.
 Age sits beside the title. Pinned rows keep a muted repository label because
-that list can mix projects. In Vertical Mode, pinned mixed rows still use two
-lines (identity, then title plus age); project-section rows stay one line,
-with `ready`/`draft` remaining a whole word on that line.
+that list can mix projects. In Vertical Mode every compact row uses two
+lines (identity, then title plus age) so the title is readable and `ready` /
+`draft` remain whole words on the identity line. Compact headings use the short
+repository name; hover still names the full GitHub path. Stacked rows stay one line.
 The conflict column stays aligned when there is no confirmed conflict;
 `MERGEABLE`, `UNKNOWN`, and older cache entries without the field stay blank.
 VoiceOver names confirmed conflicts only and omits unconfirmed `MERGEABLE`,

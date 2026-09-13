@@ -10,6 +10,7 @@ enum HyperlitePullRequestSectionsTests {
         testHideIdleProjectsFilter()
         testIdleAndCompactStripsDropQuietChips()
         testIdleHeadingsUseQuieterWeight()
+        testHideIdleHiddenSections()
     }
 
     private static func testEveryProjectGetsASection() {
@@ -93,6 +94,27 @@ enum HyperlitePullRequestSectionsTests {
                "hiding idle projects keeps open PRs and active deploys, drops the rest; got \(shown.map(\.id))")
         expect(HyperliteOpenPRProjectFilter.visibleSections(sections, hideIdle: false, now: now).count == 3,
                "showing all keeps every configured project")
+    }
+
+    private static func testHideIdleHiddenSections() {
+        let scan = scan(projects: [
+            project(path: "/repo/one", repository: "owner/one", numbers: [3]),
+            project(path: "/repo/two", repository: "owner/two", numbers: []),
+            project(path: "/repo/three", repository: "owner/quiet", numbers: []),
+        ])
+        let rows = HyperlitePullRequestPresentation.rows(scan: scan)
+        let sections = HyperlitePullRequestSectionPlan.sections(
+            scan: scan, groups: HyperlitePullRequestPinning.grouped(rows)
+        )
+        let hidden = HyperliteOpenPRProjectFilter.hiddenSections(
+            sections, hideIdle: true, now: now
+        )
+        expect(hidden.map(\.id) == ["/repo/two", "/repo/three"],
+               "hidden idle sections are the complement of the visible list; got \(hidden.map(\.id))")
+        expect(
+            HyperliteOpenPRProjectFilter.hiddenSections(sections, hideIdle: false, now: now).isEmpty,
+            "showing all projects leaves the collapsible idle list empty"
+        )
     }
 
     private static func testIdleAndCompactStripsDropQuietChips() {

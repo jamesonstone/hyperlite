@@ -74,8 +74,10 @@ struct HyperlitePullRequestRowContent: View {
     private var compactStack: some View {
         VStack(alignment: .leading, spacing: 1) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                pullRequestTarget { repositoryLabel }
-                    .layoutPriority(-1)
+                if showRepository {
+                    pullRequestTarget { repositoryLabel }
+                        .layoutPriority(-1)
+                }
                 numberButton
                 pullRequestTarget {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {

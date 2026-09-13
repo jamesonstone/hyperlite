@@ -29,6 +29,12 @@ struct HyperlitePullRequestPanel: View {
         )
     }
 
+    private var hiddenProjectSections: [HyperliteProjectSection] {
+        HyperliteOpenPRProjectFilter.hiddenSections(
+            projectSections, hideIdle: hideIdleProjects, now: chipClock
+        )
+    }
+
     private var hiddenProjectCount: Int {
         projectSections.count - visibleProjectSections.count
     }
@@ -42,34 +48,28 @@ struct HyperlitePullRequestPanel: View {
                     .foregroundStyle(HyperliteTheme.mutedText.color)
                     .padding(.vertical, 2)
             } else {
-                LazyVStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: HyperliteWorkspaceSplit.stackedStageSpacing) {
                     if sections.pinned.isEmpty {
                         HyperlitePinnedSectionDropTarget(
                             draggedRowID: $draggedRowID,
                             pin: pins.pin
                         )
                     } else {
-                        pinnedHeader
-                        ForEach(sections.pinned) { row in
-                            pullRequestRow(row, pinned: true)
+                        HyperliteOpenPRProjectStage(kind: .pinned) {
+                            pinnedHeader
+                            ForEach(sections.pinned) { row in
+                                pullRequestRow(row, pinned: true)
+                            }
                         }
                     }
                     ForEach(visibleProjectSections) { section in
-                        HyperliteProjectSectionHeader(
-                            section: section,
-                            chips: chips(for: section),
-                            compact: compactRows,
-                            draggedRowID: $draggedRowID,
-                            drop: { dropped in
-                                if let first = section.rows.first {
-                                    pins.move(dropped, over: first.id, rows: sourceRows)
-                                } else {
-                                    pins.unpin(dropped)
-                                }
+                        projectSectionStage(section)
+                    }
+                    if compactRows && !hiddenProjectSections.isEmpty {
+                        HyperliteHiddenProjectList(count: hiddenProjectSections.count) {
+                            ForEach(hiddenProjectSections) { section in
+                                projectSectionStage(section)
                             }
-                        )
-                        ForEach(section.rows) { row in
-                            pullRequestRow(row, pinned: false)
                         }
                     }
                 }
@@ -99,13 +99,6 @@ struct HyperlitePullRequestPanel: View {
             )
             .layoutPriority(1)
             Spacer(minLength: 4)
-            if hiddenProjectCount > 0 {
-                Text("\(hiddenProjectCount) hidden")
-                    .font(HyperliteTypography.compact.monospacedDigit())
-                    .foregroundStyle(HyperliteTheme.mutedText.color)
-                    .lineLimit(1)
-                    .accessibilityHidden(true)
-            }
             HyperliteDashboardControlButton(
                 systemName: hideIdleProjects ? "eye.slash" : "eye",
                 active: !hideIdleProjects,
@@ -162,6 +155,29 @@ struct HyperlitePullRequestPanel: View {
         .padding(.top, HyperliteWorkspaceSplit.stackedPinnedLabelTopPadding)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Pinned pull requests, \(sections.pinned.count)")
+    }
+
+    @ViewBuilder
+    private func projectSectionStage(_ section: HyperliteProjectSection) -> some View {
+        let sectionChips = chips(for: section)
+        HyperliteOpenPRProjectStage(kind: .forSection(section, chips: sectionChips)) {
+            HyperliteProjectSectionHeader(
+                section: section,
+                chips: sectionChips,
+                compact: compactRows,
+                draggedRowID: $draggedRowID,
+                drop: { dropped in
+                    if let first = section.rows.first {
+                        pins.move(dropped, over: first.id, rows: sourceRows)
+                    } else {
+                        pins.unpin(dropped)
+                    }
+                }
+            )
+            ForEach(section.rows) { row in
+                pullRequestRow(row, pinned: false)
+            }
+        }
     }
 
     private func pullRequestRow(
