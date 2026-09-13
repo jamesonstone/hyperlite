@@ -69,9 +69,10 @@ and error-clear all live in the same Open PRs presentation path.
   project (no rows) shows no chevron.
 - R3: Collapse state persists per project across refreshes and launches, keyed
   by project id.
-- R4: A successful pull-request refresh clears a previously shown error banner,
-  so a transient failure does not persist once valid data loads. A refresh that
-  fails still shows its error.
+- R4: A successful pull-request refresh clears an error banner it owns, so a
+  transient pull-request failure does not persist once valid data loads. It
+  never clears an error owned by a concurrent project or default-branch
+  operation. A refresh that fails still shows its error.
 - R5: Keep the project name button opening the repository, drag-and-drop pin
   reordering, hover behavior, and the hide-idle collapsible list unchanged.
 - R6: Keep handwritten source and test files at or under 300 lines.
@@ -115,7 +116,10 @@ Observable acceptance:
   chevron-free.
 - The error banner clears on a successful scan rather than by re-architecting
   the shared error/status channel; a successful data load is the right moment
-  to drop a stale transient error for this pane.
+  to drop a stale transient error for this pane. The shared `errorMessage` is
+  tagged with whether it came from the pull-request refresh, so a successful
+  scan clears only its own error and never one owned by a concurrent project or
+  default-branch operation.
 
 ## VALIDATION
 
