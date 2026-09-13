@@ -159,21 +159,19 @@ struct HyperlitePullRequestPanel: View {
 
     @ViewBuilder
     private func projectSectionStage(_ section: HyperliteProjectSection) -> some View {
-        let sectionChips = chips(for: section)
-        HyperliteOpenPRProjectStage(kind: .forSection(section, chips: sectionChips)) {
-            HyperliteProjectSectionHeader(
-                section: section,
-                chips: sectionChips,
-                compact: compactRows,
-                draggedRowID: $draggedRowID,
-                drop: { dropped in
-                    if let first = section.rows.first {
-                        pins.move(dropped, over: first.id, rows: sourceRows)
-                    } else {
-                        pins.unpin(dropped)
-                    }
+        HyperliteOpenPRProjectSection(
+            section: section,
+            chips: chips(for: section),
+            compact: compactRows,
+            draggedRowID: $draggedRowID,
+            drop: { dropped in
+                if let first = section.rows.first {
+                    pins.move(dropped, over: first.id, rows: sourceRows)
+                } else {
+                    pins.unpin(dropped)
                 }
-            )
+            }
+        ) {
             ForEach(section.rows) { row in
                 pullRequestRow(row, pinned: false)
             }

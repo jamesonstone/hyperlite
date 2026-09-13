@@ -11,6 +11,7 @@ enum HyperlitePullRequestSectionsTests {
         testIdleAndCompactStripsDropQuietChips()
         testIdleHeadingsUseQuieterWeight()
         testHideIdleHiddenSections()
+        testProjectSectionCollapseGating()
     }
 
     private static func testEveryProjectGetsASection() {
@@ -114,6 +115,32 @@ enum HyperlitePullRequestSectionsTests {
         expect(
             HyperliteOpenPRProjectFilter.hiddenSections(sections, hideIdle: false, now: now).isEmpty,
             "showing all projects leaves the collapsible idle list empty"
+        )
+    }
+
+    private static func testProjectSectionCollapseGating() {
+        let scan = scan(projects: [
+            project(path: "/repo/active", repository: "owner/active", numbers: [7, 8]),
+            project(path: "/repo/idle", repository: "owner/idle", numbers: []),
+        ])
+        let rows = HyperlitePullRequestPresentation.rows(scan: scan)
+        let sections = HyperlitePullRequestSectionPlan.sections(
+            scan: scan, groups: HyperlitePullRequestPinning.grouped(rows)
+        )
+        let active = sections.first { $0.id == "/repo/active" }!
+        let idle = sections.first { $0.id == "/repo/idle" }!
+        expect(
+            HyperliteOpenPRProjectSectionPresentation.canCollapse(active),
+            "a project with open pull requests can collapse"
+        )
+        expect(
+            !HyperliteOpenPRProjectSectionPresentation.canCollapse(idle),
+            "an idle project heading has no rows to collapse"
+        )
+        expect(
+            HyperliteOpenPRProjectSectionPresentation.storageKey(projectID: "/repo/active")
+                == "hyperlite.openpr.collapsed./repo/active",
+            "collapse state persists under a per-project key"
         )
     }
 

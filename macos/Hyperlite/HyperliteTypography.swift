@@ -11,6 +11,7 @@ enum HyperliteTypography {
     static var body: Font { regular(HyperliteAppearance.shared.bodySize) }
     static var compact: Font { regular(HyperliteAppearance.shared.compactSize) }
     static var heading: Font { semibold(HyperliteAppearance.shared.bodySize) }
+    static var sectionHeading: Font { semibold(HyperliteAppearance.shared.bodySize + 2) }
     static var title: Font { semibold(HyperliteAppearance.shared.bodySize + 5) }
     static var chrome: Font { regular(HyperliteAppearance.shared.bodySize + 1) }
 

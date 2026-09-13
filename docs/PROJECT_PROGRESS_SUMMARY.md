@@ -36,6 +36,7 @@
 | 0031 | open-pr-workflow-activity | `docs/specs/0031-open-pr-workflow-activity` | deliver | no | 2026-09-12 | Show running GitHub Actions workflows and deployments per project with a quota-governed poll and Pulls/Actions links. |
 | 0032 | open-pr-design-pass | `docs/specs/0032-open-pr-design-pass` | deliver | no | 2026-09-13 | Stronger Open PRs title, brighter project headings, folded idle lines, aligned content column, and no compact `+N` idle-workflow count. |
 | 0033 | open-pr-watch-stage | `docs/specs/0033-open-pr-watch-stage` | deliver | no | 2026-09-13 | Vertical Mode Open PRs readability pass: lantern-marked clusters, two-line compact titles, and hidden idle projects in a standard collapsible list. |
+| 0034 | open-pr-collapsible-sections | `docs/specs/0034-open-pr-collapsible-sections` | deliver | no | 2026-09-13 | Larger Open PRs project headings, per-project collapse that keeps the name and open-PR count, and a stale error banner that clears on a successful refresh. |
 
 ## PROJECT INTENT
 
@@ -456,8 +457,21 @@ changes that warrant human attention.
 - **OPEN ITEMS**: Ready pull-request delivery through issue #102.
 - **POINTERS**: `docs/specs/0033-open-pr-watch-stage/SPEC.md`
 
+### open-pr-collapsible-sections
+
+- **STATUS**: deliver
+- **PAUSED**: no
+- **INTENT**: Make the Open PRs pane scannable by project with larger project headings, per-project collapse that keeps the name and open-PR count, and no lingering stale error banner.
+- **APPROACH**: Add a larger section-heading font, give each project heading a persisted collapse chevron that hides only its rows, and clear the error banner on a successful pull-request refresh.
+- **OPEN ITEMS**: Ready pull-request delivery through issue #104.
+- **POINTERS**: `docs/specs/0034-open-pr-collapsible-sections/SPEC.md`
+
 ## LAST UPDATED
 
+- 2026-09-13: Added feature `0034-open-pr-collapsible-sections` so Open PRs
+  project headings are larger than their rows and each busy project folds
+  behind a persisted chevron, and a stale error banner clears on a successful
+  refresh.
 - 2026-09-13: Reworked feature `0033-open-pr-watch-stage` to present hidden
   idle projects in a standard collapsible list and removed the leftover orbit
   animation and its GitHub commit-count sizing pipeline (out of scope for
