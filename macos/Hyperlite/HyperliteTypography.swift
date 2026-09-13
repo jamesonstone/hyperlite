@@ -11,6 +11,7 @@ enum HyperliteTypography {
     static var body: Font { regular(HyperliteAppearance.shared.bodySize) }
     static var compact: Font { regular(HyperliteAppearance.shared.compactSize) }
     static var heading: Font { semibold(HyperliteAppearance.shared.bodySize) }
+    static var title: Font { semibold(HyperliteAppearance.shared.bodySize + 3) }
     static var chrome: Font { regular(HyperliteAppearance.shared.bodySize + 1) }
 
     static func regular(_ size: CGFloat) -> Font {

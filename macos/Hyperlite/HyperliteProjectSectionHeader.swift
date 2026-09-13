@@ -9,30 +9,32 @@ struct HyperliteProjectSectionHeader: View {
     @Binding var draggedRowID: String?
     let drop: (String) -> Void
 
+    private var isIdle: Bool { section.rows.isEmpty }
+
+    /// Chips the strip will actually render. Idle projects whose workflows are
+    /// all quiet collapse to nothing in the compact layout, so no meaningless
+    /// "+N" line survives next to "no open pull requests".
+    private var stripChips: [HyperliteWorkflowChip] {
+        compact
+            ? HyperliteWorkflowStripPresentation.compactChips(chips).visible
+            : chips
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 6) {
-                HStack(spacing: 4) {
-                    Text(section.repository)
-                        .font(HyperliteTypography.heading)
-                        .foregroundStyle(HyperliteTheme.secondaryText.color)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                    Text("\(section.rows.count)")
-                        .font(HyperliteTypography.compact.monospacedDigit())
-                        .foregroundStyle(HyperliteTheme.mutedText.color)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
-                .onDrop(
-                    of: [UTType.text.identifier],
-                    delegate: HyperliteSectionPinDropDelegate(
-                        draggedID: $draggedRowID,
-                        pin: drop
+                label
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                    .onDrop(
+                        of: [UTType.text.identifier],
+                        delegate: HyperliteSectionPinDropDelegate(
+                            draggedID: $draggedRowID,
+                            pin: drop
+                        )
                     )
-                )
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(accessibilityLabel)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(accessibilityLabel)
                 HyperliteDashboardControlButton(
                     systemName: "arrow.triangle.pull",
                     active: false,
@@ -46,37 +48,48 @@ struct HyperliteProjectSectionHeader: View {
                     disabled: section.actionsURL == nil
                 ) { open(section.actionsURL) }
             }
-            if !chips.isEmpty {
+            if !stripChips.isEmpty {
                 HyperliteWorkflowStrip(chips: chips, compact: compact)
             }
         }
-        .padding(.top, 6)
+        .padding(.top, isIdle ? 3 : 8)
+    }
+
+    private var label: some View {
+        HStack(spacing: 6) {
+            Text(section.repository)
+                .font(HyperliteTypography.heading)
+                .foregroundStyle(
+                    isIdle ? HyperliteTheme.mutedText.color : HyperliteTheme.primaryText.color
+                )
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .layoutPriority(1)
+            if isIdle {
+                Text(section.idleText)
+                    .font(HyperliteTypography.compact)
+                    .foregroundStyle(HyperliteTheme.mutedText.color)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .help(section.project.message ?? section.idleText)
+            } else {
+                Text("\(section.rows.count)")
+                    .font(HyperliteTypography.compact.monospacedDigit())
+                    .foregroundStyle(HyperliteTheme.secondaryText.color)
+            }
+        }
     }
 
     private var accessibilityLabel: String {
-        "\(section.repository) pull requests, \(section.rows.count), " +
+        let lead = isIdle
+            ? "\(section.repository) pull requests, \(section.idleText)"
+            : "\(section.repository) pull requests, \(section.rows.count)"
+        return lead + ", " +
             HyperliteWorkflowStripPresentation.headerSummary(chips: chips, now: Date())
     }
 
     private func open(_ url: URL?) {
         guard let url else { return }
         NSWorkspace.shared.open(url)
-    }
-}
-
-struct HyperliteProjectIdleRow: View {
-    let section: HyperliteProjectSection
-
-    var body: some View {
-        Text(section.idleText)
-            .font(HyperliteTypography.compact)
-            .foregroundStyle(HyperliteTheme.mutedText.color)
-            .lineLimit(1)
-            .truncationMode(.tail)
-            .padding(.leading, 20)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .help(section.project.message ?? section.idleText)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("\(section.repository), \(section.idleText)")
     }
 }

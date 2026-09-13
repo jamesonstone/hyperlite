@@ -56,9 +56,6 @@ struct HyperlitePullRequestPanel: View {
                                 }
                             }
                         )
-                        if section.rows.isEmpty {
-                            HyperliteProjectIdleRow(section: section)
-                        }
                         ForEach(section.rows) { row in
                             pullRequestRow(row, pinned: false)
                         }
