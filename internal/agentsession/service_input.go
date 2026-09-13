@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"sync"
 )
 
 type serviceInput struct {
@@ -17,15 +18,20 @@ type ownerInputError struct{ err error }
 func (e ownerInputError) Error() string { return "agent session owner input failed" }
 func (e ownerInputError) Unwrap() error { return e.err }
 
-func closeOwnerInputOnCancel(ctx context.Context, input io.Reader) {
+func closeOwnerInputOnCancel(ctx context.Context, input io.Reader) func() {
 	closer, ok := input.(io.ReadCloser)
 	if !ok {
-		return
+		return func() {}
+	}
+	var once sync.Once
+	closeOnce := func() {
+		once.Do(func() { _ = closer.Close() })
 	}
 	go func() {
 		<-ctx.Done()
-		_ = closer.Close()
+		closeOnce()
 	}()
+	return closeOnce
 }
 
 func readServiceInput(ctx context.Context, input io.Reader, output chan<- serviceInput, errors chan<- error) {

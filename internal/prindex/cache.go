@@ -40,7 +40,7 @@ type cacheState struct {
 
 type CacheStore interface {
 	Load() (cacheState, string, error)
-	Update(func(*cacheState)) (cacheState, error)
+	Update(func(*cacheState) bool) (cacheState, error)
 }
 
 type Store struct {
@@ -87,7 +87,11 @@ func (s Store) Load() (cacheState, string, error) {
 	return state, warning, err
 }
 
-func (s Store) Update(mutate func(*cacheState)) (cacheState, error) {
+// Update mutates the cache under an exclusive lock. The mutate callback
+// returns whether to commit: a false return leaves the cache untouched (no
+// write, no UpdatedAt bump) so a denied reservation can re-evaluate the
+// freshest state without side effects.
+func (s Store) Update(mutate func(*cacheState) bool) (cacheState, error) {
 	cacheMutex.Lock()
 	defer cacheMutex.Unlock()
 	var updated cacheState
@@ -96,7 +100,10 @@ func (s Store) Update(mutate func(*cacheState)) (cacheState, error) {
 		if err != nil {
 			return err
 		}
-		mutate(&state)
+		if !mutate(&state) {
+			updated = state
+			return nil
+		}
 		state.UpdatedAt = s.now()
 		if err := s.write(state); err != nil {
 			return err

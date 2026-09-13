@@ -5,7 +5,9 @@ struct HyperliteWorkflowHoverLink: Equatable, Identifiable {
     let label: String
     let url: URL
 
-    var id: String { url.absoluteString }
+    // A run and its deployment log can share a URL, so the label keeps each
+    // action's identity distinct inside the ForEach.
+    var id: String { "\(label)|\(url.absoluteString)" }
 }
 
 struct HyperliteWorkflowHoverSnapshot: Equatable {
@@ -76,10 +78,17 @@ enum HyperliteWorkflowHoverPresentation {
         let state = deployment.state.lowercased().replacingOccurrences(of: "_", with: " ")
         return "\(deployment.environment) · \(state)"
     }
+
+    /// The hover card stays presented while the pointer is over the chip or
+    /// inside the card, so the run and deployment-log buttons stay reachable.
+    static func shouldPresent(chipHovered: Bool, cardHovered: Bool) -> Bool {
+        chipHovered || cardHovered
+    }
 }
 
 struct HyperliteWorkflowHoverCard: View {
     let chip: HyperliteWorkflowChip
+    var onHover: (Bool) -> Void = { _ in }
 
     var body: some View {
         let card = HyperliteWorkflowHoverPresentation.snapshot(chip: chip, now: Date())
@@ -110,6 +119,8 @@ struct HyperliteWorkflowHoverCard: View {
         .padding(12)
         .frame(maxWidth: 300, alignment: .leading)
         .background(HyperliteTheme.canvas.color)
+        .contentShape(Rectangle())
+        .onHover(perform: onHover)
         .hyperliteTheme()
         .accessibilityElement(children: .combine)
         .accessibilityLabel(card.accessibilityLabel)

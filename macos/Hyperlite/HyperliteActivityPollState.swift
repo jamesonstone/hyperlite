@@ -49,6 +49,14 @@ extension HyperliteState {
             guard let self, !Task.isCancelled,
                   self.activityPolling.generation == generation
             else { return }
+            // Task.sleep can resume later than requested, so re-check the cap
+            // before spending quota on a poll past the burst deadline.
+            if let startedAt = self.activityPolling.burstStartedAt,
+               Date().timeIntervalSince(startedAt) >= HyperliteActivityPollSchedule.maxBurst
+            {
+                self.cancelActivityPoll()
+                return
+            }
             await self.runActivityPoll(generation: generation)
         }
     }

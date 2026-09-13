@@ -212,9 +212,8 @@ enum HyperliteWorkspaceSplitTests {
             hasStatusMessage: false,
             idleProjectCount: 1
         )
-        expect(withAvailability == 121,
-               "an idle project folds into its header line, so it adds no separate row; " +
-                   "got \(withAvailability)")
+        expect(withAvailability == 140,
+               "idle project lines should count in the stacked spacing estimate")
         let withProjects = HyperliteWorkspaceSplit.estimatedStackedContentHeight(
             pinnedCount: 0,
             openCount: 2,
@@ -224,9 +223,8 @@ enum HyperliteWorkspaceSplitTests {
             idleProjectCount: 2,
             workflowStripCount: 2
         )
-        expect(withProjects == 195,
-               "idle projects fold into their header line while workflow strips still " +
-                   "count in the stacked estimate; got \(withProjects)")
+        expect(withProjects == 233,
+               "idle project lines and workflow strips should count in the stacked estimate; got \(withProjects)")
     }
 
     private static func testTinyStackedDragKeepsFitContent() {

@@ -115,8 +115,8 @@ enum HyperlitePullRequestTests {
         expect(rows[0].url?.absoluteString == "https://github.com/owner/two/pull/9",
                "row URL should remain directly actionable")
         expect(
-            scan.projects.filter { $0.status != .current }.map(\.name) == ["one", "local"],
-            "cached and unavailable projects should remain distinguishable"
+            scan.projects.map(\.status) == [.cached, .current, .unavailable],
+            "cached, current, and unavailable projects should decode to distinct statuses"
         )
         return scan
     }

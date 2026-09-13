@@ -122,13 +122,14 @@ func (s Scanner) Scan(
 			rateLimit = clientResult.RateLimit
 			catalogs, rateLimit = s.fetchChangedCatalogs(ctx, repositories, queryResults, cache, rateLimit)
 		}
-		scan.cache, err = s.Store.Update(func(current *cacheState) {
+		scan.cache, err = s.Store.Update(func(current *cacheState) bool {
 			updateProjectMappings(current, sources, scan.resolved)
 			applyQueryResults(current, repositories, queryResults, catalogs, now)
 			recordActivityBurst(current, configuredRepositoryKeys(sources, scan.resolved), now)
 			if observed := observedRateLimit(rateLimit, now); observed != nil {
 				current.RateLimit = applyRateLimitBurnRate(observed, current.RateLimit)
 			}
+			return true
 		})
 		if err != nil {
 			return model.ProjectPullRequestScan{}, err

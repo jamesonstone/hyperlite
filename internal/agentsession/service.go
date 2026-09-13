@@ -85,7 +85,8 @@ func RunService(ctx context.Context, in io.Reader, out, errOut io.Writer, option
 	selfTests := make(chan selfTestResult, 16)
 	readErrors := make(chan error, 4)
 	go acceptEvents(serviceCtx, listener, events, readErrors)
-	closeOwnerInputOnCancel(serviceCtx, in)
+	closeOwnedInput := closeOwnerInputOnCancel(serviceCtx, in)
+	defer closeOwnedInput()
 	go readServiceInput(serviceCtx, in, inputs, readErrors)
 
 	integrations := DetectIntegrations(options.Home, options.BridgePath)

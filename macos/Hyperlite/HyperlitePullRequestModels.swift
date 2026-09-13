@@ -59,7 +59,6 @@ struct HyperliteProjectPullRequest: Codable, Equatable, Identifiable {
     let headRefOID: String
     var authorLogin: String = ""
     var baseRefName: String = ""
-    var labels: [String] = []
     var assignees: [String] = []
     var reviewRequests: [String] = []
     var reviewDecision: String = ""
@@ -79,7 +78,6 @@ struct HyperliteProjectPullRequest: Codable, Equatable, Identifiable {
             authorLogin: authorLogin,
             headRefName: headRefName,
             baseRefName: baseRefName,
-            labels: labels,
             assignees: assignees,
             reviewRequests: reviewRequests,
             reviewDecision: reviewDecision,
@@ -93,7 +91,7 @@ struct HyperliteProjectPullRequest: Codable, Equatable, Identifiable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, number, title, url, labels, assignees, additions, deletions
+        case id, number, title, url, assignees, additions, deletions
         case headRefName = "head_ref_name"
         case headRefOID = "head_ref_oid"
         case authorLogin = "author_login"
@@ -131,7 +129,6 @@ extension HyperliteProjectPullRequest {
         )
         authorLogin = try container.decodeIfPresent(String.self, forKey: .authorLogin) ?? ""
         baseRefName = try container.decodeIfPresent(String.self, forKey: .baseRefName) ?? ""
-        labels = try container.decodeIfPresent([String].self, forKey: .labels) ?? []
         assignees = try container.decodeIfPresent([String].self, forKey: .assignees) ?? []
         reviewRequests = try container.decodeIfPresent([String].self, forKey: .reviewRequests) ?? []
         reviewDecision = try container.decodeIfPresent(String.self, forKey: .reviewDecision) ?? ""
@@ -148,17 +145,24 @@ extension HyperliteProjectPullRequest {
 struct HyperlitePullRequestRow: Equatable, Identifiable {
     let id: String
     let reviewID: String
+    var projectID: String = ""
     let repository: String
     let status: HyperliteProjectPullRequestStatus
     let number: Int
     let title: String
     let url: URL?
+    var headRefName: String = ""
     let headRefOID: String
     let isDraft: Bool
     let hasMergeConflict: Bool
     let unresolvedReviewThreads: Int?
     let updatedAt: Date
     var glance: HyperlitePullRequestGlance = .empty
+
+    /// Section grouping key. Two configured projects can share a repository,
+    /// so rows group by project identity; hand-built rows without a project
+    /// id fall back to the repository.
+    var groupKey: String { projectID.isEmpty ? repository : projectID }
 }
 
 struct HyperliteReviewFeedbackPresentation: Equatable {
@@ -174,11 +178,13 @@ enum HyperlitePullRequestPresentation {
                 HyperlitePullRequestRow(
                     id: "\(project.id)\u{1F}\(pullRequest.id)",
                     reviewID: pullRequest.id,
+                    projectID: project.id,
                     repository: project.repository ?? project.name,
                     status: project.status,
                     number: pullRequest.number,
                     title: pullRequest.title,
                     url: URL(string: pullRequest.url),
+                    headRefName: pullRequest.headRefName,
                     headRefOID: pullRequest.headRefOID,
                     isDraft: pullRequest.isDraft,
                     hasMergeConflict: pullRequest.hasMergeConflict,

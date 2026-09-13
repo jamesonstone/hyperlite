@@ -272,6 +272,37 @@ Observable acceptance:
   null default branch drops stale tip runs, and dead availability code was
   removed.
 
+## POST-REVIEW REFINEMENTS
+
+Follow-up on PR #97 review feedback and Open PRs navigation, on the same
+branch:
+
+- The activity poll is reserved atomically. `scanActivity` re-evaluates the
+  governor and records the poll inside one `Store.Update` before calling
+  `PollActivity`, so two concurrent scans cannot both spend a poll; the
+  reservation stands even if the GitHub call then fails. `CacheStore.Update`
+  gained a committing bool so a denied reservation writes nothing.
+- Repository activity is selected only on the first pull-request page
+  (`cursor == ""`); follow-up pages carried the cost without adding data.
+- `Commit.checkSuites` is read with `last:` and runs are chosen by
+  `updatedAt`, because the connection is oldest-first with no `orderBy`, so a
+  running suite on a busy commit is the newest one and must not be dropped.
+- One Open PRs section per configured project, keyed by project id, so two
+  projects on one repository no longer collapse; the repository still drives
+  display text and GitHub links. Each active deployment environment keeps its
+  own chip and log link. The running-chip glide honors Reduce Motion, its
+  hover card stays open while the pointer is inside it, and its schedule stops
+  when the next poll would cross the burst deadline.
+- The number in each row opens the tracked issue when the pull request names
+  one through the `GH-<n>` branch/title convention (word-boundary matched so
+  words like "high-5" do not match), and shows that issue number; the title
+  still opens the pull request, and rows with no tracked issue keep the pull
+  request number. The project name opens the repository.
+- Idle projects are hidden by default behind a toggle beside "Pinned"; a
+  project stays visible while it has an open pull request or a workflow worth
+  attention (running or failing), so a post-merge deploy is not hidden. Each
+  row carries a pin button so pinning no longer requires a drag.
+
 ## OUTCOME
 
 Every configured project now owns an Open PRs section with Pulls and Actions
@@ -284,10 +315,13 @@ minute, only while the window is visible.
 
 ## REPOSITORY MEMORY
 
-- Decision: created
+- Decision: updated
 - Rationale: the quota governor thresholds, the batch cost discovery, the
   join-key and freshness rules, and the Constitution amendment are product
-  decisions that code and tests cannot preserve alone.
+  decisions that code and tests cannot preserve alone; the post-review
+  refinements add the atomic-poll-reservation invariant, the checkSuites
+  ordering assumption, per-project section identity, and the issue-number
+  navigation convention.
 - Artifacts: `docs/specs/0031-open-pr-workflow-activity/SPEC.md`,
   `docs/CONSTITUTION.md`, `docs/USER_GUIDE.md`, `README.md`,
   `docs/references/testing.md`, `docs/PROJECT_PROGRESS_SUMMARY.md`,

@@ -36,7 +36,6 @@ enum HyperlitePullRequestHoverTests {
         var glance = HyperlitePullRequestGlance.empty
         glance.authorLogin = "jameson"
         glance.headRefName = "GH-72"
-        glance.labels = ["ready"]
         glance.additions = 12
         glance.commentCount = 4
         glance.ciState = "SUCCESS"

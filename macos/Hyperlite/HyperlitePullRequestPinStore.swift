@@ -64,7 +64,7 @@ final class HyperlitePullRequestPinStore: ObservableObject {
     }
 
     private func repositories(from rows: [HyperlitePullRequestRow]) -> [String: String] {
-        Dictionary(uniqueKeysWithValues: rows.map { ($0.id, $0.repository) })
+        Dictionary(uniqueKeysWithValues: rows.map { ($0.id, $0.groupKey) })
     }
 
     private func persist(pinned: [String], unpinned: [String]) {

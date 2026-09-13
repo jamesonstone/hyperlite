@@ -9,6 +9,7 @@ struct HyperlitePullRequestPanel: View {
     var isPollingActivity = false
     @State private var draggedRowID: String?
     @State private var chipClock = Date()
+    @AppStorage("hyperlite.dashboard.open-pr-hide-idle") private var hideIdleProjects = true
 
     private var sourceRows: [HyperlitePullRequestRow] {
         HyperlitePullRequestPresentation.rows(scan: scan)
@@ -22,6 +23,16 @@ struct HyperlitePullRequestPanel: View {
         HyperlitePullRequestSectionPlan.sections(scan: scan, groups: sections.unpinnedGroups)
     }
 
+    private var visibleProjectSections: [HyperliteProjectSection] {
+        HyperliteOpenPRProjectFilter.visibleSections(
+            projectSections, hideIdle: hideIdleProjects, now: chipClock
+        )
+    }
+
+    private var hiddenProjectCount: Int {
+        projectSections.count - visibleProjectSections.count
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             header
@@ -32,7 +43,7 @@ struct HyperlitePullRequestPanel: View {
                     .padding(.vertical, 2)
             } else {
                 LazyVStack(alignment: .leading, spacing: 3) {
-                    sectionLabel("Pinned", count: sections.pinned.count)
+                    pinnedHeader
                     if sections.pinned.isEmpty {
                         HyperlitePinnedSectionDropTarget(
                             draggedRowID: $draggedRowID,
@@ -42,7 +53,7 @@ struct HyperlitePullRequestPanel: View {
                     ForEach(sections.pinned) { row in
                         pullRequestRow(row, pinned: true)
                     }
-                    ForEach(projectSections) { section in
+                    ForEach(visibleProjectSections) { section in
                         HyperliteProjectSectionHeader(
                             section: section,
                             chips: chips(for: section),
@@ -56,6 +67,9 @@ struct HyperlitePullRequestPanel: View {
                                 }
                             }
                         )
+                        if section.rows.isEmpty {
+                            HyperliteProjectIdleRow(section: section)
+                        }
                         ForEach(section.rows) { row in
                             pullRequestRow(row, pinned: false)
                         }
@@ -112,18 +126,34 @@ struct HyperlitePullRequestPanel: View {
         }
     }
 
-    private func sectionLabel(_ title: String, count: Int) -> some View {
-        HStack(spacing: 4) {
-            Text(title)
-                .font(HyperliteTypography.compact)
-                .foregroundStyle(HyperliteTheme.mutedText.color)
-            Text("\(count)")
-                .font(HyperliteTypography.compact.monospacedDigit())
-                .foregroundStyle(HyperliteTheme.mutedText.color)
+    private var pinnedHeader: some View {
+        HStack(spacing: 6) {
+            HStack(spacing: 4) {
+                Text("Pinned")
+                    .font(HyperliteTypography.compact)
+                    .foregroundStyle(HyperliteTheme.mutedText.color)
+                Text("\(sections.pinned.count)")
+                    .font(HyperliteTypography.compact.monospacedDigit())
+                    .foregroundStyle(HyperliteTheme.mutedText.color)
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Pinned pull requests, \(sections.pinned.count)")
+            Spacer(minLength: 4)
+            if hiddenProjectCount > 0 {
+                Text("\(hiddenProjectCount) hidden")
+                    .font(HyperliteTypography.compact.monospacedDigit())
+                    .foregroundStyle(HyperliteTheme.mutedText.color)
+                    .accessibilityHidden(true)
+            }
+            HyperliteDashboardControlButton(
+                systemName: hideIdleProjects ? "eye.slash" : "eye",
+                active: hideIdleProjects,
+                label: hideIdleProjects
+                    ? "Showing only projects with open pull requests or active workflows. Show all projects."
+                    : "Hide projects with no open pull requests"
+            ) { hideIdleProjects.toggle() }
         }
         .padding(.top, 2)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(title) pull requests, \(count)")
     }
 
     private func pullRequestRow(
@@ -138,6 +168,7 @@ struct HyperlitePullRequestPanel: View {
             showRepository: pinned,
             draggedRowID: $draggedRowID,
             toggleReview: { organization.togglePullRequestReviewed(row) },
+            togglePin: { pinned ? pins.unpin(row.id) : pins.pin(row.id) },
             move: { pins.move($0, over: $1, rows: sourceRows) },
             moveBy: { pins.move($0, by: $1, rows: sourceRows) }
         )

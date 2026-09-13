@@ -21,8 +21,7 @@ func mappedPullRequest(
 		HeadRefOID:     pullRequest.HeadRefOID,
 		BaseRefName:    strings.TrimSpace(pullRequest.BaseRefName),
 		AuthorLogin:    actorLogin(pullRequest.Author),
-		Labels:         namedValues(pullRequest.Labels, true),
-		Assignees:      namedValues(pullRequest.Assignees, false),
+		Assignees:      assigneeLogins(pullRequest.Assignees),
 		ReviewRequests: reviewRequestNames(pullRequest.ReviewRequests),
 		ReviewDecision: strings.TrimSpace(pullRequest.ReviewDecision),
 		Additions:      pullRequest.Additions,
@@ -56,20 +55,14 @@ func actorLogin(actor *rawNamedActor) string {
 	return strings.TrimSpace(actor.Name)
 }
 
-func namedValues(nodes *rawNamedNodes, preferName bool) []string {
+func assigneeLogins(nodes *rawNamedNodes) []string {
 	if nodes == nil {
 		return nil
 	}
 	values := make([]string, 0, len(nodes.Nodes))
 	for _, node := range nodes.Nodes {
-		value := strings.TrimSpace(node.Login)
-		if preferName || value == "" {
-			if name := strings.TrimSpace(node.Name); name != "" {
-				value = name
-			}
-		}
-		if value != "" {
-			values = append(values, value)
+		if login := strings.TrimSpace(node.Login); login != "" {
+			values = append(values, login)
 		}
 	}
 	if len(values) == 0 {

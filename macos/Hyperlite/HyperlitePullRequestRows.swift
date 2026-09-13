@@ -11,6 +11,7 @@ struct HyperlitePullRequestPanelRow: View {
     var showRepository = true
     @Binding var draggedRowID: String?
     let toggleReview: () -> Void
+    let togglePin: () -> Void
     let move: (String, String) -> Void
     let moveBy: (String, Int) -> Void
 
@@ -28,26 +29,40 @@ struct HyperlitePullRequestPanelRow: View {
                     draggedRowID = row.id
                     return NSItemProvider(object: row.id as NSString)
                 }
+            Button(action: togglePin) {
+                Image(systemName: pinned ? "pin.fill" : "pin")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(pinned ? HyperliteTheme.cyan.color : HyperliteTheme.mutedText.color)
+                    .frame(width: 16, height: 16)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(pinned ? "Unpin from top" : "Pin to top")
+            .accessibilityLabel(pinned ? "Unpin pull request" : "Pin pull request")
             HyperlitePullRequestReviewToggle(
                 row: row,
                 status: reviewStatus,
                 action: toggleReview
             )
-            Button(action: openPullRequest) {
-                HyperlitePullRequestRowContent(
-                    row: row,
-                    reviewStatus: reviewStatus,
-                    compact: compact,
-                    showRepository: showRepository
-                )
-            }
-            .buttonStyle(.plain)
-            .disabled(row.url == nil)
+            HyperlitePullRequestRowContent(
+                row: row,
+                reviewStatus: reviewStatus,
+                compact: compact,
+                showRepository: showRepository,
+                openNumber: openNumber,
+                openPullRequest: openPullRequest
+            )
             .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isButton)
             .accessibilityLabel(HyperlitePullRequestRowContent.accessibilityLabel(
                 for: row,
                 reviewStatus: reviewStatus
             ))
+            .accessibilityAction { openPullRequest() }
+            .accessibilityAction(
+                named: Text(row.numberOpensIssue ? "Open linked issue" : "Open pull request number")
+            ) { openNumber() }
         }
         .contentShape(Rectangle())
         .onDrop(
@@ -69,6 +84,11 @@ struct HyperlitePullRequestPanelRow: View {
 
     private func openPullRequest() {
         guard let url = row.url else { return }
+        NSWorkspace.shared.open(url)
+    }
+
+    private func openNumber() {
+        guard let url = row.numberURL else { return }
         NSWorkspace.shared.open(url)
     }
 

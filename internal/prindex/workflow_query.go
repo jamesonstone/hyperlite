@@ -93,7 +93,10 @@ type ActivityRequest struct {
 
 func writeCheckSuiteSelection(query *strings.Builder, indent string) {
 	query.WriteString(indent)
-	query.WriteString("checkSuites(first: ")
+	// GitHub returns checkSuites oldest-first and offers no orderBy, so a
+	// running suite is the most recent one. `last` keeps the newest suites in
+	// the bounded page; run selection then picks the freshest by updatedAt.
+	query.WriteString("checkSuites(last: ")
 	query.WriteString(strconv.Itoa(checkSuitePageSize))
 	query.WriteString(", filterBy: {appId: ")
 	query.WriteString(strconv.Itoa(githubActionsAppID))

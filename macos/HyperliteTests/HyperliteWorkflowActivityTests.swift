@@ -9,6 +9,8 @@ enum HyperliteWorkflowActivityTests {
         testChipDerivation()
         testFreshnessBoundary()
         testSyntheticDeploymentChip()
+        testConcurrentDeploymentEnvironments()
+        testHoverCardStaysOpenAcrossChipAndCard()
         testLabelsAndSummary()
         testCompactChipsAndHover()
     }
@@ -77,6 +79,46 @@ enum HyperliteWorkflowActivityTests {
         expect(chips.map(\.id) == ["ci.yaml", "deployment:prod"],
                "an active deployment without a deploy workflow gets its own chip; got \(chips.map(\.id))")
         expect(chips[1].title == "prod" && chips[1].isRunning, "synthetic chip is titled by environment")
+    }
+
+    private static func testConcurrentDeploymentEnvironments() {
+        var activity = sampleActivity(observedAt: now.addingTimeInterval(-10))
+        activity.catalog = [HyperliteWorkflowDefinition(file: "ci.yaml", name: "ci")]
+        activity.runs = []
+        activity.deployments = [
+            HyperliteDeployment(
+                environment: "staging", state: "IN_PROGRESS", logURL: "https://example.com/staging",
+                createdAt: now.addingTimeInterval(-300), updatedAt: now.addingTimeInterval(-100)
+            ),
+            HyperliteDeployment(
+                environment: "prod", state: "IN_PROGRESS", logURL: "https://example.com/prod",
+                createdAt: now.addingTimeInterval(-200), updatedAt: now.addingTimeInterval(-50)
+            ),
+            HyperliteDeployment(
+                environment: "prod", state: "QUEUED", logURL: "https://example.com/prod-old",
+                createdAt: now.addingTimeInterval(-900), updatedAt: now.addingTimeInterval(-880)
+            ),
+        ]
+        let chips = HyperliteWorkflowStripPresentation.chips(activity: activity, now: now)
+        expect(chips.map(\.id) == ["ci.yaml", "deployment:prod", "deployment:staging"],
+               "each active environment keeps a chip, newest first; got \(chips.map(\.id))")
+        let prod = chips.first { $0.id == "deployment:prod" }
+        let staging = chips.first { $0.id == "deployment:staging" }
+        expect(prod?.deployment?.logURL == "https://example.com/prod",
+               "the newest deployment wins within the prod environment")
+        expect(staging?.deployment?.logURL == "https://example.com/staging",
+               "the staging environment and its log link are preserved")
+        expect(prod?.isRunning == true && staging?.isRunning == true,
+               "both concurrent environments render running")
+    }
+
+    private static func testHoverCardStaysOpenAcrossChipAndCard() {
+        expect(HyperliteWorkflowHoverPresentation.shouldPresent(chipHovered: true, cardHovered: false),
+               "hovering the chip presents the card")
+        expect(HyperliteWorkflowHoverPresentation.shouldPresent(chipHovered: false, cardHovered: true),
+               "moving the pointer from the chip into the card keeps it open")
+        expect(!HyperliteWorkflowHoverPresentation.shouldPresent(chipHovered: false, cardHovered: false),
+               "leaving both the chip and the card dismisses it")
     }
 
     private static func testLabelsAndSummary() {

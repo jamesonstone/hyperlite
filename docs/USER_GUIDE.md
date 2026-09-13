@@ -93,9 +93,19 @@ query loop.
 Every configured project has its own section, even with no open pull
 requests. The section header carries the repository name, its row count, a
 strip of the project's workflows, and two small buttons that open the
-repository's Pulls and Actions pages on GitHub. A project with nothing open
-shows one quiet `no open pull requests` line; cached or unavailable projects
-show their availability text there instead.
+repository's Pulls and Actions pages on GitHub. Clicking the repository name
+opens the repository itself. A project with nothing open shows one quiet
+`no open pull requests` line; cached or unavailable projects show their
+availability text there instead. Idle projects are hidden by default; the
+toggle beside the `Pinned` count shows or hides them, and a project stays
+visible while it has an open pull request or a workflow that is running or
+failing, so a post-merge deploy is never hidden.
+
+Each row carries a pin button next to its drag handle, so pinning a pull
+request to the top no longer requires a drag. In a row, the number opens the
+issue the pull request tracks when its branch or title names one through the
+`GH-<n>` convention (and shows that issue number); the title always opens the
+pull request, and rows with no tracked issue keep the pull request number.
 
 The workflow strip lists every file under `.github/workflows` on the default
 branch, named by the file's `name:` key, plus any observed dynamic workflow

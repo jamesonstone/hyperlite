@@ -46,12 +46,16 @@ func (s *memoryCacheStore) Load() (cacheState, string, error) {
 	return cloneCache(s.state), s.warning, nil
 }
 
-func (s *memoryCacheStore) Update(mutate func(*cacheState)) (cacheState, error) {
+func (s *memoryCacheStore) Update(mutate func(*cacheState) bool) (cacheState, error) {
 	state := cloneCache(s.state)
 	if s.beforeUpdate != nil {
 		s.beforeUpdate(&state)
 	}
-	mutate(&state)
+	if !mutate(&state) {
+		// Match Store.Update: a callback that declines to commit still returns
+		// the freshly loaded state, so a concurrent change is not discarded.
+		return cloneCache(state), nil
+	}
 	s.state = state
 	return cloneCache(state), nil
 }

@@ -12,7 +12,7 @@ func TestBuildQuerySelectsWorkflowActivity(t *testing.T) {
 		repository: config.Repository{GitHub: "owner/repo"}, page: 1,
 	}})
 	for _, want := range []string{
-		"checkSuites(first: 10, filterBy: {appId: 15368})",
+		"checkSuites(last: 10, filterBy: {appId: 15368})",
 		`workflowsTree: object(expression: "HEAD:.github/workflows") { oid }`,
 		"deployments(first: 5, orderBy: {field: CREATED_AT, direction: DESC})",
 		"defaultBranchRef { name target { ... on Commit { oid",
@@ -28,6 +28,24 @@ func TestBuildQuerySelectsWorkflowActivity(t *testing.T) {
 		if strings.Contains(query, forbidden) {
 			t.Fatalf("batch query must not contain %q:\n%s", forbidden, query)
 		}
+	}
+}
+
+func TestBuildQueryOmitsRepositoryActivityOnFollowUpPages(t *testing.T) {
+	query, _ := buildQuery([]pageRequest{{
+		repository: config.Repository{GitHub: "owner/repo"}, page: 2, cursor: "CURSOR",
+	}})
+	// repositoryActivityFromRaw reads repository activity only from the first
+	// page, so follow-up pages must not pay for it again.
+	for _, forbidden := range []string{
+		"defaultBranchRef", "checkSuites(", "deployments(", "workflowsTree:",
+	} {
+		if strings.Contains(query, forbidden) {
+			t.Fatalf("follow-up page must not contain %q:\n%s", forbidden, query)
+		}
+	}
+	if !strings.Contains(query, `after: "CURSOR"`) {
+		t.Fatalf("follow-up page must page pull requests:\n%s", query)
 	}
 }
 

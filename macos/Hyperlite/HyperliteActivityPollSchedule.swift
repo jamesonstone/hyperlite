@@ -36,24 +36,35 @@ enum HyperliteActivityPollSchedule {
         guard let policy = context.policy else { return .stop(.noPolicy) }
         if policy.activeRunCount <= 0 { return .stop(.noActiveRuns) }
         if !context.isWindowVisible { return .stop(.windowHidden) }
-        if let burstStartedAt = context.burstStartedAt,
-           context.now.timeIntervalSince(burstStartedAt) >= maxBurst
-        {
-            return .stop(.burstCap)
-        }
+        let remaining = remainingBurst(context)
+        if let remaining, remaining <= 0 { return .stop(.burstCap) }
         let advertised = TimeInterval(max(policy.intervalSeconds, 0))
         let interval = advertised > 0 ? advertised : Self.interval
         if policy.allowed {
             let untilEligible = policy.nextEligibleAt.map { $0.timeIntervalSince(context.now) } ?? 0
-            return .poll(after: max(interval, untilEligible, minimumDelay))
+            return withinBurst(max(interval, untilEligible, minimumDelay), remaining: remaining)
         }
         guard policy.reason == HyperliteActivityPollDecision.intervalReason,
               let nextEligibleAt = policy.nextEligibleAt
         else {
             return .stop(.governorDenied(policy.reason))
         }
-        let wait = nextEligibleAt.timeIntervalSince(context.now)
-        guard wait <= maxBurst else { return .stop(.governorDenied(policy.reason)) }
-        return .poll(after: max(wait, minimumDelay))
+        let wait = max(nextEligibleAt.timeIntervalSince(context.now), minimumDelay)
+        return withinBurst(wait, remaining: remaining)
+    }
+
+    /// Remaining burst budget, or nil when no burst is running. A poll is only
+    /// scheduled when it lands before the deadline.
+    private static func remainingBurst(_ context: HyperliteActivityPollContext) -> TimeInterval? {
+        guard let burstStartedAt = context.burstStartedAt else { return nil }
+        return maxBurst - context.now.timeIntervalSince(burstStartedAt)
+    }
+
+    private static func withinBurst(
+        _ delay: TimeInterval,
+        remaining: TimeInterval?
+    ) -> HyperliteActivityPollStep {
+        if let remaining, delay >= remaining { return .stop(.burstCap) }
+        return .poll(after: delay)
     }
 }

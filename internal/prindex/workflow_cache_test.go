@@ -13,7 +13,7 @@ func TestStoreRoundTripsWorkflowActivityAndPollState(t *testing.T) {
 	now := time.Date(2026, 9, 12, 20, 0, 0, 0, time.UTC)
 	store := Store{Path: filepath.Join(t.TempDir(), "cache.json"), Now: func() time.Time { return now }}
 	observed := now.Add(-time.Minute)
-	_, err := store.Update(func(state *cacheState) {
+	_, err := store.Update(func(state *cacheState) bool {
 		state.Repositories["owner/one"] = cacheEntry{
 			Repository: "owner/one", ObservedAt: observed,
 			Workflows: &model.ProjectWorkflowActivity{
@@ -26,6 +26,7 @@ func TestStoreRoundTripsWorkflowActivityAndPollState(t *testing.T) {
 			},
 		}
 		state.Activity = &cachedActivityState{LastCheckedAt: observed, BurstStartedAt: observed, WindowResetAt: now, PollsThisWindow: 3}
+		return true
 	})
 	if err != nil {
 		t.Fatal(err)
