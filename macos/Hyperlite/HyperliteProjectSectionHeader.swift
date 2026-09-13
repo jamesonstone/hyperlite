@@ -32,13 +32,14 @@ struct HyperliteProjectSectionHeader: View {
             .disabled(section.repositoryURL == nil)
             .help(section.repositoryURL == nil ? "" : "Open \(section.repository) on GitHub")
             .padding(.leading, chromeLeading)
-            .layoutPriority(1)
+            .layoutPriority(0)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(accessibilityLabel)
             .accessibilityHint(section.repositoryURL == nil ? "" : "Opens the repository on GitHub")
             if !stripChips.isEmpty {
                 HyperliteWorkflowStrip(chips: stripChips, compact: false)
-                    .layoutPriority(-1)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .layoutPriority(1)
             }
             Spacer(minLength: 4)
             if !compact {

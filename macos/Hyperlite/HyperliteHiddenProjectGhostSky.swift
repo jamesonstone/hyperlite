@@ -19,13 +19,6 @@ enum HyperliteHiddenProjectGhostSkyPresentation {
     }
 }
 
-struct HyperliteMeasuredHeightKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = max(value, nextValue())
-    }
-}
-
 struct HyperliteHiddenProjectGhostSky: View {
     let sections: [HyperliteProjectSection]
     let kinds: [String: HyperliteProjectCelestialKind]
@@ -47,6 +40,7 @@ struct HyperliteHiddenProjectGhostSky: View {
                             origin: HyperliteProjectOrbitPresentation.bodyPoint(
                                 index: index, count: sections.count, in: geo.size
                             ),
+                            canvas: geo.size,
                             revolving: revolving
                         )
                     }
@@ -64,6 +58,8 @@ struct HyperliteHiddenProjectGhostSky: View {
             revolving = true
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .clipped()
+        .contentShape(Rectangle())
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Hidden idle projects, \(sections.count)")
     }
@@ -108,7 +104,7 @@ struct HyperliteHiddenProjectGhostSky: View {
         .foregroundStyle(HyperliteTheme.mutedText.color)
         .padding(.leading, 18)
         .padding(.top, 8)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
@@ -140,6 +136,7 @@ struct HyperliteHiddenProjectOrbitBody: View {
     let section: HyperliteProjectSection
     let kind: HyperliteProjectCelestialKind
     let origin: CGPoint
+    let canvas: CGSize
     var revolving = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hovering = false
@@ -166,8 +163,8 @@ struct HyperliteHiddenProjectOrbitBody: View {
                 .frame(maxWidth: HyperliteProjectOrbitPresentation.labelWidth)
         }
         .frame(
-            width: max(HyperliteProjectOrbitPresentation.hitSize, 64),
-            height: max(HyperliteProjectOrbitPresentation.hitSize, 44)
+            width: HyperliteProjectOrbitPresentation.bodyHitSize.width,
+            height: HyperliteProjectOrbitPresentation.bodyHitSize.height
         )
         .contentShape(Rectangle())
         .rotationEffect(revolving && !reduceMotion ? .degrees(-360) : .zero)
@@ -200,7 +197,9 @@ struct HyperliteHiddenProjectOrbitBody: View {
                 transaction.disablesAnimations = true
                 withTransaction(transaction) {
                     dragging = true
-                    offset = value.translation
+                    offset = HyperliteProjectOrbitPresentation.clampOffset(
+                        value.translation, origin: origin, in: canvas
+                    )
                 }
             }
             .onEnded { value in
@@ -227,58 +226,5 @@ struct HyperliteHiddenProjectOrbitBody: View {
     private func open() {
         guard let url = section.repositoryURL else { return }
         NSWorkspace.shared.open(url)
-    }
-}
-
-struct HyperliteOpenPRWatchColumn<Content: View>: View {
-    let compact: Bool
-    let hideIdle: Bool
-    let hiddenSections: [HyperliteProjectSection]
-    var celestialKinds: [String: HyperliteProjectCelestialKind] = [:]
-    let isRefreshing: Bool
-    @ViewBuilder var content: Content
-    @State private var listHeight: CGFloat = 0
-
-    var body: some View {
-        GeometryReader { geo in
-            let leftover = listHeight > 0 ? max(geo.size.height - listHeight, 0) : 0
-            let showSky = HyperliteHiddenProjectGhostSkyPresentation.showsSky(
-                compact: compact,
-                hideIdle: hideIdle,
-                hiddenCount: hiddenSections.count,
-                leftover: leftover
-            )
-            VStack(alignment: .leading, spacing: 0) {
-                ScrollView(.vertical, showsIndicators: true) {
-                    content
-                        .fixedSize(horizontal: false, vertical: true)
-                        .background {
-                            GeometryReader { proxy in
-                                Color.clear.preference(
-                                    key: HyperliteMeasuredHeightKey.self,
-                                    value: proxy.size.height
-                                )
-                            }
-                        }
-                }
-                .onPreferenceChange(HyperliteMeasuredHeightKey.self) { listHeight = $0 }
-                .frame(
-                    maxWidth: .infinity,
-                    maxHeight: showSky ? listHeight : .infinity,
-                    alignment: .topLeading
-                )
-                if showSky {
-                    HyperliteHiddenProjectGhostSky(
-                        sections: hiddenSections,
-                        kinds: celestialKinds
-                    )
-                }
-            }
-            .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
-        }
-        .overlay {
-            HyperliteOpenPRRefreshGhostOverlay(isRefreshing: isRefreshing)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }

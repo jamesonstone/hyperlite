@@ -112,6 +112,14 @@ enum HyperliteOpenPRWatchStageTests {
         )
         let size = CGSize(width: 240, height: 180)
         let inset = HyperliteProjectOrbitPresentation.inset
+        let hit = HyperliteProjectOrbitPresentation.bodyHitSize
+        let usableHeight = size.height - HyperliteProjectOrbitPresentation.captionReserve
+        expect(
+            HyperliteProjectOrbitPresentation.radius(in: size) * 2
+                + HyperliteProjectOrbitPresentation.bodyClearance * 2
+                <= min(size.width, usableHeight) + 0.5,
+            "orbit diameter should scale to leftover, not overflow it"
+        )
         var homes: [CGPoint] = []
         for index in 0..<17 {
             let point = HyperliteProjectOrbitPresentation.bodyPoint(
@@ -122,11 +130,30 @@ enum HyperliteOpenPRWatchStageTests {
                     point.y >= inset && point.y <= size.height - inset,
                 "body \(index) should stay inside the leftover sky; got \(point)"
             )
+            expect(
+                point.x - hit.width / 2 >= -0.5 &&
+                    point.x + hit.width / 2 <= size.width + 0.5 &&
+                    point.y - hit.height / 2 >= -0.5 &&
+                    point.y + hit.height / 2 <= size.height + 0.5,
+                "body \(index) hit frame should stay in leftover; got \(point)"
+            )
             homes.append(point)
         }
         expect(
             Set(homes.map { "\($0.x)-\($0.y)" }).count == 17,
             "every hidden project should rest on its own orbit slot"
+        )
+        let origin = homes[0]
+        let clamped = HyperliteProjectOrbitPresentation.clampOffset(
+            CGSize(width: 800, height: -900), origin: origin, in: size
+        )
+        let pulled = CGPoint(x: origin.x + clamped.width, y: origin.y + clamped.height)
+        expect(
+            pulled.x - hit.width / 2 >= -0.5 &&
+                pulled.x + hit.width / 2 <= size.width + 0.5 &&
+                pulled.y - hit.height / 2 >= -0.5 &&
+                pulled.y + hit.height / 2 <= size.height + 0.5,
+            "drag should stay inside leftover; got \(pulled)"
         )
         expect(
             HyperliteProjectOrbitPresentation.returnSpringIsUnderdamped,

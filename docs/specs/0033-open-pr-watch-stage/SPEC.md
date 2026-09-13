@@ -104,15 +104,18 @@ contract and need continuous design judgment.
   around a ☀️. Every hidden project is a selectable ⭐️, 🌕, 🌍, or 🪐
   sized from cached commit count, with its short name visible. Bodies
   revolve around the sun and spin in place with implicit Core Animation.
-  Pull a body and it springs back to its slot. Click a body to open the
-  repository. Help keeps the idle availability text. Hide-idle membership
-  does not change. Stacked fit-content does not grow a sky; leftover height
-  there still goes to notes. No decorative leftover ghosts.
+  Pull a body and it springs back to its slot, staying inside leftover;
+  the sky clips draw and hit-testing so bodies cannot cover the visible
+  list. Click a body to open the repository. Help keeps the idle
+  availability text. Hide-idle membership does not change. Stacked
+  fit-content does not grow a sky; leftover height there still goes to
+  notes. No decorative leftover ghosts.
 - R4: Drag handles, unpinned pins, and empty review boxes are quieter at rest
   and full on row hover. Number→issue, title→PR, Pulls/Actions, running
   chips, hover cards, and the refresh overlay stay. Compact Pulls/Actions
   wait on heading hover. Visible project headings show the same celestial
-  glyph as the leftover body for that project.
+  glyph as the leftover body for that project. Running GitHub Actions
+  chips keep their 12 Hz gliding 👻; leftover sky must not cover them.
 - R5: Leftover sky has no idle `TimelineView` or poll timer. Revolution and
   spin use implicit Core Animation. Drag offsets a body; release returns it
   with one Core Animation spring. Reduce Motion stills revolution and spin
@@ -151,12 +154,13 @@ Observable acceptance:
    Pulls/Actions until the heading is hovered.
 3. Measure the Open PRs list against the Vertical Mode pane and, when
    leftover height remains under hide-idle, render a ☀️ plus one orbit of
-   named emoji bodies that revolve, spin, and tug-and-spring. Keep stacked
-   height content-sized.
+   named emoji bodies that revolve, spin, and tug-and-spring. Clip the
+   leftover and keep the list above it so hover and running chips stay
+   live. Keep stacked height content-sized.
 4. Fade drag handles, unpinned pins, and empty review boxes at rest. Cover
    layout, sky membership, one-body-per-hidden-project, celestial
-   classification, orbit bounds, stacked lantern padding, and commit-count
-   cache policy with tests.
+   classification, orbit bounds, leftover drag clamp, stacked lantern
+   padding, and commit-count cache policy with tests.
 5. Seed missing counts from local git. Fetch GitHub counts in a batched
    follow-up after a successful stale or force scan when the count is older
    than 24 hours and quota remaining is excess. Never fetch sizes from the
@@ -192,6 +196,13 @@ Observable acceptance:
 - ScrollView children report viewport height unless the list is
   `fixedSize(horizontal: false, vertical: true)`. The leftover ghost sky
   depends on that intrinsic measure; otherwise leftover is always zero.
+  `LazyVStack` still under-measures inside that ScrollView, so the
+  compact panel uses a `VStack` and leftover starts only below the last
+  visible row.
+- Unclipped `.position()` orbit bodies drew and hit-tested into the
+  visible list, stealing heading hover and covering running Actions
+  chips. Leftover is clipped, the list wins z-order, drag is clamped to
+  leftover, and the orbit radius scales to leftover size.
 - A first pass boxed every project and labeled every hidden ghost. That
   read as busy chrome. Lanterns plus a nameless constellation were calmer
   to watch but failed association: tiny `.position()` glyphs made only
@@ -209,8 +220,8 @@ Observable acceptance:
 
 ## VALIDATION
 
-- `make macos-test` passed after leftover emoji orbit, revolution, spin,
-  tug-and-spring return, and removal of leftover ghosts.
+- `make macos-test` passed after leftover clip, scaled orbit, drag clamp,
+  list-over-sky z-order, and restoring running-chip layout priority.
 - `go test ./internal/prindex/...` passed for commit-count query shape, daily
   TTL, excess-quota denial, local seed, and cache preserve on PR refresh.
 - `make macos-build` produced `build/Hyperlite.app` and relaunched it.

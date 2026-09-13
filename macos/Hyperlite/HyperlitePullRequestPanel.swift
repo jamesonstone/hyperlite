@@ -42,7 +42,7 @@ struct HyperlitePullRequestPanel: View {
                     .foregroundStyle(HyperliteTheme.mutedText.color)
                     .padding(.vertical, 2)
             } else {
-                LazyVStack(alignment: .leading, spacing: HyperliteWorkspaceSplit.stackedStageSpacing) {
+                VStack(alignment: .leading, spacing: HyperliteWorkspaceSplit.stackedStageSpacing) {
                     if sections.pinned.isEmpty {
                         HyperlitePinnedSectionDropTarget(
                             draggedRowID: $draggedRowID,

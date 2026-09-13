@@ -54,9 +54,14 @@ enum HyperliteProjectOrbitPresentation {
     static let sunSpinPeriod: TimeInterval = 36
     static let revolutionPeriod: TimeInterval = 72
     static let inset: CGFloat = 36
+    static let captionReserve: CGFloat = 28
+    static let bodyClearance: CGFloat = 32
     static let hitSize: CGFloat = 36
     static let labelWidth: CGFloat = 56
     static let dragSlop: CGFloat = 4
+    static var bodyHitSize: CGSize {
+        CGSize(width: max(hitSize, 64), height: max(hitSize, 44))
+    }
     /// Underdamped so a released body overshoots once, then settles.
     static let returnStiffness: Double = 170
     static let returnDamping: Double = 13
@@ -80,11 +85,30 @@ enum HyperliteProjectOrbitPresentation {
     }
 
     static func center(in size: CGSize) -> CGPoint {
-        CGPoint(x: size.width / 2, y: size.height / 2 + 6)
+        let usableHeight = max(size.height - captionReserve, 0)
+        return CGPoint(x: size.width / 2, y: captionReserve + usableHeight / 2)
     }
 
     static func radius(in size: CGSize) -> CGFloat {
-        max(min(size.width, size.height) * 0.38, 28)
+        let usableHeight = max(size.height - captionReserve, 0)
+        return max(min(size.width, usableHeight) / 2 - bodyClearance, 12)
+    }
+
+    static func clampOffset(
+        _ translation: CGSize,
+        origin: CGPoint,
+        in size: CGSize
+    ) -> CGSize {
+        let hit = bodyHitSize
+        let halfW = hit.width / 2
+        let halfH = hit.height / 2
+        let minX = halfW
+        let maxX = max(size.width - halfW, halfW)
+        let minY = halfH
+        let maxY = max(size.height - halfH, halfH)
+        let x = min(max(origin.x + translation.width, minX), maxX)
+        let y = min(max(origin.y + translation.height, minY), maxY)
+        return CGSize(width: x - origin.x, height: y - origin.y)
     }
 
     static func sunAnchor(in size: CGSize) -> CGPoint {
