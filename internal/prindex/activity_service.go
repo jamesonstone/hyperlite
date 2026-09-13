@@ -153,7 +153,15 @@ func refreshedWorkflowActivity(
 		next.TreeOID = catalog.TreeOID
 	}
 	normalizeWorkflowActivity(next)
+	next.PipelineAlerts = ReconcilePipelineAlerts(existingAlerts(existing), *next, now)
 	return next
+}
+
+func existingAlerts(activity *model.ProjectWorkflowActivity) []model.PipelineAlert {
+	if activity == nil {
+		return nil
+	}
+	return append([]model.PipelineAlert(nil), activity.PipelineAlerts...)
 }
 
 func applyActivityResult(
@@ -187,6 +195,7 @@ func applyActivityResult(
 			activity.Deployments = append([]model.Deployment{}, result.Deployments...)
 			activity.ObservedAt = &checked
 			activity.Message = ""
+			activity.PipelineAlerts = ReconcilePipelineAlerts(activity.PipelineAlerts, *activity, now)
 		}
 		normalizeWorkflowActivity(activity)
 		entry.Workflows = activity

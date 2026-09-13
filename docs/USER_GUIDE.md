@@ -98,22 +98,26 @@ opens the repository itself. A project with nothing open collapses to one
 quiet heading that folds in `no open pull requests`; cached or unavailable
 projects show their availability text there instead. Idle projects are hidden
 by default; the eye control on the Open PRs title row shows or hides them, and
-a project stays visible while it has an open pull request or a workflow that
-is running or failing, so a post-merge deploy is never hidden. The panel title
+a project stays visible while it has an open pull request, a workflow that
+is running or failing, or a cached main/deploy pipeline failure, so a post-merge
+deploy is never hidden. The panel title
 is larger and brighter than repository headings. Headings for projects with
 open PRs use primary semibold type; idle headings drop to compact muted type
 so they recede. A no-PR project with a running or failing workflow stays one
 line in secondary text. Repository names, workflow
 chips, and pull-request text share one left edge past the drag/pin/review
 rail. Each visible project, and Pinned when it has rows, is marked by a thin
-left lantern instead of a filled card; running or failing work lights that
-lantern cyan. Drag handles, unpinned pins, and empty review boxes stay quiet
+left lantern instead of a filled card; running work lights that lantern cyan,
+and a cached main/deploy pipeline failure lights it orange. Drag handles, unpinned pins, and empty review boxes stay quiet
 until the row is hovered. In Vertical Mode, Pulls and Actions wait on heading
 hover so the name can breathe. The hide-idle eye stays quiet while idle
 projects are hidden, and
 brightens only when those projects are shown. Workflow chips sit on the
 heading row after the repository name so pull-request rows follow the heading
-immediately. The Pinned caption appears only while something is pinned. Each
+immediately. Failed default-branch **main**/**ci** or **deploy** pipelines keep
+a persistent orange **main** or **deploy** badge on that heading until the next
+matching run is green; those badges reuse the already-fetched Actions cache and
+do not add GitHub calls. The Pinned caption appears only while something is pinned. Each
 project heading is larger than its pull-request rows, and projects with open
 pull requests can be collapsed with the chevron at the left of the heading.
 Collapsed, a project keeps its name and open-PR count so the pane can be

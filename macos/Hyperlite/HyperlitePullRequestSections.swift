@@ -86,10 +86,11 @@ enum HyperliteProjectSectionChrome {
 
     static func headingWeight(
         idle: Bool,
-        chips: [HyperliteWorkflowChip]
+        chips: [HyperliteWorkflowChip],
+        alerts: [HyperlitePipelineAlert] = []
     ) -> HeadingWeight {
         if !idle { return .active }
-        if chips.contains(where: { $0.isRunning || $0.needsAttention }) {
+        if chips.contains(where: { $0.isRunning || $0.needsAttention }) || !alerts.isEmpty {
             return .notable
         }
         return .idle
@@ -113,7 +114,10 @@ enum HyperliteProjectSectionChrome {
 /// losing an in-flight deploy that has no open pull request.
 enum HyperliteOpenPRProjectFilter {
     static func hasNotableActivity(_ section: HyperliteProjectSection, now: Date) -> Bool {
-        HyperliteWorkflowStripPresentation
+        if HyperlitePipelineAlertPresentation.hasAlert(section.project.workflows) {
+            return true
+        }
+        return HyperliteWorkflowStripPresentation
             .chips(activity: section.project.workflows, now: now)
             .contains { $0.isRunning || $0.needsAttention }
     }

@@ -71,12 +71,14 @@ struct HyperliteProjectWorkflowActivity: Codable, Equatable {
     var checkedAt: Date? = nil
     var observedAt: Date? = nil
     var message: String? = nil
+    var pipelineAlerts: [HyperlitePipelineAlert]? = nil
 
     enum CodingKeys: String, CodingKey {
         case catalog, runs, deployments, message
         case treeOID = "tree_oid"
         case checkedAt = "checked_at"
         case observedAt = "observed_at"
+        case pipelineAlerts = "pipeline_alerts"
     }
 
     var hasActiveRun: Bool {
@@ -107,4 +109,28 @@ struct HyperliteActivityPollDecision: Codable, Equatable {
     }
 
     static let intervalReason = "interval"
+}
+
+struct HyperlitePipelineAlert: Codable, Equatable, Identifiable {
+    let kind: String
+    var file: String? = nil
+    let name: String
+    let conclusion: String
+    var url: String? = nil
+    var runNumber: Int? = nil
+    var headOID: String? = nil
+    let observedAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case kind, file, name, conclusion, url
+        case runNumber = "run_number"
+        case headOID = "head_oid"
+        case observedAt = "observed_at"
+    }
+
+    var id: String { kind }
+
+    var title: String {
+        kind == "deploy" ? "deploy" : "main"
+    }
 }

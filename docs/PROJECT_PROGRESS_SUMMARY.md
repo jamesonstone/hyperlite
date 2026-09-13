@@ -37,6 +37,7 @@
 | 0032 | open-pr-design-pass | `docs/specs/0032-open-pr-design-pass` | deliver | no | 2026-09-13 | Stronger Open PRs title, brighter project headings, folded idle lines, aligned content column, and no compact `+N` idle-workflow count. |
 | 0033 | open-pr-watch-stage | `docs/specs/0033-open-pr-watch-stage` | deliver | no | 2026-09-13 | Vertical Mode Open PRs readability pass: lantern-marked clusters, two-line compact titles, and hidden idle projects in a standard collapsible list. |
 | 0034 | open-pr-collapsible-sections | `docs/specs/0034-open-pr-collapsible-sections` | deliver | no | 2026-09-13 | Larger Open PRs project headings, per-project collapse that keeps the name and open-PR count, and a stale error banner that clears on a successful refresh. |
+| 0035 | open-pr-pipeline-alerts | `docs/specs/0035-open-pr-pipeline-alerts` | deliver | no | 2026-09-13 | Persistent Open PRs badges when default-branch main/ci or deploy pipelines fail, cleared only by the next green run, with no extra GitHub calls. |
 
 ## PROJECT INTENT
 

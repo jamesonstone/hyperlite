@@ -50,13 +50,14 @@ type Deployment struct {
 // is the last attempt and ObservedAt the last success, mirroring pull-request
 // freshness so a failed poll cannot present stale runs as current.
 type ProjectWorkflowActivity struct {
-	Catalog     []WorkflowDefinition `json:"catalog"`
-	Runs        []WorkflowRun        `json:"runs"`
-	Deployments []Deployment         `json:"deployments"`
-	TreeOID     string               `json:"tree_oid,omitempty"`
-	CheckedAt   *time.Time           `json:"checked_at,omitempty"`
-	ObservedAt  *time.Time           `json:"observed_at,omitempty"`
-	Message     string               `json:"message,omitempty"`
+	Catalog        []WorkflowDefinition `json:"catalog"`
+	Runs           []WorkflowRun        `json:"runs"`
+	Deployments    []Deployment         `json:"deployments"`
+	TreeOID        string               `json:"tree_oid,omitempty"`
+	CheckedAt      *time.Time           `json:"checked_at,omitempty"`
+	ObservedAt     *time.Time           `json:"observed_at,omitempty"`
+	Message        string               `json:"message,omitempty"`
+	PipelineAlerts []PipelineAlert      `json:"pipeline_alerts,omitempty"`
 }
 
 // ActivityPollDecision reports whether an automatic activity poll may run so
@@ -120,4 +121,23 @@ func (a ProjectWorkflowActivity) ActivePullRequestNumbers() []int {
 		numbers = append(numbers, run.PullRequestNumber)
 	}
 	return numbers
+}
+
+const (
+	PipelineAlertKindMain   = "main"
+	PipelineAlertKindDeploy = "deploy"
+)
+
+// PipelineAlert is a cached default-branch main or deploy failure. It stays
+// until a later matching completion is green and never requires a new GitHub
+// query: reconcile uses the already-fetched tip runs and deployments.
+type PipelineAlert struct {
+	Kind       string    `json:"kind"`
+	File       string    `json:"file,omitempty"`
+	Name       string    `json:"name"`
+	Conclusion string    `json:"conclusion"`
+	URL        string    `json:"url,omitempty"`
+	RunNumber  int       `json:"run_number,omitempty"`
+	HeadOID    string    `json:"head_oid,omitempty"`
+	ObservedAt time.Time `json:"observed_at"`
 }

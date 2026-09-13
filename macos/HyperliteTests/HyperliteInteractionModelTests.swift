@@ -24,6 +24,7 @@ struct HyperliteInteractionModelTests {
         HyperliteOpenPRMergePromptTests.run()
         HyperliteOpenPRRefreshPulseTests.run()
         try HyperliteWorkflowActivityTests.run()
+        HyperlitePipelineAlertTests.run()
         HyperliteWorkflowRunGlideTests.run()
         HyperlitePullRequestSectionsTests.run()
         HyperliteOpenPRWatchStageTests.run()

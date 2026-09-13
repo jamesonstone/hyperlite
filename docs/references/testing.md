@@ -28,6 +28,7 @@
   Open PR rows grouped by repository section, inline ready/draft badges, Open PR
   refresh ghost overlay, notepad pane-fill wrapping, per-project workflow
   activity decoding, chip derivation with the two-minute freshness boundary,
+  gliding-ghost math, persistent main/deploy pipeline failure badges,
   gliding-ghost math, every-project section plans with Pulls/Actions links,
   the bounded activity poll schedule, Open PR title hierarchy and folded idle
   headings, compact workflow strips without a leftover `+N`, Vertical Mode

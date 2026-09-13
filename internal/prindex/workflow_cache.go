@@ -62,6 +62,12 @@ func sortWorkflowActivity(activity *model.ProjectWorkflowActivity) {
 	sort.SliceStable(activity.Deployments, func(i, j int) bool {
 		return activity.Deployments[i].CreatedAt.After(activity.Deployments[j].CreatedAt)
 	})
+	sort.SliceStable(activity.PipelineAlerts, func(i, j int) bool {
+		if activity.PipelineAlerts[i].Kind == activity.PipelineAlerts[j].Kind {
+			return activity.PipelineAlerts[i].Name < activity.PipelineAlerts[j].Name
+		}
+		return activity.PipelineAlerts[i].Kind < activity.PipelineAlerts[j].Kind
+	})
 }
 
 func cloneWorkflowActivity(activity *model.ProjectWorkflowActivity) *model.ProjectWorkflowActivity {
@@ -72,6 +78,7 @@ func cloneWorkflowActivity(activity *model.ProjectWorkflowActivity) *model.Proje
 	cloned.Catalog = append([]model.WorkflowDefinition(nil), activity.Catalog...)
 	cloned.Runs = append([]model.WorkflowRun(nil), activity.Runs...)
 	cloned.Deployments = append([]model.Deployment(nil), activity.Deployments...)
+	cloned.PipelineAlerts = append([]model.PipelineAlert(nil), activity.PipelineAlerts...)
 	if activity.CheckedAt != nil {
 		checkedAt := *activity.CheckedAt
 		cloned.CheckedAt = &checkedAt
