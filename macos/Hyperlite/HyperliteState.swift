@@ -183,6 +183,10 @@ final class HyperliteState: ObservableObject {
                 ) { decoded in
                     guard self.pullRequestRefreshGeneration == generation else { return }
                     self.pullRequestScan = decoded
+                    // A successful scan means the pane has valid data, so a
+                    // stale error banner from an earlier transient failure
+                    // (e.g. a one-time cache rebuild) must not linger.
+                    if self.errorMessage != nil { self.errorMessage = nil }
                 }
                 // Only a successful refresh reflects the latest runs, so the
                 // burst clock restarts from the fresh scan. A failed refresh
