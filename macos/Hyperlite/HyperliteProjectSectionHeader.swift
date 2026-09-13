@@ -59,7 +59,9 @@ struct HyperliteProjectSectionHeader: View {
                 pin: drop
             )
         )
-        .padding(.top, isIdle ? 2 : 10)
+        .padding(.top, isIdle
+            ? HyperliteWorkspaceSplit.stackedIdleSectionTopPadding
+            : HyperliteWorkspaceSplit.stackedActiveSectionTopPadding)
     }
 
     private var label: some View {

@@ -159,7 +159,7 @@ struct HyperlitePullRequestPanel: View {
                 .foregroundStyle(HyperliteTheme.mutedText.color)
         }
         .padding(.leading, HyperlitePullRequestRowLayout.rowChromeLeading)
-        .padding(.top, 6)
+        .padding(.top, HyperliteWorkspaceSplit.stackedPinnedLabelTopPadding)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Pinned pull requests, \(sections.pinned.count)")
     }

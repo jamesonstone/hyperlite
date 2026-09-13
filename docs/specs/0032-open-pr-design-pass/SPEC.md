@@ -10,7 +10,7 @@ feature:
   dir: 0032-open-pr-design-pass
 references:
   - id: issue-98
-    name: Open PRs design pass: readability, hierarchy, de-emphasize no-action projects
+    name: "Open PRs design pass: readability, hierarchy, de-emphasize no-action projects"
     type: github-issue
     target: https://github.com/jamesonstone/hyperlite/issues/98
     relation: implements
@@ -175,6 +175,9 @@ Observable acceptance:
 - Compact `+N` counted quiet success and idle chips, not only idle workflows.
   Dropping the count is the compact treatment; filtering the chip list is
   what actually removes the noise.
+- The stacked fit-content estimate used only the 16 pt section-label height
+  and missed each header's top padding (10 for active projects, 2 for idle,
+  6 for Pinned). That made the pane shorter than the rendered list.
 - Screen capture of the local window was blocked by macOS ScreenCaptureKit
   policy in this environment. Validation is Swift tests plus a local
   `make hyper` launch. A second pass dropped idle headings from semibold
