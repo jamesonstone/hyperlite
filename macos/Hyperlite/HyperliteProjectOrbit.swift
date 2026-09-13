@@ -37,11 +37,13 @@ enum HyperliteProjectCelestialKind: String, Equatable {
 enum HyperliteProjectOrbitPresentation {
     static let sunSize: CGFloat = 26
     static let cometCount = 3
-    static let period: TimeInterval = 56
-    static let tickInterval: TimeInterval = 1.0 / 12.0
     static let inset: CGFloat = 36
     static let hitSize: CGFloat = 36
     static let labelWidth: CGFloat = 56
+    static let dragSlop: CGFloat = 4
+    /// Underdamped so a released body overshoots once, then settles.
+    static let returnStiffness: Double = 170
+    static let returnDamping: Double = 13
 
     static func classify(count: Int?) -> HyperliteProjectCelestialKind {
         guard let count, count > 0 else { return .star }
@@ -69,37 +71,31 @@ enum HyperliteProjectOrbitPresentation {
         max(min(size.width, size.height) * 0.38, 28)
     }
 
-    static func phase(at date: Date, reduceMotion: Bool) -> Double {
-        guard !reduceMotion else { return 0 }
-        var elapsed = date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: period)
-        if elapsed < 0 { elapsed += period }
-        return elapsed / period * 2 * .pi
-    }
-
-    static func bodyPoint(
-        index: Int,
-        count: Int,
-        in size: CGSize,
-        phase: Double
-    ) -> CGPoint {
+    static func bodyPoint(index: Int, count: Int, in size: CGSize) -> CGPoint {
         let total = max(count, 1)
-        let angle = (Double(index) / Double(total)) * 2 * .pi - .pi / 2 + phase
+        let angle = (Double(index) / Double(total)) * 2 * .pi - .pi / 2
         return polar(angle: angle, radius: radius(in: size), in: size)
     }
 
-    static func cometPoint(
-        index: Int,
-        at date: Date,
-        in size: CGSize,
-        reduceMotion: Bool
-    ) -> CGPoint {
-        let instant = reduceMotion ? Date(timeIntervalSinceReferenceDate: 0) : date
-        let period = 11.0 + Double(index) * 5.0
-        var elapsed = instant.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: period)
-        if elapsed < 0 { elapsed += period }
-        let angle = elapsed / period * 2 * .pi + Double(index) * 1.7
+    static func cometHome(index: Int, in size: CGSize) -> CGPoint {
+        let angle = Double(index) * 2.1 + 0.4
         let orbit = radius(in: size) * (0.22 + CGFloat(index) * 0.09)
         return polar(angle: angle, radius: orbit, in: size)
+    }
+
+    static func cometDrift(index: Int) -> CGSize {
+        CGSize(
+            width: CGFloat(6 + index * 3),
+            height: CGFloat(4 - index * 2)
+        )
+    }
+
+    static func cometDriftDuration(index: Int) -> Double {
+        4.2 + Double(index) * 1.4
+    }
+
+    static var returnSpringIsUnderdamped: Bool {
+        returnDamping < 2 * returnStiffness.squareRoot()
     }
 
     private static func polar(angle: Double, radius: CGFloat, in size: CGSize) -> CGPoint {

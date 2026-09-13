@@ -47,7 +47,7 @@ references:
     target: docs/specs/0018-runtime-resource-cut/SPEC.md
     relation: constrains
     read_policy: must
-    used_for: leftover orbit ticks only while the sky is visible; no activity-poll size fetches
+    used_for: leftover sky has no idle TimelineView; drag return is one Core Animation spring
     status: active
   - id: frontend-architecture
     name: Frontend Application Architecture
@@ -103,18 +103,20 @@ contract and need continuous design judgment.
   hidden idle projects appear in that leftover as bodies on one orbit
   around a sun. Every hidden project is a selectable star, moon, planet,
   or giant sized from cached commit count, with its short name visible.
-  A few decorative 👻 comets fly around the system and are not projects.
-  Click a body to open the repository. Help keeps the idle availability
-  text. Hide-idle membership does not change. Stacked fit-content does not
-  grow a sky; leftover height there still goes to notes.
+  Pull a body and it springs back to its slot. A few decorative 👻 comets
+  drift and are not projects. Click a body to open the repository. Help
+  keeps the idle availability text. Hide-idle membership does not change.
+  Stacked fit-content does not grow a sky; leftover height there still goes
+  to notes.
 - R4: Drag handles, unpinned pins, and empty review boxes are quieter at rest
   and full on row hover. Number→issue, title→PR, Pulls/Actions, running
   chips, hover cards, and the refresh overlay stay. Compact Pulls/Actions
   wait on heading hover. Visible project headings show the same celestial
   glyph as the leftover body for that project.
-- R5: Leftover orbit ticks with the same 12 Hz `TimelineView` as running
-  chips, only while the sky is visible. Honor Reduce Motion by freezing the
-  orbit and comets. Do not add a poll-style timer for idle presentation.
+- R5: Leftover sky has no idle `TimelineView` or poll timer. Bodies rest on
+  a static orbit. Drag offsets a body; release returns it with one Core
+  Animation spring. Three comets use implicit Core Animation drift. Reduce
+  Motion stills comets and snaps bodies home with no spring.
 - R6: Keep handwritten source and test files at or under 300 lines.
 - R7: Commit counts are a cached pull-request-index field. Local `git
   rev-list --count HEAD` may seed a missing count. GitHub
@@ -136,7 +138,7 @@ Observable acceptance:
   and unwrapped.
 - Project work is marked by a thin lantern, not a filled card.
 - Hidden idle projects fill leftover Vertical Mode height as one orbit of
-  named, clickable bodies; a few ghosts fly as decoration only.
+  named, clickable, tug-and-spring bodies; a few ghosts drift as decoration.
 - Open-PR project headings show a matching size glyph.
 - Hover cards, pins, review toggles, and GitHub buttons still work.
 
@@ -148,9 +150,9 @@ Observable acceptance:
    only for running or failing work. In compact layout, wait to show
    Pulls/Actions until the heading is hovered.
 3. Measure the Open PRs list against the Vertical Mode pane and, when
-   leftover height remains under hide-idle, render a sun plus one orbit of
-   project bodies and a few non-interactive comets. Always show short
-   names. Keep stacked height content-sized.
+   leftover height remains under hide-idle, render a sun plus one static
+   orbit of named project bodies, tug-and-spring drag, and a few
+   non-interactive comets. Keep stacked height content-sized.
 4. Fade drag handles, unpinned pins, and empty review boxes at rest. Cover
    layout, sky membership, one-body-per-hidden-project, celestial
    classification, orbit bounds, stacked lantern padding, and commit-count
@@ -176,9 +178,11 @@ Observable acceptance:
 - Body kind is absolute from commit count (star / moon / planet / giant),
   not a peer percentile, so a project's glyph stays stable when neighbors
   hide and two similar repos stay the same kind.
-- Ghost sky drift used implicit SwiftUI animation. The orbit now ticks at
-  the running-chip rate while leftover sky is on screen. Reduce Motion
-  keeps the field still.
+- A 12 Hz leftover `TimelineView` was too expensive for idle decoration.
+  Bodies sit on a static ring. Pull uses a gesture offset; bounce-back is
+  one underdamped Core Animation spring on the released body only. Three
+  comets keep implicit Core Animation drift. Reduce Motion stills the field
+  and snaps home.
 - Commit-count GitHub access is part of an already authorized pull-request
   refresh, not a new automatic poll. Excess remaining (at least the larger
   of 2,000 points or 40% of the limit) is the quiet-period gate. The activity
@@ -198,12 +202,14 @@ Observable acceptance:
   totalCount } } } }` is cheap, but it must not ride the five-minute
   pull-request query. Local `rev-list --count HEAD` is enough for first
   paint.
+- A leftover `TimelineView` at 12 Hz rebuilt every body on the ring.
+  Gesture offset plus one spring on release keeps idle CPU near zero.
 
 ## VALIDATION
 
 - `make macos-test` passed after lanterns, two-line compact rows, leftover
-  orbit membership, quieter rest chrome, stacked padding, and celestial
-  classification.
+  orbit membership, quieter rest chrome, stacked padding, celestial
+  classification, and tug-and-spring return.
 - `go test ./internal/prindex/...` passed for commit-count query shape, daily
   TTL, excess-quota denial, local seed, and cache preserve on PR refresh.
 - `make macos-build` produced `build/Hyperlite.app` and relaunched it.

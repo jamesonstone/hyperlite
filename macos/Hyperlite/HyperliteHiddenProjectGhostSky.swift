@@ -32,18 +32,21 @@ struct HyperliteHiddenProjectGhostSky: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        Group {
-            if reduceMotion {
-                field(phase: 0, date: Date(timeIntervalSinceReferenceDate: 0))
-            } else {
-                TimelineView(
-                    .periodic(from: .now, by: HyperliteProjectOrbitPresentation.tickInterval)
-                ) { context in
-                    field(
-                        phase: HyperliteProjectOrbitPresentation.phase(
-                            at: context.date, reduceMotion: false
-                        ),
-                        date: context.date
+        GeometryReader { geo in
+            ZStack {
+                orbitRing(in: geo.size)
+                sun(in: geo.size)
+                ForEach(0..<HyperliteProjectOrbitPresentation.cometCount, id: \.self) { index in
+                    HyperliteOrbitComet(index: index, canvas: geo.size)
+                }
+                caption
+                ForEach(Array(sections.enumerated()), id: \.element.id) { index, section in
+                    HyperliteHiddenProjectOrbitBody(
+                        section: section,
+                        kind: kinds[section.project.id] ?? .star,
+                        origin: HyperliteProjectOrbitPresentation.bodyPoint(
+                            index: index, count: sections.count, in: geo.size
+                        )
                     )
                 }
             }
@@ -53,49 +56,21 @@ struct HyperliteHiddenProjectGhostSky: View {
         .accessibilityLabel("Hidden idle projects, \(sections.count)")
     }
 
-    private func field(phase: Double, date: Date) -> some View {
-        GeometryReader { geo in
-            ZStack {
-                sun(in: geo.size)
-                ForEach(0..<HyperliteProjectOrbitPresentation.cometCount, id: \.self) { index in
-                    comet(index: index, at: date, in: geo.size)
-                }
-                caption
-                ForEach(Array(sections.enumerated()), id: \.element.id) { index, section in
-                    HyperliteHiddenProjectOrbitBody(
-                        section: section,
-                        kind: kinds[section.project.id] ?? .star,
-                        origin: HyperliteProjectOrbitPresentation.bodyPoint(
-                            index: index,
-                            count: sections.count,
-                            in: geo.size,
-                            phase: phase
-                        )
-                    )
-                }
-            }
-        }
-    }
-
-    private func sun(in size: CGSize) -> some View {
-        let origin = HyperliteProjectOrbitPresentation.center(in: size)
-        return Image(systemName: "sun.max.fill")
-            .font(.system(size: HyperliteProjectOrbitPresentation.sunSize))
-            .foregroundStyle(HyperliteTheme.orange.color)
-            .position(origin)
+    private func orbitRing(in size: CGSize) -> some View {
+        let radius = HyperliteProjectOrbitPresentation.radius(in: size)
+        return Circle()
+            .stroke(HyperliteTheme.mutedText.color.opacity(0.16), lineWidth: 1)
+            .frame(width: radius * 2, height: radius * 2)
+            .position(HyperliteProjectOrbitPresentation.center(in: size))
             .allowsHitTesting(false)
             .accessibilityHidden(true)
     }
 
-    private func comet(index: Int, at date: Date, in size: CGSize) -> some View {
-        Text(HyperliteOpenPRRefreshPulse.glyph)
-            .font(.system(size: 11))
-            .opacity(reduceMotion ? 0.28 : 0.42)
-            .position(
-                HyperliteProjectOrbitPresentation.cometPoint(
-                    index: index, at: date, in: size, reduceMotion: reduceMotion
-                )
-            )
+    private func sun(in size: CGSize) -> some View {
+        Image(systemName: "sun.max.fill")
+            .font(.system(size: HyperliteProjectOrbitPresentation.sunSize))
+            .foregroundStyle(HyperliteTheme.orange.color)
+            .position(HyperliteProjectOrbitPresentation.center(in: size))
             .allowsHitTesting(false)
             .accessibilityHidden(true)
     }
@@ -118,43 +93,113 @@ struct HyperliteHiddenProjectGhostSky: View {
     }
 }
 
+struct HyperliteOrbitComet: View {
+    let index: Int
+    let canvas: CGSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var drifting = false
+
+    var body: some View {
+        Text(HyperliteOpenPRRefreshPulse.glyph)
+            .font(.system(size: 11))
+            .opacity(reduceMotion ? 0.28 : 0.42)
+            .position(HyperliteProjectOrbitPresentation.cometHome(index: index, in: canvas))
+            .offset(
+                drifting && !reduceMotion
+                    ? HyperliteProjectOrbitPresentation.cometDrift(index: index)
+                    : .zero
+            )
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+            .onAppear { drifting = true }
+            .animation(
+                reduceMotion
+                    ? nil
+                    : .easeInOut(
+                        duration: HyperliteProjectOrbitPresentation.cometDriftDuration(index: index)
+                    )
+                    .repeatForever(autoreverses: true),
+                value: drifting
+            )
+    }
+}
+
 struct HyperliteHiddenProjectOrbitBody: View {
     let section: HyperliteProjectSection
     let kind: HyperliteProjectCelestialKind
     let origin: CGPoint
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hovering = false
+    @State private var dragging = false
+    @State private var offset: CGSize = .zero
 
     var body: some View {
-        Button {
-            guard let url = section.repositoryURL else { return }
-            NSWorkspace.shared.open(url)
-        } label: {
-            VStack(spacing: 2) {
-                HyperliteProjectCelestialIcon(kind: kind, diameter: kind.diameter)
-                    .scaleEffect(hovering ? 1.18 : 1)
-                Text(HyperliteHiddenProjectGhostSkyPresentation.shortName(section.repository))
-                    .font(.system(size: 8, design: .monospaced))
-                    .foregroundStyle(
-                        hovering
-                            ? HyperliteTheme.primaryText.color
-                            : HyperliteTheme.secondaryText.color
-                    )
-                    .lineLimit(1)
-                    .frame(maxWidth: HyperliteProjectOrbitPresentation.labelWidth)
-            }
-            .frame(
-                width: max(HyperliteProjectOrbitPresentation.hitSize, 64),
-                height: max(HyperliteProjectOrbitPresentation.hitSize, 44)
-            )
-            .contentShape(Rectangle())
+        VStack(spacing: 2) {
+            HyperliteProjectCelestialIcon(kind: kind, diameter: kind.diameter)
+                .scaleEffect(hovering || dragging ? 1.18 : 1)
+            Text(HyperliteHiddenProjectGhostSkyPresentation.shortName(section.repository))
+                .font(.system(size: 8, design: .monospaced))
+                .foregroundStyle(
+                    hovering || dragging
+                        ? HyperliteTheme.primaryText.color
+                        : HyperliteTheme.secondaryText.color
+                )
+                .lineLimit(1)
+                .frame(maxWidth: HyperliteProjectOrbitPresentation.labelWidth)
         }
-        .buttonStyle(.plain)
-        .disabled(section.repositoryURL == nil)
+        .frame(
+            width: max(HyperliteProjectOrbitPresentation.hitSize, 64),
+            height: max(HyperliteProjectOrbitPresentation.hitSize, 44)
+        )
+        .contentShape(Rectangle())
+        .offset(offset)
         .position(origin)
+        .zIndex(dragging ? 1 : 0)
+        .gesture(pull)
         .onHover { hovering = $0 }
         .help(section.project.message ?? section.idleText)
+        .accessibilityAddTraits(.isButton)
         .accessibilityLabel("\(section.repository), \(section.idleText)")
         .accessibilityHint(section.repositoryURL == nil ? "" : "Opens the repository on GitHub")
+        .accessibilityAction(named: "Open repository") { open() }
+    }
+
+    private var pull: some Gesture {
+        DragGesture(minimumDistance: 0)
+            .onChanged { value in
+                let distance = hypot(value.translation.width, value.translation.height)
+                guard distance >= HyperliteProjectOrbitPresentation.dragSlop else { return }
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    dragging = true
+                    offset = value.translation
+                }
+            }
+            .onEnded { value in
+                let distance = hypot(value.translation.width, value.translation.height)
+                let clicked = !dragging &&
+                    distance < HyperliteProjectOrbitPresentation.dragSlop
+                dragging = false
+                if reduceMotion {
+                    offset = .zero
+                } else {
+                    withAnimation(
+                        .interpolatingSpring(
+                            stiffness: HyperliteProjectOrbitPresentation.returnStiffness,
+                            damping: HyperliteProjectOrbitPresentation.returnDamping
+                        )
+                    ) {
+                        offset = .zero
+                    }
+                }
+                if clicked { open() }
+            }
+    }
+
+    private func open() {
+        guard let url = section.repositoryURL else { return }
+        NSWorkspace.shared.open(url)
     }
 }
 

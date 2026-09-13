@@ -98,26 +98,29 @@ enum HyperliteOpenPRWatchStageTests {
         )
         let size = CGSize(width: 240, height: 180)
         let inset = HyperliteProjectOrbitPresentation.inset
+        var homes: [CGPoint] = []
         for index in 0..<17 {
             let point = HyperliteProjectOrbitPresentation.bodyPoint(
-                index: index, count: 17, in: size, phase: 0.4
+                index: index, count: 17, in: size
             )
             expect(
                 point.x >= inset && point.x <= size.width - inset &&
                     point.y >= inset && point.y <= size.height - inset,
                 "body \(index) should stay inside the leftover sky; got \(point)"
             )
+            homes.append(point)
         }
-        let first = HyperliteProjectOrbitPresentation.bodyPoint(
-            index: 0, count: 17, in: size, phase: 0
-        )
-        let shifted = HyperliteProjectOrbitPresentation.bodyPoint(
-            index: 0, count: 17, in: size, phase: .pi
-        )
-        expect(first != shifted, "orbit phase should move bodies around the sun")
         expect(
-            HyperliteProjectOrbitPresentation.phase(at: Date(), reduceMotion: true) == 0,
-            "Reduce Motion should freeze the orbit"
+            Set(homes.map { "\($0.x)-\($0.y)" }).count == 17,
+            "every hidden project should rest on its own orbit slot"
+        )
+        expect(
+            HyperliteProjectOrbitPresentation.returnSpringIsUnderdamped,
+            "released bodies should bounce once before settling"
+        )
+        expect(
+            HyperliteProjectOrbitPresentation.dragSlop >= 3,
+            "clicks should not start a pull"
         )
         let kinds = HyperliteProjectOrbitPresentation.kinds(for: [
             project(path: "/small", count: 12),

@@ -117,10 +117,11 @@ immediately. The Pinned caption appears only while something is pinned. In
 Vertical Mode, leftover height under the list becomes a solar system for
 hidden idle projects (`watching the quiet ones`): a sun, one orbit of
 named stars/moons/planets sized from cached commit count, and a few
-decorative 👻 comets. Click a body to open the repository; the idle
-availability text stays on help. Projects with open pull requests show the
-same size glyph on their heading. Reduce Motion keeps the orbit still.
-Stacked layout still gives leftover height to notes instead of a sky.
+decorative 👻 comets. Pull a body and it springs back to its orbit slot;
+click it to open the repository. The idle availability text stays on help.
+Projects with open pull requests show the same size glyph on their heading.
+Reduce Motion stills the comets and snaps bodies home. Stacked layout still
+gives leftover height to notes instead of a sky.
 
 Each row carries a pin button next to its drag handle, so pinning a pull
 request to the top no longer requires a drag. In a row, the number opens the
