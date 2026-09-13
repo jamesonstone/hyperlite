@@ -59,7 +59,6 @@ struct HyperliteProjectPullRequest: Codable, Equatable, Identifiable {
     let headRefOID: String
     var authorLogin: String = ""
     var baseRefName: String = ""
-    var labels: [String] = []
     var assignees: [String] = []
     var reviewRequests: [String] = []
     var reviewDecision: String = ""
@@ -79,7 +78,6 @@ struct HyperliteProjectPullRequest: Codable, Equatable, Identifiable {
             authorLogin: authorLogin,
             headRefName: headRefName,
             baseRefName: baseRefName,
-            labels: labels,
             assignees: assignees,
             reviewRequests: reviewRequests,
             reviewDecision: reviewDecision,
@@ -93,7 +91,7 @@ struct HyperliteProjectPullRequest: Codable, Equatable, Identifiable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, number, title, url, labels, assignees, additions, deletions
+        case id, number, title, url, assignees, additions, deletions
         case headRefName = "head_ref_name"
         case headRefOID = "head_ref_oid"
         case authorLogin = "author_login"
@@ -131,7 +129,6 @@ extension HyperliteProjectPullRequest {
         )
         authorLogin = try container.decodeIfPresent(String.self, forKey: .authorLogin) ?? ""
         baseRefName = try container.decodeIfPresent(String.self, forKey: .baseRefName) ?? ""
-        labels = try container.decodeIfPresent([String].self, forKey: .labels) ?? []
         assignees = try container.decodeIfPresent([String].self, forKey: .assignees) ?? []
         reviewRequests = try container.decodeIfPresent([String].self, forKey: .reviewRequests) ?? []
         reviewDecision = try container.decodeIfPresent(String.self, forKey: .reviewDecision) ?? ""

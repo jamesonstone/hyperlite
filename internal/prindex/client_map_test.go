@@ -22,7 +22,6 @@ func TestMappedPullRequestCopiesGlanceFields(t *testing.T) {
 		"changedFiles": 2,
 		"reviewDecision": "REVIEW_REQUIRED",
 		"author": {"login": "jameson"},
-		"labels": {"nodes": [{"name": "ready"}]},
 		"assignees": {"nodes": [{"login": "reviewer"}]},
 		"comments": {"totalCount": 4},
 		"bodyText": "Original ask: keep hover from opening GitHub.\n\nCloses #12",
@@ -47,8 +46,8 @@ func TestMappedPullRequestCopiesGlanceFields(t *testing.T) {
 	if got.Summary != "keep hover from opening GitHub." {
 		t.Fatalf("summary = %q", got.Summary)
 	}
-	if len(got.Labels) != 1 || got.Labels[0] != "ready" {
-		t.Fatalf("labels = %v", got.Labels)
+	if len(got.Assignees) != 1 || got.Assignees[0] != "reviewer" {
+		t.Fatalf("assignees = %v", got.Assignees)
 	}
 	if len(got.ReviewRequests) != 1 || got.ReviewRequests[0] != "octocat" {
 		t.Fatalf("review requests = %v", got.ReviewRequests)

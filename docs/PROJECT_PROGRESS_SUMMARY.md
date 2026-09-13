@@ -112,10 +112,13 @@ changes that warrant human attention.
   section and absolute freshness timestamp. Issue #21 adds bounded actionable
   review-thread counts beside each ready/draft state. Issue #23 carries complete
   caller rate-limit metadata on those same requests into a compact header
-  indicator without adding a GitHub call.
-- **OPEN ITEMS**: Issues #9, #11, #13, #15, #17, #21, and #23 define the
-  delivered projection, layout, active-lane, review-feedback, and quota
-  visibility scope. No additional follow-up is defined in this spec.
+  indicator without adding a GitHub call. Issue #99 removed the unused
+  `labels` connection from the batched glance query, cutting cost from 115 to
+  92 for 23 watched repositories with no display change.
+- **OPEN ITEMS**: Issues #9, #11, #13, #15, #17, #21, #23, and #99 define the
+  delivered projection, layout, active-lane, review-feedback, quota
+  visibility, and query-cost scope. No additional follow-up is defined in this
+  spec.
 - **POINTERS**: `docs/specs/0004-open-pull-requests/SPEC.md`,
   `docs/specs/0005-dashboard-project-management/SPEC.md`
 

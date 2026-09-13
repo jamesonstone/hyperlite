@@ -32,7 +32,6 @@ func buildQuery(requests []pageRequest) (string, map[string]pageRequest) {
 		query.WriteString("        number title url headRefName headRefOid isDraft mergeable updatedAt\n")
 		query.WriteString("        baseRefName additions deletions changedFiles reviewDecision\n")
 		query.WriteString("        author { login }\n")
-		query.WriteString("        labels(first: 8) { nodes { name } }\n")
 		query.WriteString("        assignees(first: 6) { nodes { login } }\n")
 		query.WriteString("        comments { totalCount }\n")
 		query.WriteString("        bodyText\n")

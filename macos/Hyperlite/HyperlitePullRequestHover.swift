@@ -5,7 +5,6 @@ struct HyperlitePullRequestGlance: Equatable {
     var authorLogin = ""
     var headRefName = ""
     var baseRefName = ""
-    var labels: [String] = []
     var assignees: [String] = []
     var reviewRequests: [String] = []
     var reviewDecision = ""
