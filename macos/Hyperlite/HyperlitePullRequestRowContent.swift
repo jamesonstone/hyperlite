@@ -146,7 +146,11 @@ struct HyperlitePullRequestRowContent: View {
 
     private var statusBadge: some View {
         Text(row.isDraft ? "draft" : "ready")
-            .font(HyperliteTypography.compact)
+            .font(
+                row.isDraft
+                    ? HyperliteTypography.compact
+                    : HyperliteTypography.semibold(HyperliteAppearance.shared.compactSize)
+            )
             .foregroundStyle(
                 row.isDraft ? HyperliteTheme.mutedText.color : HyperliteTheme.cyan.color
             )

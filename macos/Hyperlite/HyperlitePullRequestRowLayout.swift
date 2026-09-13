@@ -29,6 +29,10 @@ struct HyperlitePullRequestRowLayout: Equatable {
         titleLayoutPriority: 1
     )
 
+    /// Drag handle, pin, and review toggle plus the row HStack spacing before
+    /// `#number` / title. Section labels and chips indent to this column.
+    static let rowChromeLeading: CGFloat = 16 + 4 + 16 + 4 + 20 + 4
+
     static func usesCompactStack(compact: Bool, showRepository: Bool) -> Bool {
         compact && showRepository
     }

@@ -8,6 +8,8 @@ enum HyperlitePullRequestSectionsTests {
         testDuplicateRepositoriesKeepSeparateSections()
         testGroupOrderPrecedesConfigurationOrder()
         testHideIdleProjectsFilter()
+        testIdleAndCompactStripsDropQuietChips()
+        testIdleHeadingsUseQuieterWeight()
     }
 
     private static func testEveryProjectGetsASection() {
@@ -91,6 +93,58 @@ enum HyperlitePullRequestSectionsTests {
                "hiding idle projects keeps open PRs and active deploys, drops the rest; got \(shown.map(\.id))")
         expect(HyperliteOpenPRProjectFilter.visibleSections(sections, hideIdle: false, now: now).count == 3,
                "showing all keeps every configured project")
+    }
+
+    private static func testIdleAndCompactStripsDropQuietChips() {
+        let chips = [
+            HyperliteWorkflowChip(id: "ci.yaml", title: "ci", state: .idle, run: nil, deployment: nil),
+            HyperliteWorkflowChip(
+                id: "deploy.yaml", title: "deploy",
+                state: .running(since: now.addingTimeInterval(-30)),
+                run: nil, deployment: nil
+            ),
+            HyperliteWorkflowChip(id: "codeql", title: "codeql", state: .failure, run: nil, deployment: nil),
+        ]
+        expect(
+            HyperliteProjectSectionChrome.stripChips(chips, idle: true, compact: false).map(\.id)
+                == ["deploy.yaml", "codeql"],
+            "idle projects keep only running and attention chips"
+        )
+        expect(
+            HyperliteProjectSectionChrome.stripChips(chips, idle: false, compact: true).map(\.id)
+                == ["deploy.yaml", "codeql"],
+            "compact rows keep only running and attention chips"
+        )
+        expect(
+            HyperliteProjectSectionChrome.stripChips(chips, idle: false, compact: false).map(\.id)
+                == ["ci.yaml", "deploy.yaml", "codeql"],
+            "wide active projects still list every workflow"
+        )
+    }
+
+    private static func testIdleHeadingsUseQuieterWeight() {
+        let quiet = [
+            HyperliteWorkflowChip(id: "ci.yaml", title: "ci", state: .idle, run: nil, deployment: nil),
+        ]
+        let deploying = [
+            HyperliteWorkflowChip(
+                id: "deploy.yaml", title: "deploy",
+                state: .running(since: now.addingTimeInterval(-30)),
+                run: nil, deployment: nil
+            ),
+        ]
+        expect(
+            HyperliteProjectSectionChrome.headingWeight(idle: false, chips: quiet) == .active,
+            "projects with open PRs keep heading weight"
+        )
+        expect(
+            HyperliteProjectSectionChrome.headingWeight(idle: true, chips: deploying) == .notable,
+            "idle projects with running work stay secondary, not heading"
+        )
+        expect(
+            HyperliteProjectSectionChrome.headingWeight(idle: true, chips: quiet) == .idle,
+            "quiet idle projects use compact weight"
+        )
     }
 
     private static func scan(projects: [HyperliteProjectPullRequests]) -> HyperliteProjectPullRequestScan {

@@ -202,8 +202,8 @@ enum HyperliteWorkspaceSplitTests {
             compactRows: false,
             hasStatusMessage: false
         )
-        expect(emptyPinned == 190,
-               "empty Pinned plus two project sections should count every LazyVStack child")
+        expect(emptyPinned == 208,
+               "empty Pinned should not keep a caption line; got \(emptyPinned)")
         let withAvailability = HyperliteWorkspaceSplit.estimatedStackedContentHeight(
             pinnedCount: 0,
             openCount: 2,
@@ -212,19 +212,31 @@ enum HyperliteWorkspaceSplitTests {
             hasStatusMessage: false,
             idleProjectCount: 1
         )
-        expect(withAvailability == 140,
-               "idle project lines should count in the stacked spacing estimate")
+        expect(withAvailability == 118,
+               "folded idle headings should not add a second availability row; got \(withAvailability)")
         let withProjects = HyperliteWorkspaceSplit.estimatedStackedContentHeight(
             pinnedCount: 0,
             openCount: 2,
             projectSectionCount: 3,
             compactRows: false,
             hasStatusMessage: false,
-            idleProjectCount: 2,
-            workflowStripCount: 2
+            idleProjectCount: 2
         )
-        expect(withProjects == 233,
-               "idle project lines and workflow strips should count in the stacked estimate; got \(withProjects)")
+        expect(withProjects == 170,
+               "inline heading chips should not add a second stacked line; got \(withProjects)")
+        let withPinned = HyperliteWorkspaceSplit.estimatedStackedContentHeight(
+            pinnedCount: 2,
+            openCount: 1,
+            projectSectionCount: 1,
+            compactRows: false,
+            hasStatusMessage: false
+        )
+        expect(withPinned == 166,
+               "a visible Pinned caption should count its top padding; got \(withPinned)")
+        expect(
+            HyperlitePullRequestRowLayout.rowChromeLeading == 64,
+            "section text should indent past drag, pin, and review chrome"
+        )
     }
 
     private static func testTinyStackedDragKeepsFitContent() {

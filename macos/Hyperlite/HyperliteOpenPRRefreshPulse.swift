@@ -66,10 +66,10 @@ struct HyperliteOpenPRTitleCluster: View {
     let count: Int?
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 3) {
+        HStack(alignment: .firstTextBaseline, spacing: 5) {
             Text("Open PRs")
-                .font(HyperliteTypography.heading)
-                .foregroundStyle(HyperliteTheme.secondaryText.color)
+                .font(HyperliteTypography.title)
+                .foregroundStyle(HyperliteTheme.primaryText.color)
             if let count {
                 Text("\(count)")
                     .font(HyperliteTypography.compact.monospacedDigit())

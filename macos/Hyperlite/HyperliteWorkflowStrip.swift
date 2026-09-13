@@ -3,6 +3,7 @@ import SwiftUI
 struct HyperliteWorkflowStrip: View {
     let chips: [HyperliteWorkflowChip]
     let compact: Bool
+    var expands = false
 
     var body: some View {
         let shown = compact
@@ -18,7 +19,7 @@ struct HyperliteWorkflowStrip: View {
                     .foregroundStyle(HyperliteTheme.mutedText.color)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: expands ? .infinity : nil, alignment: .leading)
     }
 }
 

@@ -107,15 +107,15 @@ struct HyperlitePullRequestHoverCard: View {
         let card = HyperlitePullRequestHoverPresentation.snapshot(
             row: row, reviewStatus: reviewStatus
         )
-        return VStack(alignment: .leading, spacing: 8) {
+        return VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline, spacing: 12) {
                 Text(card.identity)
-                    .font(HyperliteTypography.heading)
-                    .foregroundStyle(HyperliteTheme.primaryText.color)
+                    .font(HyperliteTypography.compact)
+                    .foregroundStyle(HyperliteTheme.secondaryText.color)
                 Spacer(minLength: 8)
                 Text(card.meta)
                     .font(HyperliteTypography.compact)
-                    .foregroundStyle(HyperliteTheme.secondaryText.color)
+                    .foregroundStyle(HyperliteTheme.mutedText.color)
             }
             Text(card.title)
                 .font(HyperliteTypography.heading)
@@ -124,7 +124,7 @@ struct HyperlitePullRequestHoverCard: View {
                 .fixedSize(horizontal: false, vertical: true)
             Text(card.assignee)
                 .font(HyperliteTypography.compact)
-                .foregroundStyle(HyperliteTheme.secondaryText.color)
+                .foregroundStyle(HyperliteTheme.mutedText.color)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
             if !card.summary.isEmpty {
@@ -134,8 +134,12 @@ struct HyperlitePullRequestHoverCard: View {
                     .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            Rectangle()
+                .fill(HyperliteTheme.mutedText.color.opacity(0.28))
+                .frame(height: 1)
+                .padding(.vertical, 2)
             Text(card.nextStep)
-                .font(HyperliteTypography.compact)
+                .font(HyperliteTypography.heading)
                 .foregroundStyle(
                     card.nextStepNeedsAttention
                         ? HyperliteTheme.orange.color
@@ -144,13 +148,13 @@ struct HyperlitePullRequestHoverCard: View {
             if !card.status.isEmpty {
                 Text(card.status)
                     .font(HyperliteTypography.compact)
-                    .foregroundStyle(HyperliteTheme.secondaryText.color)
+                    .foregroundStyle(HyperliteTheme.mutedText.color)
             }
         }
         .textSelection(.enabled)
         .padding(12)
         .frame(maxWidth: 320, alignment: .leading)
-        .background(HyperliteTheme.canvas.color)
+        .background(HyperliteTheme.elevatedSurface.color)
         .hyperliteTheme()
         .accessibilityElement(children: .combine)
         .accessibilityLabel(card.accessibilityLabel)

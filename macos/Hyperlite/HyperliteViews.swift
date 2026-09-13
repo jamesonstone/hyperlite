@@ -187,10 +187,7 @@ struct HyperliteWindow: View {
             projectSectionCount: plan.count,
             compactRows: false,
             hasStatusMessage: state.errorMessage != nil || state.statusMessage != nil,
-            idleProjectCount: plan.filter { $0.rows.isEmpty }.count,
-            workflowStripCount: plan.filter {
-                !HyperliteWorkflowStripPresentation.chips(activity: $0.project.workflows, now: now).isEmpty
-            }.count
+            idleProjectCount: plan.filter { $0.rows.isEmpty }.count
         )
     }
 

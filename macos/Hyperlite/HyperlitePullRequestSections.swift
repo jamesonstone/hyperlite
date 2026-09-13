@@ -73,6 +73,36 @@ enum HyperlitePullRequestSectionPlan {
     }
 }
 
+enum HyperliteProjectSectionChrome {
+    enum HeadingWeight: Equatable {
+        case active
+        case notable
+        case idle
+    }
+
+    static func headingWeight(
+        idle: Bool,
+        chips: [HyperliteWorkflowChip]
+    ) -> HeadingWeight {
+        if !idle { return .active }
+        if chips.contains(where: { $0.isRunning || $0.needsAttention }) {
+            return .notable
+        }
+        return .idle
+    }
+
+    static func stripChips(
+        _ chips: [HyperliteWorkflowChip],
+        idle: Bool,
+        compact: Bool
+    ) -> [HyperliteWorkflowChip] {
+        if idle || compact {
+            return chips.filter { $0.isRunning || $0.needsAttention }
+        }
+        return chips
+    }
+}
+
 /// Filters the project sections when the user chooses to hide idle projects.
 /// A project stays visible while it has open pull requests or a workflow worth
 /// attention (running or failing), so hiding declutters the list without

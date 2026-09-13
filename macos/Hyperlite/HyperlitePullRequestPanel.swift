@@ -34,7 +34,7 @@ struct HyperlitePullRequestPanel: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: 8) {
             header
             if scan.projects.isEmpty {
                 Text("No configured projects")
@@ -42,16 +42,17 @@ struct HyperlitePullRequestPanel: View {
                     .foregroundStyle(HyperliteTheme.mutedText.color)
                     .padding(.vertical, 2)
             } else {
-                LazyVStack(alignment: .leading, spacing: 3) {
-                    pinnedHeader
+                LazyVStack(alignment: .leading, spacing: 4) {
                     if sections.pinned.isEmpty {
                         HyperlitePinnedSectionDropTarget(
                             draggedRowID: $draggedRowID,
                             pin: pins.pin
                         )
-                    }
-                    ForEach(sections.pinned) { row in
-                        pullRequestRow(row, pinned: true)
+                    } else {
+                        pinnedHeader
+                        ForEach(sections.pinned) { row in
+                            pullRequestRow(row, pinned: true)
+                        }
                     }
                     ForEach(visibleProjectSections) { section in
                         HyperliteProjectSectionHeader(
@@ -67,9 +68,6 @@ struct HyperlitePullRequestPanel: View {
                                 }
                             }
                         )
-                        if section.rows.isEmpty {
-                            HyperliteProjectIdleRow(section: section)
-                        }
                         ForEach(section.rows) { row in
                             pullRequestRow(row, pinned: false)
                         }
@@ -95,17 +93,42 @@ struct HyperlitePullRequestPanel: View {
     }
 
     private var header: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 3) {
+        HStack(alignment: .center, spacing: 6) {
             HyperliteOpenPRTitleCluster(
                 count: sourceRows.count
             )
-            Spacer()
+            .layoutPriority(1)
+            Spacer(minLength: 4)
+            if hiddenProjectCount > 0 {
+                Text("\(hiddenProjectCount) hidden")
+                    .font(HyperliteTypography.compact.monospacedDigit())
+                    .foregroundStyle(HyperliteTheme.mutedText.color)
+                    .lineLimit(1)
+                    .accessibilityHidden(true)
+            }
+            HyperliteDashboardControlButton(
+                systemName: hideIdleProjects ? "eye.slash" : "eye",
+                active: !hideIdleProjects,
+                label: hideIdleLabel
+            ) { hideIdleProjects.toggle() }
             Text(HyperlitePullRequestPresentation.freshnessLabel(
                 observedAt: scan.observedAt
             ))
                 .font(HyperliteTypography.compact)
                 .foregroundStyle(HyperliteTheme.mutedText.color)
+                .lineLimit(1)
+                .layoutPriority(-1)
         }
+    }
+
+    private var hideIdleLabel: String {
+        if hideIdleProjects {
+            if hiddenProjectCount > 0 {
+                return "Showing only projects with open pull requests or active workflows. \(hiddenProjectCount) hidden. Show all projects."
+            }
+            return "Showing only projects with open pull requests or active workflows. Show all projects."
+        }
+        return "Hide projects with no open pull requests"
     }
 
     private func chips(for section: HyperliteProjectSection) -> [HyperliteWorkflowChip] {
@@ -127,33 +150,18 @@ struct HyperlitePullRequestPanel: View {
     }
 
     private var pinnedHeader: some View {
-        HStack(spacing: 6) {
-            HStack(spacing: 4) {
-                Text("Pinned")
-                    .font(HyperliteTypography.compact)
-                    .foregroundStyle(HyperliteTheme.mutedText.color)
-                Text("\(sections.pinned.count)")
-                    .font(HyperliteTypography.compact.monospacedDigit())
-                    .foregroundStyle(HyperliteTheme.mutedText.color)
-            }
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Pinned pull requests, \(sections.pinned.count)")
-            Spacer(minLength: 4)
-            if hiddenProjectCount > 0 {
-                Text("\(hiddenProjectCount) hidden")
-                    .font(HyperliteTypography.compact.monospacedDigit())
-                    .foregroundStyle(HyperliteTheme.mutedText.color)
-                    .accessibilityHidden(true)
-            }
-            HyperliteDashboardControlButton(
-                systemName: hideIdleProjects ? "eye.slash" : "eye",
-                active: hideIdleProjects,
-                label: hideIdleProjects
-                    ? "Showing only projects with open pull requests or active workflows. Show all projects."
-                    : "Hide projects with no open pull requests"
-            ) { hideIdleProjects.toggle() }
+        HStack(spacing: 4) {
+            Text("Pinned")
+                .font(HyperliteTypography.compact)
+                .foregroundStyle(HyperliteTheme.mutedText.color)
+            Text("\(sections.pinned.count)")
+                .font(HyperliteTypography.compact.monospacedDigit())
+                .foregroundStyle(HyperliteTheme.mutedText.color)
         }
-        .padding(.top, 2)
+        .padding(.leading, HyperlitePullRequestRowLayout.rowChromeLeading)
+        .padding(.top, HyperliteWorkspaceSplit.stackedPinnedLabelTopPadding)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Pinned pull requests, \(sections.pinned.count)")
     }
 
     private func pullRequestRow(
