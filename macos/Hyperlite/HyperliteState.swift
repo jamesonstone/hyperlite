@@ -14,6 +14,10 @@ final class HyperliteState: ObservableObject {
     @Published private(set) var statusMessage: String?
     @Published private(set) var paletteMode: HyperlitePaletteMode?
     @Published var activityPolling = HyperliteActivityPollRuntime()
+    /// Tracks whether the current error banner belongs to the pull-request
+    /// refresh, so a successful scan clears only its own error and never one
+    /// owned by a concurrent project or default-branch operation.
+    private var errorFromPullRequests = false
     private var pullRequestRefreshTask: Task<Void, Never>?
     private var projectMutationTask: Task<Void, Never>?
     private var defaultsTask: Task<Void, Never>?
@@ -69,14 +73,16 @@ final class HyperliteState: ObservableObject {
         paletteMode = nil
     }
 
-    func presentError(_ message: String) {
+    func presentError(_ message: String, fromPullRequests: Bool = false) {
         errorMessage = message
+        errorFromPullRequests = fromPullRequests
         statusMessage = nil
     }
 
     func presentStatus(_ message: String?) {
         statusMessage = message
         errorMessage = nil
+        errorFromPullRequests = false
     }
 
     func updateConfiguredProject(path: String, action: String) {
@@ -183,6 +189,15 @@ final class HyperliteState: ObservableObject {
                 ) { decoded in
                     guard self.pullRequestRefreshGeneration == generation else { return }
                     self.pullRequestScan = decoded
+                    // A successful scan means the pane has valid data, so a
+                    // stale error banner from an earlier transient failure
+                    // (e.g. a one-time cache rebuild) must not linger. Only
+                    // clear an error this refresh owns, never one set by a
+                    // concurrent project or default-branch operation.
+                    if self.errorFromPullRequests {
+                        self.errorMessage = nil
+                        self.errorFromPullRequests = false
+                    }
                 }
                 // Only a successful refresh reflects the latest runs, so the
                 // burst clock restarts from the fresh scan. A failed refresh
@@ -195,7 +210,7 @@ final class HyperliteState: ObservableObject {
                 return
             } catch {
                 if pullRequestRefreshGeneration == generation {
-                    presentError(error.localizedDescription)
+                    presentError(error.localizedDescription, fromPullRequests: true)
                 }
             }
         }

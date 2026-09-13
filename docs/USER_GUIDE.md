@@ -113,7 +113,11 @@ hover so the name can breathe. The hide-idle eye stays quiet while idle
 projects are hidden, and
 brightens only when those projects are shown. Workflow chips sit on the
 heading row after the repository name so pull-request rows follow the heading
-immediately. The Pinned caption appears only while something is pinned. In
+immediately. The Pinned caption appears only while something is pinned. Each
+project heading is larger than its pull-request rows, and projects with open
+pull requests can be collapsed with the chevron at the left of the heading.
+Collapsed, a project keeps its name and open-PR count so the pane can be
+scanned by project; the collapse state persists per project. In
 Vertical Mode, when the hide-idle eye is on, the hidden idle projects collapse
 into a standard disclosure list (`watching the quiet ones`) below the open
 work. It stays collapsed by default; expand it to see each hidden project's

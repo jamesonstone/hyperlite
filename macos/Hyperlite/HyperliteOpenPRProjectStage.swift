@@ -55,3 +55,71 @@ struct HyperliteOpenPRProjectStage<Content: View>: View {
         .padding(.vertical, HyperliteWorkspaceSplit.stackedStageVerticalPadding)
     }
 }
+
+/// Presentation helpers for a collapsible Open PRs project section, kept free
+/// of the view's generic row type so they stay unit-testable.
+enum HyperliteOpenPRProjectSectionPresentation {
+    /// Only projects that actually have open pull-request rows can collapse;
+    /// an idle project heading has nothing to hide.
+    static func canCollapse(_ section: HyperliteProjectSection) -> Bool {
+        !section.rows.isEmpty
+    }
+
+    static func storageKey(projectID: String) -> String {
+        "hyperlite.openpr.collapsed.\(projectID)"
+    }
+}
+
+/// One project cluster in the Open PRs list: a lantern stage whose heading can
+/// collapse the pull-request rows beneath it. Collapsed keeps the project name
+/// and its open-PR count visible so the list stays scannable by project. The
+/// collapsed state persists per project. Only projects with rows can collapse.
+struct HyperliteOpenPRProjectSection<Rows: View>: View {
+    let section: HyperliteProjectSection
+    let chips: [HyperliteWorkflowChip]
+    let compact: Bool
+    @Binding var draggedRowID: String?
+    let drop: (String) -> Void
+    @ViewBuilder var rows: Rows
+    @AppStorage private var collapsed: Bool
+
+    init(
+        section: HyperliteProjectSection,
+        chips: [HyperliteWorkflowChip],
+        compact: Bool,
+        draggedRowID: Binding<String?>,
+        drop: @escaping (String) -> Void,
+        @ViewBuilder rows: () -> Rows
+    ) {
+        self.section = section
+        self.chips = chips
+        self.compact = compact
+        self._draggedRowID = draggedRowID
+        self.drop = drop
+        self.rows = rows()
+        self._collapsed = AppStorage(
+            wrappedValue: false,
+            HyperliteOpenPRProjectSectionPresentation.storageKey(projectID: section.id)
+        )
+    }
+
+    private var canCollapse: Bool {
+        HyperliteOpenPRProjectSectionPresentation.canCollapse(section)
+    }
+
+    var body: some View {
+        HyperliteOpenPRProjectStage(kind: .forSection(section, chips: chips)) {
+            HyperliteProjectSectionHeader(
+                section: section,
+                chips: chips,
+                compact: compact,
+                collapsed: canCollapse ? $collapsed : nil,
+                draggedRowID: $draggedRowID,
+                drop: drop
+            )
+            if !canCollapse || !collapsed {
+                rows
+            }
+        }
+    }
+}

@@ -6,6 +6,7 @@ struct HyperliteProjectSectionHeader: View {
     let section: HyperliteProjectSection
     let chips: [HyperliteWorkflowChip]
     let compact: Bool
+    var collapsed: Binding<Bool>? = nil
     @Binding var draggedRowID: String?
     let drop: (String) -> Void
     @State private var headingHovering = false
@@ -22,6 +23,9 @@ struct HyperliteProjectSectionHeader: View {
 
     var body: some View {
         HStack(spacing: 6) {
+            if let collapsed {
+                disclosureChevron(collapsed)
+            }
             Button {
                 open(section.repositoryURL)
             } label: {
@@ -30,7 +34,7 @@ struct HyperliteProjectSectionHeader: View {
             .buttonStyle(.plain)
             .disabled(section.repositoryURL == nil)
             .help(section.repositoryURL == nil ? "" : "Open \(section.repository) on GitHub")
-            .padding(.leading, chromeLeading)
+            .padding(.leading, collapsed == nil ? chromeLeading : 0)
             .layoutPriority(0)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(accessibilityLabel)
@@ -64,6 +68,26 @@ struct HyperliteProjectSectionHeader: View {
         .padding(.top, isIdle
             ? HyperliteWorkspaceSplit.stackedIdleSectionTopPadding
             : HyperliteWorkspaceSplit.stackedActiveSectionTopPadding)
+    }
+
+    private func disclosureChevron(_ collapsed: Binding<Bool>) -> some View {
+        Button {
+            collapsed.wrappedValue.toggle()
+        } label: {
+            Image(systemName: collapsed.wrappedValue ? "chevron.right" : "chevron.down")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(HyperliteTheme.mutedText.color)
+                .frame(width: 14, height: 14)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(.leading, chromeLeading - 20)
+        .help(collapsed.wrappedValue ? "Show pull requests" : "Hide pull requests")
+        .accessibilityLabel(
+            collapsed.wrappedValue
+                ? "Show \(section.repository) pull requests"
+                : "Hide \(section.repository) pull requests"
+        )
     }
 
     private var label: some View {
@@ -112,7 +136,7 @@ struct HyperliteProjectSectionHeader: View {
 
     private var headingFont: Font {
         switch headingWeight {
-        case .active: HyperliteTypography.heading
+        case .active: HyperliteTypography.sectionHeading
         case .notable: HyperliteTypography.body
         case .idle: HyperliteTypography.compact
         }
