@@ -38,10 +38,16 @@ type WorkflowClient interface {
 	PollActivity(context.Context, []ActivityRequest) ActivityResult
 }
 
+type CommitCountClient interface {
+	FetchCommitCounts(context.Context, []config.Repository) CommitCountResult
+}
+
 type Scanner struct {
 	Discovery RepositoryDiscoverer
 	Client    PullRequestClient
 	Workflows WorkflowClient
+	Sizes     CommitCountClient
+	Git       command.Runner
 	Store     CacheStore
 	Now       func() time.Time
 }
@@ -62,6 +68,8 @@ func New(runner command.Runner) Scanner {
 		Discovery: discovery.Discoverer{Runner: runner},
 		Client:    client,
 		Workflows: client,
+		Sizes:     client,
+		Git:       runner,
 		Store:     Store{},
 		Now:       time.Now,
 	}
@@ -134,6 +142,9 @@ func (s Scanner) Scan(
 		if err != nil {
 			return model.ProjectPullRequestScan{}, err
 		}
+	}
+	if err := s.refreshCommitCounts(ctx, &scan, mode); err != nil {
+		return model.ProjectPullRequestScan{}, err
 	}
 	result := buildScanResult(scan, queryResults, mode)
 	result.ActivityPolicy = activityPolicy(scan)

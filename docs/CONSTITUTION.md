@@ -68,6 +68,13 @@
   twenty percent at reset. That poll never lists pull requests or reads
   workflow files, and a denied governor decision is reported, not retried.
   Cached rows remain available in Open PRs during a failed refresh.
+  Cached default-branch commit counts are presentation metadata for leftover
+  orbit sizing. Local git may seed a missing count. GitHub history totals may
+  refresh a count only during an already authorized stale or force scan, at
+  most once per twenty-four hours per repository, and only when the cached
+  quota observation keeps at least the larger of 2,000 points or forty
+  percent of the limit. That size fetch never rides the activity poll or the
+  hot pull-request query.
   Unresolved, non-outdated review thread counts and observed workflow runs
   are informational metadata in this projection; they do not establish
   inferred attention or thread lifecycle state, and only an observation

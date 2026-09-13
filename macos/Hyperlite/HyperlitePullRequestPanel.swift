@@ -65,6 +65,9 @@ struct HyperlitePullRequestPanel: View {
                                 section: section,
                                 chips: sectionChips,
                                 compact: compactRows,
+                                celestialKind: HyperliteProjectOrbitPresentation.classify(
+                                    count: section.project.commitCount
+                                ),
                                 draggedRowID: $draggedRowID,
                                 drop: { dropped in
                                     if let first = section.rows.first {

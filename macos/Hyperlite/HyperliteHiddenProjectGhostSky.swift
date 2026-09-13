@@ -4,10 +4,6 @@ import SwiftUI
 enum HyperliteHiddenProjectGhostSkyPresentation {
     static let caption = "watching the quiet ones"
     static let minimumLeftover: CGFloat = 40
-    static let minOpacity = 0.28
-    static let maxOpacity = 0.78
-    static let inset: CGFloat = 22
-    static let goldenAngle = 2.399963229728653
 
     static func showsSky(
         compact: Bool,
@@ -21,55 +17,6 @@ enum HyperliteHiddenProjectGhostSkyPresentation {
     static func shortName(_ repository: String) -> String {
         repository.split(separator: "/").last.map(String.init) ?? repository
     }
-
-    static func opacity(for id: String) -> Double {
-        let span = maxOpacity - minOpacity
-        return minOpacity + (Double(seed(id, salt: 17) % 29) / 28.0) * span
-    }
-
-    static func glyphSize(for id: String) -> CGFloat {
-        14 + CGFloat(seed(id, salt: 5) % 11)
-    }
-
-    static func drift(for id: String) -> CGSize {
-        CGSize(
-            width: CGFloat(Int(seed(id, salt: 13) % 9) - 4),
-            height: CGFloat(Int(seed(id, salt: 19) % 11) - 5)
-        )
-    }
-
-    static func driftDuration(for id: String) -> Double {
-        3.1 + Double(seed(id, salt: 29) % 21) / 10.0
-    }
-
-    static func point(
-        for id: String,
-        index: Int,
-        count: Int,
-        in size: CGSize
-    ) -> CGPoint {
-        let usable = CGSize(
-            width: max(size.width - inset * 2, 1),
-            height: max(size.height - inset * 2, 1)
-        )
-        let total = max(count, 1)
-        let radius = sqrt(Double(index + 1) / Double(total)) * min(usable.width, usable.height) * 0.46
-        let angle = goldenAngle * Double(index)
-        let jitterX = CGFloat(Int(seed(id, salt: 3) % 15) - 7)
-        let jitterY = CGFloat(Int(seed(id, salt: 7) % 13) - 6)
-        let x = inset + usable.width * 0.52 + CGFloat(cos(angle)) * radius + jitterX
-        let y = inset + usable.height * 0.46 + CGFloat(sin(angle)) * radius + jitterY
-        return CGPoint(
-            x: min(max(x, inset), size.width - inset),
-            y: min(max(y, inset), size.height - inset)
-        )
-    }
-
-    private static func seed(_ id: String, salt: Int) -> UInt64 {
-        id.unicodeScalars.reduce(UInt64(salt)) { partial, scalar in
-            partial &* 33 &+ UInt64(scalar.value)
-        }
-    }
 }
 
 struct HyperliteMeasuredHeightKey: PreferenceKey {
@@ -81,26 +28,22 @@ struct HyperliteMeasuredHeightKey: PreferenceKey {
 
 struct HyperliteHiddenProjectGhostSky: View {
     let sections: [HyperliteProjectSection]
+    let kinds: [String: HyperliteProjectCelestialKind]
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .topLeading) {
-                Text(HyperliteOpenPRRefreshPulse.glyph)
-                    .font(.system(size: min(geo.size.width, geo.size.height) * 0.42))
-                    .opacity(0.06)
-                    .frame(width: geo.size.width, height: geo.size.height)
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
-                caption
-                ForEach(Array(sections.enumerated()), id: \.element.id) { index, section in
-                    HyperliteHiddenProjectGhost(
-                        section: section,
-                        origin: HyperliteHiddenProjectGhostSkyPresentation.point(
-                            for: section.id,
-                            index: index,
-                            count: sections.count,
-                            in: geo.size
-                        )
+        Group {
+            if reduceMotion {
+                field(phase: 0, date: Date(timeIntervalSinceReferenceDate: 0))
+            } else {
+                TimelineView(
+                    .periodic(from: .now, by: HyperliteProjectOrbitPresentation.tickInterval)
+                ) { context in
+                    field(
+                        phase: HyperliteProjectOrbitPresentation.phase(
+                            at: context.date, reduceMotion: false
+                        ),
+                        date: context.date
                     )
                 }
             }
@@ -108,6 +51,53 @@ struct HyperliteHiddenProjectGhostSky: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Hidden idle projects, \(sections.count)")
+    }
+
+    private func field(phase: Double, date: Date) -> some View {
+        GeometryReader { geo in
+            ZStack {
+                sun(in: geo.size)
+                ForEach(0..<HyperliteProjectOrbitPresentation.cometCount, id: \.self) { index in
+                    comet(index: index, at: date, in: geo.size)
+                }
+                caption
+                ForEach(Array(sections.enumerated()), id: \.element.id) { index, section in
+                    HyperliteHiddenProjectOrbitBody(
+                        section: section,
+                        kind: kinds[section.project.id] ?? .star,
+                        origin: HyperliteProjectOrbitPresentation.bodyPoint(
+                            index: index,
+                            count: sections.count,
+                            in: geo.size,
+                            phase: phase
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    private func sun(in size: CGSize) -> some View {
+        let origin = HyperliteProjectOrbitPresentation.center(in: size)
+        return Image(systemName: "sun.max.fill")
+            .font(.system(size: HyperliteProjectOrbitPresentation.sunSize))
+            .foregroundStyle(HyperliteTheme.orange.color)
+            .position(origin)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+
+    private func comet(index: Int, at date: Date, in size: CGSize) -> some View {
+        Text(HyperliteOpenPRRefreshPulse.glyph)
+            .font(.system(size: 11))
+            .opacity(reduceMotion ? 0.28 : 0.42)
+            .position(
+                HyperliteProjectOrbitPresentation.cometPoint(
+                    index: index, at: date, in: size, reduceMotion: reduceMotion
+                )
+            )
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
     }
 
     private var caption: some View {
@@ -122,15 +112,16 @@ struct HyperliteHiddenProjectGhostSky: View {
         .foregroundStyle(HyperliteTheme.mutedText.color)
         .padding(.leading, 18)
         .padding(.top, 8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
 }
 
-struct HyperliteHiddenProjectGhost: View {
+struct HyperliteHiddenProjectOrbitBody: View {
     let section: HyperliteProjectSection
+    let kind: HyperliteProjectCelestialKind
     let origin: CGPoint
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var drifting = false
     @State private var hovering = false
 
     var body: some View {
@@ -139,37 +130,28 @@ struct HyperliteHiddenProjectGhost: View {
             NSWorkspace.shared.open(url)
         } label: {
             VStack(spacing: 2) {
-                Text(HyperliteOpenPRRefreshPulse.glyph)
-                    .font(.system(size: HyperliteHiddenProjectGhostSkyPresentation.glyphSize(for: section.id)))
-                if hovering {
-                    Text(HyperliteHiddenProjectGhostSkyPresentation.shortName(section.repository))
-                        .font(HyperliteTypography.compact)
-                        .foregroundStyle(HyperliteTheme.secondaryText.color)
-                        .lineLimit(1)
-                }
+                HyperliteProjectCelestialIcon(kind: kind, diameter: kind.diameter)
+                    .scaleEffect(hovering ? 1.18 : 1)
+                Text(HyperliteHiddenProjectGhostSkyPresentation.shortName(section.repository))
+                    .font(.system(size: 8, design: .monospaced))
+                    .foregroundStyle(
+                        hovering
+                            ? HyperliteTheme.primaryText.color
+                            : HyperliteTheme.secondaryText.color
+                    )
+                    .lineLimit(1)
+                    .frame(maxWidth: HyperliteProjectOrbitPresentation.labelWidth)
             }
-            .foregroundStyle(HyperliteTheme.mutedText.color)
-            .opacity(hovering ? 1 : HyperliteHiddenProjectGhostSkyPresentation.opacity(for: section.id))
-            .scaleEffect(hovering ? 1.28 : 1)
-            .offset(drifting && !reduceMotion
-                ? HyperliteHiddenProjectGhostSkyPresentation.drift(for: section.id)
-                : .zero)
+            .frame(
+                width: max(HyperliteProjectOrbitPresentation.hitSize, 64),
+                height: max(HyperliteProjectOrbitPresentation.hitSize, 44)
+            )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .disabled(section.repositoryURL == nil)
         .position(origin)
         .onHover { hovering = $0 }
-        .onAppear { drifting = true }
-        .animation(
-            reduceMotion
-                ? nil
-                : .easeInOut(
-                    duration: HyperliteHiddenProjectGhostSkyPresentation.driftDuration(for: section.id)
-                )
-                .repeatForever(autoreverses: true),
-            value: drifting
-        )
         .help(section.project.message ?? section.idleText)
         .accessibilityLabel("\(section.repository), \(section.idleText)")
         .accessibilityHint(section.repositoryURL == nil ? "" : "Opens the repository on GitHub")
@@ -180,6 +162,7 @@ struct HyperliteOpenPRWatchColumn<Content: View>: View {
     let compact: Bool
     let hideIdle: Bool
     let hiddenSections: [HyperliteProjectSection]
+    var celestialKinds: [String: HyperliteProjectCelestialKind] = [:]
     let isRefreshing: Bool
     @ViewBuilder var content: Content
     @State private var listHeight: CGFloat = 0
@@ -213,7 +196,10 @@ struct HyperliteOpenPRWatchColumn<Content: View>: View {
                     alignment: .topLeading
                 )
                 if showSky {
-                    HyperliteHiddenProjectGhostSky(sections: hiddenSections)
+                    HyperliteHiddenProjectGhostSky(
+                        sections: hiddenSections,
+                        kinds: celestialKinds
+                    )
                 }
             }
             .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)

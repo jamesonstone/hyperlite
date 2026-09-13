@@ -47,6 +47,7 @@ type ProjectPullRequests struct {
 	ObservedAt   *time.Time               `json:"observed_at,omitempty"`
 	PullRequests []ProjectPullRequest     `json:"pull_requests"`
 	Workflows    *ProjectWorkflowActivity `json:"workflows,omitempty"`
+	CommitCount  *int                     `json:"commit_count,omitempty"`
 }
 
 type GitHubRateLimit struct {

@@ -6,6 +6,7 @@ struct HyperliteProjectSectionHeader: View {
     let section: HyperliteProjectSection
     let chips: [HyperliteWorkflowChip]
     let compact: Bool
+    var celestialKind: HyperliteProjectCelestialKind = .star
     @Binding var draggedRowID: String?
     let drop: (String) -> Void
     @State private var headingHovering = false
@@ -67,6 +68,7 @@ struct HyperliteProjectSectionHeader: View {
 
     private var label: some View {
         HStack(spacing: 6) {
+            HyperliteProjectCelestialIcon(kind: celestialKind)
             Text(compact
                 ? HyperliteHiddenProjectGhostSkyPresentation.shortName(section.repository)
                 : section.repository)

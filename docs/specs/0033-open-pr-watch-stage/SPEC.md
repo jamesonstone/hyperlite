@@ -47,7 +47,7 @@ references:
     target: docs/specs/0018-runtime-resource-cut/SPEC.md
     relation: constrains
     read_policy: must
-    used_for: no extra timers for idle ghosts
+    used_for: leftover orbit ticks only while the sky is visible; no activity-poll size fetches
     status: active
   - id: frontend-architecture
     name: Frontend Application Architecture
@@ -73,8 +73,8 @@ skills: []
 ## PURPOSE
 
 Make Vertical Mode's Open PRs pane a readable watch stage: lantern-marked
-project clusters, two-line titles, and leftover height filled with a slow
-field of ghosts for hidden idle projects.
+project clusters, two-line titles, and leftover height filled with a solar
+system of hidden idle projects.
 
 ## CONTEXT
 
@@ -87,8 +87,8 @@ would not wrap; this pass keeps `ready` a whole word by moving it onto the
 identity line and giving the title its own line.
 
 Orchestration: single-lane, because stages, compact-row stacking, leftover
-sky, and stacked height share one presentation contract and need continuous
-design judgment.
+orbit, celestial sizing, and the commit-count cache share one presentation
+contract and need continuous design judgment.
 
 ## REQUIREMENTS
 
@@ -100,31 +100,44 @@ design judgment.
   by a thin left lantern. Running or failing work lights that lantern cyan.
   No filled cards.
 - R3: When hide-idle is on in Vertical Mode and leftover pane height remains,
-  hidden idle projects appear in that leftover as a slow constellation of 👻
-  glyphs. Names appear on hover. Click opens the repository. Help keeps the
-  idle availability text. Hide-idle membership does not change. Stacked
-  fit-content does not grow a sky; leftover height there still goes to notes.
+  hidden idle projects appear in that leftover as bodies on one orbit
+  around a sun. Every hidden project is a selectable star, moon, planet,
+  or giant sized from cached commit count, with its short name visible.
+  A few decorative 👻 comets fly around the system and are not projects.
+  Click a body to open the repository. Help keeps the idle availability
+  text. Hide-idle membership does not change. Stacked fit-content does not
+  grow a sky; leftover height there still goes to notes.
 - R4: Drag handles, unpinned pins, and empty review boxes are quieter at rest
   and full on row hover. Number→issue, title→PR, Pulls/Actions, running
   chips, hover cards, and the refresh overlay stay. Compact Pulls/Actions
-  wait on heading hover.
-- R5: Ghost sky drift uses implicit Core Animation, not a new poll timer.
-  Honor Reduce Motion by keeping ghosts still.
+  wait on heading hover. Visible project headings show the same celestial
+  glyph as the leftover body for that project.
+- R5: Leftover orbit ticks with the same 12 Hz `TimelineView` as running
+  chips, only while the sky is visible. Honor Reduce Motion by freezing the
+  orbit and comets. Do not add a poll-style timer for idle presentation.
 - R6: Keep handwritten source and test files at or under 300 lines.
+- R7: Commit counts are a cached pull-request-index field. Local `git
+  rev-list --count HEAD` may seed a missing count. GitHub
+  `history { totalCount }` may refresh a count only during an already
+  authorized stale or force scan, at most once per 24 hours per
+  repository, and only when the cached quota observation has excess remaining.
+  The activity poll never fetches sizes. Size queries never join the hot
+  pull-request query.
 
 Non-goals:
 
-- Extra GitHub fetches or poll changes.
 - Changing Notes Only, splitter behavior, or hide-idle membership.
 - Replacing the two-pane Vertical Mode split.
+- A new automatic GitHub poll for project size.
 
 Observable acceptance:
 
 - Vertical Mode titles are readable on their own line; `ready` stays cyan
   and unwrapped.
 - Project work is marked by a thin lantern, not a filled card.
-- Hidden idle projects fill leftover Vertical Mode height as a slow
-  clickable ghost field.
+- Hidden idle projects fill leftover Vertical Mode height as one orbit of
+  named, clickable bodies; a few ghosts fly as decoration only.
+- Open-PR project headings show a matching size glyph.
 - Hover cards, pins, review toggles, and GitHub buttons still work.
 
 ## ACCEPTED PLAN
@@ -135,26 +148,41 @@ Observable acceptance:
    only for running or failing work. In compact layout, wait to show
    Pulls/Actions until the heading is hovered.
 3. Measure the Open PRs list against the Vertical Mode pane and, when
-   leftover height remains under hide-idle, render a constellation of
-   drifting 👻 glyphs. Names appear on hover. Keep stacked height content-sized.
+   leftover height remains under hide-idle, render a sun plus one orbit of
+   project bodies and a few non-interactive comets. Always show short
+   names. Keep stacked height content-sized.
 4. Fade drag handles, unpinned pins, and empty review boxes at rest. Cover
-   layout, sky membership, constellation bounds, and stacked lantern
-   padding with Swift tests.
+   layout, sky membership, one-body-per-hidden-project, celestial
+   classification, orbit bounds, stacked lantern padding, and commit-count
+   cache policy with tests.
+5. Seed missing counts from local git. Fetch GitHub counts in a batched
+   follow-up after a successful stale or force scan when the count is older
+   than 24 hours and quota remaining is excess. Never fetch sizes from the
+   activity poll or the hot pull-request query.
 
 ## DECISIONS
 
 - Supersede 0028's one-line unpinned Vertical Mode rows. `ready` remains a
   whole word because it lives on the identity line of the two-line stack,
   not because the title is forced to share that line.
-- Ghost sky is presentation of projects already hidden by 0032 hide-idle.
-  It does not keep those projects in the main list and does not add fetches.
+- Leftover sky is presentation of projects already hidden by 0032 hide-idle.
+  It does not keep those projects in the main list.
 - Filled rounded stages made Vertical Mode look like a dashboard. A thin
   lantern chunks the list without boxing every heading, chip, and button.
-- Wrapping `👻 name` tokens for 18 idle projects was more text. A
-  constellation of glyphs, with names on hover, is calmer and more fun to
-  watch.
-- Ghost sky drift uses implicit SwiftUI animation, not a TimelineView, so
-  it does not add a poll-style timer. Reduce Motion keeps the field still.
+- Wrapping `👻 name` tokens and a sunflower of unlabeled emoji-ghosts were
+  both wrong: too much text, then too many ghosts with only one obvious
+  hit target. One orbit around a sun, with a named body per hidden project
+  and a few decorative comets, is the space treatment.
+- Body kind is absolute from commit count (star / moon / planet / giant),
+  not a peer percentile, so a project's glyph stays stable when neighbors
+  hide and two similar repos stay the same kind.
+- Ghost sky drift used implicit SwiftUI animation. The orbit now ticks at
+  the running-chip rate while leftover sky is on screen. Reduce Motion
+  keeps the field still.
+- Commit-count GitHub access is part of an already authorized pull-request
+  refresh, not a new automatic poll. Excess remaining (at least the larger
+  of 2,000 points or 40% of the limit) is the quiet-period gate. The activity
+  quota governor still only denies the activity poll.
 
 ## DISCOVERIES
 
@@ -162,24 +190,34 @@ Observable acceptance:
   `fixedSize(horizontal: false, vertical: true)`. The leftover ghost sky
   depends on that intrinsic measure; otherwise leftover is always zero.
 - A first pass boxed every project and labeled every hidden ghost. That
-  read as busy chrome. Lanterns plus a nameless constellation were the calmer
-  treatment that still keeps hover and click.
+  read as busy chrome. Lanterns plus a nameless constellation were calmer
+  to watch but failed association: tiny `.position()` glyphs made only
+  one name (`status`) feel selectable. Named bodies with a 36pt hit
+  target are the fix.
+- `defaultBranchRef { target { ... on Commit { history(first: 1) {
+  totalCount } } } }` is cheap, but it must not ride the five-minute
+  pull-request query. Local `rev-list --count HEAD` is enough for first
+  paint.
 
 ## VALIDATION
 
 - `make macos-test` passed after lanterns, two-line compact rows, leftover
-  ghost-sky membership, quieter rest chrome, and stacked padding.
-- `make macos-build` produced `build/Hyperlite.app`.
+  orbit membership, quieter rest chrome, stacked padding, and celestial
+  classification.
+- `go test ./internal/prindex/...` passed for commit-count query shape, daily
+  TTL, excess-quota denial, local seed, and cache preserve on PR refresh.
+- `make macos-build` produced `build/Hyperlite.app` and relaunched it.
+  Native screenshot evidence is SKIPPED (ScreenCaptureKit).
 
 ## OUTCOME
 
 - Vertical Mode Open PRs is a quieter watch stage: lantern-marked clusters,
-  two-line titles, and a leftover hidden-idle ghost field. Ready pull-request
-  delivery through issue #102.
+  two-line titles, and a leftover hidden-idle solar system. Ready
+  pull-request delivery through issue #102.
 
 ## REPOSITORY MEMORY
 
 - Feature rationale lives in this spec. USER_GUIDE and testing.md record the
-  operator-visible stages, two-line compact rows, and leftover ghost sky.
-  Constitution unchanged: hide-idle membership, notes-plus-Open-PRs native
-  window, and the bounded activity-poll timer invariant are the same.
+  operator-visible stages, two-line compact rows, leftover orbit, and
+  heavily cached commit counts. Constitution records that size fetches are
+  part of the pull-request index refresh, not a new automatic poll.

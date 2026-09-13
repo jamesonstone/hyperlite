@@ -4,7 +4,7 @@ enum HyperliteOpenPRWatchStageTests {
     static func run() {
         testCompactRowsUseTwoLineStack()
         testGhostSkyMembership()
-        testGhostTokenPresentation()
+        testOrbitPresentation()
         testStageKindAndDragChrome()
     }
 
@@ -79,46 +79,53 @@ enum HyperliteOpenPRWatchStageTests {
         )
     }
 
-    private static func testGhostTokenPresentation() {
+    private static func testOrbitPresentation() {
         expect(
             HyperliteHiddenProjectGhostSkyPresentation.shortName("lsmc-bio/labcore") == "labcore",
-            "ghosts should use the short repository name"
+            "orbit labels should use the short repository name"
         )
         expect(
-            HyperliteHiddenProjectGhostSkyPresentation.shortName("terrarium") == "terrarium",
-            "a bare repository name should stay intact"
+            HyperliteProjectOrbitPresentation.classify(count: nil) == .star &&
+                HyperliteProjectOrbitPresentation.classify(count: 40) == .star &&
+                HyperliteProjectOrbitPresentation.classify(count: 400) == .moon &&
+                HyperliteProjectOrbitPresentation.classify(count: 4200) == .planet &&
+                HyperliteProjectOrbitPresentation.classify(count: 48000) == .giant,
+            "commit count should pick star, moon, planet, or giant"
         )
-        let opacity = HyperliteHiddenProjectGhostSkyPresentation.opacity(for: "/repo/two")
         expect(
-            opacity >= HyperliteHiddenProjectGhostSkyPresentation.minOpacity &&
-                opacity <= HyperliteHiddenProjectGhostSkyPresentation.maxOpacity,
-            "ghost opacity should stay in the muted watch range; got \(opacity)"
+            HyperliteProjectOrbitPresentation.cometCount == 3,
+            "decorative ghosts should stay a handful of comets"
         )
-        let bob = HyperliteHiddenProjectGhostSkyPresentation.drift(for: "/repo/two")
-        expect(abs(bob.width) <= 4 && abs(bob.height) <= 5,
-               "ghost drift should stay a small amplitude; got \(bob)")
         let size = CGSize(width: 240, height: 180)
-        for index in 0..<18 {
-            let point = HyperliteHiddenProjectGhostSkyPresentation.point(
-                for: "/repo/\(index)", index: index, count: 18, in: size
+        let inset = HyperliteProjectOrbitPresentation.inset
+        for index in 0..<17 {
+            let point = HyperliteProjectOrbitPresentation.bodyPoint(
+                index: index, count: 17, in: size, phase: 0.4
             )
-            let inset = HyperliteHiddenProjectGhostSkyPresentation.inset
             expect(
                 point.x >= inset && point.x <= size.width - inset &&
                     point.y >= inset && point.y <= size.height - inset,
-                "ghost \(index) should stay inside the leftover sky; got \(point)"
+                "body \(index) should stay inside the leftover sky; got \(point)"
             )
         }
-        expect(
-            HyperliteHiddenProjectGhostSkyPresentation.opacity(for: "/a") !=
-                HyperliteHiddenProjectGhostSkyPresentation.opacity(for: "/b") ||
-                HyperliteHiddenProjectGhostSkyPresentation.glyphSize(for: "/a") !=
-                HyperliteHiddenProjectGhostSkyPresentation.glyphSize(for: "/b"),
-            "different projects should not all share the same ghost pose"
+        let first = HyperliteProjectOrbitPresentation.bodyPoint(
+            index: 0, count: 17, in: size, phase: 0
         )
+        let shifted = HyperliteProjectOrbitPresentation.bodyPoint(
+            index: 0, count: 17, in: size, phase: .pi
+        )
+        expect(first != shifted, "orbit phase should move bodies around the sun")
         expect(
-            HyperliteHiddenProjectGhostSkyPresentation.driftDuration(for: "/repo/two") >= 3,
-            "ghost drift should stay slow enough to watch"
+            HyperliteProjectOrbitPresentation.phase(at: Date(), reduceMotion: true) == 0,
+            "Reduce Motion should freeze the orbit"
+        )
+        let kinds = HyperliteProjectOrbitPresentation.kinds(for: [
+            project(path: "/small", count: 12),
+            project(path: "/huge", count: 50000),
+        ])
+        expect(
+            kinds["/small"] == .star && kinds["/huge"] == .giant,
+            "every project should get a celestial kind"
         )
     }
 
@@ -140,6 +147,14 @@ enum HyperliteOpenPRWatchStageTests {
             HyperliteOpenPRProjectStageKind.notable.lanternOpacity >
                 HyperliteOpenPRProjectStageKind.idle.lanternOpacity,
             "quiet idle lanterns should recede behind live work"
+        )
+    }
+
+    private static func project(path: String, count: Int) -> HyperliteProjectPullRequests {
+        HyperliteProjectPullRequests(
+            id: path, name: path, path: path, repository: "owner\(path)",
+            status: .current, message: nil, checkedAt: nil, observedAt: nil,
+            pullRequests: [], commitCount: count
         )
     }
 

@@ -214,6 +214,9 @@ struct HyperliteWindow: View {
             compact: compact,
             hideIdle: hideIdleProjects,
             hiddenSections: hiddenIdleProjectSections,
+            celestialKinds: HyperliteProjectOrbitPresentation.kinds(
+                for: pullRequestScan?.projects ?? []
+            ),
             isRefreshing: state.isRefreshingPullRequests
         ) {
             VStack(alignment: .leading, spacing: 10) {
