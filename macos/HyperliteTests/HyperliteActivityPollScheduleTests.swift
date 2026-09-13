@@ -15,10 +15,18 @@ enum HyperliteActivityPollScheduleTests {
         expect(step(policy: allowed, visible: false) == .stop(.windowHidden), "hidden window stops polling")
         expect(step(policy: allowed, burstStartedAt: now.addingTimeInterval(-1800)) == .stop(.burstCap),
                "thirty minutes of polling stops the burst")
-        expect(step(policy: allowed, burstStartedAt: now.addingTimeInterval(-1799)) == .poll(after: 60),
-               "just under the burst cap still polls")
+        expect(step(policy: allowed, burstStartedAt: now.addingTimeInterval(-1799)) == .stop(.burstCap),
+               "a poll that would land past the burst cap stops")
+        expect(step(policy: allowed, burstStartedAt: now.addingTimeInterval(-1700)) == .poll(after: 60),
+               "a poll that lands before the burst cap still polls")
         expect(step(policy: policy(allowed: false, reason: "interval", next: now.addingTimeInterval(20), active: 1))
             == .poll(after: 20), "an interval denial waits until the governor's next eligible time")
+        expect(step(policy: policy(allowed: false, reason: "interval", next: now.addingTimeInterval(20), active: 1),
+                    burstStartedAt: now.addingTimeInterval(-1000)) == .poll(after: 20),
+               "an interval wait inside the burst still polls")
+        expect(step(policy: policy(allowed: false, reason: "interval", next: now.addingTimeInterval(20), active: 1),
+                    burstStartedAt: now.addingTimeInterval(-1790)) == .stop(.burstCap),
+               "an interval wait past the burst cap stops")
         expect(step(policy: policy(allowed: false, reason: "quota_floor", next: now.addingTimeInterval(20), active: 1))
             == .stop(.governorDenied("quota_floor")), "quota denials stop the loop")
         expect(step(policy: policy(allowed: false, reason: "interval", next: nil, active: 1))

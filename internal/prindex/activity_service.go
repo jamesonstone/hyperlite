@@ -3,7 +3,6 @@ package prindex
 import (
 	"context"
 	"errors"
-	"path/filepath"
 	"time"
 
 	"github.com/jamesonstone/hyperlite/internal/config"
@@ -18,29 +17,56 @@ func (s Scanner) scanActivity(
 	scan scanContext,
 ) (model.ProjectPullRequestScan, error) {
 	requests, activeCount := activityRequests(scan.sources, scan.resolved, scan.cache)
-	decision := decideActivityPoll(defaultActivityPollPolicy, activityInput(scan.cache, activeCount, scan.now))
-	if decision.Allowed {
-		if s.Workflows == nil {
-			return model.ProjectPullRequestScan{}, errors.New("workflow activity client is not configured")
+	// Reserve the poll atomically: re-evaluate the governor and record the
+	// reservation inside one locked Update before touching GitHub. Two
+	// concurrent scans that both loaded the same state cannot both reach
+	// PollActivity, because the second sees the first's recorded poll and is
+	// denied on the minimum-interval or window cap.
+	var decision model.ActivityPollDecision
+	var reserved, missingClient bool
+	reservedCache, err := s.Store.Update(func(current *cacheState) bool {
+		decision = decideActivityPoll(
+			defaultActivityPollPolicy, activityInput(*current, activeCount, scan.now),
+		)
+		if !decision.Allowed {
+			return false
 		}
+		if s.Workflows == nil {
+			missingClient = true
+			return false
+		}
+		if current.Activity == nil {
+			current.Activity = &cachedActivityState{}
+		}
+		recordActivityPoll(current.Activity, cachedResetAt(*current), scan.now)
+		reserved = true
+		return true
+	})
+	if err != nil {
+		return model.ProjectPullRequestScan{}, err
+	}
+	if missingClient {
+		return model.ProjectPullRequestScan{}, errors.New("workflow activity client is not configured")
+	}
+	if reserved {
+		scan.cache = reservedCache
+		// The reservation stands even if PollActivity fails: a burned interval
+		// is preferable to a race that ignores the cap on retry.
 		polled := s.Workflows.PollActivity(ctx, requests)
-		cache, err := s.Store.Update(func(current *cacheState) {
+		applied, updateErr := s.Store.Update(func(current *cacheState) bool {
 			applyActivityResult(current, requests, polled, scan.now)
 			recordActivityBurst(current, configuredRepositoryKeys(scan.sources, scan.resolved), scan.now)
 			if observed := observedRateLimit(polled.RateLimit, scan.now); observed != nil {
 				current.RateLimit = applyRateLimitBurnRate(observed, current.RateLimit)
 			}
-			if current.Activity == nil {
-				current.Activity = &cachedActivityState{}
-			}
-			recordActivityPoll(current.Activity, cachedResetAt(*current), scan.now)
+			return true
 		})
-		if err != nil {
-			return model.ProjectPullRequestScan{}, err
+		if updateErr != nil {
+			return model.ProjectPullRequestScan{}, updateErr
 		}
-		scan.cache = cache
+		scan.cache = applied
 		decision.LastCheckedAt = optionalTime(scan.now)
-		decision.PollsThisWindow = activityWindowPolls(cache.Activity, cachedResetAt(cache))
+		decision.PollsThisWindow = activityWindowPolls(applied.Activity, cachedResetAt(applied))
 	}
 	result := buildScanResult(scan, map[string]RepositoryResult{}, RefreshLocal)
 	result.ActivityPolicy = &decision
@@ -207,77 +233,4 @@ func laterTime(a, b time.Time) time.Time {
 		return b
 	}
 	return a
-}
-
-func configuredRepositoryKeys(
-	sources []config.Source,
-	resolved map[string]config.Repository,
-) map[string]struct{} {
-	keys := make(map[string]struct{}, len(sources))
-	for _, source := range sources {
-		if repository, found := resolved[filepath.Clean(source.Path)]; found {
-			keys[repositoryKey(repository.GitHub)] = struct{}{}
-		}
-	}
-	return keys
-}
-
-func activityRequests(
-	sources []config.Source,
-	resolved map[string]config.Repository,
-	cache cacheState,
-) ([]ActivityRequest, int) {
-	seen := map[string]struct{}{}
-	var requests []ActivityRequest
-	total := 0
-	for _, source := range sources {
-		repository, found := resolved[filepath.Clean(source.Path)]
-		if !found {
-			continue
-		}
-		key := repositoryKey(repository.GitHub)
-		if _, duplicate := seen[key]; duplicate {
-			continue
-		}
-		seen[key] = struct{}{}
-		entry := cache.Repositories[key]
-		if entry.Workflows == nil {
-			continue
-		}
-		active := entry.Workflows.ActiveRunCount()
-		if active == 0 {
-			continue
-		}
-		total += active
-		requests = append(requests, ActivityRequest{
-			Repository:         repository,
-			PullRequestNumbers: entry.Workflows.ActivePullRequestNumbers(),
-		})
-	}
-	return requests, total
-}
-
-func activityInput(cache cacheState, activeCount int, now time.Time) activityPollInput {
-	input := activityPollInput{RateLimit: cache.RateLimit, ActiveRunCount: activeCount, Now: now}
-	if cache.Activity != nil {
-		input.LastCheckedAt = cache.Activity.LastCheckedAt
-		input.BurstStartedAt = cache.Activity.BurstStartedAt
-		input.PollsThisWindow = activityWindowPolls(cache.Activity, cachedResetAt(cache))
-	}
-	return input
-}
-
-// activityPolicy reports what an automatic poll would decide right now so the
-// native app can schedule without guessing.
-func activityPolicy(scan scanContext) *model.ActivityPollDecision {
-	_, activeCount := activityRequests(scan.sources, scan.resolved, scan.cache)
-	decision := decideActivityPoll(defaultActivityPollPolicy, activityInput(scan.cache, activeCount, scan.now))
-	return &decision
-}
-
-func cachedResetAt(cache cacheState) time.Time {
-	if cache.RateLimit == nil {
-		return time.Time{}
-	}
-	return cache.RateLimit.ResetAt
 }

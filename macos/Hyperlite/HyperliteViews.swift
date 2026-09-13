@@ -7,6 +7,7 @@ struct HyperliteWindow: View {
     @StateObject private var dashboardLists = HyperliteDashboardListState()
     @StateObject private var pullRequestPins = HyperlitePullRequestPinStore()
     @ObservedObject private var appearance = HyperliteAppearance.shared
+    @AppStorage("hyperlite.dashboard.open-pr-hide-idle") private var hideIdleProjects = true
     @State var pendingProjectRemoval: HyperliteProjectLocation?
     @State var mergePromptCopied = false
     @State var mergePromptCopyGeneration = 0
@@ -174,8 +175,12 @@ struct HyperliteWindow: View {
         let sections = pullRequestPins.sections(
             for: HyperlitePullRequestPresentation.rows(scan: scan)
         )
-        let plan = HyperlitePullRequestSectionPlan.sections(scan: scan, groups: sections.unpinnedGroups)
         let now = Date()
+        let plan = HyperliteOpenPRProjectFilter.visibleSections(
+            HyperlitePullRequestSectionPlan.sections(scan: scan, groups: sections.unpinnedGroups),
+            hideIdle: hideIdleProjects,
+            now: now
+        )
         return HyperliteWorkspaceSplit.estimatedStackedContentHeight(
             pinnedCount: sections.pinned.count,
             openCount: sections.unpinned.count,

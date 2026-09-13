@@ -6,6 +6,8 @@ struct HyperlitePullRequestRowContent: View {
     let reviewStatus: HyperlitePullRequestReviewStatus
     let compact: Bool
     var showRepository = true
+    var openNumber: () -> Void = {}
+    var openPullRequest: () -> Void = {}
 
     private var review: HyperliteReviewFeedbackPresentation {
         HyperlitePullRequestPresentation.reviewFeedback(
@@ -36,14 +38,13 @@ struct HyperlitePullRequestRowContent: View {
         }
         .font(HyperliteTypography.body)
         .foregroundStyle(HyperliteTheme.secondaryText.color)
-        .contentShape(Rectangle())
         .opacity(reviewStatus == .reviewed ? 0.62 : 1)
     }
 
     private var wideRow: some View {
         HStack(alignment: .firstTextBaseline, spacing: 7) {
             if showRepository {
-                repositoryLabel
+                pullRequestTarget { repositoryLabel }
                     .frame(
                         minWidth: 72,
                         idealWidth: 132,
@@ -52,15 +53,20 @@ struct HyperlitePullRequestRowContent: View {
                     )
                     .layoutPriority(Self.layout.repositoryLayoutPriority)
             }
-            numberLabel
-            statusBadge
-            mergeConflictGlyph
-            reviewLabel
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                titleLabel
-                    .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
-                ageLabel
+            numberButton
+            pullRequestTarget {
+                HStack(alignment: .firstTextBaseline, spacing: 7) {
+                    statusBadge
+                    mergeConflictGlyph
+                    reviewLabel
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        titleLabel
+                            .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+                        ageLabel
+                    }
+                }
             }
+            .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
             .layoutPriority(Self.layout.titleLayoutPriority)
         }
     }
@@ -68,20 +74,37 @@ struct HyperlitePullRequestRowContent: View {
     private var compactStack: some View {
         VStack(alignment: .leading, spacing: 1) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                repositoryLabel
+                pullRequestTarget { repositoryLabel }
                     .layoutPriority(-1)
-                numberLabel
-                statusBadge
-                mergeConflictGlyph
-                reviewLabel
+                numberButton
+                pullRequestTarget {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        statusBadge
+                        mergeConflictGlyph
+                        reviewLabel
+                    }
+                }
             }
             .lineLimit(1)
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                titleLabel
-                    .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
-                ageLabel
+            pullRequestTarget {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    titleLabel
+                        .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+                    ageLabel
+                }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    // A plain button so a click anywhere but the number opens the pull request,
+    // preserving the row's prior single-target behavior.
+    private func pullRequestTarget(@ViewBuilder _ content: () -> some View) -> some View {
+        Button(action: openPullRequest) {
+            content().contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(row.url == nil)
     }
 
     private var repositoryLabel: some View {
@@ -92,12 +115,33 @@ struct HyperlitePullRequestRowContent: View {
             .truncationMode(.tail)
     }
 
+    // The number opens the tracked issue when the pull request names one, so
+    // the ticket is one click away while the title still opens the PR.
+    private var numberButton: some View {
+        Button(action: openNumber) {
+            numberLabel.contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(row.numberURL == nil)
+        .help(numberHelp)
+        .accessibilityLabel(numberHelp)
+    }
+
+    private var numberHelp: String {
+        row.numberOpensIssue
+            ? "Open issue #\(row.displayNumber)"
+            : "Open pull request #\(row.number)"
+    }
+
     private var numberLabel: some View {
-        Text("#\(row.number)")
+        Text("#\(row.displayNumber)")
             .lineLimit(1)
             .fixedSize(horizontal: true, vertical: false)
             .layoutPriority(Self.layout.metadataLayoutPriority)
             .frame(minWidth: usesCompactStack ? 0 : 42, alignment: .leading)
+            .foregroundStyle(
+                row.numberOpensIssue ? HyperliteTheme.secondaryText.color : titleColor
+            )
     }
 
     private var statusBadge: some View {

@@ -12,18 +12,25 @@ struct HyperliteProjectSectionHeader: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 6) {
-                HStack(spacing: 4) {
-                    Text(section.repository)
-                        .font(HyperliteTypography.heading)
-                        .foregroundStyle(HyperliteTheme.secondaryText.color)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                    Text("\(section.rows.count)")
-                        .font(HyperliteTypography.compact.monospacedDigit())
-                        .foregroundStyle(HyperliteTheme.mutedText.color)
+                Button {
+                    open(section.repositoryURL)
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(section.repository)
+                            .font(HyperliteTypography.heading)
+                            .foregroundStyle(HyperliteTheme.secondaryText.color)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        Text("\(section.rows.count)")
+                            .font(HyperliteTypography.compact.monospacedDigit())
+                            .foregroundStyle(HyperliteTheme.mutedText.color)
+                    }
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
+                .disabled(section.repositoryURL == nil)
+                .help(section.repositoryURL == nil ? "" : "Open \(section.repository) on GitHub")
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
                 .onDrop(
                     of: [UTType.text.identifier],
                     delegate: HyperliteSectionPinDropDelegate(
@@ -33,6 +40,7 @@ struct HyperliteProjectSectionHeader: View {
                 )
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(accessibilityLabel)
+                .accessibilityHint(section.repositoryURL == nil ? "" : "Opens the repository on GitHub")
                 HyperliteDashboardControlButton(
                     systemName: "arrow.triangle.pull",
                     active: false,

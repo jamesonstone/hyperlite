@@ -25,6 +25,8 @@ struct HyperliteWorkflowStrip: View {
 struct HyperliteWorkflowChipView: View {
     let chip: HyperliteWorkflowChip
     @State private var hoverPresented = false
+    @State private var chipHovered = false
+    @State private var cardHovered = false
     @State private var hoverTask: Task<Void, Never>?
 
     var body: some View {
@@ -45,9 +47,9 @@ struct HyperliteWorkflowChipView: View {
         }
         .fixedSize(horizontal: true, vertical: false)
         .contentShape(Rectangle())
-        .onHover(perform: handleHover)
+        .onHover { updateHover(chip: $0) }
         .popover(isPresented: $hoverPresented, arrowEdge: .bottom) {
-            HyperliteWorkflowHoverCard(chip: chip)
+            HyperliteWorkflowHoverCard(chip: chip) { updateHover(card: $0) }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(chip.accessibilityLabel(now: Date()))
@@ -78,13 +80,20 @@ struct HyperliteWorkflowChipView: View {
         }
     }
 
-    private func handleHover(_ hovering: Bool) {
+    // The hover card carries the run and deployment-log buttons, so it must
+    // stay open while the pointer is inside it, not only over the chip.
+    private func updateHover(chip: Bool? = nil, card: Bool? = nil) {
+        if let chip { chipHovered = chip }
+        if let card { cardHovered = card }
+        let shouldShow = HyperliteWorkflowHoverPresentation.shouldPresent(
+            chipHovered: chipHovered, cardHovered: cardHovered
+        )
         hoverTask?.cancel()
         hoverTask = Task { @MainActor in
-            let delay: Duration = hovering ? .milliseconds(350) : .milliseconds(200)
+            let delay: Duration = shouldShow ? .milliseconds(350) : .milliseconds(200)
             try? await Task.sleep(for: delay)
             guard !Task.isCancelled else { return }
-            hoverPresented = hovering
+            hoverPresented = shouldShow
         }
     }
 }

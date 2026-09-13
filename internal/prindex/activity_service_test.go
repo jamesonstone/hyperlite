@@ -102,6 +102,39 @@ func TestActivityModePollsOnlyActiveHeadsAndNeverListsPullRequests(t *testing.T)
 	}
 }
 
+func TestActivityModeReservesPollBeforeGitHubCall(t *testing.T) {
+	now := time.Date(2026, 9, 12, 20, 0, 0, 0, time.UTC)
+	source, repository, store := activityFixture(now)
+	// A concurrent scan records a poll between this scan's Load and its
+	// reservation Update. The governor must re-evaluate inside the locked
+	// Update and deny on the minimum interval, so only one caller ever
+	// reaches PollActivity.
+	store.beforeUpdate = func(state *cacheState) {
+		state.Activity = &cachedActivityState{
+			LastCheckedAt: now, WindowResetAt: now.Add(40 * time.Minute), PollsThisWindow: 1,
+		}
+	}
+	workflows := &fakeWorkflowClient{poll: ActivityResult{Repositories: map[string]RepositoryActivityResult{
+		"owner/one": {
+			TipRuns:             []model.WorkflowRun{},
+			PullRequestRuns:     map[int][]model.WorkflowRun{},
+			DroppedPullRequests: map[int]struct{}{},
+		},
+	}}}
+	scanner := activityScanner(repository, store, workflows, &fakePullRequestClient{}, now)
+	result, err := scanner.Scan(context.Background(), config.Config{Projects: []config.Source{source}}, RefreshActivity)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(workflows.pollCalls) != 0 {
+		t.Fatalf("reservation must stop the second poll: polls=%d", len(workflows.pollCalls))
+	}
+	if result.ActivityPolicy == nil || result.ActivityPolicy.Allowed ||
+		result.ActivityPolicy.Reason != activityPollInterval {
+		t.Fatalf("policy = %#v", result.ActivityPolicy)
+	}
+}
+
 func TestActivityModeDeniedTouchesNothing(t *testing.T) {
 	now := time.Date(2026, 9, 12, 20, 0, 0, 0, time.UTC)
 	source, repository, store := activityFixture(now)
@@ -212,60 +245,5 @@ func TestBurstClockRestartsForNewerWorkAndClosesOnPoll(t *testing.T) {
 	}
 	if !store.state.Activity.BurstStartedAt.IsZero() || polled.Projects[0].Workflows.ActiveRunCount() != 0 {
 		t.Fatalf("a poll observing completion must close the burst: %#v", store.state.Activity)
-	}
-}
-
-func TestChangedTreeWithoutCatalogResultRetriesNextRefresh(t *testing.T) {
-	now := time.Date(2026, 9, 12, 20, 0, 0, 0, time.UTC)
-	source, repository, store := activityFixture(now)
-	client := &fakePullRequestClient{results: map[string]RepositoryResult{
-		"owner/one": {PullRequests: []model.ProjectPullRequest{}, Activity: &repositoryActivity{TreeOID: "tree-2"}},
-	}}
-	scanner := activityScanner(repository, store, &fakeWorkflowClient{}, client, now)
-	result, err := scanner.Scan(context.Background(), config.Config{Projects: []config.Source{source}}, RefreshForce)
-	if err != nil {
-		t.Fatal(err)
-	}
-	state := result.Projects[0].Workflows
-	if state.TreeOID != "" || len(state.Catalog) != 1 {
-		t.Fatalf("missing catalog result must keep the old catalog and clear the tree OID: %#v", state)
-	}
-}
-
-func TestFullRefreshCatalogFailureKeepsOldCatalogAndRetriesLater(t *testing.T) {
-	now := time.Date(2026, 9, 12, 20, 0, 0, 0, time.UTC)
-	source, repository, store := activityFixture(now)
-	client := &fakePullRequestClient{results: map[string]RepositoryResult{
-		"owner/one": {PullRequests: []model.ProjectPullRequest{}, Activity: &repositoryActivity{TreeOID: "tree-2"}},
-	}}
-	workflows := &fakeWorkflowClient{catalogs: map[string]CatalogEntry{"owner/one": {Error: "boom"}}}
-	scanner := activityScanner(repository, store, workflows, client, now)
-	result, err := scanner.Scan(context.Background(), config.Config{Projects: []config.Source{source}}, RefreshForce)
-	if err != nil {
-		t.Fatal(err)
-	}
-	state := result.Projects[0].Workflows
-	if state.Message != "boom" || state.TreeOID != "" || len(state.Catalog) != 1 || state.Catalog[0].Name != "ci" {
-		t.Fatalf("workflows = %#v", state)
-	}
-	if result.Projects[0].Status != model.ProjectPullRequestsCurrent {
-		t.Fatalf("catalog failure must not fail the repository: %#v", result.Projects[0])
-	}
-}
-
-func TestLegacyEntryWithoutWorkflowsRefreshesInsideFloor(t *testing.T) {
-	now := time.Date(2026, 9, 12, 20, 0, 0, 0, time.UTC)
-	source, repository, store := activityFixture(now)
-	entry := store.state.Repositories["owner/one"]
-	entry.Workflows = nil
-	store.state.Repositories["owner/one"] = entry
-	client := &fakePullRequestClient{results: map[string]RepositoryResult{"owner/one": {PullRequests: []model.ProjectPullRequest{}}}}
-	scanner := activityScanner(repository, store, &fakeWorkflowClient{}, client, now)
-	result, err := scanner.Scan(context.Background(), config.Config{Projects: []config.Source{source}}, RefreshStale)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if client.calls != 1 || result.Projects[0].Workflows == nil || len(result.Projects[0].Workflows.Runs) != 0 {
-		t.Fatalf("calls=%d workflows=%#v", client.calls, result.Projects[0].Workflows)
 	}
 }

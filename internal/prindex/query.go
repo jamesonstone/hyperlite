@@ -42,7 +42,14 @@ func buildQuery(requests []pageRequest) (string, map[string]pageRequest) {
 		query.WriteString("      }\n")
 		query.WriteString("      pageInfo { hasNextPage endCursor }\n")
 		query.WriteString("    }\n")
-		writeRepositoryActivitySelections(&query, "    ")
+		// Repository activity (default-branch runs, deployments, workflows
+		// tree) is read once per repository. repositoryActivityFromRaw only
+		// initializes it from the first page and keeps just pending heads from
+		// later pages, so selecting it again on follow-up pages adds GraphQL
+		// cost without adding data.
+		if request.cursor == "" {
+			writeRepositoryActivitySelections(&query, "    ")
+		}
 		query.WriteString("  }\n")
 	}
 	writeRateLimit(&query)

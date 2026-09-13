@@ -42,25 +42,47 @@ enum HyperliteWorkflowRunGlide {
 struct HyperliteRunningWorkflowChip: View {
     let title: String
     let since: Date
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: HyperliteWorkflowRunGlide.tickInterval)) { context in
-            VStack(alignment: .leading, spacing: 1) {
-                HStack(spacing: 4) {
-                    Text(title)
-                        .font(HyperliteTypography.compact)
-                        .foregroundStyle(HyperliteTheme.cyan.color)
-                        .lineLimit(1)
-                    Text(HyperliteWorkflowStripPresentation.elapsedLabel(since: since, now: context.date))
-                        .font(HyperliteTypography.compact.monospacedDigit())
-                        .foregroundStyle(HyperliteTheme.mutedText.color)
-                        .lineLimit(1)
+        if reduceMotion {
+            staticIndicator
+        } else {
+            TimelineView(.periodic(from: .now, by: HyperliteWorkflowRunGlide.tickInterval)) { context in
+                content(now: context.date) {
+                    HyperliteWorkflowRunGlideTrack(date: context.date)
+                        .frame(width: HyperliteWorkflowRunGlide.trackWidth)
                 }
-                HyperliteWorkflowRunGlideTrack(date: context.date)
-                    .frame(width: HyperliteWorkflowRunGlide.trackWidth)
             }
+            .transaction { $0.animation = nil }
         }
-        .transaction { $0.animation = nil }
+    }
+
+    // Reduce Motion replaces the gliding ghost with a still cyan dot so the
+    // chip still reads as running without animation.
+    private var staticIndicator: some View {
+        content(now: Date()) {
+            Circle()
+                .fill(HyperliteTheme.cyan.color)
+                .frame(width: 5, height: 5)
+                .accessibilityHidden(true)
+        }
+    }
+
+    private func content(now: Date, @ViewBuilder track: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            HStack(spacing: 4) {
+                Text(title)
+                    .font(HyperliteTypography.compact)
+                    .foregroundStyle(HyperliteTheme.cyan.color)
+                    .lineLimit(1)
+                Text(HyperliteWorkflowStripPresentation.elapsedLabel(since: since, now: now))
+                    .font(HyperliteTypography.compact.monospacedDigit())
+                    .foregroundStyle(HyperliteTheme.mutedText.color)
+                    .lineLimit(1)
+            }
+            track()
+        }
     }
 }
 

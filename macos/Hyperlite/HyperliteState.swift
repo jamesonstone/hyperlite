@@ -172,7 +172,6 @@ final class HyperliteState: ObservableObject {
                 if pullRequestRefreshGeneration == generation {
                     isRefreshingPullRequests = false
                     pullRequestRefreshTask = nil
-                    activityPolling.burstStartedAt = nil
                     scheduleActivityPollIfNeeded()
                 }
             }
@@ -184,6 +183,13 @@ final class HyperliteState: ObservableObject {
                 ) { decoded in
                     guard self.pullRequestRefreshGeneration == generation else { return }
                     self.pullRequestScan = decoded
+                }
+                // Only a successful refresh reflects the latest runs, so the
+                // burst clock restarts from the fresh scan. A failed refresh
+                // keeps the timestamp so its cap still bounds the retry loop
+                // that a stale activity result would otherwise repeat forever.
+                if pullRequestRefreshGeneration == generation {
+                    activityPolling.burstStartedAt = nil
                 }
             } catch is CancellationError {
                 return

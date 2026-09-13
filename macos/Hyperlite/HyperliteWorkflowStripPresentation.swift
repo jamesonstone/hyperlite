@@ -75,17 +75,25 @@ enum HyperliteWorkflowStripPresentation {
                 run: run, deployment: nil
             )
         }
-        if let deployment = activity.deployments.filter(\.isActive).max(by: { $0.createdAt < $1.createdAt }) {
+        var attachedToWorkflow = false
+        for deployment in latestActiveDeploymentsByEnvironment(activity.deployments) {
             let state: HyperliteWorkflowChipState = fresh
                 ? .running(since: deployment.createdAt)
                 : .staleRunning(lastSeen: lastSeen)
-            if let index = chips.firstIndex(where: { $0.id.lowercased().hasPrefix("deploy") }) {
+            // Attach the newest environment to an existing deploy* workflow
+            // chip; every other active environment keeps its own chip so no
+            // environment or its log link is dropped.
+            if !attachedToWorkflow,
+               let index = chips.firstIndex(where: {
+                   $0.id.lowercased().hasPrefix("deploy") && $0.deployment == nil
+               }) {
                 let chip = chips[index]
                 chips[index] = HyperliteWorkflowChip(
                     id: chip.id, title: chip.title,
                     state: chip.isRunning ? chip.state : state,
                     run: chip.run, deployment: deployment
                 )
+                attachedToWorkflow = true
             } else {
                 chips.append(HyperliteWorkflowChip(
                     id: deploymentChipPrefix + deployment.environment,
@@ -94,6 +102,24 @@ enum HyperliteWorkflowStripPresentation {
             }
         }
         return chips
+    }
+
+    /// The newest active deployment per environment, so concurrent deployments
+    /// to different environments each keep a chip and log link.
+    static func latestActiveDeploymentsByEnvironment(
+        _ deployments: [HyperliteDeployment]
+    ) -> [HyperliteDeployment] {
+        var latest: [String: HyperliteDeployment] = [:]
+        for deployment in deployments where deployment.isActive {
+            if let existing = latest[deployment.environment], existing.createdAt >= deployment.createdAt {
+                continue
+            }
+            latest[deployment.environment] = deployment
+        }
+        return latest.values.sorted {
+            if $0.createdAt != $1.createdAt { return $0.createdAt > $1.createdAt }
+            return $0.environment < $1.environment
+        }
     }
 
     static func latestRun(_ runs: [HyperliteWorkflowRun]) -> HyperliteWorkflowRun? {

@@ -11,6 +11,10 @@ struct HyperliteProjectSection: Equatable, Identifiable {
 
     var pullsURL: URL? { githubURL("pulls") }
     var actionsURL: URL? { githubURL("actions") }
+    var repositoryURL: URL? {
+        guard let repo = project.repository, repo.contains("/") else { return nil }
+        return URL(string: "https://github.com/\(repo)")
+    }
     var pullsButtonLabel: String { "Open pull requests for \(repository) on GitHub" }
     var actionsButtonLabel: String { "Open GitHub Actions for \(repository)" }
 
@@ -31,35 +35,65 @@ struct HyperliteProjectSection: Equatable, Identifiable {
 enum HyperlitePullRequestSectionPlan {
     /// Groups with rows keep the pin store's project order so drag and move
     /// across project groups still work; projects without unpinned rows follow
-    /// in configuration order. Two configured paths for one repository
-    /// collapse into a single section.
+    /// in configuration order. Sections are keyed by project identity, so two
+    /// configured projects that point at one repository each keep a section.
     static func sections(
         scan: HyperliteProjectPullRequestScan,
         groups: [HyperlitePullRequestPinning.ProjectGroup]
     ) -> [HyperliteProjectSection] {
-        var projectsByKey: [String: HyperliteProjectPullRequests] = [:]
+        var projectsByID: [String: HyperliteProjectPullRequests] = [:]
         var order: [String] = []
         for project in scan.projects {
-            let key = project.repository ?? project.name
-            guard projectsByKey[key] == nil else { continue }
-            projectsByKey[key] = project
-            order.append(key)
+            guard projectsByID[project.id] == nil else { continue }
+            projectsByID[project.id] = project
+            order.append(project.id)
         }
         var result: [HyperliteProjectSection] = []
         var used = Set<String>()
         for group in groups {
-            guard let project = projectsByKey[group.repository] else { continue }
-            used.insert(group.repository)
-            result.append(HyperliteProjectSection(
-                id: project.id, repository: group.repository, project: project, rows: group.rows
-            ))
+            guard let project = projectsByID[group.projectID] else { continue }
+            used.insert(group.projectID)
+            result.append(section(for: project, rows: group.rows))
         }
-        for key in order where !used.contains(key) {
-            guard let project = projectsByKey[key] else { continue }
-            result.append(HyperliteProjectSection(
-                id: project.id, repository: key, project: project, rows: []
-            ))
+        for id in order where !used.contains(id) {
+            guard let project = projectsByID[id] else { continue }
+            result.append(section(for: project, rows: []))
         }
         return result
+    }
+
+    private static func section(
+        for project: HyperliteProjectPullRequests,
+        rows: [HyperlitePullRequestRow]
+    ) -> HyperliteProjectSection {
+        HyperliteProjectSection(
+            id: project.id, repository: project.repository ?? project.name,
+            project: project, rows: rows
+        )
+    }
+}
+
+/// Filters the project sections when the user chooses to hide idle projects.
+/// A project stays visible while it has open pull requests or a workflow worth
+/// attention (running or failing), so hiding declutters the list without
+/// losing an in-flight deploy that has no open pull request.
+enum HyperliteOpenPRProjectFilter {
+    static func hasNotableActivity(_ section: HyperliteProjectSection, now: Date) -> Bool {
+        HyperliteWorkflowStripPresentation
+            .chips(activity: section.project.workflows, now: now)
+            .contains { $0.isRunning || $0.needsAttention }
+    }
+
+    static func isIdle(_ section: HyperliteProjectSection, now: Date) -> Bool {
+        section.rows.isEmpty && !hasNotableActivity(section, now: now)
+    }
+
+    static func visibleSections(
+        _ sections: [HyperliteProjectSection],
+        hideIdle: Bool,
+        now: Date
+    ) -> [HyperliteProjectSection] {
+        guard hideIdle else { return sections }
+        return sections.filter { !isIdle($0, now: now) }
     }
 }
