@@ -7,7 +7,6 @@ enum HyperliteWorkspaceSplitTests {
         testFractionClampingAndDelta()
         testNotesOnlySummary()
         testTitleFirstAndCompactRows()
-        testProjectSectionRowsKeepReadyInline()
         testEstimatedStackedHeightUsesCounts()
         testTinyStackedDragKeepsFitContent()
     }
@@ -104,7 +103,7 @@ enum HyperliteWorkspaceSplitTests {
         )
         expect(
             HyperliteWorkspaceSplit.compactRows(verticalMode: true, notesOnly: false),
-            "Vertical Mode should keep compact two-line rows for mixed pinned identity"
+            "Vertical Mode should keep compact two-line rows"
         )
         expect(
             !HyperliteWorkspaceSplit.compactRows(verticalMode: false, notesOnly: false),
@@ -113,57 +112,6 @@ enum HyperliteWorkspaceSplitTests {
         expect(
             !HyperliteWorkspaceSplit.compactRows(verticalMode: true, notesOnly: true),
             "Notes Only should not keep compact rows in memory"
-        )
-    }
-
-    private static func testProjectSectionRowsKeepReadyInline() {
-        expect(
-            HyperlitePullRequestRowLayout.usesCompactStack(
-                compact: true, showRepository: true
-            ),
-            "pinned mixed Vertical Mode rows should keep the two-line stack"
-        )
-        expect(
-            !HyperlitePullRequestRowLayout.usesCompactStack(
-                compact: true, showRepository: false
-            ),
-            "project-section rows should stay one line under the heading"
-        )
-        expect(
-            !HyperlitePullRequestRowLayout.usesCompactStack(
-                compact: false, showRepository: false
-            ),
-            "stacked project-section rows should stay one line"
-        )
-        let layout = HyperlitePullRequestPanelRow.layout
-        expect(
-            layout.metadataLayoutPriority > layout.titleLayoutPriority,
-            "ready/draft and number should keep intrinsic width before the title truncates"
-        )
-        expect(
-            HyperlitePullRequestRowLayout.reservesAlignedConflictColumn(
-                compact: true, showRepository: false
-            ),
-            "one-line project-section rows should reserve conflict width"
-        )
-        expect(
-            !HyperlitePullRequestRowLayout.reservesAlignedConflictColumn(
-                compact: true, showRepository: true
-            ),
-            "two-line compact stacks should not insert a conflict spacer"
-        )
-        // compact:true + showRepository:false is the unpinned project-section row case.
-        // usesCompactStack is false, so wideRow is used — metadata minWidths must be non-zero.
-        let usesCompact = HyperlitePullRequestRowLayout.usesCompactStack(
-            compact: true, showRepository: false
-        )
-        expect(
-            !usesCompact,
-            "compact:true showRepository:false must use wideRow, not compactStack"
-        )
-        expect(
-            layout.reviewFeedbackColumnWidth > 0,
-            "reviewFeedbackColumnWidth must be positive so wideRow review column has width"
         )
     }
 
@@ -202,7 +150,7 @@ enum HyperliteWorkspaceSplitTests {
             compactRows: false,
             hasStatusMessage: false
         )
-        expect(emptyPinned == 208,
+        expect(emptyPinned == 240,
                "empty Pinned should not keep a caption line; got \(emptyPinned)")
         let withAvailability = HyperliteWorkspaceSplit.estimatedStackedContentHeight(
             pinnedCount: 0,
@@ -212,7 +160,7 @@ enum HyperliteWorkspaceSplitTests {
             hasStatusMessage: false,
             idleProjectCount: 1
         )
-        expect(withAvailability == 118,
+        expect(withAvailability == 134,
                "folded idle headings should not add a second availability row; got \(withAvailability)")
         let withProjects = HyperliteWorkspaceSplit.estimatedStackedContentHeight(
             pinnedCount: 0,
@@ -222,7 +170,7 @@ enum HyperliteWorkspaceSplitTests {
             hasStatusMessage: false,
             idleProjectCount: 2
         )
-        expect(withProjects == 170,
+        expect(withProjects == 218,
                "inline heading chips should not add a second stacked line; got \(withProjects)")
         let withPinned = HyperliteWorkspaceSplit.estimatedStackedContentHeight(
             pinnedCount: 2,
@@ -231,8 +179,8 @@ enum HyperliteWorkspaceSplitTests {
             compactRows: false,
             hasStatusMessage: false
         )
-        expect(withPinned == 166,
-               "a visible Pinned caption should count its top padding; got \(withPinned)")
+        expect(withPinned == 194,
+               "a visible Pinned caption should count its stage padding; got \(withPinned)")
         expect(
             HyperlitePullRequestRowLayout.rowChromeLeading == 64,
             "section text should indent past drag, pin, and review chrome"

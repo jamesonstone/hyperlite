@@ -42,34 +42,41 @@ struct HyperlitePullRequestPanel: View {
                     .foregroundStyle(HyperliteTheme.mutedText.color)
                     .padding(.vertical, 2)
             } else {
-                LazyVStack(alignment: .leading, spacing: 4) {
+                LazyVStack(alignment: .leading, spacing: HyperliteWorkspaceSplit.stackedStageSpacing) {
                     if sections.pinned.isEmpty {
                         HyperlitePinnedSectionDropTarget(
                             draggedRowID: $draggedRowID,
                             pin: pins.pin
                         )
                     } else {
-                        pinnedHeader
-                        ForEach(sections.pinned) { row in
-                            pullRequestRow(row, pinned: true)
+                        HyperliteOpenPRProjectStage(kind: .pinned) {
+                            pinnedHeader
+                            ForEach(sections.pinned) { row in
+                                pullRequestRow(row, pinned: true)
+                            }
                         }
                     }
                     ForEach(visibleProjectSections) { section in
-                        HyperliteProjectSectionHeader(
-                            section: section,
-                            chips: chips(for: section),
-                            compact: compactRows,
-                            draggedRowID: $draggedRowID,
-                            drop: { dropped in
-                                if let first = section.rows.first {
-                                    pins.move(dropped, over: first.id, rows: sourceRows)
-                                } else {
-                                    pins.unpin(dropped)
+                        let sectionChips = chips(for: section)
+                        HyperliteOpenPRProjectStage(
+                            kind: .forSection(section, chips: sectionChips)
+                        ) {
+                            HyperliteProjectSectionHeader(
+                                section: section,
+                                chips: sectionChips,
+                                compact: compactRows,
+                                draggedRowID: $draggedRowID,
+                                drop: { dropped in
+                                    if let first = section.rows.first {
+                                        pins.move(dropped, over: first.id, rows: sourceRows)
+                                    } else {
+                                        pins.unpin(dropped)
+                                    }
                                 }
+                            )
+                            ForEach(section.rows) { row in
+                                pullRequestRow(row, pinned: false)
                             }
-                        )
-                        ForEach(section.rows) { row in
-                            pullRequestRow(row, pinned: false)
                         }
                     }
                 }

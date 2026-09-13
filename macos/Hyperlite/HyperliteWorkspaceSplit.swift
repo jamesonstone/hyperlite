@@ -21,6 +21,8 @@ enum HyperliteWorkspaceSplit {
     static let stackedEmptyListHeight: CGFloat = 20
     static let stackedPanelSpacing: CGFloat = 8
     static let stackedLazySpacing: CGFloat = 4
+    static let stackedStageVerticalPadding: CGFloat = 6
+    static let stackedStageSpacing: CGFloat = 8
     static let stackedColumnSpacing: CGFloat = 10
     static let stackedStatusHeight: CGFloat = 20
     static let stackedLoadingHeight: CGFloat = 28
@@ -113,20 +115,25 @@ enum HyperliteWorkspaceSplit {
         if rows == 0 && idleProjectCount == 0 {
             height += stackedEmptyListHeight
         } else {
-            let pinnedLabelCount = pinnedCount == 0 ? 0 : 1
-            let sectionCount = pinnedLabelCount + projectSectionCount
-            let nonIdleProjectCount = max(projectSectionCount - idleProjectCount, 0)
             let emptyDropCount = pinnedCount == 0 ? 1 : 0
-            let lazyChildCount = sectionCount + rows + emptyDropCount
-            height += stackedSectionLabelHeight * CGFloat(sectionCount)
+            let pinnedStageCount = pinnedCount == 0 ? 0 : 1
+            let stageCount = pinnedStageCount + projectSectionCount
+            let outerChildCount = emptyDropCount + stageCount
+            let nonIdleProjectCount = max(projectSectionCount - idleProjectCount, 0)
+            height += stackedStageSpacing * CGFloat(max(outerChildCount - 1, 0))
+            if emptyDropCount > 0 { height += stackedEmptyDropHeight }
+            if pinnedStageCount > 0 {
+                height += stackedStageVerticalPadding * 2
+                height += stackedPinnedLabelTopPadding + stackedSectionLabelHeight
+                height += CGFloat(pinnedCount) * rowHeight
+                height += stackedLazySpacing * CGFloat(pinnedCount)
+            }
+            height += CGFloat(projectSectionCount) * stackedStageVerticalPadding * 2
+            height += stackedSectionLabelHeight * CGFloat(projectSectionCount)
             height += CGFloat(nonIdleProjectCount) * stackedActiveSectionTopPadding
             height += CGFloat(idleProjectCount) * stackedIdleSectionTopPadding
-            if pinnedLabelCount > 0 {
-                height += stackedPinnedLabelTopPadding
-            }
-            height += stackedLazySpacing * CGFloat(max(lazyChildCount - 1, 0))
-            height += CGFloat(rows) * rowHeight
-            if pinnedCount == 0 { height += stackedEmptyDropHeight }
+            height += CGFloat(openCount) * rowHeight
+            height += stackedLazySpacing * CGFloat(openCount)
         }
         if hasStatusMessage {
             height += stackedStatusHeight + stackedColumnSpacing

@@ -15,14 +15,18 @@ struct HyperlitePullRequestPanelRow: View {
     let move: (String, String) -> Void
     let moveBy: (String, Int) -> Void
 
+    static let dragHandleRestOpacity: Double = 0.32
+
     @State private var hoverPresented = false
     @State private var hoverTask: Task<Void, Never>?
+    @State private var rowHovering = false
 
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: "line.3.horizontal")
                 .font(.system(size: 9, weight: .medium))
                 .foregroundStyle(HyperliteTheme.mutedText.color)
+                .opacity(rowHovering ? 1 : Self.dragHandleRestOpacity)
                 .frame(width: 16, height: 16)
                 .contentShape(Rectangle())
                 .onDrag {
@@ -93,6 +97,7 @@ struct HyperlitePullRequestPanelRow: View {
     }
 
     private func handleHover(_ hovering: Bool) {
+        rowHovering = hovering
         hoverTask?.cancel()
         hoverTask = Task { @MainActor in
             let delay: Duration = hovering ? .milliseconds(350) : .milliseconds(200)

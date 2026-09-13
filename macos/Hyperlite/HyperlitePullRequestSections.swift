@@ -126,4 +126,13 @@ enum HyperliteOpenPRProjectFilter {
         guard hideIdle else { return sections }
         return sections.filter { !isIdle($0, now: now) }
     }
+
+    static func hiddenSections(
+        _ sections: [HyperliteProjectSection],
+        hideIdle: Bool,
+        now: Date
+    ) -> [HyperliteProjectSection] {
+        guard hideIdle else { return [] }
+        return sections.filter { isIdle($0, now: now) }
+    }
 }
