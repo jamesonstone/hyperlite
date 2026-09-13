@@ -21,11 +21,12 @@ const cacheVersion = 1
 var cacheMutex sync.Mutex
 
 type cacheEntry struct {
-	Repository   string                     `json:"repository"`
-	CheckedAt    time.Time                  `json:"checked_at,omitempty"`
-	ObservedAt   time.Time                  `json:"observed_at"`
-	LastError    string                     `json:"last_error,omitempty"`
-	PullRequests []model.ProjectPullRequest `json:"pull_requests"`
+	Repository   string                         `json:"repository"`
+	CheckedAt    time.Time                      `json:"checked_at,omitempty"`
+	ObservedAt   time.Time                      `json:"observed_at"`
+	LastError    string                         `json:"last_error,omitempty"`
+	PullRequests []model.ProjectPullRequest     `json:"pull_requests"`
+	Workflows    *model.ProjectWorkflowActivity `json:"workflows,omitempty"`
 }
 
 type cacheState struct {
@@ -33,12 +34,13 @@ type cacheState struct {
 	Projects     map[string]string      `json:"projects"`
 	Repositories map[string]cacheEntry  `json:"repositories"`
 	RateLimit    *model.GitHubRateLimit `json:"rate_limit,omitempty"`
+	Activity     *cachedActivityState   `json:"activity,omitempty"`
 	UpdatedAt    time.Time              `json:"updated_at"`
 }
 
 type CacheStore interface {
 	Load() (cacheState, string, error)
-	Update(func(*cacheState)) (cacheState, error)
+	Update(func(*cacheState) bool) (cacheState, error)
 }
 
 type Store struct {
@@ -85,7 +87,11 @@ func (s Store) Load() (cacheState, string, error) {
 	return state, warning, err
 }
 
-func (s Store) Update(mutate func(*cacheState)) (cacheState, error) {
+// Update mutates the cache under an exclusive lock. The mutate callback
+// returns whether to commit: a false return leaves the cache untouched (no
+// write, no UpdatedAt bump) so a denied reservation can re-evaluate the
+// freshest state without side effects.
+func (s Store) Update(mutate func(*cacheState) bool) (cacheState, error) {
 	cacheMutex.Lock()
 	defer cacheMutex.Unlock()
 	var updated cacheState
@@ -94,7 +100,10 @@ func (s Store) Update(mutate func(*cacheState)) (cacheState, error) {
 		if err != nil {
 			return err
 		}
-		mutate(&state)
+		if !mutate(&state) {
+			updated = state
+			return nil
+		}
 		state.UpdatedAt = s.now()
 		if err := s.write(state); err != nil {
 			return err
@@ -263,8 +272,9 @@ func validateCache(state *cacheState) error {
 		}
 		if entry.PullRequests == nil {
 			entry.PullRequests = []model.ProjectPullRequest{}
-			state.Repositories[key] = entry
 		}
+		normalizeWorkflowActivity(entry.Workflows)
+		state.Repositories[key] = entry
 	}
 	return nil
 }
@@ -277,6 +287,7 @@ func sortCache(state *cacheState) {
 			}
 			return entry.PullRequests[i].Number < entry.PullRequests[j].Number
 		})
+		sortWorkflowActivity(entry.Workflows)
 		state.Repositories[key] = entry
 	}
 }

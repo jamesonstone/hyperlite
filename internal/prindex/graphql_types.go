@@ -63,4 +63,7 @@ type rawRepository struct {
 			EndCursor   string `json:"endCursor"`
 		} `json:"pageInfo"`
 	} `json:"pullRequests"`
+	DefaultBranchRef *rawDefaultBranchRef     `json:"defaultBranchRef"`
+	WorkflowsTree    *rawTreeOID              `json:"workflowsTree"`
+	Deployments      *rawDeploymentConnection `json:"deployments"`
 }

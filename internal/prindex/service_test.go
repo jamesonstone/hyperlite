@@ -28,6 +28,7 @@ func TestScannerHonorsFiveMinuteFloorAndForceRefresh(t *testing.T) {
 					HeadRefOID:              "head-1",
 					UnresolvedReviewThreads: &cachedReviewThreads,
 				}},
+				Workflows: &model.ProjectWorkflowActivity{},
 			},
 		},
 	}}
@@ -171,7 +172,10 @@ func TestScannerRefreshesOnlyStaleRepositoriesInOneClientCall(t *testing.T) {
 		Version: cacheVersion, Projects: map[string]string{},
 		Repositories: map[string]cacheEntry{
 			"owner/one": {Repository: one.GitHub, ObservedAt: now.Add(-6 * time.Minute)},
-			"owner/two": {Repository: two.GitHub, ObservedAt: now.Add(-time.Minute)},
+			"owner/two": {
+				Repository: two.GitHub, ObservedAt: now.Add(-time.Minute),
+				Workflows: &model.ProjectWorkflowActivity{},
+			},
 		},
 	}}
 	client := &fakePullRequestClient{results: map[string]RepositoryResult{

@@ -156,6 +156,9 @@ Observable acceptance:
   immediately before the drop target.
 - Stacked fit-content height now counts every `LazyVStack` child, including
   empty pin drop targets, PR rows, and availability rows.
+- Feature 0031 extends R1 to every configured project (sections exist without
+  rows) and supersedes R5: cached and unavailable projects now render their
+  availability text inside their own section instead of a trailing list.
 
 ## VALIDATION
 

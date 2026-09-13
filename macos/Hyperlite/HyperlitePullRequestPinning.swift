@@ -2,9 +2,10 @@ import Foundation
 
 enum HyperlitePullRequestPinning {
     struct ProjectGroup: Equatable, Identifiable {
+        var projectID: String
         var repository: String
         var rows: [HyperlitePullRequestRow]
-        var id: String { repository }
+        var id: String { projectID }
     }
 
     struct Sections: Equatable {
@@ -17,11 +18,13 @@ enum HyperlitePullRequestPinning {
         var groups: [ProjectGroup] = []
         var index: [String: Int] = [:]
         for row in rows {
-            if let existing = index[row.repository] {
+            if let existing = index[row.groupKey] {
                 groups[existing].rows.append(row)
             } else {
-                index[row.repository] = groups.count
-                groups.append(ProjectGroup(repository: row.repository, rows: [row]))
+                index[row.groupKey] = groups.count
+                groups.append(ProjectGroup(
+                    projectID: row.groupKey, repository: row.repository, rows: [row]
+                ))
             }
         }
         return groups

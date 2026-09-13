@@ -172,7 +172,6 @@ enum HyperliteWorkspaceSplitTests {
             pinnedCount: 0,
             openCount: 4,
             projectSectionCount: 2,
-            availabilityCount: 0,
             compactRows: false,
             hasStatusMessage: false
         )
@@ -184,7 +183,6 @@ enum HyperliteWorkspaceSplitTests {
             pinnedCount: 0,
             openCount: 0,
             projectSectionCount: 0,
-            availabilityCount: 0,
             compactRows: false,
             hasStatusMessage: false
         )
@@ -201,7 +199,6 @@ enum HyperliteWorkspaceSplitTests {
             pinnedCount: 0,
             openCount: 4,
             projectSectionCount: 2,
-            availabilityCount: 0,
             compactRows: false,
             hasStatusMessage: false
         )
@@ -211,12 +208,23 @@ enum HyperliteWorkspaceSplitTests {
             pinnedCount: 0,
             openCount: 2,
             projectSectionCount: 1,
-            availabilityCount: 1,
             compactRows: false,
-            hasStatusMessage: false
+            hasStatusMessage: false,
+            idleProjectCount: 1
         )
         expect(withAvailability == 140,
-               "availability rows should count in the stacked spacing estimate")
+               "idle project lines should count in the stacked spacing estimate")
+        let withProjects = HyperliteWorkspaceSplit.estimatedStackedContentHeight(
+            pinnedCount: 0,
+            openCount: 2,
+            projectSectionCount: 3,
+            compactRows: false,
+            hasStatusMessage: false,
+            idleProjectCount: 2,
+            workflowStripCount: 2
+        )
+        expect(withProjects == 233,
+               "idle project lines and workflow strips should count in the stacked estimate; got \(withProjects)")
     }
 
     private static func testTinyStackedDragKeepsFitContent() {
