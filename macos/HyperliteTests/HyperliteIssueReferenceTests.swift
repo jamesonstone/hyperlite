@@ -22,6 +22,10 @@ enum HyperliteIssueReferenceTests {
                "GH inside a word must not match the ticket convention")
         expect(HyperliteIssueReference.number(branch: "gh-12", title: "") == nil,
                "the convention is uppercase GH-, so lowercase does not match")
+        expect(HyperliteIssueReference.number(branch: "GH-12foo", title: "GH-34bar") == nil,
+               "a number followed by more word characters is not a complete GH- token")
+        expect(HyperliteIssueReference.number(branch: "GH-12-cleanup", title: "") == 12,
+               "a non-word separator after the number still completes the token")
     }
 
     private static func testRowLinksToTrackedIssue() {

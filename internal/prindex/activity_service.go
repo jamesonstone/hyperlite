@@ -48,8 +48,12 @@ func (s Scanner) scanActivity(
 	if missingClient {
 		return model.ProjectPullRequestScan{}, errors.New("workflow activity client is not configured")
 	}
+	// Use the cache the reservation Update loaded under the lock even when the
+	// reservation was denied: the outer Load and this Update are separate
+	// operations, so a concurrent scan can commit activity in between, and the
+	// denied branch must not rebuild the result from the stale outer load.
+	scan.cache = reservedCache
 	if reserved {
-		scan.cache = reservedCache
 		// The reservation stands even if PollActivity fails: a burned interval
 		// is preferable to a race that ignores the cap on retry.
 		polled := s.Workflows.PollActivity(ctx, requests)

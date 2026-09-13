@@ -105,14 +105,18 @@ func TestActivityModePollsOnlyActiveHeadsAndNeverListsPullRequests(t *testing.T)
 func TestActivityModeReservesPollBeforeGitHubCall(t *testing.T) {
 	now := time.Date(2026, 9, 12, 20, 0, 0, 0, time.UTC)
 	source, repository, store := activityFixture(now)
-	// A concurrent scan records a poll between this scan's Load and its
-	// reservation Update. The governor must re-evaluate inside the locked
-	// Update and deny on the minimum interval, so only one caller ever
-	// reaches PollActivity.
+	// A concurrent scan records a poll and edits a row between this scan's Load
+	// and its reservation Update. The governor must re-evaluate inside the
+	// locked Update and deny on the minimum interval, so only one caller ever
+	// reaches PollActivity, and the denied result must reflect the concurrent
+	// row edit rather than the stale outer load.
 	store.beforeUpdate = func(state *cacheState) {
 		state.Activity = &cachedActivityState{
 			LastCheckedAt: now, WindowResetAt: now.Add(40 * time.Minute), PollsThisWindow: 1,
 		}
+		entry := state.Repositories["owner/one"]
+		entry.PullRequests[0].Title = "Concurrent"
+		state.Repositories["owner/one"] = entry
 	}
 	workflows := &fakeWorkflowClient{poll: ActivityResult{Repositories: map[string]RepositoryActivityResult{
 		"owner/one": {
@@ -132,6 +136,9 @@ func TestActivityModeReservesPollBeforeGitHubCall(t *testing.T) {
 	if result.ActivityPolicy == nil || result.ActivityPolicy.Allowed ||
 		result.ActivityPolicy.Reason != activityPollInterval {
 		t.Fatalf("policy = %#v", result.ActivityPolicy)
+	}
+	if result.Projects[0].PullRequests[0].Title != "Concurrent" {
+		t.Fatalf("denied reservation must return the reservation Update's cache: %#v", result.Projects[0])
 	}
 }
 

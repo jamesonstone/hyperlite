@@ -9,9 +9,10 @@ enum HyperliteIssueReference {
     }
 
     private static func ghNumber(in text: String) -> Int? {
-        // A word boundary before GH- keeps "high-5" and similar words from
-        // matching the ticket convention.
-        guard let range = text.range(of: "\\bGH-[0-9]+", options: .regularExpression) else {
+        // Word boundaries on both sides keep "high-5" and "GH-12foo" from
+        // matching: the leading boundary rejects GH inside a word, and the
+        // trailing boundary requires a complete GH-<number> token.
+        guard let range = text.range(of: "\\bGH-[0-9]+\\b", options: .regularExpression) else {
             return nil
         }
         return Int(text[range].dropFirst(3))
