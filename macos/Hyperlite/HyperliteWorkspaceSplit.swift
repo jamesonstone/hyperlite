@@ -10,16 +10,14 @@ enum HyperliteWorkspaceSplit {
     static let stackedFitFallback: Double = 0.28
     static let splitterHit: CGFloat = 8
     static let minimumStackedPullRequestHeight: CGFloat = 72
-    static let stackedHeaderHeight: CGFloat = 20
+    static let stackedHeaderHeight: CGFloat = 28
     static let stackedSectionLabelHeight: CGFloat = 16
     static let stackedEmptyDropHeight: CGFloat = 8
     static let stackedWideRowHeight: CGFloat = 22
     static let stackedCompactRowHeight: CGFloat = 36
-    static let stackedAvailabilityRowHeight: CGFloat = 16
-    static let stackedWorkflowStripHeight: CGFloat = 18
     static let stackedEmptyListHeight: CGFloat = 20
-    static let stackedPanelSpacing: CGFloat = 5
-    static let stackedLazySpacing: CGFloat = 3
+    static let stackedPanelSpacing: CGFloat = 8
+    static let stackedLazySpacing: CGFloat = 4
     static let stackedColumnSpacing: CGFloat = 10
     static let stackedStatusHeight: CGFloat = 20
     static let stackedLoadingHeight: CGFloat = 28
@@ -104,8 +102,7 @@ enum HyperliteWorkspaceSplit {
         projectSectionCount: Int,
         compactRows: Bool,
         hasStatusMessage: Bool,
-        idleProjectCount: Int = 0,
-        workflowStripCount: Int = 0
+        idleProjectCount: Int = 0
     ) -> CGFloat {
         let rowHeight = compactRows ? stackedCompactRowHeight : stackedWideRowHeight
         let rows = pinnedCount + openCount
@@ -113,14 +110,13 @@ enum HyperliteWorkspaceSplit {
         if rows == 0 && idleProjectCount == 0 {
             height += stackedEmptyListHeight
         } else {
-            let sectionCount = 1 + projectSectionCount
+            let pinnedLabelCount = pinnedCount == 0 ? 0 : 1
+            let sectionCount = pinnedLabelCount + projectSectionCount
             let emptyDropCount = pinnedCount == 0 ? 1 : 0
-            let lazyChildCount = sectionCount + rows + idleProjectCount + emptyDropCount
+            let lazyChildCount = sectionCount + rows + emptyDropCount
             height += stackedSectionLabelHeight * CGFloat(sectionCount)
             height += stackedLazySpacing * CGFloat(max(lazyChildCount - 1, 0))
             height += CGFloat(rows) * rowHeight
-            height += CGFloat(idleProjectCount) * stackedAvailabilityRowHeight
-            height += CGFloat(workflowStripCount) * stackedWorkflowStripHeight
             if pinnedCount == 0 { height += stackedEmptyDropHeight }
         }
         if hasStatusMessage {

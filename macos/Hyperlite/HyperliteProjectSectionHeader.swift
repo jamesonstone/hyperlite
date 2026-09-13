@@ -9,82 +9,112 @@ struct HyperliteProjectSectionHeader: View {
     @Binding var draggedRowID: String?
     let drop: (String) -> Void
 
+    private var isIdle: Bool { section.rows.isEmpty }
+    private var stripChips: [HyperliteWorkflowChip] {
+        HyperliteProjectSectionChrome.stripChips(
+            chips, idle: isIdle, compact: compact
+        )
+    }
+    private var chromeLeading: CGFloat {
+        HyperlitePullRequestRowLayout.rowChromeLeading
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 6) {
-                Button {
-                    open(section.repositoryURL)
-                } label: {
-                    HStack(spacing: 4) {
-                        Text(section.repository)
-                            .font(HyperliteTypography.heading)
-                            .foregroundStyle(HyperliteTheme.secondaryText.color)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                        Text("\(section.rows.count)")
-                            .font(HyperliteTypography.compact.monospacedDigit())
-                            .foregroundStyle(HyperliteTheme.mutedText.color)
-                    }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .disabled(section.repositoryURL == nil)
-                .help(section.repositoryURL == nil ? "" : "Open \(section.repository) on GitHub")
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .onDrop(
-                    of: [UTType.text.identifier],
-                    delegate: HyperliteSectionPinDropDelegate(
-                        draggedID: $draggedRowID,
-                        pin: drop
-                    )
-                )
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(accessibilityLabel)
-                .accessibilityHint(section.repositoryURL == nil ? "" : "Opens the repository on GitHub")
-                HyperliteDashboardControlButton(
-                    systemName: "arrow.triangle.pull",
-                    active: false,
-                    label: section.pullsButtonLabel,
-                    disabled: section.pullsURL == nil
-                ) { open(section.pullsURL) }
-                HyperliteDashboardControlButton(
-                    systemName: "play.circle",
-                    active: chips.contains(where: \.isRunning),
-                    label: section.actionsButtonLabel,
-                    disabled: section.actionsURL == nil
-                ) { open(section.actionsURL) }
+        HStack(spacing: 6) {
+            Button {
+                open(section.repositoryURL)
+            } label: {
+                label.contentShape(Rectangle())
             }
-            if !chips.isEmpty {
-                HyperliteWorkflowStrip(chips: chips, compact: compact)
+            .buttonStyle(.plain)
+            .disabled(section.repositoryURL == nil)
+            .help(section.repositoryURL == nil ? "" : "Open \(section.repository) on GitHub")
+            .padding(.leading, chromeLeading)
+            .layoutPriority(1)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(accessibilityLabel)
+            .accessibilityHint(section.repositoryURL == nil ? "" : "Opens the repository on GitHub")
+            if !stripChips.isEmpty {
+                HyperliteWorkflowStrip(chips: stripChips, compact: false)
+                    .layoutPriority(-1)
+            }
+            Spacer(minLength: 4)
+            HyperliteDashboardControlButton(
+                systemName: "arrow.triangle.pull",
+                active: false,
+                label: section.pullsButtonLabel,
+                disabled: section.pullsURL == nil
+            ) { open(section.pullsURL) }
+            HyperliteDashboardControlButton(
+                systemName: "play.circle",
+                active: chips.contains(where: \.isRunning),
+                label: section.actionsButtonLabel,
+                disabled: section.actionsURL == nil
+            ) { open(section.actionsURL) }
+        }
+        .onDrop(
+            of: [UTType.text.identifier],
+            delegate: HyperliteSectionPinDropDelegate(
+                draggedID: $draggedRowID,
+                pin: drop
+            )
+        )
+        .padding(.top, isIdle ? 2 : 10)
+    }
+
+    private var label: some View {
+        HStack(spacing: 6) {
+            Text(section.repository)
+                .font(headingFont)
+                .foregroundStyle(headingColor)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .layoutPriority(1)
+            if isIdle {
+                Text(section.idleText)
+                    .font(HyperliteTypography.compact)
+                    .foregroundStyle(HyperliteTheme.mutedText.color)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .help(section.project.message ?? section.idleText)
+            } else {
+                Text("\(section.rows.count)")
+                    .font(HyperliteTypography.compact.monospacedDigit())
+                    .foregroundStyle(HyperliteTheme.secondaryText.color)
             }
         }
-        .padding(.top, 6)
+    }
+
+    private var headingWeight: HyperliteProjectSectionChrome.HeadingWeight {
+        HyperliteProjectSectionChrome.headingWeight(idle: isIdle, chips: chips)
+    }
+
+    private var headingFont: Font {
+        switch headingWeight {
+        case .active: HyperliteTypography.heading
+        case .notable: HyperliteTypography.body
+        case .idle: HyperliteTypography.compact
+        }
+    }
+
+    private var headingColor: Color {
+        switch headingWeight {
+        case .active: HyperliteTheme.primaryText.color
+        case .notable: HyperliteTheme.secondaryText.color
+        case .idle: HyperliteTheme.mutedText.color
+        }
     }
 
     private var accessibilityLabel: String {
-        "\(section.repository) pull requests, \(section.rows.count), " +
+        let lead = isIdle
+            ? "\(section.repository) pull requests, \(section.idleText)"
+            : "\(section.repository) pull requests, \(section.rows.count)"
+        return lead + ", " +
             HyperliteWorkflowStripPresentation.headerSummary(chips: chips, now: Date())
     }
 
     private func open(_ url: URL?) {
         guard let url else { return }
         NSWorkspace.shared.open(url)
-    }
-}
-
-struct HyperliteProjectIdleRow: View {
-    let section: HyperliteProjectSection
-
-    var body: some View {
-        Text(section.idleText)
-            .font(HyperliteTypography.compact)
-            .foregroundStyle(HyperliteTheme.mutedText.color)
-            .lineLimit(1)
-            .truncationMode(.tail)
-            .padding(.leading, 20)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .help(section.project.message ?? section.idleText)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("\(section.repository), \(section.idleText)")
     }
 }

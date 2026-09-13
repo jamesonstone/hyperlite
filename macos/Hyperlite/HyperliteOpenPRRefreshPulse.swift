@@ -72,8 +72,8 @@ struct HyperliteOpenPRTitleCluster: View {
                 .foregroundStyle(HyperliteTheme.primaryText.color)
             if let count {
                 Text("\(count)")
-                    .font(HyperliteTypography.body.monospacedDigit())
-                    .foregroundStyle(HyperliteTheme.secondaryText.color)
+                    .font(HyperliteTypography.compact.monospacedDigit())
+                    .foregroundStyle(HyperliteTheme.mutedText.color)
             }
         }
     }

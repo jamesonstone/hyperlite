@@ -34,6 +34,7 @@
 | 0029 | open-pr-refresh-ghost | `docs/specs/0029-open-pr-refresh-ghost` | deliver | no | 2026-09-11 | Pulse the Open PRs heading with a tiny ghost while GitHub is still fetching. |
 | 0030 | open-pr-refresh-ghost-overlay | `docs/specs/0030-open-pr-refresh-ghost-overlay` | deliver | no | 2026-09-11 | Overlay a large spinning ghost across the Open PRs pane while GitHub is still fetching. |
 | 0031 | open-pr-workflow-activity | `docs/specs/0031-open-pr-workflow-activity` | deliver | no | 2026-09-12 | Show running GitHub Actions workflows and deployments per project with a quota-governed poll and Pulls/Actions links. |
+| 0032 | open-pr-design-pass | `docs/specs/0032-open-pr-design-pass` | deliver | no | 2026-09-13 | Stronger Open PRs title, brighter project headings, folded idle lines, aligned content column, and no compact `+N` idle-workflow count. |
 
 ## PROJECT INTENT
 
@@ -436,8 +437,20 @@ changes that warrant human attention.
 - **OPEN ITEMS**: Ready pull-request delivery through issue #96.
 - **POINTERS**: `docs/specs/0031-open-pr-workflow-activity/SPEC.md`
 
+### open-pr-design-pass
+
+- **STATUS**: deliver
+- **PAUSED**: no
+- **INTENT**: Make Open PRs scan as a hierarchy with a stronger panel title, bright headings for projects that have work, and a single dim line for idle projects.
+- **APPROACH**: Promote the panel title, fold idle copy into the heading, indent labels and chips to the row content column, and drop compact `+N` idle-workflow counts.
+- **OPEN ITEMS**: Ready pull-request delivery through issue #98.
+- **POINTERS**: `docs/specs/0032-open-pr-design-pass/SPEC.md`
+
 ## LAST UPDATED
 
+- 2026-09-13: Added feature `0032-open-pr-design-pass` so Open PRs read as
+  title, then project, then rows; idle projects collapse to one compact muted
+  line and compact workflow strips no longer show a noise-only `+N`.
 - 2026-09-12: Added feature `0031-open-pr-workflow-activity` so every
   configured project owns an Open PRs section with Pulls and Actions links and
   a workflow strip whose running chip glides a ghost, kept current by a

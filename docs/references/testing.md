@@ -29,7 +29,9 @@
   refresh ghost overlay, notepad pane-fill wrapping, per-project workflow
   activity decoding, chip derivation with the two-minute freshness boundary,
   gliding-ghost math, every-project section plans with Pulls/Actions links,
-  the bounded activity poll schedule, and Command-K literal search without loading
+  the bounded activity poll schedule, Open PR title hierarchy and folded idle
+  headings, compact workflow strips without a leftover `+N`, and Command-K
+  literal search without loading
   sentence embeddings. The native
   window no longer compiles Agent Island, Agent Tasks, Pinboard, or pinned Codex
   presentation tests.

@@ -166,8 +166,7 @@ enum HyperliteWorkflowStripPresentation {
     }
 
     static func compactChips(_ chips: [HyperliteWorkflowChip]) -> (visible: [HyperliteWorkflowChip], hiddenCount: Int) {
-        let visible = chips.filter { $0.isRunning || $0.needsAttention }
-        return (visible, chips.count - visible.count)
+        (chips.filter { $0.isRunning || $0.needsAttention }, 0)
     }
 
     static func elapsedLabel(since: Date, now: Date) -> String {
