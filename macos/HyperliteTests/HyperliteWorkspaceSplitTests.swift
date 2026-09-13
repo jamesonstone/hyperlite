@@ -150,7 +150,7 @@ enum HyperliteWorkspaceSplitTests {
             compactRows: false,
             hasStatusMessage: false
         )
-        expect(emptyPinned == 240,
+        expect(emptyPinned == 236,
                "empty Pinned should not keep a caption line; got \(emptyPinned)")
         let withAvailability = HyperliteWorkspaceSplit.estimatedStackedContentHeight(
             pinnedCount: 0,
@@ -160,7 +160,7 @@ enum HyperliteWorkspaceSplitTests {
             hasStatusMessage: false,
             idleProjectCount: 1
         )
-        expect(withAvailability == 134,
+        expect(withAvailability == 132,
                "folded idle headings should not add a second availability row; got \(withAvailability)")
         let withProjects = HyperliteWorkspaceSplit.estimatedStackedContentHeight(
             pinnedCount: 0,
@@ -170,7 +170,7 @@ enum HyperliteWorkspaceSplitTests {
             hasStatusMessage: false,
             idleProjectCount: 2
         )
-        expect(withProjects == 218,
+        expect(withProjects == 212,
                "inline heading chips should not add a second stacked line; got \(withProjects)")
         let withPinned = HyperliteWorkspaceSplit.estimatedStackedContentHeight(
             pinnedCount: 2,
@@ -179,7 +179,7 @@ enum HyperliteWorkspaceSplitTests {
             compactRows: false,
             hasStatusMessage: false
         )
-        expect(withPinned == 194,
+        expect(withPinned == 188,
                "a visible Pinned caption should count its stage padding; got \(withPinned)")
         expect(
             HyperlitePullRequestRowLayout.rowChromeLeading == 64,

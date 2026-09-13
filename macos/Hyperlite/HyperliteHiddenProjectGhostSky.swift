@@ -4,10 +4,10 @@ import SwiftUI
 enum HyperliteHiddenProjectGhostSkyPresentation {
     static let caption = "watching the quiet ones"
     static let minimumLeftover: CGFloat = 40
-    static let tokenSpacing: CGFloat = 10
-    static let lineSpacing: CGFloat = 14
-    static let minOpacity = 0.42
-    static let maxOpacity = 0.70
+    static let minOpacity = 0.28
+    static let maxOpacity = 0.78
+    static let inset: CGFloat = 22
+    static let goldenAngle = 2.399963229728653
 
     static func showsSky(
         compact: Bool,
@@ -23,17 +23,46 @@ enum HyperliteHiddenProjectGhostSkyPresentation {
     }
 
     static func opacity(for id: String) -> Double {
-        let hash = seed(id, salt: 17)
         let span = maxOpacity - minOpacity
-        return minOpacity + (Double(hash % 29) / 28.0) * span
+        return minOpacity + (Double(seed(id, salt: 17) % 29) / 28.0) * span
     }
 
-    static func floatOffset(for id: String) -> CGFloat {
-        CGFloat(Int(seed(id, salt: 11) % 9) - 4)
+    static func glyphSize(for id: String) -> CGFloat {
+        14 + CGFloat(seed(id, salt: 5) % 11)
     }
 
-    static func tiltDegrees(for id: String) -> Double {
-        Double(Int(seed(id, salt: 23) % 9) - 4)
+    static func drift(for id: String) -> CGSize {
+        CGSize(
+            width: CGFloat(Int(seed(id, salt: 13) % 9) - 4),
+            height: CGFloat(Int(seed(id, salt: 19) % 11) - 5)
+        )
+    }
+
+    static func driftDuration(for id: String) -> Double {
+        3.1 + Double(seed(id, salt: 29) % 21) / 10.0
+    }
+
+    static func point(
+        for id: String,
+        index: Int,
+        count: Int,
+        in size: CGSize
+    ) -> CGPoint {
+        let usable = CGSize(
+            width: max(size.width - inset * 2, 1),
+            height: max(size.height - inset * 2, 1)
+        )
+        let total = max(count, 1)
+        let radius = sqrt(Double(index + 1) / Double(total)) * min(usable.width, usable.height) * 0.46
+        let angle = goldenAngle * Double(index)
+        let jitterX = CGFloat(Int(seed(id, salt: 3) % 15) - 7)
+        let jitterY = CGFloat(Int(seed(id, salt: 7) % 13) - 6)
+        let x = inset + usable.width * 0.52 + CGFloat(cos(angle)) * radius + jitterX
+        let y = inset + usable.height * 0.46 + CGFloat(sin(angle)) * radius + jitterY
+        return CGPoint(
+            x: min(max(x, inset), size.width - inset),
+            y: min(max(y, inset), size.height - inset)
+        )
     }
 
     private static func seed(_ id: String, salt: Int) -> UInt64 {
@@ -50,118 +79,97 @@ struct HyperliteMeasuredHeightKey: PreferenceKey {
     }
 }
 
-struct HyperliteWrappingHStack: Layout {
-    var spacing: CGFloat = 8
-    var lineSpacing: CGFloat = 12
-
-    func sizeThatFits(
-        proposal: ProposedViewSize,
-        subviews: Subviews,
-        cache: inout ()
-    ) -> CGSize {
-        arrange(proposal.width, subviews: subviews).size
-    }
-
-    func placeSubviews(
-        in bounds: CGRect,
-        proposal: ProposedViewSize,
-        subviews: Subviews,
-        cache: inout ()
-    ) {
-        let result = arrange(proposal.width, subviews: subviews)
-        for (index, frame) in zip(subviews.indices, result.frames) {
-            subviews[index].place(
-                at: CGPoint(x: bounds.minX + frame.minX, y: bounds.minY + frame.minY),
-                proposal: ProposedViewSize(frame.size)
-            )
-        }
-    }
-
-    private func arrange(
-        _ proposedWidth: CGFloat?,
-        subviews: Subviews
-    ) -> (size: CGSize, frames: [CGRect]) {
-        let width = proposedWidth ?? .infinity
-        var frames: [CGRect] = []
-        var x: CGFloat = 0
-        var y: CGFloat = 0
-        var lineHeight: CGFloat = 0
-        var maxX: CGFloat = 0
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if x > 0 && width.isFinite && x + size.width > width {
-                x = 0
-                y += lineHeight + lineSpacing
-                lineHeight = 0
-            }
-            frames.append(CGRect(origin: CGPoint(x: x, y: y), size: size))
-            x += size.width + spacing
-            lineHeight = max(lineHeight, size.height)
-            maxX = max(maxX, frames.last?.maxX ?? 0)
-        }
-        let fittedWidth = width.isFinite ? width : maxX
-        return (CGSize(width: fittedWidth, height: y + lineHeight), frames)
-    }
-}
-
 struct HyperliteHiddenProjectGhostSky: View {
     let sections: [HyperliteProjectSection]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
+        GeometryReader { geo in
+            ZStack(alignment: .topLeading) {
                 Text(HyperliteOpenPRRefreshPulse.glyph)
-                    .font(.system(size: 13))
-                Text(HyperliteHiddenProjectGhostSkyPresentation.caption)
-                    .font(HyperliteTypography.compact)
-                Text("\(sections.count)")
-                    .font(HyperliteTypography.compact.monospacedDigit())
-            }
-            .foregroundStyle(HyperliteTheme.mutedText.color)
-            .accessibilityHidden(true)
-            HyperliteWrappingHStack(
-                spacing: HyperliteHiddenProjectGhostSkyPresentation.tokenSpacing,
-                lineSpacing: HyperliteHiddenProjectGhostSkyPresentation.lineSpacing
-            ) {
-                ForEach(sections) { section in
-                    HyperliteHiddenProjectGhost(section: section)
+                    .font(.system(size: min(geo.size.width, geo.size.height) * 0.42))
+                    .opacity(0.06)
+                    .frame(width: geo.size.width, height: geo.size.height)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+                caption
+                ForEach(Array(sections.enumerated()), id: \.element.id) { index, section in
+                    HyperliteHiddenProjectGhost(
+                        section: section,
+                        origin: HyperliteHiddenProjectGhostSkyPresentation.point(
+                            for: section.id,
+                            index: index,
+                            count: sections.count,
+                            in: geo.size
+                        )
+                    )
                 }
             }
         }
-        .padding(.top, 12)
-        .padding(.leading, HyperlitePullRequestRowLayout.rowChromeLeading)
-        .padding(.trailing, 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Hidden idle projects, \(sections.count)")
+    }
+
+    private var caption: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text(HyperliteOpenPRRefreshPulse.glyph)
+                .font(.system(size: 13))
+            Text(HyperliteHiddenProjectGhostSkyPresentation.caption)
+                .font(HyperliteTypography.compact)
+            Text("\(sections.count)")
+                .font(HyperliteTypography.compact.monospacedDigit())
+        }
+        .foregroundStyle(HyperliteTheme.mutedText.color)
+        .padding(.leading, 18)
+        .padding(.top, 8)
+        .accessibilityHidden(true)
     }
 }
 
 struct HyperliteHiddenProjectGhost: View {
     let section: HyperliteProjectSection
+    let origin: CGPoint
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var drifting = false
+    @State private var hovering = false
 
     var body: some View {
         Button {
             guard let url = section.repositoryURL else { return }
             NSWorkspace.shared.open(url)
         } label: {
-            HStack(spacing: 4) {
+            VStack(spacing: 2) {
                 Text(HyperliteOpenPRRefreshPulse.glyph)
-                    .font(.system(size: 12))
-                Text(HyperliteHiddenProjectGhostSkyPresentation.shortName(section.repository))
-                    .font(HyperliteTypography.compact)
-                    .lineLimit(1)
+                    .font(.system(size: HyperliteHiddenProjectGhostSkyPresentation.glyphSize(for: section.id)))
+                if hovering {
+                    Text(HyperliteHiddenProjectGhostSkyPresentation.shortName(section.repository))
+                        .font(HyperliteTypography.compact)
+                        .foregroundStyle(HyperliteTheme.secondaryText.color)
+                        .lineLimit(1)
+                }
             }
             .foregroundStyle(HyperliteTheme.mutedText.color)
-            .opacity(HyperliteHiddenProjectGhostSkyPresentation.opacity(for: section.id))
-            .offset(y: HyperliteHiddenProjectGhostSkyPresentation.floatOffset(for: section.id))
-            .rotationEffect(
-                .degrees(HyperliteHiddenProjectGhostSkyPresentation.tiltDegrees(for: section.id))
-            )
+            .opacity(hovering ? 1 : HyperliteHiddenProjectGhostSkyPresentation.opacity(for: section.id))
+            .scaleEffect(hovering ? 1.28 : 1)
+            .offset(drifting && !reduceMotion
+                ? HyperliteHiddenProjectGhostSkyPresentation.drift(for: section.id)
+                : .zero)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .disabled(section.repositoryURL == nil)
+        .position(origin)
+        .onHover { hovering = $0 }
+        .onAppear { drifting = true }
+        .animation(
+            reduceMotion
+                ? nil
+                : .easeInOut(
+                    duration: HyperliteHiddenProjectGhostSkyPresentation.driftDuration(for: section.id)
+                )
+                .repeatForever(autoreverses: true),
+            value: drifting
+        )
         .help(section.project.message ?? section.idleText)
         .accessibilityLabel("\(section.repository), \(section.idleText)")
         .accessibilityHint(section.repositoryURL == nil ? "" : "Opens the repository on GitHub")

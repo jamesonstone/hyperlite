@@ -21,8 +21,8 @@ enum HyperliteWorkspaceSplit {
     static let stackedEmptyListHeight: CGFloat = 20
     static let stackedPanelSpacing: CGFloat = 8
     static let stackedLazySpacing: CGFloat = 4
-    static let stackedStageVerticalPadding: CGFloat = 6
-    static let stackedStageSpacing: CGFloat = 8
+    static let stackedStageVerticalPadding: CGFloat = 4
+    static let stackedStageSpacing: CGFloat = 10
     static let stackedColumnSpacing: CGFloat = 10
     static let stackedStatusHeight: CGFloat = 20
     static let stackedLoadingHeight: CGFloat = 28

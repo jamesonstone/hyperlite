@@ -107,11 +107,11 @@ struct HyperlitePullRequestPanel: View {
             .layoutPriority(1)
             Spacer(minLength: 4)
             if hiddenProjectCount > 0 {
-                Text("\(hiddenProjectCount) hidden")
-                    .font(HyperliteTypography.compact.monospacedDigit())
-                    .foregroundStyle(HyperliteTheme.mutedText.color)
-                    .lineLimit(1)
+                Text(HyperliteOpenPRRefreshPulse.glyph)
+                    .font(.system(size: 13))
+                    .opacity(0.42)
                     .accessibilityHidden(true)
+                    .help("\(hiddenProjectCount) idle projects are watching from below")
             }
             HyperliteDashboardControlButton(
                 systemName: hideIdleProjects ? "eye.slash" : "eye",

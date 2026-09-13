@@ -20,16 +20,14 @@ enum HyperliteOpenPRProjectStageKind: Equatable {
         }
     }
 
-    var fillOpacity: Double {
-        switch self {
-        case .pinned, .active: 0.58
-        case .notable: 0.46
-        case .idle: 0.22
-        }
-    }
+    var lanternIsLive: Bool { self == .notable }
 
-    var showsLiveStroke: Bool {
-        self == .notable
+    var lanternOpacity: Double {
+        switch self {
+        case .notable: 0.92
+        case .pinned, .active: 0.28
+        case .idle: 0.10
+        }
     }
 }
 
@@ -38,23 +36,22 @@ struct HyperliteOpenPRProjectStage<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: HyperliteWorkspaceSplit.stackedLazySpacing) {
-            content
+        HStack(alignment: .top, spacing: 6) {
+            Capsule()
+                .fill(
+                    kind.lanternIsLive
+                        ? HyperliteTheme.cyan.color
+                        : HyperliteTheme.mutedText.color
+                )
+                .frame(width: 3)
+                .padding(.vertical, 3)
+                .opacity(kind.lanternOpacity)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: HyperliteWorkspaceSplit.stackedLazySpacing) {
+                content
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.vertical, HyperliteWorkspaceSplit.stackedStageVerticalPadding)
-        .padding(.trailing, 4)
-        .background {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(HyperliteTheme.elevatedSurface.color.opacity(kind.fillOpacity))
-                .overlay {
-                    if kind.showsLiveStroke {
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .strokeBorder(
-                                HyperliteTheme.cyan.color.opacity(0.34),
-                                lineWidth: 1
-                            )
-                    }
-                }
-        }
     }
 }

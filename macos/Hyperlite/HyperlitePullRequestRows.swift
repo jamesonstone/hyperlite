@@ -15,7 +15,8 @@ struct HyperlitePullRequestPanelRow: View {
     let move: (String, String) -> Void
     let moveBy: (String, Int) -> Void
 
-    static let dragHandleRestOpacity: Double = 0.32
+    static let dragHandleRestOpacity: Double = 0.18
+    static let pinRestOpacity: Double = 0.2
 
     @State private var hoverPresented = false
     @State private var hoverTask: Task<Void, Never>?
@@ -37,6 +38,7 @@ struct HyperlitePullRequestPanelRow: View {
                 Image(systemName: pinned ? "pin.fill" : "pin")
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(pinned ? HyperliteTheme.cyan.color : HyperliteTheme.mutedText.color)
+                    .opacity(pinned || rowHovering ? 1 : Self.pinRestOpacity)
                     .frame(width: 16, height: 16)
                     .contentShape(Rectangle())
             }
@@ -46,6 +48,7 @@ struct HyperlitePullRequestPanelRow: View {
             HyperlitePullRequestReviewToggle(
                 row: row,
                 status: reviewStatus,
+                quiet: !rowHovering,
                 action: toggleReview
             )
             HyperlitePullRequestRowContent(
@@ -111,6 +114,7 @@ struct HyperlitePullRequestPanelRow: View {
 struct HyperlitePullRequestReviewToggle: View {
     let row: HyperlitePullRequestRow
     let status: HyperlitePullRequestReviewStatus
+    var quiet = false
     let action: () -> Void
 
     private var canToggle: Bool {
@@ -155,6 +159,7 @@ struct HyperlitePullRequestReviewToggle: View {
             Image(systemName: icon)
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(color)
+                .opacity(quiet && status == .unreviewed ? 0.28 : 1)
                 .frame(width: 20, height: 18)
                 .contentShape(Rectangle())
         }

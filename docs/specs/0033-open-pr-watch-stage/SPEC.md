@@ -72,9 +72,9 @@ skills: []
 
 ## PURPOSE
 
-Make Vertical Mode's Open PRs pane a readable watch stage: clustered
-project cards, two-line titles, and leftover height filled with quiet
-ghosts for hidden idle projects.
+Make Vertical Mode's Open PRs pane a readable watch stage: lantern-marked
+project clusters, two-line titles, and leftover height filled with a slow
+field of ghosts for hidden idle projects.
 
 ## CONTEXT
 
@@ -96,18 +96,20 @@ design judgment.
   rows. Identity (`#number`, `ready`/`draft`, conflict, review) stays on
   line one as whole words. Title plus age sit on line two. Stacked
   (non-compact) rows stay one line.
-- R2: Each visible project cluster, and Pinned when it has rows, sits on a
-  slightly elevated rounded stage so the list chunks.
+- R2: Each visible project cluster, and Pinned when it has rows, is marked
+  by a thin left lantern. Running or failing work lights that lantern cyan.
+  No filled cards.
 - R3: When hide-idle is on in Vertical Mode and leftover pane height remains,
-  hidden idle projects appear in that leftover as wrapping muted 👻 tokens
-  with short repository names. Click opens the repository. Hover/help keeps
-  the idle availability text. Hide-idle membership does not change. Stacked
+  hidden idle projects appear in that leftover as a slow constellation of 👻
+  glyphs. Names appear on hover. Click opens the repository. Help keeps the
+  idle availability text. Hide-idle membership does not change. Stacked
   fit-content does not grow a sky; leftover height there still goes to notes.
-- R4: Drag handles are quieter at rest and full on row hover. Pin, review,
-  number→issue, title→PR, Pulls/Actions, running chips, hover cards, and the
-  refresh overlay stay.
-- R5: Ghost sky tokens are static. No extra timers. Honor Reduce Motion by
-  not introducing motion.
+- R4: Drag handles, unpinned pins, and empty review boxes are quieter at rest
+  and full on row hover. Number→issue, title→PR, Pulls/Actions, running
+  chips, hover cards, and the refresh overlay stay. Compact Pulls/Actions
+  wait on heading hover.
+- R5: Ghost sky drift uses implicit Core Animation, not a new poll timer.
+  Honor Reduce Motion by keeping ghosts still.
 - R6: Keep handwritten source and test files at or under 300 lines.
 
 Non-goals:
@@ -120,22 +122,24 @@ Observable acceptance:
 
 - Vertical Mode titles are readable on their own line; `ready` stays cyan
   and unwrapped.
-- Project work sits in rounded stages.
-- Hidden idle projects fill leftover Vertical Mode height as clickable
-  ghosts instead of a blank well.
+- Project work is marked by a thin lantern, not a filled card.
+- Hidden idle projects fill leftover Vertical Mode height as a slow
+  clickable ghost field.
 - Hover cards, pins, review toggles, and GitHub buttons still work.
 
 ## ACCEPTED PLAN
 
 1. Use the compact stack whenever `compact` is true, and show the
    repository label on that stack only for pinned mixed rows.
-2. Wrap Pinned and each project section in an elevated stage. Stroke only
-   stages with running or failing work.
+2. Mark Pinned and each project section with a thin lantern. Light it cyan
+   only for running or failing work. In compact layout, wait to show
+   Pulls/Actions until the heading is hovered.
 3. Measure the Open PRs list against the Vertical Mode pane and, when
-   leftover height remains under hide-idle, render a wrapping ghost sky of
-   hidden idle projects. Keep stacked height content-sized.
-4. Fade drag handles at rest. Cover layout, sky membership, and stacked
-   stage padding with Swift tests.
+   leftover height remains under hide-idle, render a constellation of
+   drifting 👻 glyphs. Names appear on hover. Keep stacked height content-sized.
+4. Fade drag handles, unpinned pins, and empty review boxes at rest. Cover
+   layout, sky membership, constellation bounds, and stacked lantern
+   padding with Swift tests.
 
 ## DECISIONS
 
@@ -144,29 +148,34 @@ Observable acceptance:
   not because the title is forced to share that line.
 - Ghost sky is presentation of projects already hidden by 0032 hide-idle.
   It does not keep those projects in the main list and does not add fetches.
-- Stacked mode never shows the sky, so notes keep leftover height.
-- Drag-handle fade is visual chrome only; VoiceOver move actions stay.
+- Filled rounded stages made Vertical Mode look like a dashboard. A thin
+  lantern chunks the list without boxing every heading, chip, and button.
+- Wrapping `👻 name` tokens for 18 idle projects was more text. A
+  constellation of glyphs, with names on hover, is calmer and more fun to
+  watch.
+- Ghost sky drift uses implicit SwiftUI animation, not a TimelineView, so
+  it does not add a poll-style timer. Reduce Motion keeps the field still.
 
 ## DISCOVERIES
 
 - ScrollView children report viewport height unless the list is
   `fixedSize(horizontal: false, vertical: true)`. The leftover ghost sky
   depends on that intrinsic measure; otherwise leftover is always zero.
-- Feature 0028 kept unpinned compact rows on one line so `ready` would not
-  wrap. Putting `ready` on the identity line of a two-line stack keeps it a
-  whole word and gives the title a readable line in the narrow pane.
+- A first pass boxed every project and labeled every hidden ghost. That
+  read as busy chrome. Lanterns plus a nameless constellation were the calmer
+  treatment that still keeps hover and click.
 
 ## VALIDATION
 
-- `make macos-test` passed after stages, two-line compact rows, leftover
-  ghost-sky membership, quieter drag chrome, and stacked stage padding.
+- `make macos-test` passed after lanterns, two-line compact rows, leftover
+  ghost-sky membership, quieter rest chrome, and stacked padding.
 - `make macos-build` produced `build/Hyperlite.app`.
 
 ## OUTCOME
 
-- Vertical Mode Open PRs is a watch stage: clustered project cards, two-line
-  titles, and leftover hidden-idle ghosts. Ready pull-request delivery through
-  issue #102.
+- Vertical Mode Open PRs is a quieter watch stage: lantern-marked clusters,
+  two-line titles, and a leftover hidden-idle ghost field. Ready pull-request
+  delivery through issue #102.
 
 ## REPOSITORY MEMORY
 

@@ -8,6 +8,7 @@ struct HyperliteProjectSectionHeader: View {
     let compact: Bool
     @Binding var draggedRowID: String?
     let drop: (String) -> Void
+    @State private var headingHovering = false
 
     private var isIdle: Bool { section.rows.isEmpty }
     private var stripChips: [HyperliteWorkflowChip] {
@@ -39,19 +40,19 @@ struct HyperliteProjectSectionHeader: View {
                     .layoutPriority(-1)
             }
             Spacer(minLength: 4)
-            HyperliteDashboardControlButton(
-                systemName: "arrow.triangle.pull",
-                active: false,
-                label: section.pullsButtonLabel,
-                disabled: section.pullsURL == nil
-            ) { open(section.pullsURL) }
-            HyperliteDashboardControlButton(
-                systemName: "play.circle",
-                active: chips.contains(where: \.isRunning),
-                label: section.actionsButtonLabel,
-                disabled: section.actionsURL == nil
-            ) { open(section.actionsURL) }
+            if !compact {
+                githubButtons
+            }
         }
+        .overlay(alignment: .trailing) {
+            if compact {
+                githubButtons
+                    .opacity(headingHovering ? 1 : 0)
+                    .allowsHitTesting(headingHovering)
+            }
+        }
+        .contentShape(Rectangle())
+        .onHover { headingHovering = $0 }
         .onDrop(
             of: [UTType.text.identifier],
             delegate: HyperliteSectionPinDropDelegate(
@@ -66,7 +67,9 @@ struct HyperliteProjectSectionHeader: View {
 
     private var label: some View {
         HStack(spacing: 6) {
-            Text(section.repository)
+            Text(compact
+                ? HyperliteHiddenProjectGhostSkyPresentation.shortName(section.repository)
+                : section.repository)
                 .font(headingFont)
                 .foregroundStyle(headingColor)
                 .lineLimit(1)
@@ -84,6 +87,23 @@ struct HyperliteProjectSectionHeader: View {
                     .font(HyperliteTypography.compact.monospacedDigit())
                     .foregroundStyle(HyperliteTheme.secondaryText.color)
             }
+        }
+    }
+
+    private var githubButtons: some View {
+        HStack(spacing: 4) {
+            HyperliteDashboardControlButton(
+                systemName: "arrow.triangle.pull",
+                active: false,
+                label: section.pullsButtonLabel,
+                disabled: section.pullsURL == nil
+            ) { open(section.pullsURL) }
+            HyperliteDashboardControlButton(
+                systemName: "play.circle",
+                active: chips.contains(where: \.isRunning),
+                label: section.actionsButtonLabel,
+                disabled: section.actionsURL == nil
+            ) { open(section.actionsURL) }
         }
     }
 
