@@ -21,7 +21,6 @@ type ProjectPullRequest struct {
 	HeadRefOID              string    `json:"head_ref_oid"`
 	BaseRefName             string    `json:"base_ref_name,omitempty"`
 	AuthorLogin             string    `json:"author_login,omitempty"`
-	Labels                  []string  `json:"labels,omitempty"`
 	Assignees               []string  `json:"assignees,omitempty"`
 	ReviewRequests          []string  `json:"review_requests,omitempty"`
 	ReviewDecision          string    `json:"review_decision,omitempty"`

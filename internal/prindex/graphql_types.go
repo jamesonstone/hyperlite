@@ -17,7 +17,6 @@ type rawPullRequest struct {
 	ChangedFiles   int                         `json:"changedFiles"`
 	ReviewDecision string                      `json:"reviewDecision"`
 	Author         *rawNamedActor              `json:"author"`
-	Labels         *rawNamedNodes              `json:"labels"`
 	Assignees      *rawNamedNodes              `json:"assignees"`
 	Comments       *rawCount                   `json:"comments"`
 	BodyText       string                      `json:"bodyText"`

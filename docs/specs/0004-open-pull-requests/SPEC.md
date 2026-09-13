@@ -73,6 +73,14 @@ references:
     read_policy: must
     used_for: explicit cache recovery and packaged-app GitHub executable discovery
     status: active
+  - id: issue-99
+    name: Reduce GraphQL rate-limit cost of Open PR glance fields
+    type: github-issue
+    target: https://github.com/jamesonstone/hyperlite/issues/99
+    relation: refines
+    read_policy: must
+    used_for: dropping the unused labels connection and correcting cost accounting
+    status: active
 ---
 
 # Configured Project Pull Requests
@@ -430,6 +438,28 @@ change refresh authority, or mutate GitHub.
   no Homebrew binary directory while `gh` was installed at `/opt/homebrew/bin`.
   Extending only the bundled helper's process environment preserves shell-free
   execution and lets the existing successful-cache replacement clear the rows.
+- GitHub's GraphQL cost formula floors each nested connection at 1 point per
+  parent page regardless of that connection's own `first`/`last` value, as
+  long as the parent connection (`pullRequests(first: 100)`) itself has a
+  nonzero page size. `labels(first: 8)`, `assignees(first: 6)`,
+  `reviewRequests(first: 8)`, and `commits(last: 3)` on each pull-request node
+  therefore each cost exactly 1 point per watched repository, independent of
+  their page size; shrinking a kept connection's `first`/`last` cannot lower
+  cost, and the only lever is removing a connection outright. Issue-99 found
+  the batched query had grown to cost 115 for 23 watched repositories (a probe
+  with only `pullRequests` and `reviewThreads` cost 23, confirming the four
+  glance connections added exactly 4 points/repo = 92 points), while this
+  spec's earlier validation entries recording "cost 16" predate those glance
+  connections and the growth from 16 to 23 watched repositories.
+- The `labels` connection was fetched, mapped through `prindex`, and decoded
+  into both the CLI JSON and the Swift `HyperliteProjectPullRequest`/
+  `HyperlitePullRequestGlance` models, but `0020-open-pr-hover-why` R5 had
+  already excluded labels from hover and no row view ever read the field —
+  it was dead weight left over from `0019-open-pr-workspace-scanability`'s
+  original dense hover dump. Removing it end-to-end drops cost from 115 to 92
+  for 23 repositories (~20%) with no behavior change, since `assignees`,
+  `reviewRequests`, and `commits` remain load-bearing for hover ownership,
+  the "waiting on review" next step, and CI/summary derivation respectively.
 
 ## VALIDATION
 
@@ -526,6 +556,14 @@ change refresh authority, or mutate GitHub.
   returned 15 current PRs and added exactly seven matching active worktrees,
   while preserving all 16 configured primary branches. Projects remained
   directly after Open PRs in one grouped column.
+- Issue-99 isolated-cache measurements against the 23 currently configured
+  repositories (`HYPERLITE_PULL_REQUEST_CACHE_PATH=<isolated path> go run
+  ./cmd/hyperlite pull-requests --force --json | jq .rate_limit`): before
+  removing `labels`, the batch cost 115 (2026-09-12); after removing it, an
+  isolated forced refresh cost exactly 92 with 23 projects returned, zero
+  errors, and zero warnings (2026-09-13), matching the predicted 23-point
+  reduction. `make fmt-check vet test test-race build`, `make macos-test`,
+  and `make macos-build` all passed with the connection removed.
 
 ## OUTCOME
 
