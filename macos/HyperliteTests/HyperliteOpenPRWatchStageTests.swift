@@ -56,8 +56,14 @@ enum HyperliteOpenPRWatchStageTests {
         )
         expect(
             HyperliteOpenPRProjectStageKind.notable.lanternIsLive &&
+                !HyperliteOpenPRProjectStageKind.notable.lanternUsesAttentionColor &&
                 !HyperliteOpenPRProjectStageKind.active.lanternIsLive,
-            "only running or failing stages get a live cyan lantern"
+            "running stages keep a live cyan lantern"
+        )
+        expect(
+            HyperliteOpenPRProjectStageKind.alert.lanternIsLive &&
+                HyperliteOpenPRProjectStageKind.alert.lanternUsesAttentionColor,
+            "failed main/deploy pipelines light an orange lantern"
         )
         expect(
             HyperliteOpenPRProjectStageKind.notable.lanternOpacity >

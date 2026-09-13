@@ -22,6 +22,10 @@ func TestStoreRoundTripsWorkflowActivityAndPollState(t *testing.T) {
 					{File: "ci.yaml", Scope: model.WorkflowRunScopeTip, Status: "COMPLETED", CreatedAt: observed},
 					{File: "deploy.yaml", Scope: model.WorkflowRunScopeTip, Status: "IN_PROGRESS", CreatedAt: now},
 				},
+				PipelineAlerts: []model.PipelineAlert{{
+					Kind: model.PipelineAlertKindMain, Name: "ci", Conclusion: "FAILURE",
+					ObservedAt: observed,
+				}},
 				TreeOID: "tree-1", ObservedAt: &observed,
 			},
 		}
@@ -38,6 +42,8 @@ func TestStoreRoundTripsWorkflowActivityAndPollState(t *testing.T) {
 	entry := loaded.Repositories["owner/one"]
 	if entry.Workflows == nil || entry.Workflows.TreeOID != "tree-1" || len(entry.Workflows.Catalog) != 1 ||
 		len(entry.Workflows.Runs) != 2 || entry.Workflows.Runs[0].File != "deploy.yaml" ||
+		len(entry.Workflows.PipelineAlerts) != 1 ||
+		entry.Workflows.PipelineAlerts[0].Kind != model.PipelineAlertKindMain ||
 		entry.Workflows.Deployments == nil || entry.Workflows.ObservedAt == nil {
 		t.Fatalf("workflows = %#v", entry.Workflows)
 	}

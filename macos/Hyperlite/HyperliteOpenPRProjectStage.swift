@@ -4,27 +4,33 @@ enum HyperliteOpenPRProjectStageKind: Equatable {
     case pinned
     case active
     case notable
+    case alert
     case idle
 
     static func forSection(
         _ section: HyperliteProjectSection,
-        chips: [HyperliteWorkflowChip]
+        chips: [HyperliteWorkflowChip],
+        alerts: [HyperlitePipelineAlert] = []
     ) -> HyperliteOpenPRProjectStageKind {
+        if chips.contains(where: \.isRunning) { return .notable }
+        if !alerts.isEmpty { return .alert }
         switch HyperliteProjectSectionChrome.headingWeight(
             idle: section.rows.isEmpty,
-            chips: chips
+            chips: chips,
+            alerts: alerts
         ) {
-        case .active: .active
-        case .notable: .notable
-        case .idle: .idle
+        case .active: return .active
+        case .notable: return .notable
+        case .idle: return .idle
         }
     }
 
-    var lanternIsLive: Bool { self == .notable }
+    var lanternIsLive: Bool { self == .notable || self == .alert }
+    var lanternUsesAttentionColor: Bool { self == .alert }
 
     var lanternOpacity: Double {
         switch self {
-        case .notable: 0.92
+        case .notable, .alert: 0.92
         case .pinned, .active: 0.28
         case .idle: 0.10
         }
@@ -39,9 +45,11 @@ struct HyperliteOpenPRProjectStage<Content: View>: View {
         HStack(alignment: .top, spacing: 6) {
             Capsule()
                 .fill(
-                    kind.lanternIsLive
-                        ? HyperliteTheme.cyan.color
-                        : HyperliteTheme.mutedText.color
+                    kind.lanternUsesAttentionColor
+                        ? HyperliteTheme.orange.color
+                        : kind.lanternIsLive
+                            ? HyperliteTheme.cyan.color
+                            : HyperliteTheme.mutedText.color
                 )
                 .frame(width: 3)
                 .padding(.vertical, 3)
@@ -108,7 +116,12 @@ struct HyperliteOpenPRProjectSection<Rows: View>: View {
     }
 
     var body: some View {
-        HyperliteOpenPRProjectStage(kind: .forSection(section, chips: chips)) {
+        HyperliteOpenPRProjectStage(
+            kind: .forSection(
+                section, chips: chips,
+                alerts: HyperlitePipelineAlertPresentation.alerts(from: section.project.workflows)
+            )
+        ) {
             HyperliteProjectSectionHeader(
                 section: section,
                 chips: chips,

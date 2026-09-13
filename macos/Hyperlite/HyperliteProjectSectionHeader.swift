@@ -39,6 +39,11 @@ struct HyperliteProjectSectionHeader: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(accessibilityLabel)
             .accessibilityHint(section.repositoryURL == nil ? "" : "Opens the repository on GitHub")
+            if !pipelineAlerts.isEmpty {
+                HyperlitePipelineAlertStrip(alerts: pipelineAlerts)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .layoutPriority(2)
+            }
             if !stripChips.isEmpty {
                 HyperliteWorkflowStrip(chips: stripChips, compact: false)
                     .fixedSize(horizontal: true, vertical: false)
@@ -130,8 +135,14 @@ struct HyperliteProjectSectionHeader: View {
         }
     }
 
+    private var pipelineAlerts: [HyperlitePipelineAlert] {
+        HyperlitePipelineAlertPresentation.alerts(from: section.project.workflows)
+    }
+
     private var headingWeight: HyperliteProjectSectionChrome.HeadingWeight {
-        HyperliteProjectSectionChrome.headingWeight(idle: isIdle, chips: chips)
+        HyperliteProjectSectionChrome.headingWeight(
+            idle: isIdle, chips: chips, alerts: pipelineAlerts
+        )
     }
 
     private var headingFont: Font {
@@ -154,8 +165,11 @@ struct HyperliteProjectSectionHeader: View {
         let lead = isIdle
             ? "\(section.repository) pull requests, \(section.idleText)"
             : "\(section.repository) pull requests, \(section.rows.count)"
-        return lead + ", " +
-            HyperliteWorkflowStripPresentation.headerSummary(chips: chips, now: Date())
+        var parts = [lead, HyperliteWorkflowStripPresentation.headerSummary(chips: chips, now: Date())]
+        if !pipelineAlerts.isEmpty {
+            parts.append(pipelineAlerts.map(HyperlitePipelineAlertPresentation.accessibilityLabel).joined(separator: ", "))
+        }
+        return parts.joined(separator: ", ")
     }
 
     private func open(_ url: URL?) {
