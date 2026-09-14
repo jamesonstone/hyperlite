@@ -35,6 +35,11 @@ struct HyperliteApp: App {
         .windowResizability(.contentMinSize)
         .commands {
             CommandMenu("Navigate") {
+                Button("Focus Open PRs") { HyperliteWorkspaceFocus.shared.focusPullRequests() }
+                    .keyboardShortcut("1", modifiers: .command)
+                Button("Focus Notes") { HyperliteWorkspaceFocus.shared.focusNotes() }
+                    .keyboardShortcut("2", modifiers: .command)
+                Divider()
                 Button("Refresh") { state.refreshAll() }
                     .keyboardShortcut("r", modifiers: .command)
                 Button("Update Default Branches") { state.updateDefaultBranches() }

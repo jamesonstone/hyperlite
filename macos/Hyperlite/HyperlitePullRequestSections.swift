@@ -109,9 +109,12 @@ enum HyperliteProjectSectionChrome {
 }
 
 /// Filters the project sections when the user chooses to hide idle projects.
-/// A project stays visible while it has open pull requests or a workflow worth
-/// attention (running or failing), so hiding declutters the list without
-/// losing an in-flight deploy that has no open pull request.
+/// The main Open PRs list means "projects with open pull requests": a project
+/// is hidden whenever it has no open pull-request rows, independent of workflow
+/// or pipeline state. The failure signal is not lost — hidden headings keep
+/// their workflow chips and pipeline-alert badges inside the `watching the
+/// quiet ones` launcher, and `attentionCount` surfaces failing projects in its
+/// caption.
 enum HyperliteOpenPRProjectFilter {
     static func hasNotableActivity(_ section: HyperliteProjectSection, now: Date) -> Bool {
         if HyperlitePipelineAlertPresentation.hasAlert(section.project.workflows) {
@@ -122,8 +125,25 @@ enum HyperliteOpenPRProjectFilter {
             .contains { $0.isRunning || $0.needsAttention }
     }
 
-    static func isIdle(_ section: HyperliteProjectSection, now: Date) -> Bool {
-        section.rows.isEmpty && !hasNotableActivity(section, now: now)
+    /// A hidden project "needs attention" when a main/deploy pipeline failed or
+    /// a workflow is failing or stale — the signals worth pulling forward in
+    /// the quiet-ones caption. A healthy running deploy is activity, not an
+    /// alert, so it is not counted.
+    static func needsAttention(_ section: HyperliteProjectSection, now: Date) -> Bool {
+        if HyperlitePipelineAlertPresentation.hasAlert(section.project.workflows) {
+            return true
+        }
+        return HyperliteWorkflowStripPresentation
+            .chips(activity: section.project.workflows, now: now)
+            .contains { $0.needsAttention }
+    }
+
+    static func attentionCount(_ sections: [HyperliteProjectSection], now: Date) -> Int {
+        sections.filter { needsAttention($0, now: now) }.count
+    }
+
+    static func isIdle(_ section: HyperliteProjectSection, now _: Date) -> Bool {
+        section.rows.isEmpty
     }
 
     static func visibleSections(

@@ -22,6 +22,7 @@ SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperlitePullRequestRowLayout.swift 
 SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperliteWorkflowActivityTests.swift macos/HyperliteTests/HyperliteWorkflowRunGlideTests.swift macos/HyperliteTests/HyperlitePullRequestSectionsTests.swift macos/HyperliteTests/HyperliteActivityPollScheduleTests.swift
 SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteOpenPRProjectStage.swift macos/Hyperlite/HyperliteHiddenProjectList.swift macos/Hyperlite/HyperliteOpenPRWatchColumn.swift macos/Hyperlite/HyperlitePipelineAlert.swift macos/HyperliteTests/HyperliteOpenPRWatchStageTests.swift macos/HyperliteTests/HyperlitePipelineAlertTests.swift
 SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteIssueReference.swift macos/HyperliteTests/HyperliteIssueReferenceTests.swift
+SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteWorkspaceNavigation.swift macos/Hyperlite/HyperliteWorkspaceNavHighlight.swift macos/HyperliteTests/HyperliteWorkspaceNavigationTests.swift
 SWIFT_MODEL_TEST_BINARY := build/tests/HyperliteInteractionModelTests
 
 help:
