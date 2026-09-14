@@ -33,4 +33,13 @@ extension HyperliteNotepadState {
         activate(.daily)
         requestFocus(.daily)
     }
+
+    /// Focus whichever notes tab is active, so ⌘2 lands the caret in the editor
+    /// the operator is already looking at.
+    func focusActive() {
+        switch activeTab {
+        case .notepad: focusPinned()
+        case .daily: focusDaily()
+        }
+    }
 }

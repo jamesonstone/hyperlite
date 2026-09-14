@@ -28,6 +28,7 @@ struct HyperliteInteractionModelTests {
         HyperliteWorkflowRunGlideTests.run()
         HyperlitePullRequestSectionsTests.run()
         HyperliteOpenPRWatchStageTests.run()
+        HyperliteWorkspaceNavigationTests.run()
         HyperliteIssueReferenceTests.run()
         HyperliteActivityPollScheduleTests.run()
         try HyperliteDashboardListTests.run()

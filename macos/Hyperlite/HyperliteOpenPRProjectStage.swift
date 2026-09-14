@@ -86,6 +86,7 @@ struct HyperliteOpenPRProjectSection<Rows: View>: View {
     let section: HyperliteProjectSection
     let chips: [HyperliteWorkflowChip]
     let compact: Bool
+    var headerSelected: Bool
     @Binding var draggedRowID: String?
     let drop: (String) -> Void
     @ViewBuilder var rows: Rows
@@ -95,6 +96,7 @@ struct HyperliteOpenPRProjectSection<Rows: View>: View {
         section: HyperliteProjectSection,
         chips: [HyperliteWorkflowChip],
         compact: Bool,
+        headerSelected: Bool = false,
         draggedRowID: Binding<String?>,
         drop: @escaping (String) -> Void,
         @ViewBuilder rows: () -> Rows
@@ -102,6 +104,7 @@ struct HyperliteOpenPRProjectSection<Rows: View>: View {
         self.section = section
         self.chips = chips
         self.compact = compact
+        self.headerSelected = headerSelected
         self._draggedRowID = draggedRowID
         self.drop = drop
         self.rows = rows()
@@ -130,6 +133,7 @@ struct HyperliteOpenPRProjectSection<Rows: View>: View {
                 draggedRowID: $draggedRowID,
                 drop: drop
             )
+            .hyperliteNavHighlight(selected: headerSelected)
             if !canCollapse || !collapsed {
                 rows
             }

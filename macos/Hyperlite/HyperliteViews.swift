@@ -7,6 +7,7 @@ struct HyperliteWindow: View {
     @StateObject private var dashboardLists = HyperliteDashboardListState()
     @StateObject private var pullRequestPins = HyperlitePullRequestPinStore()
     @ObservedObject private var appearance = HyperliteAppearance.shared
+    @ObservedObject private var focus = HyperliteWorkspaceFocus.shared
     @AppStorage("hyperlite.dashboard.open-pr-hide-idle") private var hideIdleProjects = true
     @State var pendingProjectRemoval: HyperliteProjectLocation?
     @State var mergePromptCopied = false
@@ -73,6 +74,11 @@ struct HyperliteWindow: View {
             }
             mergePromptCopied = false
         }
+        .background(HyperliteKeyCapture(onKeyDown: { focus.handleKey($0) }))
+        .onAppear {
+            focus.revealPullRequests = { appearance.setNotesOnly(false) }
+            focus.focusNotesEditor = { notepad.focusActive() }
+        }
         .confirmationDialog(
             "Remove project from Hyperlite?",
             isPresented: projectRemovalConfirmationPresented,
@@ -126,6 +132,7 @@ struct HyperliteWindow: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipped()
+        .overlay { paneFocusRing(active: focus.focusVisible && focus.pane == .notes) }
     }
 
     private var openPRSummaryBar: some View {
@@ -216,7 +223,10 @@ struct HyperliteWindow: View {
                         pins: pullRequestPins,
                         compactRows: compact,
                         isRefreshing: state.isRefreshingPullRequests,
-                        isPollingActivity: state.isPollingActivity
+                        isPollingActivity: state.isPollingActivity,
+                        selectionID: focus.focusVisible && focus.pane == .pullRequests
+                            ? focus.selectionID : nil,
+                        onNavItems: { focus.setItems($0) }
                     )
                 } else {
                     HyperliteOpenPRTitleCluster(count: nil)
@@ -230,6 +240,14 @@ struct HyperliteWindow: View {
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
+        .overlay { paneFocusRing(active: focus.focusVisible && focus.pane == .pullRequests) }
+    }
+
+    private func paneFocusRing(active: Bool) -> some View {
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+            .strokeBorder(HyperliteTheme.cyan.color.opacity(active ? 0.5 : 0), lineWidth: 1)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
     }
 
     private var windowActions: some View {

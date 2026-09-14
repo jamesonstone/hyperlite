@@ -82,6 +82,18 @@ enum HyperliteOpenPRWatchStageTests {
                 .accessibilityLabel(count: 18) == "watching the quiet ones, 18 idle projects",
             "the collapsible idle list announces its hidden project count"
         )
+        expect(
+            HyperliteHiddenProjectListPresentation
+                .accessibilityLabel(count: 3, attentionCount: 2)
+                == "watching the quiet ones, 3 idle projects, 2 need attention",
+            "the collapsible idle list announces how many hidden projects need attention"
+        )
+        expect(
+            HyperliteHiddenProjectListPresentation
+                .accessibilityLabel(count: 1, attentionCount: 1)
+                == "watching the quiet ones, 1 idle project, 1 needs attention",
+            "the quiet-ones announcement stays grammatical for a single project"
+        )
     }
 
     private static func expect(_ condition: @autoclosure () -> Bool, _ message: String) {

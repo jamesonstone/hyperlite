@@ -7,9 +7,13 @@ struct HyperlitePullRequestPanel: View {
     var compactRows = false
     var isRefreshing = false
     var isPollingActivity = false
+    var selectionID: String?
+    var onNavItems: ([HyperliteWorkspaceNavItem]) -> Void = { _ in }
     @State private var draggedRowID: String?
     @State private var chipClock = Date()
     @AppStorage("hyperlite.dashboard.open-pr-hide-idle") private var hideIdleProjects = true
+    @AppStorage(HyperliteHiddenProjectListPresentation.expandedStorageKey)
+    private var quietOnesExpanded = false
 
     private var sourceRows: [HyperlitePullRequestRow] {
         HyperlitePullRequestPresentation.rows(scan: scan)
@@ -39,6 +43,58 @@ struct HyperlitePullRequestPanel: View {
         projectSections.count - visibleProjectSections.count
     }
 
+    private var showsHiddenList: Bool {
+        compactRows && !hiddenProjectSections.isEmpty
+    }
+
+    private var hiddenAttentionCount: Int {
+        HyperliteOpenPRProjectFilter.attentionCount(hiddenProjectSections, now: chipClock)
+    }
+
+    /// Navigable entries in render order so keyboard selection tracks the list.
+    /// Collapsed project rows are skipped because they are not on screen.
+    private var navItems: [HyperliteWorkspaceNavItem] {
+        var items: [HyperliteWorkspaceNavItem] = []
+        for row in sections.pinned {
+            items.append(HyperliteWorkspaceNavItem(id: row.id, action: .open(row.url)))
+        }
+        for section in visibleProjectSections {
+            items.append(navHeaderItem(section))
+            if !isCollapsed(section) {
+                for row in section.rows {
+                    items.append(HyperliteWorkspaceNavItem(id: row.id, action: .open(row.url)))
+                }
+            }
+        }
+        if showsHiddenList {
+            items.append(HyperliteWorkspaceNavItem(
+                id: HyperliteWorkspaceNavigation.quietOnesID, action: .toggleQuietOnes
+            ))
+            if quietOnesExpanded {
+                for section in hiddenProjectSections { items.append(navHeaderItem(section)) }
+            }
+        }
+        return items
+    }
+
+    private func navHeaderItem(_ section: HyperliteProjectSection) -> HyperliteWorkspaceNavItem {
+        HyperliteWorkspaceNavItem(
+            id: headerID(section), action: .open(section.repositoryURL ?? section.pullsURL)
+        )
+    }
+
+    private func headerID(_ section: HyperliteProjectSection) -> String {
+        HyperliteWorkspaceNavigation.headerID(sectionID: section.id)
+    }
+
+    private func isCollapsed(_ section: HyperliteProjectSection) -> Bool {
+        UserDefaults.standard.bool(
+            forKey: HyperliteOpenPRProjectSectionPresentation.storageKey(projectID: section.id)
+        )
+    }
+
+    private func isSelected(_ id: String) -> Bool { selectionID == id }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             header
@@ -59,14 +115,19 @@ struct HyperlitePullRequestPanel: View {
                             pinnedHeader
                             ForEach(sections.pinned) { row in
                                 pullRequestRow(row, pinned: true)
+                                    .hyperliteNavHighlight(selected: isSelected(row.id))
                             }
                         }
                     }
                     ForEach(visibleProjectSections) { section in
                         projectSectionStage(section)
                     }
-                    if compactRows && !hiddenProjectSections.isEmpty {
-                        HyperliteHiddenProjectList(count: hiddenProjectSections.count) {
+                    if showsHiddenList {
+                        HyperliteHiddenProjectList(
+                            count: hiddenProjectSections.count,
+                            attentionCount: hiddenAttentionCount,
+                            selected: isSelected(HyperliteWorkspaceNavigation.quietOnesID)
+                        ) {
                             ForEach(hiddenProjectSections) { section in
                                 projectSectionStage(section)
                             }
@@ -79,6 +140,10 @@ struct HyperlitePullRequestPanel: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Open pull requests across configured projects")
         .accessibilityValue(accessibilityValue)
+        .onChange(of: navItems) { items in
+            onNavItems(items)
+        }
+        .onAppear { onNavItems(navItems) }
         .task(id: scan.generatedAt) {
             organization.reconcilePullRequestReviewMarks(scan: scan)
             await advanceChipClock()
@@ -163,6 +228,7 @@ struct HyperlitePullRequestPanel: View {
             section: section,
             chips: chips(for: section),
             compact: compactRows,
+            headerSelected: isSelected(headerID(section)),
             draggedRowID: $draggedRowID,
             drop: { dropped in
                 if let first = section.rows.first {
@@ -174,6 +240,7 @@ struct HyperlitePullRequestPanel: View {
         ) {
             ForEach(section.rows) { row in
                 pullRequestRow(row, pinned: false)
+                    .hyperliteNavHighlight(selected: isSelected(row.id))
             }
         }
     }

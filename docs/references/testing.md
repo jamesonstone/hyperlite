@@ -33,7 +33,9 @@
   the bounded activity poll schedule, Open PR title hierarchy and folded idle
   headings, compact workflow strips without a leftover `+N`, Vertical Mode
   project lanterns and the collapsible hidden-project list, two-line compact
-  Open PR rows, and Command-K
+  Open PR rows, hide-idle hiding every project without an open pull request with
+  a quiet-ones attention count, Open PRs keyboard-navigation selection and key
+  classification, and Command-K
   literal search without loading
   sentence embeddings. The native
   window no longer compiles Agent Island, Agent Tasks, Pinboard, or pinned Codex

@@ -96,11 +96,13 @@ strip of the project's workflows, and two small buttons that open the
 repository's Pulls and Actions pages on GitHub. Clicking the repository name
 opens the repository itself. A project with nothing open collapses to one
 quiet heading that folds in `no open pull requests`; cached or unavailable
-projects show their availability text there instead. Idle projects are hidden
-by default; the eye control on the Open PRs title row shows or hides them, and
-a project stays visible while it has an open pull request, a workflow that
-is running or failing, or a cached main/deploy pipeline failure, so a post-merge
-deploy is never hidden. The panel title
+projects show their availability text there instead. Projects without an open
+pull request are hidden by default; the eye control on the Open PRs title row
+shows or hides them. Hiding keeps only projects with an open pull request in
+the main list — a no-PR project is hidden even when a workflow is running or
+failing — so the list reads as open work, and the hidden projects (including
+any failing pipeline) move into the `watching the quiet ones` launcher below.
+The panel title
 is larger and brighter than repository headings. Headings for projects with
 open PRs use primary semibold type; idle headings drop to compact muted type
 so they recede. A no-PR project with a running or failing workflow stays one
@@ -122,11 +124,14 @@ project heading is larger than its pull-request rows, and projects with open
 pull requests can be collapsed with the chevron at the left of the heading.
 Collapsed, a project keeps its name and open-PR count so the pane can be
 scanned by project; the collapse state persists per project. In
-Vertical Mode, when the hide-idle eye is on, the hidden idle projects collapse
+Vertical Mode, when the hide-idle eye is on, the hidden projects collapse
 into a standard disclosure list (`watching the quiet ones`) below the open
-work. It stays collapsed by default; expand it to see each hidden project's
-heading, with the same idle availability text, workflow chips, and
-Pulls/Actions links as an inline project. Showing all projects (eye off) lists
+work, labeled with the hidden count and — when any hidden project has a
+failing pipeline or workflow — an attention count. It doubles as a project
+launcher, so its expanded state persists across launches; expand it to see
+each hidden project's heading, with the same availability text, workflow
+chips, pipeline-alert badges, and Pulls/Actions links as an inline project,
+and open any project from there. Showing all projects (eye off) lists
 them inline instead. Stacked layout still gives leftover height to notes.
 
 Each row carries a pin button next to its drag handle, so pinning a pull
@@ -264,6 +269,14 @@ commands and the private board store remain for existing local data.
 
 ### Keyboard shortcuts
 
+- `Command+1` reveals and focuses the Open PRs pane; `Command+2` focuses the
+  active Notes editor. The focused pane shows a cyan ring.
+- With the Open PRs pane focused, `j`/`k` and the `Down`/`Up` arrows move a
+  highlighted selection between pinned rows, project headings, pull-request
+  rows, the `watching the quiet ones` toggle, and the hidden project headings
+  it reveals. `Return` opens the selected pull request or repository, or expands
+  and collapses the quiet-ones list. Navigation keys never intercept typing in
+  the Notes editor.
 - `Command+R` refreshes Open PRs and the current daily-note date.
 - `Command+K` opens a searchable command palette with Theme, Font Size,
   Vertical Mode, Notes Only, Refresh, Force Cache Refresh, Update Default

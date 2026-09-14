@@ -8,6 +8,7 @@ enum HyperlitePullRequestSectionsTests {
         testDuplicateRepositoriesKeepSeparateSections()
         testGroupOrderPrecedesConfigurationOrder()
         testHideIdleProjectsFilter()
+        testHiddenAttentionCount()
         testIdleAndCompactStripsDropQuietChips()
         testIdleHeadingsUseQuieterWeight()
         testHideIdleHiddenSections()
@@ -91,10 +92,45 @@ enum HyperlitePullRequestSectionsTests {
             scan: scan, groups: HyperlitePullRequestPinning.grouped(rows)
         )
         let shown = HyperliteOpenPRProjectFilter.visibleSections(sections, hideIdle: true, now: now)
-        expect(shown.map(\.id) == ["/repo/one", "/repo/three"],
-               "hiding idle projects keeps open PRs and active deploys, drops the rest; got \(shown.map(\.id))")
+        expect(shown.map(\.id) == ["/repo/one"],
+               "hiding idle keeps only projects with open pull requests, even past an active deploy; got \(shown.map(\.id))")
         expect(HyperliteOpenPRProjectFilter.visibleSections(sections, hideIdle: false, now: now).count == 3,
                "showing all keeps every configured project")
+    }
+
+    private static func testHiddenAttentionCount() {
+        let failing = HyperliteProjectWorkflowActivity(
+            catalog: [],
+            runs: [HyperliteWorkflowRun(
+                file: "ci.yaml", name: "ci", scope: "branch",
+                status: "COMPLETED", conclusion: "FAILURE",
+                createdAt: now.addingTimeInterval(-120), updatedAt: now.addingTimeInterval(-60)
+            )],
+            observedAt: now
+        )
+        let deploying = HyperliteProjectWorkflowActivity(
+            catalog: [], runs: [],
+            deployments: [HyperliteDeployment(
+                environment: "prod", state: "IN_PROGRESS",
+                createdAt: now.addingTimeInterval(-30), updatedAt: now
+            )],
+            observedAt: now
+        )
+        let scan = scan(projects: [
+            project(path: "/repo/one", repository: "owner/one", numbers: [3]),
+            project(path: "/repo/fail", repository: "owner/fail", numbers: [], workflows: failing),
+            project(path: "/repo/deploy", repository: "owner/deploy", numbers: [], workflows: deploying),
+            project(path: "/repo/quiet", repository: "owner/quiet", numbers: []),
+        ])
+        let rows = HyperlitePullRequestPresentation.rows(scan: scan)
+        let sections = HyperlitePullRequestSectionPlan.sections(
+            scan: scan, groups: HyperlitePullRequestPinning.grouped(rows)
+        )
+        let hidden = HyperliteOpenPRProjectFilter.hiddenSections(sections, hideIdle: true, now: now)
+        expect(hidden.map(\.id) == ["/repo/fail", "/repo/deploy", "/repo/quiet"],
+               "every no-PR project is hidden regardless of workflow activity; got \(hidden.map(\.id))")
+        expect(HyperliteOpenPRProjectFilter.attentionCount(hidden, now: now) == 1,
+               "only the failing pipeline counts toward the quiet-ones attention badge")
     }
 
     private static func testHideIdleHiddenSections() {
