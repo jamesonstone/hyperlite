@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/jamesonstone/hyperlite/internal/command"
@@ -17,6 +18,10 @@ import (
 
 const (
 	gitTimeout = 5 * time.Second
+	// inspectConcurrency bounds parallel repository inspections. Each one runs
+	// several short git commands, so a large watch list is dominated by
+	// process latency rather than CPU.
+	inspectConcurrency = 8
 )
 
 type Warning struct {
@@ -42,19 +47,14 @@ type candidate struct {
 
 func (d Discoverer) Discover(ctx context.Context, sources []config.Source) Result {
 	var result Result
-	var candidates []candidate
+	var roots []string
 	for _, source := range sources {
-		roots, warnings := RepositoryRoots(source.Path)
+		sourceRoots, warnings := RepositoryRoots(source.Path)
 		result.Warnings = append(result.Warnings, warnings...)
-		for _, root := range roots {
-			item, err := d.inspect(ctx, root)
-			if err != nil {
-				result.Warnings = append(result.Warnings, Warning{Path: root, Stage: "inspect", Message: err.Error()})
-				continue
-			}
-			candidates = append(candidates, item)
-		}
+		roots = append(roots, sourceRoots...)
 	}
+	candidates, warnings := d.inspectAll(ctx, roots)
+	result.Warnings = append(result.Warnings, warnings...)
 
 	sort.Slice(candidates, func(i, j int) bool { return candidates[i].path < candidates[j].path })
 	seenCommon := make(map[string]struct{})
@@ -77,6 +77,35 @@ func (d Discoverer) Discover(ctx context.Context, sources []config.Source) Resul
 		return result.Warnings[i].Stage < result.Warnings[j].Stage
 	})
 	return result
+}
+
+// inspectAll inspects roots concurrently and returns candidates in root
+// order so discovery output stays deterministic.
+func (d Discoverer) inspectAll(ctx context.Context, roots []string) ([]candidate, []Warning) {
+	items := make([]candidate, len(roots))
+	errs := make([]error, len(roots))
+	var group sync.WaitGroup
+	slots := make(chan struct{}, inspectConcurrency)
+	for index, root := range roots {
+		group.Add(1)
+		go func() {
+			defer group.Done()
+			slots <- struct{}{}
+			defer func() { <-slots }()
+			items[index], errs[index] = d.inspect(ctx, root)
+		}()
+	}
+	group.Wait()
+	var candidates []candidate
+	var warnings []Warning
+	for index, root := range roots {
+		if errs[index] != nil {
+			warnings = append(warnings, Warning{Path: root, Stage: "inspect", Message: errs[index].Error()})
+			continue
+		}
+		candidates = append(candidates, items[index])
+	}
+	return candidates, warnings
 }
 
 func IsRepositoryRoot(path string) bool {

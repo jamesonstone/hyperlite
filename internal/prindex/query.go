@@ -21,8 +21,12 @@ func buildQuery(requests []pageRequest) (string, map[string]pageRequest) {
 		query.WriteString(", name: ")
 		query.WriteString(strconv.Quote(name))
 		query.WriteString(") {\n")
+		pageSize := queryPageSize
+		if request.pageSize > 0 {
+			pageSize = min(request.pageSize, queryPageSize)
+		}
 		query.WriteString("    pullRequests(states: OPEN, first: ")
-		query.WriteString(strconv.Itoa(queryPageSize))
+		query.WriteString(strconv.Itoa(pageSize))
 		if request.cursor != "" {
 			query.WriteString(", after: ")
 			query.WriteString(strconv.Quote(request.cursor))

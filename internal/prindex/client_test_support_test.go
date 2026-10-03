@@ -5,12 +5,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 )
 
+// graphQLRunner serializes fake responses because ListOpen issues batches
+// concurrently.
+// Probe queries are answered by probe, or by default as one open pull request
+// per repository, and are not counted in calls so detail-query sequencing
+// stays independent of the probe pass.
 type graphQLRunner struct {
-	calls   int
-	queries []string
-	respond func(string, int) ([]byte, error)
+	mutex      sync.Mutex
+	calls      int
+	probeCalls int
+	queries    []string
+	respond    func(string, int) ([]byte, error)
+	probe      func(string) ([]byte, error)
 }
 
 func (r *graphQLRunner) Run(
@@ -19,6 +28,16 @@ func (r *graphQLRunner) Run(
 	name string,
 	args ...string,
 ) ([]byte, error) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	if len(args) == 4 && strings.Contains(args[3], probeSelection) {
+		r.probeCalls++
+		query := strings.TrimPrefix(args[3], "query=")
+		if r.probe != nil {
+			return r.probe(query)
+		}
+		return probeResponse(query, 1), nil
+	}
 	r.calls++
 	if name != "gh" || len(args) != 4 ||
 		args[0] != "api" || args[1] != "graphql" ||
@@ -123,4 +142,27 @@ func githubRateLimit(used, cost, nodeCount int) map[string]any {
 		"limit": 5000, "used": used, "remaining": 5000 - used,
 		"resetAt": "2026-08-02T12:00:00Z", "cost": cost, "nodeCount": nodeCount,
 	}
+}
+
+const probeSelection = "openPullRequests: pullRequests(states: OPEN)"
+
+func probeResponse(query string, openCount int) []byte {
+	count := strings.Count(query, ": repository(")
+	data := make(map[string]any, count)
+	for index := 0; index < count; index++ {
+		data[fmt.Sprintf("repository%d", index)] = map[string]any{
+			"openPullRequests": map[string]any{"totalCount": openCount},
+		}
+	}
+	return responseJSON(data, nil)
+}
+
+// queriedRepository returns the repository name of a single-repository query.
+func queriedRepository(query string) string {
+	_, rest, found := strings.Cut(query, `name: "`)
+	if !found {
+		return ""
+	}
+	name, _, _ := strings.Cut(rest, `"`)
+	return name
 }

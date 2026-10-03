@@ -38,6 +38,10 @@ type pageRequest struct {
 	repository config.Repository
 	cursor     string
 	page       int
+	// pageSize sizes the first page from the probe's open pull request count;
+	// zero, and every follow-up page, uses queryPageSize. GraphQL cost scales
+	// with requested page size, not returned rows.
+	pageSize int
 }
 
 type rawGraphQLError struct {
@@ -50,35 +54,20 @@ type rawResponse struct {
 	Errors []rawGraphQLError          `json:"errors"`
 }
 
-func (c GitHubClient) ListOpen(
-	ctx context.Context,
-	repositories []config.Repository,
-) ClientResult {
-	unique := uniqueRepositories(repositories)
-	results := make(map[string]RepositoryResult, len(unique))
-	collector := rateLimitCollector{}
-	for start := 0; start < len(unique); start += queryBatchSize {
-		end := min(start+queryBatchSize, len(unique))
-		c.collectBatch(ctx, unique[start:end], results, &collector)
-	}
-	return ClientResult{Repositories: results, RateLimit: collector.latest}
-}
-
 func (c GitHubClient) collectBatch(
 	ctx context.Context,
-	repositories []config.Repository,
+	requests []pageRequest,
 	results map[string]RepositoryResult,
 	collector *rateLimitCollector,
 ) {
-	pending := make([]pageRequest, 0, len(repositories))
+	pending := append([]pageRequest(nil), requests...)
 	var reviewThreadPages []reviewThreadPageRequest
-	for _, repository := range repositories {
-		pending = append(pending, pageRequest{repository: repository, page: 1})
-		results[repositoryKey(repository.GitHub)] = RepositoryResult{
+	for _, request := range requests {
+		results[repositoryKey(request.repository.GitHub)] = RepositoryResult{
 			PullRequests: []model.ProjectPullRequest{},
 		}
 	}
-	seenCursors := make(map[string]map[string]struct{}, len(repositories))
+	seenCursors := make(map[string]map[string]struct{}, len(requests))
 	for len(pending) > 0 {
 		query, aliases := buildQuery(pending)
 		output, err := c.run(ctx, query)
@@ -193,6 +182,7 @@ func (c GitHubClient) collectBatch(
 				seenCursors[key][cursor] = struct{}{}
 				request.cursor = cursor
 				request.page++
+				request.pageSize = 0
 				next = append(next, request)
 			}
 		}
@@ -223,6 +213,12 @@ func (c GitHubClient) run(ctx context.Context, query string) ([]byte, error) {
 	if err == nil {
 		return output, nil
 	}
+	if hasGraphQLData(output) {
+		// gh exits non-zero whenever the response carries GraphQL errors, even
+		// partial repository-scoped ones, while stdout still holds the data.
+		// Callers attribute those errors per alias.
+		return output, nil
+	}
 	var commandError *command.Error
 	if errors.As(err, &commandError) {
 		if detail := strings.TrimSpace(commandError.Stderr); detail != "" {
@@ -233,6 +229,11 @@ func (c GitHubClient) run(ctx context.Context, query string) ([]byte, error) {
 		}
 	}
 	return output, err
+}
+
+func hasGraphQLData(output []byte) bool {
+	var response rawResponse
+	return json.Unmarshal(output, &response) == nil && len(response.Data) > 0
 }
 
 func uniqueRepositories(repositories []config.Repository) []config.Repository {

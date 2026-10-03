@@ -10,8 +10,8 @@ import (
 )
 
 func TestListOpenCollectsRepositoryActivity(t *testing.T) {
-	runner := &graphQLRunner{respond: func(query string, call int) ([]byte, error) {
-		if call == 2 {
+	runner := &graphQLRunner{respond: func(query string, _ int) ([]byte, error) {
+		if strings.Contains(query, "pullRequest(number:") {
 			if strings.Contains(query, "pullRequests(") || !strings.Contains(query, "pr1: pullRequest(number: 1)") {
 				return nil, errors.New("head follow-up must query only pending heads: " + query)
 			}
@@ -27,6 +27,11 @@ func TestListOpenCollectsRepositoryActivity(t *testing.T) {
 				},
 			}}, nil), nil
 		}
+		if queriedRepository(query) == "two" {
+			return responseJSON(map[string]any{
+				"repository0": withActivity(repositoryPage(2, false, ""), "", "", nil, nil),
+			}, nil), nil
+		}
 		page := repositoryPage(1, false, "")
 		nodes := page["pullRequests"].(map[string]any)["nodes"].([]map[string]any)
 		nodes[0]["commits"] = map[string]any{"nodes": []map[string]any{{
@@ -36,17 +41,14 @@ func TestListOpenCollectsRepositoryActivity(t *testing.T) {
 			[]map[string]any{checkSuite("deploy.yaml", "deploy", "COMPLETED", "SUCCESS")},
 			[]map[string]any{deploymentNode("prod", "IN_PROGRESS")},
 		)
-		return responseJSON(map[string]any{
-			"repository0": page,
-			"repository1": withActivity(repositoryPage(2, false, ""), "", "", nil, nil),
-		}, nil), nil
+		return responseJSON(map[string]any{"repository0": page}, nil), nil
 	}}
 	client := GitHubClient{Runner: runner}
 	result := client.ListOpen(context.Background(), []config.Repository{
 		{GitHub: "owner/one"}, {GitHub: "owner/two"},
 	})
-	if runner.calls != 2 {
-		t.Fatalf("calls = %d (batch plus one pending-head follow-up)", runner.calls)
+	if runner.calls != 3 {
+		t.Fatalf("calls = %d (two repositories plus one pending-head follow-up)", runner.calls)
 	}
 	one := result.Repositories["owner/one"]
 	if one.Error != "" || one.Activity == nil {
