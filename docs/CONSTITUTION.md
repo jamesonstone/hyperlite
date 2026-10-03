@@ -68,6 +68,9 @@
   twenty percent at reset. That poll never lists pull requests or reads
   workflow files, and a denied governor decision is reported, not retried.
   Cached rows remain available in Open PRs during a failed refresh.
+  A refresh isolates failures per repository: pull-request detail queries
+  select one repository each, only cheap probes batch repositories, and one
+  slow, missing, or failing repository never fails another repository's rows.
   Unresolved, non-outdated review thread counts and observed workflow runs
   are informational metadata in this projection; they do not establish
   inferred attention or thread lifecycle state, and only an observation

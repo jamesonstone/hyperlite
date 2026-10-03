@@ -9,7 +9,8 @@
 ## Current State
 
 - Go package tests cover deterministic scanner, correlation, state, inference,
-  CLI, git maintenance, and failure behavior.
+  CLI, git maintenance, and failure behavior, including the concurrent
+  probe-then-detail Open PR fetch with per-repository failure isolation.
 - Swift executable model tests and native type-checking cover schema and
   presentation behavior.
 - Go contract and integration tests cover the remaining CLI agent-session
@@ -20,17 +21,16 @@
   coalescing, resolved-input transitions, pre-store expiry, and redaction.
 - Swift executable tests cover Command-K without unused workspace actions,
   helper PATH including `~/.local/bin`, default-branch update summaries, Open
-  PRs merge-conflict decoding, hide-drafts filtering, conflict-column layout
+  PRs merge-conflict decoding, conflict-column layout
   reservation, Copy Open PR Merge Prompt labels, Command-K Theme and Font Size
   nested lists, Open PR hover what-and-why, assignee, and next-step presentation,
   pin/reorder presentation, stacked Open PRs above notes with Command-K
   Vertical Mode, Notes Only, content-sized and draggable splits, title-first
-  Open PR rows grouped by repository section, inline ready/draft badges, Open PR
-  refresh ghost overlay, notepad pane-fill wrapping, per-project workflow
+  Open PR rows grouped by repository section, inline ready/draft badges,
+  notepad pane-fill wrapping, per-project workflow
   activity decoding, chip derivation with the two-minute freshness boundary,
-  gliding-ghost math, persistent main/deploy pipeline failure badges,
-  gliding-ghost math, every-project section plans with Pulls/Actions links,
-  the bounded activity poll schedule, Open PR title hierarchy and folded idle
+  persistent main/deploy pipeline failure badges, every-project section plans with Pulls/Actions links,
+  the bounded activity poll schedule, the ambient Open PRs refresh schedule, Open PR title hierarchy and folded idle
   headings, compact workflow strips without a leftover `+N`, Vertical Mode
   project lanterns and the collapsible hidden-project list, two-line compact
   Open PR rows, hide-idle hiding every project without an open pull request with
