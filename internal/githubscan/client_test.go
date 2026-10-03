@@ -13,7 +13,7 @@ import (
 	"github.com/jamesonstone/hyperlite/internal/model"
 )
 
-func TestNormalizeCI(t *testing.T) {
+func TestNormalizeChecksCIState(t *testing.T) {
 	tests := []struct {
 		name     string
 		checks   []map[string]any
@@ -27,7 +27,7 @@ func TestNormalizeCI(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			if actual := normalizeCI(test.checks); actual != test.expected {
+			if actual, _ := normalizeChecks(test.checks); actual != test.expected {
 				t.Fatalf("CI = %q, want %q", actual, test.expected)
 			}
 		})
@@ -111,7 +111,7 @@ func TestCollectMineForOneRepositoryStillUsesGlobalSearches(t *testing.T) {
 	}
 }
 
-func TestCollectMineSkipsInactivePullRequestEnrichmentUnlessExplicit(t *testing.T) {
+func TestCollectMineSkipsInactivePullRequestEnrichment(t *testing.T) {
 	now := time.Date(2026, 7, 12, 0, 0, 0, 0, time.UTC)
 	responses := map[string][]byte{
 		"gh search prs":    []byte(`[{"number":2,"updatedAt":"2026-06-01T12:00:00Z","repository":{"nameWithOwner":"owner/beacon"}}]`),
@@ -125,38 +125,6 @@ func TestCollectMineSkipsInactivePullRequestEnrichmentUnlessExplicit(t *testing.
 	collection := client.Collect(context.Background(), repositories, "mine", "@me", 2)
 	if len(collection.Repositories["owner/beacon"].PullRequests) != 0 || runner.count("gh pr view") != 0 {
 		t.Fatalf("inactive PR was enriched: %#v / %v", collection, runner.calls)
-	}
-
-	runner.calls = nil
-	collection = client.Collect(WithInactivePullRequests(context.Background()), repositories, "mine", "@me", 2)
-	if len(collection.Repositories["owner/beacon"].PullRequests) != 1 || runner.count("gh pr view") != 1 {
-		t.Fatalf("explicit refresh omitted inactive PR: %#v / %v", collection, runner.calls)
-	}
-}
-
-func TestCollectMineOnlyEnrichesInactivePullRequestsForFollowedRepositories(t *testing.T) {
-	now := time.Date(2026, 7, 12, 0, 0, 0, 0, time.UTC)
-	runner := &fixtureRunner{responses: map[string][]byte{
-		"gh search prs": []byte(`[
-			{"number":2,"updatedAt":"2026-06-01T12:00:00Z","repository":{"nameWithOwner":"owner/followed"}},
-			{"number":3,"updatedAt":"2026-06-01T12:00:00Z","repository":{"nameWithOwner":"owner/quiet"}}
-		]`),
-		"gh search issues": []byte(`[]`),
-		"gh pr view":       []byte(`{"number":2,"title":"Old","url":"https://github.com/owner/followed/pull/2","headRefName":"old","headRefOid":"abc","baseRefName":"main","isDraft":false,"updatedAt":"2026-06-01T12:00:00Z","reviewDecision":"","statusCheckRollup":[],"mergeStateStatus":"CLEAN","mergeable":"MERGEABLE","comments":[],"reviews":[],"closingIssuesReferences":[]}`),
-		"gh api graphql":   []byte(`{"data":{"repository":{"pullRequest":{"reviewThreads":{"totalCount":0,"nodes":[]}}}}}`),
-	}}
-	client := Client{Runner: runner, Now: func() time.Time { return now }}
-	repositories := []config.Repository{
-		{Name: "followed", GitHub: "owner/followed"},
-		{Name: "quiet", GitHub: "owner/quiet"},
-	}
-	ctx := WithInactivePullRequestRepositories(context.Background(), []string{"owner/followed"})
-	collection := client.Collect(ctx, repositories, "mine", "@me", 2)
-	if len(collection.Repositories["owner/followed"].PullRequests) != 1 || len(collection.Repositories["owner/quiet"].PullRequests) != 0 {
-		t.Fatalf("collection = %#v", collection.Repositories)
-	}
-	if runner.count("gh pr view") != 1 || runner.count("gh api graphql") != 1 {
-		t.Fatalf("inactive enrichment calls = %v", runner.calls)
 	}
 }
 

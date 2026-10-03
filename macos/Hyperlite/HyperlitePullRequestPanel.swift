@@ -152,15 +152,16 @@ struct HyperlitePullRequestPanel: View {
 
     private var accessibilityValue: String {
         var parts: [String] = []
-        if isRefreshing { parts.append(HyperliteOpenPRRefreshPulse.accessibilityRefreshing) }
-        if isPollingActivity { parts.append(HyperliteWorkflowRunGlide.accessibilityPolling) }
+        if isRefreshing { parts.append(HyperliteOpenPRRefreshStatus.accessibilityRefreshing) }
+        if isPollingActivity { parts.append(HyperliteOpenPRRefreshStatus.accessibilityPolling) }
         return parts.joined(separator: ". ")
     }
 
     private var header: some View {
         HStack(alignment: .center, spacing: 6) {
             HyperliteOpenPRTitleCluster(
-                count: sourceRows.count
+                count: sourceRows.count,
+                isRefreshing: isRefreshing
             )
             .layoutPriority(1)
             Spacer(minLength: 4)
@@ -194,7 +195,7 @@ struct HyperlitePullRequestPanel: View {
     }
 
     /// Re-renders once each time a fresh running chip would turn stale, so a
-    /// hidden or denied poll cannot leave the ghost gliding on old data.
+    /// hidden or denied poll cannot leave a chip showing running on old data.
     private func advanceChipClock() async {
         chipClock = Date()
         while let expiry = HyperliteWorkflowStripPresentation.nextFreshnessExpiry(scan: scan, now: chipClock) {

@@ -73,14 +73,6 @@ func ResolveRoot() (string, error) {
 	return filepath.Join(filepath.Clean(absolute), "hyperlite", "notes"), nil
 }
 
-func ResolvePinnedPath() (string, error) {
-	root, err := ResolveRoot()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(root, pinnedFileName), nil
-}
-
 func (s Store) LoadPinned() (Document, error) {
 	return s.read(KindPinned, "")
 }

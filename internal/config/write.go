@@ -175,59 +175,6 @@ func Marshal(cfg Config) ([]byte, error) {
 	return contents, nil
 }
 
-func Merge(current Config, additions Config) Config {
-	merged := current
-	merged.Version = Version
-	if merged.Settings.MaxParallel == 0 {
-		merged.Settings = defaultSettings()
-	}
-	if additions.Settings.GitHubScope != "" {
-		merged.Settings.GitHubScope = additions.Settings.GitHubScope
-	}
-	if additions.Settings.OllamaModel != "" {
-		merged.Settings.OllamaModel = additions.Settings.OllamaModel
-	}
-	if merged.Settings.GitHubScope == "" {
-		merged.Settings.GitHubScope = GitHubScopeMine
-	}
-
-	seenSources := make(map[string]struct{}, len(merged.Sources))
-	for _, source := range merged.Sources {
-		seenSources[source.Path] = struct{}{}
-	}
-	for _, source := range additions.Sources {
-		if _, exists := seenSources[source.Path]; exists {
-			continue
-		}
-		seenSources[source.Path] = struct{}{}
-		merged.Sources = append(merged.Sources, source)
-	}
-
-	seenCommon := make(map[string]struct{}, len(merged.Repositories))
-	seenGitHub := make(map[string]struct{}, len(merged.Repositories))
-	seenNames := make(map[string]struct{}, len(merged.Repositories))
-	for _, repository := range merged.Repositories {
-		seenCommon[repository.Path] = struct{}{}
-		seenGitHub[repository.GitHub] = struct{}{}
-		seenNames[repository.Name] = struct{}{}
-	}
-	for _, repository := range additions.Repositories {
-		if _, exists := seenCommon[repository.Path]; exists {
-			continue
-		}
-		if _, exists := seenGitHub[repository.GitHub]; exists {
-			continue
-		}
-		name := uniqueName(repository.Name, seenNames)
-		repository.Name = name
-		seenCommon[repository.Path] = struct{}{}
-		seenGitHub[repository.GitHub] = struct{}{}
-		seenNames[name] = struct{}{}
-		merged.Repositories = append(merged.Repositories, repository)
-	}
-	return merged
-}
-
 // ReplaceProjectPaths replaces Hyperlite's project selection with exact
 // repository roots while retaining any imported discovery inventory.
 func ReplaceProjectPaths(current Config, paths []string) (Config, error) {
@@ -253,18 +200,6 @@ func ReplaceProjectPaths(current Config, paths []string) (Config, error) {
 func defaultSettings() Settings {
 	settings, _ := normalizeSettings(rawSettings{})
 	return settings
-}
-
-func uniqueName(name string, seen map[string]struct{}) string {
-	if _, exists := seen[name]; !exists {
-		return name
-	}
-	for suffix := 2; ; suffix++ {
-		candidate := fmt.Sprintf("%s-%d", name, suffix)
-		if _, exists := seen[candidate]; !exists {
-			return candidate
-		}
-	}
 }
 
 func Sort(cfg *Config) {

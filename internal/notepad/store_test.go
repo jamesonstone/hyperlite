@@ -22,13 +22,6 @@ func TestResolveRootUsesNotesDirectoryUnderXDGDataHome(t *testing.T) {
 	if resolved != want {
 		t.Fatalf("root = %q, want %q", resolved, want)
 	}
-	pinned, err := ResolvePinnedPath()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if pinned != filepath.Join(want, pinnedFileName) {
-		t.Fatalf("pinned path = %q", pinned)
-	}
 }
 
 func TestResolveRootHonorsNewOverrideAndDerivesFromLegacyOverride(t *testing.T) {

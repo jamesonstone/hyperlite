@@ -84,10 +84,7 @@ enum HyperliteAppearanceTests {
                "theme choice should persist and flip native color scheme")
         expect(restored.fontSize == .compact && restored.compactSize == 8,
                "compact font size should persist with 8 pt chrome")
-        expect(restored.verticalMode &&
-                HyperliteWorkspaceArrangement.current(verticalMode: restored.verticalMode) ==
-                .verticalSplit,
-               "vertical mode should persist as a left-right split")
+        expect(restored.verticalMode, "vertical mode should persist")
         defaults.removePersistentDomain(forName: suite)
     }
 
@@ -110,10 +107,6 @@ enum HyperliteAppearanceTests {
         expect(active?.symbol == "checkmark" &&
                 active?.subtitle.contains("Current") == true,
                "enabled Vertical Mode should be marked in Command-K")
-        expect(
-            HyperliteWorkspaceArrangement.current(verticalMode: false) == .stacked,
-            "stacked arrangement is Open PRs above notes"
-        )
     }
 
     private static func testNotesOnlyAndSplitPersistence() {

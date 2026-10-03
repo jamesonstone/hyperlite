@@ -189,11 +189,6 @@ func truncateGitHubBody(value string) (string, bool) {
 	return value[:end], true
 }
 
-func normalizeCI(checks []map[string]any) model.CIState {
-	state, _ := normalizeChecks(checks)
-	return state
-}
-
 func normalizeChecks(checks []map[string]any) (model.CIState, model.CheckSummary) {
 	summary := model.CheckSummary{Total: len(checks)}
 	if len(checks) == 0 {

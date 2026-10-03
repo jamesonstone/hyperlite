@@ -147,11 +147,6 @@ struct HyperliteWindow: View {
             .foregroundStyle(HyperliteTheme.secondaryText.color)
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
-            .overlay {
-                HyperliteOpenPRRefreshGhostOverlay(
-                    isRefreshing: state.isRefreshingPullRequests
-                )
-            }
         }
         .buttonStyle(.plain)
         .help("Show Open PRs")
@@ -165,7 +160,7 @@ struct HyperliteWindow: View {
             pinnedCount: pinnedPullRequestCount
         )
         guard state.isRefreshingPullRequests else { return summary }
-        return "\(summary). \(HyperliteOpenPRRefreshPulse.accessibilityRefreshing)"
+        return "\(summary). \(HyperliteOpenPRRefreshStatus.accessibilityRefreshing)"
     }
 
     private var pinnedPullRequestCount: Int {
@@ -203,9 +198,7 @@ struct HyperliteWindow: View {
             verticalMode: appearance.verticalMode,
             notesOnly: appearance.notesOnly
         )
-        return HyperliteOpenPRWatchColumn(
-            isRefreshing: state.isRefreshingPullRequests
-        ) {
+        return HyperliteOpenPRWatchColumn {
             VStack(alignment: .leading, spacing: 10) {
                 if let errorMessage = state.errorMessage {
                     Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
@@ -229,11 +222,11 @@ struct HyperliteWindow: View {
                         onNavItems: { focus.setItems($0) }
                     )
                 } else {
-                    HyperliteOpenPRTitleCluster(count: nil)
+                    HyperliteOpenPRTitleCluster(count: nil, isRefreshing: state.isRefreshingPullRequests)
                         .frame(maxWidth: .infinity, alignment: .topLeading)
                         .accessibilityValue(
                             state.isRefreshingPullRequests
-                                ? HyperliteOpenPRRefreshPulse.accessibilityRefreshing
+                                ? HyperliteOpenPRRefreshStatus.accessibilityRefreshing
                                 : ""
                         )
                 }

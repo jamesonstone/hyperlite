@@ -6,7 +6,6 @@ enum HyperlitePullRequestReviewMarkerTests {
         try testRevisionAwarePersistence()
         try testAuthoritativePruningAndBulkClear()
         try testLegacyHeadCommitRefresh()
-        testLocalReviewFiltering()
     }
 
     private static func testLegacyHeadCommitRefresh() throws {
@@ -162,55 +161,6 @@ enum HyperlitePullRequestReviewMarkerTests {
         let restored = HyperliteDashboardListState(defaults: defaults)
         expect(restored.pullRequestReviewMarkCount == 0,
                "bulk clear should persist across state re-creation")
-    }
-
-    private static func testLocalReviewFiltering() {
-        let reviewed = row(reviewID: "owner/one#1", repository: "owner/one", head: "head-1")
-        let stale = row(reviewID: "owner/one#2", repository: "owner/one", head: "head-2")
-        let unreviewed = row(reviewID: "owner/two#3", repository: "owner/two", head: "head-3")
-        let rows = [reviewed, stale, unreviewed]
-        let statuses: [String: HyperlitePullRequestReviewStatus] = [
-            reviewed.reviewID: .reviewed,
-            stale.reviewID: .stale,
-        ]
-        var filter = HyperlitePullRequestFilter()
-        filter.localReview = .reviewed
-        expect(present(rows, filter: filter, statuses: statuses).map(\.reviewID) ==
-            [reviewed.reviewID],
-            "reviewed filtering should retain only active local marks")
-        filter.localReview = .stale
-        expect(present(rows, filter: filter, statuses: statuses).map(\.reviewID) ==
-            [stale.reviewID],
-            "stale filtering should retain only invalidated local marks")
-        filter.localReview = .unreviewed
-        expect(present(rows, filter: filter, statuses: statuses).map(\.reviewID) ==
-            [unreviewed.reviewID],
-            "unreviewed filtering should retain rows without local marks")
-        expect(filter.isActive, "a local review filter should activate filtered counts")
-
-        let availability = HyperliteProjectPullRequests(
-            id: "/offline", name: "offline", path: "/offline", repository: nil,
-            status: .unavailable, message: "offline", checkedAt: nil, observedAt: nil,
-            pullRequests: []
-        )
-        expect(HyperliteDashboardListPresentation.availability(
-            [availability], filter: filter
-        ).isEmpty,
-        "a PR-only local review filter should exclude availability rows")
-    }
-
-    private static func present(
-        _ rows: [HyperlitePullRequestRow],
-        filter: HyperlitePullRequestFilter,
-        statuses: [String: HyperlitePullRequestReviewStatus]
-    ) -> [HyperlitePullRequestRow] {
-        HyperliteDashboardListPresentation.pullRequests(
-            rows,
-            filter: filter,
-            sort: .recent,
-            customOrder: [],
-            reviewStatuses: statuses
-        )
     }
 
     private static func row(

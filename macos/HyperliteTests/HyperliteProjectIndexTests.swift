@@ -9,15 +9,7 @@ enum HyperliteProjectIndexTests {
 
     private static func testSchemaDecoding() throws {
         let data = Data("""
-        {
-          "schema_version": 2,
-          "generated_at": "2026-07-29T12:00:00Z",
-          "remote_refresh_interval_seconds": 300,
-          "summary": {
-            "projects": 1, "threads": 0, "attention": 0,
-            "in_flight": 0, "completed": 0, "errors": 0, "warnings": 0
-          },
-          "project_index": [{
+        [{
             "id": "/repo/hyperlite",
             "name": "hyperlite",
             "path": "/repo/hyperlite",
@@ -38,16 +30,12 @@ enum HyperliteProjectIndexTests {
                 "detached": false
               }
             ]
-          }],
-          "threads": [],
-          "errors": [],
-          "warnings": []
-        }
+        }]
         """.utf8)
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        let scan = try decoder.decode(HyperliteThreadScan.self, from: data)
-        let project = try require(scan.projectIndex?.first, "project index should decode")
+        let projects = try decoder.decode([HyperliteProjectLocation].self, from: data)
+        let project = try require(projects.first, "project index should decode")
         expect(project.name == "hyperlite", "project name should decode")
         expect(project.lanes.map(\.branch) == ["main", "GH-7"],
                "configured and worktree lanes should retain order")

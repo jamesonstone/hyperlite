@@ -6,15 +6,6 @@ enum HyperliteWindowChrome {
     static let title = "👻 hyperlite"
 }
 
-enum HyperliteWorkspaceArrangement: Equatable {
-    case stacked
-    case verticalSplit
-
-    static func current(verticalMode: Bool) -> Self {
-        verticalMode ? .verticalSplit : .stacked
-    }
-}
-
 enum HyperliteFontSize: Int, CaseIterable, Identifiable {
     case readable = 12
     case compact = 10
