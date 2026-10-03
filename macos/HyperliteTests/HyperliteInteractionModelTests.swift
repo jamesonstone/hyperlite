@@ -31,6 +31,7 @@ struct HyperliteInteractionModelTests {
         HyperliteWorkspaceNavigationTests.run()
         HyperliteIssueReferenceTests.run()
         HyperliteActivityPollScheduleTests.run()
+        HyperliteAmbientRefreshScheduleTests.run()
         try HyperliteDashboardListTests.run()
         try HyperlitePullRequestReviewMarkerTests.run()
         HyperliteRateLimitTests.run()

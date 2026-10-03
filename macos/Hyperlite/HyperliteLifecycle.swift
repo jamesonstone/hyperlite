@@ -8,6 +8,7 @@ final class HyperliteApplicationDelegate: NSObject, NSApplicationDelegate, NSWin
     private weak var window: NSWindow?
     private var terminationPending = false
     private var dailyDateObservers: [NSObjectProtocol] = []
+    private var wakeObserver: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         hotKey = HyperliteHotKeyController { [weak self] in
@@ -27,6 +28,15 @@ final class HyperliteApplicationDelegate: NSObject, NSApplicationDelegate, NSWin
                 Task { @MainActor in
                     HyperliteState.shared.refreshDailyNoteDateIfNeeded()
                 }
+            }
+        }
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            Task { @MainActor in
+                HyperliteState.shared.refreshAllIfStale()
             }
         }
         DispatchQueue.main.async { [weak self] in
@@ -69,6 +79,8 @@ final class HyperliteApplicationDelegate: NSObject, NSApplicationDelegate, NSWin
     func applicationWillTerminate(_ notification: Notification) {
         dailyDateObservers.forEach(NotificationCenter.default.removeObserver)
         dailyDateObservers.removeAll()
+        if let wakeObserver { NSWorkspace.shared.notificationCenter.removeObserver(wakeObserver) }
+        wakeObserver = nil
         hotKey?.stop()
     }
 

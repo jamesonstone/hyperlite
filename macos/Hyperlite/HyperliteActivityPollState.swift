@@ -15,6 +15,11 @@ extension HyperliteState {
     func setWindowVisible(_ visible: Bool) {
         guard activityPolling.isWindowVisible != visible else { return }
         activityPolling.isWindowVisible = visible
+        if visible {
+            // Revealing the window is the moment someone looks; catch up at
+            // once instead of waiting for the next ambient tick.
+            refreshAllIfStale()
+        }
         scheduleActivityPollIfNeeded()
     }
 
