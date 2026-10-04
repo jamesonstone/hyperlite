@@ -22,7 +22,7 @@ references:
     type: specification
     target: docs/specs/0006-notepad-daily-notes/SPEC.md
     relation: supersedes
-    read_policy: optional
+    read_policy: conditional
     used_for: retired notes surface
     status: active
   - id: agent-session-notch
@@ -30,7 +30,7 @@ references:
     type: specification
     target: docs/specs/0011-agent-session-notch/SPEC.md
     relation: supersedes
-    read_policy: optional
+    read_policy: conditional
     used_for: retired agent-session runtime
     status: active
   - id: inferred-attention
@@ -38,7 +38,7 @@ references:
     type: specification
     target: docs/specs/0003-inferred-attention/SPEC.md
     relation: supersedes
-    read_policy: optional
+    read_policy: conditional
     used_for: retired thread scan
     status: active
 skills: []
@@ -73,6 +73,14 @@ reviewed and validated the result.
 - R3: Never delete operator data: note, pinboard, and thread files stay on
   disk untouched.
 
+## ACCEPTED PLAN
+
+1. Remove the operator's agent hooks from local Claude Code and Codex config.
+2. Delete agent sessions, pinboard, notes, thread scans, pins and reordering,
+   and Update Default Branches with their CLI commands, packages, and tests.
+3. Make the Open PRs list fill the window and keep keyboard navigation.
+4. Rewrite CONSTITUTION, USER_GUIDE, testing.md, and README to match.
+
 ## DECISIONS
 
 - The operator's agent hooks were removed from `~/.claude/settings.json` and
@@ -83,6 +91,12 @@ reviewed and validated the result.
 - The hidden-project list shows in the full-window layout; it previously
   existed only in the removed Vertical Mode.
 - Scan-only config keys still parse so existing configuration files load.
+
+## DISCOVERIES
+
+- The hidden-project list existed only in Vertical Mode, so removing that mode
+  without moving the list would have hidden it permanently.
+- After removal, `go list -deps ./cmd/hyperlite` shows six internal packages.
 
 ## VALIDATION
 

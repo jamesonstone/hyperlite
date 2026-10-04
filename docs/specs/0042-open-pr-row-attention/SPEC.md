@@ -31,6 +31,26 @@ known-harmless failure (labcore's docs check) is judged without opening GitHub.
 Orchestration: single-lane; the fetch extension and row presentation share
 one contract.
 
+## CONTEXT
+
+Rows showed only an orange review-thread count in a left column, and CI
+failures were visible only as a rollup state in the hover card, so judging a
+known-harmless failure (labcore's docs check) required opening GitHub.
+
+## REQUIREMENTS
+
+- R1: Unresolved work sits right-aligned in red before the row age.
+- R2: Failed GitHub Actions pipelines show by short name; full names on hover.
+- R3: Unresolved review feedback shows as a count.
+- R4: Green pull requests add no GitHub cost.
+
+## ACCEPTED PLAN
+
+1. Issue the per-head check-suite follow-up for failing heads too.
+2. Derive failed pipelines per row from pull-request runs on the exact head.
+3. Render the red cluster and list full names in the hover next step.
+4. Keep finished pull-request runs out of heading chips.
+
 ## DECISIONS
 
 - Failed pipeline names reuse the existing per-head check-suite follow-up,
@@ -47,6 +67,11 @@ one contract.
 - Heading chips ignore finished pull-request runs: a PR's failed CI describes
   that PR, not the project.
 
+## DISCOVERIES
+
+- Some failures come from non-Actions status checks with no workflow run
+  (dayhoff #157), which motivated the generic `checks` marker.
+
 ## VALIDATION
 
 - Go test: failing and pending heads get the run follow-up; green heads do not.
@@ -54,6 +79,11 @@ one contract.
   clearing, non-Actions fallback.
 - Live: bloom #16-18 and labcore-ui #813/#822 show `CI`; dayhoff #157 (no
   Actions run) shows `checks`.
+
+## OUTCOME
+
+- Rows show `✕ <pipeline>` and a review-thread count in red beside the age; a
+  full refresh costs 3 extra GraphQL points.
 
 ## REPOSITORY MEMORY
 

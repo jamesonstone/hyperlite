@@ -21,7 +21,7 @@ references:
     name: Open Pull Requests
     type: specification
     target: docs/specs/0004-open-pull-requests/SPEC.md
-    relation: amends
+    relation: informs
     read_policy: must
     used_for: GraphQL batching and cache refresh contract
     status: active
@@ -30,15 +30,15 @@ references:
     type: specification
     target: docs/specs/0030-open-pr-refresh-ghost-overlay/SPEC.md
     relation: supersedes
-    read_policy: optional
+    read_policy: conditional
     used_for: the removed full-pane refresh ghost
     status: active
   - id: open-pr-workflow-activity
     name: Open PR Workflow Activity
     type: specification
     target: docs/specs/0031-open-pr-workflow-activity/SPEC.md
-    relation: amends
-    read_policy: optional
+    relation: informs
+    read_policy: conditional
     used_for: the removed gliding ghost under running chips
     status: active
   - id: dashboard-list-organization
@@ -46,7 +46,7 @@ references:
     type: specification
     target: docs/specs/0008-dashboard-list-organization/SPEC.md
     relation: supersedes
-    read_policy: optional
+    read_policy: conditional
     used_for: the removed sort, filter, and reorder model
     status: active
   - id: source-file-size

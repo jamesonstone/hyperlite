@@ -21,7 +21,7 @@ references:
     name: Open PR Fetch Reliability
     type: specification
     target: docs/specs/0037-open-pr-fetch-reliability/SPEC.md
-    relation: amends
+    relation: informs
     read_policy: must
     used_for: probe-then-detail fetch this builds on
     status: active
@@ -73,6 +73,13 @@ and refresh contract.
 - A forced Refresh passes no hints and ignores the pause: the operator asked.
 - The automatic floor (20%) sits below the activity poll floor (30%), so the
   poll stops first and pull-request rows keep refreshing longest.
+
+## DISCOVERIES
+
+- GraphQL cost follows requested page sizes and nested connection requests,
+  not returned rows, so the probe's open count is also the cheapest page size.
+- A probe-only refresh of 102 repositories costs 11 points, about one point per
+  ten repositories.
 
 ## VALIDATION
 

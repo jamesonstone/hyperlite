@@ -28,6 +28,12 @@ Let the operator ignore projects they develop in but whose many open pull
 requests belong to another team (for example dewey and aquarium), without
 removing them from Hyperlite.
 
+## CONTEXT
+
+Some configured repositories (dewey, aquarium) carry dozens of open pull
+requests owned by other teams. They dominated the list, slowed scrolling, and
+spent GitHub quota on rows the operator never acts on.
+
 ## REQUIREMENTS
 
 - R1: An eye on each project heading toggles ignore; open eye = watched.
@@ -37,6 +43,15 @@ removing them from Hyperlite.
 
 Orchestration: single-lane, because the config flag, fetch filter, and
 heading control form one contract.
+
+## ACCEPTED PLAN
+
+1. Add `ignored` to configured project sources and `projects ignore|watch`.
+2. Skip ignored sources in refresh, probe, activity, and catalog requests and
+   project them as title-only.
+3. Add `pull-requests --project` for a single-project refresh.
+4. Add the heading eye; watching again triggers the single-project refresh and
+   expands the section.
 
 ## DECISIONS
 
@@ -50,6 +65,11 @@ heading control form one contract.
   (`Config.RefreshOnly`, never persisted) so watching one project spends quota
   only on it.
 
+## DISCOVERIES
+
+- The per-section collapse state is an app default keyed by project, so the
+  un-ignore path can expand a section by clearing that key.
+
 ## VALIDATION
 
 - Go tests: config round-trip and preservation across selection changes,
@@ -58,6 +78,11 @@ heading control form one contract.
 - Swift tests: ignored decoding (absent key = watched), eye icons, helper
   command mapping, labels.
 - `make fmt-check vet test-race build macos-test macos-build` passed.
+
+## OUTCOME
+
+- Each project heading has an eye; ignored projects cost no GitHub requests and
+  show only their title until watched again.
 
 ## REPOSITORY MEMORY
 
