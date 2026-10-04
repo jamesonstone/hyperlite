@@ -22,7 +22,7 @@ struct HyperlitePullRequestPanelRow: View {
             HyperlitePullRequestRowContent(
                 row: row,
                 reviewStatus: reviewStatus,
-                openNumber: openNumber,
+                openIssue: openIssue,
                 openPullRequest: openPullRequest
             )
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -34,8 +34,8 @@ struct HyperlitePullRequestPanelRow: View {
             ))
             .accessibilityAction { openPullRequest() }
             .accessibilityAction(
-                named: Text(row.numberOpensIssue ? "Open linked issue" : "Open pull request number")
-            ) { openNumber() }
+                named: Text(row.issueLabel.map { "Open issue \($0)" } ?? "Open pull request")
+            ) { row.issueURL == nil ? openPullRequest() : openIssue() }
         }
         .contentShape(Rectangle())
         .onHover(perform: handleHover)
@@ -49,8 +49,8 @@ struct HyperlitePullRequestPanelRow: View {
         NSWorkspace.shared.open(url)
     }
 
-    private func openNumber() {
-        guard let url = row.numberURL else { return }
+    private func openIssue() {
+        guard let url = row.issueURL else { return }
         NSWorkspace.shared.open(url)
     }
 

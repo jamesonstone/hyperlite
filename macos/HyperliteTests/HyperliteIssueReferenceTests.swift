@@ -33,10 +33,10 @@ enum HyperliteIssueReferenceTests {
             number: 539, repository: "lsmc-bio/labcore-ui",
             headRefName: "GH-538", title: "feat(GH-538): rename accessioning field"
         )
-        expect(row.displayNumber == 538 && row.numberOpensIssue,
-               "a linked row shows and opens the issue number, not the pull request number")
-        expect(row.numberURL?.absoluteString == "https://github.com/lsmc-bio/labcore-ui/issues/538",
-               "the number opens the tracked issue; got \(row.numberURL?.absoluteString ?? "nil")")
+        expect(row.pullRequestLabel == "PR #539" && row.issueLabel == "GH-538",
+               "a linked row labels both the pull request and the issue")
+        expect(row.issueURL?.absoluteString == "https://github.com/lsmc-bio/labcore-ui/issues/538",
+               "the issue label opens the tracked issue; got \(row.issueURL?.absoluteString ?? "nil")")
     }
 
     private static func testRowFallsBackToPullRequest() {
@@ -45,10 +45,8 @@ enum HyperliteIssueReferenceTests {
             headRefName: "dependabot/go_modules/golang.org/x/sys-0.48.0",
             title: "build(deps): bump golang.org/x/sys from 0.47.0 to 0.48.0"
         )
-        expect(row.displayNumber == 46 && !row.numberOpensIssue,
-               "an unlinked row keeps the pull request number")
-        expect(row.numberURL == row.url,
-               "the number opens the pull request when no issue is tracked")
+        expect(row.pullRequestLabel == "PR #46" && row.issueLabel == nil && row.issueURL == nil,
+               "an unlinked row shows only the pull request number")
     }
 
     private static func row(
