@@ -16,7 +16,7 @@ func (s Scanner) scanActivity(
 	ctx context.Context,
 	scan scanContext,
 ) (model.ProjectPullRequestScan, error) {
-	requests, activeCount := activityRequests(scan.sources, scan.resolved, scan.cache)
+	requests, activeCount := activityRequests(watchedSources(scan.sources), scan.resolved, scan.cache)
 	// Reserve the poll atomically: re-evaluate the governor and record the
 	// reservation inside one locked Update before touching GitHub. Two
 	// concurrent scans that both loaded the same state cannot both reach
@@ -59,7 +59,7 @@ func (s Scanner) scanActivity(
 		polled := s.Workflows.PollActivity(ctx, requests)
 		applied, updateErr := s.Store.Update(func(current *cacheState) bool {
 			applyActivityResult(current, requests, polled, scan.now)
-			recordActivityBurst(current, configuredRepositoryKeys(scan.sources, scan.resolved), scan.now)
+			recordActivityBurst(current, configuredRepositoryKeys(watchedSources(scan.sources), scan.resolved), scan.now)
 			if observed := observedRateLimit(polled.RateLimit, scan.now); observed != nil {
 				current.RateLimit = applyRateLimitBurnRate(observed, current.RateLimit)
 			}

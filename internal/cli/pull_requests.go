@@ -17,6 +17,7 @@ type pullRequestOptions struct {
 	force      bool
 	activity   bool
 	jsonOutput bool
+	projects   []string
 }
 
 func (a App) pullRequestsCommand(configPath *string) *cobra.Command {
@@ -33,6 +34,7 @@ func (a App) pullRequestsCommand(configPath *string) *cobra.Command {
 	command.Flags().BoolVar(&options.force, "force", false, "refresh every resolved project regardless of cache age")
 	command.Flags().BoolVar(&options.activity, "activity", false, "poll only running workflow activity when the quota governor allows")
 	command.Flags().BoolVar(&options.jsonOutput, "json", false, "emit JSON only")
+	command.Flags().StringArrayVar(&options.projects, "project", nil, "limit the GitHub refresh to this project path (repeatable); every project is still listed")
 	return command
 }
 
@@ -68,6 +70,16 @@ func (a App) runPullRequests(
 		mode = prindex.RefreshForce
 	case options.activity:
 		mode = prindex.RefreshActivity
+	}
+	if len(options.projects) > 0 && (options.localOnly || options.activity) {
+		return usageError{fmt.Errorf("--project applies only to stale or --force refreshes")}
+	}
+	for _, project := range options.projects {
+		canonical, err := config.CanonicalizePath(project)
+		if err != nil {
+			return err
+		}
+		cfg.RefreshOnly = append(cfg.RefreshOnly, canonical)
 	}
 	result, err := a.pullRequestScanner().Scan(ctx, cfg, mode)
 	if err != nil {

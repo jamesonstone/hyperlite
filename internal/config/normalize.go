@@ -147,7 +147,7 @@ func normalizeSource(raw rawSource) (Source, error) {
 	if !info.IsDir() {
 		return Source{}, fmt.Errorf("path is not a directory: %s", path)
 	}
-	return Source{Path: path}, nil
+	return Source{Path: path, Ignored: raw.Ignored}, nil
 }
 
 func normalizeRepository(raw rawRepository) (Repository, error) {

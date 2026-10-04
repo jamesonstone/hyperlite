@@ -36,6 +36,8 @@ const (
 
 type Source struct {
 	Path string `yaml:"path" json:"path"`
+	// Ignored projects stay listed but are skipped by every GitHub request.
+	Ignored bool `yaml:"ignored,omitempty" json:"ignored,omitempty"`
 }
 
 type Repository struct {
@@ -54,6 +56,9 @@ type Config struct {
 	Sources      []Source
 	Repositories []Repository
 	Path         string
+	// RefreshOnly is a per-invocation, never persisted limit on which project
+	// paths a pull-request refresh may query.
+	RefreshOnly []string
 }
 
 type rawConfig struct {
@@ -77,7 +82,8 @@ type rawSettings struct {
 }
 
 type rawSource struct {
-	Path string `yaml:"path"`
+	Path    string `yaml:"path"`
+	Ignored bool   `yaml:"ignored,omitempty"`
 }
 
 type rawRepository struct {

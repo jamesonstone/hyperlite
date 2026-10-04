@@ -179,6 +179,10 @@ func Marshal(cfg Config) ([]byte, error) {
 // repository roots while retaining any imported discovery inventory.
 func ReplaceProjectPaths(current Config, paths []string) (Config, error) {
 	selected := make(map[string]struct{}, len(paths))
+	ignored := make(map[string]bool, len(current.Projects))
+	for _, project := range current.Projects {
+		ignored[project.Path] = project.Ignored
+	}
 	replacement := current
 	replacement.Version = Version
 	replacement.Projects = nil
@@ -191,10 +195,27 @@ func ReplaceProjectPaths(current Config, paths []string) (Config, error) {
 			continue
 		}
 		selected[project.Path] = struct{}{}
+		project.Ignored = ignored[project.Path]
 		replacement.Projects = append(replacement.Projects, project)
 	}
 	Sort(&replacement)
 	return replacement, nil
+}
+
+// SetProjectIgnored marks one configured project ignored or watched. It
+// reports whether the configuration changed.
+func SetProjectIgnored(current *Config, path string, ignored bool) (bool, error) {
+	for index := range current.Projects {
+		if current.Projects[index].Path != path {
+			continue
+		}
+		if current.Projects[index].Ignored == ignored {
+			return false, nil
+		}
+		current.Projects[index].Ignored = ignored
+		return true, nil
+	}
+	return false, fmt.Errorf("project is not configured: %s", path)
 }
 
 func defaultSettings() Settings {

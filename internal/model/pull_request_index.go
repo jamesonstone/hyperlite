@@ -47,6 +47,8 @@ type ProjectPullRequests struct {
 	ObservedAt   *time.Time               `json:"observed_at,omitempty"`
 	PullRequests []ProjectPullRequest     `json:"pull_requests"`
 	Workflows    *ProjectWorkflowActivity `json:"workflows,omitempty"`
+	// Ignored projects are listed by title only and never queried.
+	Ignored bool `json:"ignored,omitempty"`
 }
 
 type GitHubRateLimit struct {
