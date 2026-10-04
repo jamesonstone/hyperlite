@@ -65,3 +65,39 @@ enum HyperliteAppVersion {
         return commit.isEmpty || version.contains(commit) ? "hyperlite \(shown)" : "hyperlite \(shown) · \(commit)"
     }
 }
+
+/// An organization's heading above its projects; opens the org on GitHub.
+struct HyperliteOrganizationHeading: View {
+    let group: HyperliteOrganizationGroup
+
+    var body: some View {
+        Button {
+            if let url = group.url { NSWorkspace.shared.open(url) }
+        } label: {
+            HStack(spacing: 8) {
+                Text(group.name)
+                    .font(HyperliteTypography.semibold(HyperliteAppearance.shared.compactSize + 1))
+                    .foregroundStyle(HyperliteTheme.cyan.color)
+                    .textCase(.uppercase)
+                Text(summary)
+                    .font(HyperliteTypography.compact)
+                    .foregroundStyle(HyperliteTheme.mutedText.color)
+                Rectangle()
+                    .fill(HyperliteTheme.mutedText.color.opacity(0.25))
+                    .frame(height: 1)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(group.url == nil)
+        .padding(.top, 14)
+        .padding(.bottom, 2)
+        .accessibilityLabel("\(group.name) organization, \(summary)")
+    }
+
+    private var summary: String {
+        let projects = group.sections.count
+        let prs = group.pullRequestCount
+        return "\(prs) PR\(prs == 1 ? "" : "s") · \(projects) project\(projects == 1 ? "" : "s")"
+    }
+}

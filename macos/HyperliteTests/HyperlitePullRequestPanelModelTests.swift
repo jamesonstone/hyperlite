@@ -18,6 +18,8 @@ enum HyperlitePullRequestPanelModelTests {
         expect(model.visibleSections.map(\.id) == ["/a"] && model.hiddenSections.map(\.id) == ["/b"] &&
                model.hiddenCount == 1, "hide-idle splits the project without rows into the hidden list")
         let showAll = HyperlitePullRequestPanelModel(scan: scan, hideIdle: false, now: now)
+        expect(showAll.organizations.map(\.name) == ["o"] && showAll.organizations[0].sections.count == 2 &&
+               showAll.organizations[0].pullRequestCount == 1, "projects group under their GitHub organization")
         expect(showAll.visibleSections.count == 2 && showAll.hiddenSections.isEmpty, "show-all lists every project")
 
         let cache = HyperlitePullRequestPanelModelCache()
