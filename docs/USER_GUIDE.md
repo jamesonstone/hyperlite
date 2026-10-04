@@ -68,6 +68,10 @@ Open PRs load from a separate private cache. Hyperlite keeps the list current
 on its own: while the window is visible it checks once a minute, and revealing
 the window, foreground activation, or waking the Mac checks immediately. Each
 configured repository is re-queried no more often than every five minutes.
+The helper remembers each repository's resolved remote and base branch and
+reuses them while the repository's git configuration and refs are unchanged,
+so refreshes and the running-workflow poll start without spawning git, and
+running-workflow timers pause while the window is hidden.
 Automatic refreshes reuse cached pull-request details for up to fifteen minutes
 when the probe shows a repository's open count and newest update unchanged and
 no check is pending, so an idle watch list costs only the probe (about one

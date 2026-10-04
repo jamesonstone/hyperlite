@@ -21,18 +21,8 @@ struct HyperliteOpenPRWatchColumn<Content: View>: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
-    /// Sections are lazy, so a distant row may not exist yet: bring its
-    /// section on screen first, then the row itself on the next pass.
     private func scroll(_ proxy: ScrollViewProxy, to request: HyperliteScrollRequest) {
-        let anchor: UnitPoint? = request.centered ? .center : nil
-        if let sectionID = HyperlitePullRequestJump.sectionID(for: request.id),
-           request.centered || request.id.hasPrefix(HyperliteWorkspaceNavigation.headerID(sectionID: ""))
-        {
-            proxy.scrollTo(sectionID, anchor: request.centered ? .top : nil)
-        }
-        DispatchQueue.main.async {
-            proxy.scrollTo(request.id, anchor: anchor)
-        }
+        proxy.scrollTo(request.id, anchor: request.centered ? .center : nil)
     }
 }
 

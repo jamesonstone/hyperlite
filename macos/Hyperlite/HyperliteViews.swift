@@ -122,6 +122,7 @@ struct HyperliteWindow: View {
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
+        .environment(\.hyperliteWindowVisible, state.activityPolling.isWindowVisible)
     }
 
     private var windowActions: some View {

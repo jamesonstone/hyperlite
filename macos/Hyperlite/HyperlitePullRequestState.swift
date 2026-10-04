@@ -59,6 +59,10 @@ enum HyperlitePullRequestRefresh {
             arguments: arguments,
             operation: "pull request refresh"
         )
-        return try HyperliteJSON.decoder.decode(HyperliteProjectPullRequestScan.self, from: data)
+        // Decode off the main thread: a full scan is hundreds of kilobytes and
+        // arrives on every refresh and activity poll.
+        return try await Task.detached(priority: .userInitiated) {
+            try HyperliteJSON.decoder.decode(HyperliteProjectPullRequestScan.self, from: data)
+        }.value
     }
 }
