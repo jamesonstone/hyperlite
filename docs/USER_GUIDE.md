@@ -126,6 +126,15 @@ cache and do not add GitHub calls. Projects with open pull requests can be
 collapsed with the chevron at the left of the heading. Collapsed, a project
 keeps its name and open-PR count; the collapse state persists per project.
 
+Each project heading also has its own eye. Closing it ignores the project: the
+section shrinks to its name plus `ignored`, and Hyperlite stops every GitHub
+request for it (refreshes, probes, and the workflow poll). Use it for
+repositories you work in but whose pull requests belong to another team.
+Opening the eye again fetches that one project immediately and expands its
+section. The same switch is `hyperlite projects ignore <path>` and
+`hyperlite projects watch <path>`; the choice is stored as `ignored: true` on
+the project in the Hyperlite config.
+
 The workflow strip sits on the repository heading row. It lists every file
 under `.github/workflows` on the default
 branch, named by the file's `name:` key, plus any observed dynamic workflow

@@ -5,6 +5,9 @@ enum HyperlitePullRequestRefreshMode: Equatable {
     case stale
     case force
     case activity
+    /// A forced refresh limited to one project path, used right after a
+    /// project is watched again.
+    case project(String)
 }
 
 enum HyperlitePullRequestRefresh {
@@ -49,6 +52,8 @@ enum HyperlitePullRequestRefresh {
             arguments.append("--force")
         case .activity:
             arguments.append("--activity")
+        case let .project(path):
+            arguments += ["--force", "--project", path]
         }
         let data = try await HyperliteProcess.run(
             arguments: arguments,

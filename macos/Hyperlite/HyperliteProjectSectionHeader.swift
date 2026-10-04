@@ -5,8 +5,10 @@ struct HyperliteProjectSectionHeader: View {
     let section: HyperliteProjectSection
     let chips: [HyperliteWorkflowChip]
     var collapsed: Binding<Bool>? = nil
+    var onToggleIgnore: (() -> Void)? = nil
 
     private var isIdle: Bool { section.rows.isEmpty }
+    private var isIgnored: Bool { section.project.isIgnored }
     private var stripChips: [HyperliteWorkflowChip] {
         HyperliteProjectSectionChrome.stripChips(
             chips, idle: isIdle
@@ -34,17 +36,20 @@ struct HyperliteProjectSectionHeader: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(accessibilityLabel)
             .accessibilityHint(section.repositoryURL == nil ? "" : "Opens the repository on GitHub")
-            if !pipelineAlerts.isEmpty {
+            if !pipelineAlerts.isEmpty && !isIgnored {
                 HyperlitePipelineAlertStrip(alerts: pipelineAlerts)
                     .fixedSize(horizontal: true, vertical: false)
                     .layoutPriority(2)
             }
-            if !stripChips.isEmpty {
+            if !stripChips.isEmpty && !isIgnored {
                 HyperliteWorkflowStrip(chips: stripChips)
                     .fixedSize(horizontal: true, vertical: false)
                     .layoutPriority(1)
             }
             Spacer(minLength: 4)
+            if let onToggleIgnore {
+                ignoreButton(onToggleIgnore)
+            }
             githubButtons
         }
         .contentShape(Rectangle())
@@ -81,7 +86,12 @@ struct HyperliteProjectSectionHeader: View {
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .layoutPriority(1)
-            if isIdle {
+            if isIgnored {
+                Text(HyperliteProjectIgnorePresentation.ignoredText)
+                    .font(HyperliteTypography.compact)
+                    .foregroundStyle(HyperliteTheme.mutedText.color)
+                    .lineLimit(1)
+            } else if isIdle {
                 Text(section.idleText)
                     .font(HyperliteTypography.compact)
                     .foregroundStyle(HyperliteTheme.mutedText.color)
@@ -94,6 +104,17 @@ struct HyperliteProjectSectionHeader: View {
                     .foregroundStyle(HyperliteTheme.secondaryText.color)
             }
         }
+    }
+
+    private func ignoreButton(_ toggle: @escaping () -> Void) -> some View {
+        HyperliteDashboardControlButton(
+            systemName: HyperliteProjectIgnorePresentation.iconName(ignored: isIgnored),
+            active: !isIgnored,
+            label: HyperliteProjectIgnorePresentation.buttonLabel(
+                repository: section.repository, ignored: isIgnored
+            ),
+            action: toggle
+        )
     }
 
     private var githubButtons: some View {
@@ -140,6 +161,9 @@ struct HyperliteProjectSectionHeader: View {
     }
 
     private var accessibilityLabel: String {
+        if isIgnored {
+            return "\(section.repository), \(HyperliteProjectIgnorePresentation.ignoredText)"
+        }
         let lead = isIdle
             ? "\(section.repository) pull requests, \(section.idleText)"
             : "\(section.repository) pull requests, \(section.rows.count)"
