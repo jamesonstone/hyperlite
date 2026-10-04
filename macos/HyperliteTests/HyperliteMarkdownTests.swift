@@ -43,6 +43,14 @@ enum HyperliteMarkdownTests {
         expect(link("[#5](https://x) and https://github.com/o/r/pull/9#issuecomment-1", "o/r") ==
                "[#5](https://x) and https://github.com/o/r/pull/9#issuecomment-1",
                "existing links and URL fragments stay untouched")
+        expect(link("See owner/repo#12 and #3", "") ==
+               "See [owner/repo#12](https://github.com/owner/repo/issues/12) and #3",
+               "explicit references link without a default repository; bare #N needs one")
+        expect(link("[result](https://example.test/?anchor=#12) and <https://x.test/#9>", "o/r") ==
+               "[result](https://example.test/?anchor=#12) and <https://x.test/#9>",
+               "references inside link destinations and URLs stay untouched")
+        expect(String(HyperliteMarkdownParser.inline("Use `:bug:` and `#4` :bug: #4", repository: "o/r").characters) ==
+               "Use :bug: and #4 🐛 #4", "code spans stay literal while text outside renders")
         let rendered = HyperliteMarkdownParser.inline("Closes #7", repository: "o/r")
         expect(rendered.runs.contains { $0.link?.absoluteString == "https://github.com/o/r/issues/7" },
                "rendered text carries a clickable issue link")

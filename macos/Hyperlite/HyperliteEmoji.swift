@@ -48,7 +48,7 @@ enum HyperliteEmoji {
         "wastebasket": "🗑️", "passport_control": "🛂", "adhesive_bandage": "🩹", "monocle_face": "🧐",
         "coffin": "⚰️", "test_tube": "🧪", "necktie": "👔", "stethoscope": "🩺", "bricks": "🧱",
         "technologist": "🧑‍💻", "money_with_wings": "💸", "thread": "🧵", "safety_vest": "🦺", "airplane": "✈️",
-        "lock_with_ink_pen": "🔏", "pencil": "📝",
+        "lock_with_ink_pen": "🔏", "pencil": "📝", "t-rex": "🦖",
         // common GitHub emoji
         "+1": "👍", "thumbsup": "👍", "-1": "👎", "thumbsdown": "👎", "heart": "❤️", "warning": "⚠️",
         "x": "❌", "heavy_check_mark": "✔️", "white_check_mark_button": "✅", "question": "❓",

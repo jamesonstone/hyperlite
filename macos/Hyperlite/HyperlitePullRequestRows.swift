@@ -21,6 +21,9 @@ struct HyperlitePullRequestPanelRow: View {
             set: { presented in
                 guard !presented else { return }
                 hoverPresented = false
+                // Removal may not deliver onHover(false); never let a stale
+                // card-hover flag keep a later hover card open.
+                cardHovering = false
                 if keyboardDetails { onCloseDetails() }
             }
         )
@@ -59,6 +62,7 @@ struct HyperlitePullRequestPanelRow: View {
                 cardHovering = inside
                 if !inside { scheduleClose() }
             }
+            .onDisappear { cardHovering = false }
         }
     }
 
