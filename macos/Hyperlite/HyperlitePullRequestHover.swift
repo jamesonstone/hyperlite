@@ -14,6 +14,8 @@ struct HyperlitePullRequestGlance: Equatable {
     var commentCount = 0
     var ciState = ""
     var summary = ""
+    /// The pull request body as Markdown; the card falls back to `summary`.
+    var description = ""
 
     static let empty = HyperlitePullRequestGlance()
 }
@@ -36,7 +38,8 @@ struct HyperlitePullRequestHoverSnapshot: Equatable {
 }
 
 enum HyperlitePullRequestHoverPresentation {
-    static let cardWidth: CGFloat = 480
+    static let cardWidth: CGFloat = 560
+    static let descriptionMaxHeight: CGFloat = 340
     /// Hovering must settle for this long before the card opens.
     static let openDelay: Duration = .milliseconds(1350)
 
@@ -134,7 +137,14 @@ struct HyperlitePullRequestHoverCard: View {
                 .foregroundStyle(HyperliteTheme.mutedText.color)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
-            if !card.summary.isEmpty {
+            if !row.glance.description.isEmpty {
+                ScrollView(.vertical) {
+                    HyperliteMarkdownView(markdown: row.glance.description)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(maxHeight: HyperlitePullRequestHoverPresentation.descriptionMaxHeight)
+                .fixedSize(horizontal: false, vertical: true)
+            } else if !card.summary.isEmpty {
                 Text(card.summary)
                     .font(HyperliteTypography.compact)
                     .foregroundStyle(HyperliteTheme.secondaryText.color)
@@ -163,7 +173,8 @@ struct HyperlitePullRequestHoverCard: View {
         .frame(width: HyperlitePullRequestHoverPresentation.cardWidth, alignment: .leading)
         .background(HyperliteTheme.elevatedSurface.color)
         .hyperliteTheme()
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(card.accessibilityLabel)
+        // Children stay individually reachable so VoiceOver can read the
+        // rendered description block by block.
+        .accessibilityElement(children: .contain)
     }
 }

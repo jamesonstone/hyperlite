@@ -20,6 +20,7 @@ type rawPullRequest struct {
 	Assignees      *rawNamedNodes              `json:"assignees"`
 	Comments       *rawCount                   `json:"comments"`
 	BodyText       string                      `json:"bodyText"`
+	Body           string                      `json:"body"`
 	ReviewRequests *rawReviewRequestConnection `json:"reviewRequests"`
 	Commits        *rawCommitConnection        `json:"commits"`
 	ReviewThreads  *rawReviewThreadConnection  `json:"reviewThreads"`

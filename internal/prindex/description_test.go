@@ -1,0 +1,59 @@
+package prindex
+
+import (
+	"strings"
+	"testing"
+)
+
+func TestDescriptionMarkdownKeepsAuthorFormattingAndDropsBotBlocks(t *testing.T) {
+	body := "## Description\r\n\r\nFixes the catalog.\r\n\r\n- one\r\n- two\r\n\r\n<!-- template hint -->\r\n\r\n\r\n\r\n" +
+		"## Ticket\r\n\r\nCloses #1\r\n\r\n<!-- This is an auto-generated comment: release notes by coderabbit.ai -->\r\n" +
+		"## Summary by CodeRabbit\r\n* stuff\r\n<!-- end of auto-generated comment: release notes by coderabbit.ai -->"
+	got := descriptionMarkdown(body)
+	want := "## Description\n\nFixes the catalog.\n\n- one\n- two\n\n## Ticket\n\nCloses #1"
+	if got != want {
+		t.Fatalf("got %q\nwant %q", got, want)
+	}
+}
+
+func TestDescriptionMarkdownTruncatesAtParagraphBoundary(t *testing.T) {
+	body := strings.Repeat("a", 900) + "\n\n" + strings.Repeat("b", 900)
+	got := descriptionMarkdown(body)
+	if !strings.HasSuffix(got, "\n\n…") || strings.Contains(got, "b") {
+		t.Fatalf("got %d runes ending %q", len([]rune(got)), got[len(got)-10:])
+	}
+}
+
+func TestDescriptionMarkdownPreservesFencedCode(t *testing.T) {
+	body := "Intro  \n\n\n\n~~~\nline one  \n\n\n\nline two\t\n~~~\n\n```go\nx := 1   \n```"
+	want := "Intro\n\n~~~\nline one  \n\n\n\nline two\t\n~~~\n\n```go\nx := 1   \n```"
+	if got := descriptionMarkdown(body); got != want {
+		t.Fatalf("got %q\nwant %q", got, want)
+	}
+}
+
+func TestDescriptionMarkdownMeasuresParagraphBoundaryInRunes(t *testing.T) {
+	body := strings.Repeat("é", 300) + "\n\n" + strings.Repeat("a", 1600)
+	got := descriptionMarkdown(body)
+	if utf8RuneCount := len([]rune(got)); utf8RuneCount < descriptionLimit {
+		t.Fatalf("an early non-ASCII paragraph break must not discard the budget; got %d runes", utf8RuneCount)
+	}
+}
+
+func TestDescriptionMarkdownNeverCutsInsideFencedCode(t *testing.T) {
+	body := "Intro paragraph.\n\n```text\n" + strings.Repeat("code\n\n", 400) + "```\n\ntail"
+	got := descriptionMarkdown(body)
+	if strings.Count(got, "```")%2 != 0 {
+		t.Fatalf("truncation left an unclosed fence: %q", got[len(got)-40:])
+	}
+	if !strings.HasSuffix(got, "\n\n…") {
+		t.Fatalf("got %q", got[len(got)-20:])
+	}
+}
+
+func TestDescriptionMarkdownKeepsFenceWithTrailingTextAsCode(t *testing.T) {
+	body := "```\nline  \n``` not a closer\n\n\n\nstill code  \n```"
+	if got := descriptionMarkdown(body); got != body {
+		t.Fatalf("got %q\nwant %q", got, body)
+	}
+}

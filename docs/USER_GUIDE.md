@@ -216,8 +216,11 @@ request; its separate leading checkbox, immediately before the row text,
 changes only the private `Reviewed by me` marker, and an empty checkbox stays
 quiet until the row is hovered. Hovering a row shows
 a glance card after about 1.35 seconds of steady hover, with compact
-identity, the title, who is assigned or `unassigned`, a summary of up to about
-600 characters drawn from the pull request description, and one next step
+identity, the title, who is assigned or `unassigned`, the pull request
+description formatted as written (headings, paragraphs, lists, quotes, code,
+inline emphasis and links; HTML comments and bot summaries omitted; long
+descriptions end at a paragraph boundary and scroll inside the card), and one
+next step
 such as fix merge conflicts, failing CI, unresolved review threads, or
 waiting on review. Hover does not dump author, diffstat, SHA, or URL, and it
 does not call GitHub.
