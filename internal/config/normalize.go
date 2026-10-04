@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -39,6 +40,14 @@ func normalize(raw rawConfig, path string) (Config, error) {
 	seenProjects := make(map[string]struct{}, len(raw.Projects))
 	for index, rawProject := range raw.Projects {
 		project, err := normalizeSource(rawProject)
+		if errors.Is(err, os.ErrNotExist) {
+			missing := Source{Path: filepath.Clean(rawProject.Path), Ignored: rawProject.Ignored}
+			if expanded, expandErr := CanonicalizePath(rawProject.Path); expandErr == nil {
+				missing.Path = expanded
+			}
+			config.MissingProjects = append(config.MissingProjects, missing)
+			continue
+		}
 		if err != nil {
 			return Config{}, fmt.Errorf("project %d: %w", index+1, err)
 		}
@@ -71,6 +80,14 @@ func normalize(raw rawConfig, path string) (Config, error) {
 		}
 		seen[repo.Name] = struct{}{}
 		config.Repositories = append(config.Repositories, repo)
+	}
+	for _, retired := range raw.Retired {
+		if strings.TrimSpace(retired.Path) == "" {
+			return Config{}, errors.New("retired project path is required")
+		}
+		config.RetiredProjects = append(config.RetiredProjects, RetiredProject{
+			Path: filepath.Clean(retired.Path), Reason: retired.Reason, RetiredAt: retired.RetiredAt.UTC(),
+		})
 	}
 	return config, nil
 }

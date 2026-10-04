@@ -60,6 +60,12 @@ func (a App) runPullRequests(
 	if err != nil {
 		return err
 	}
+	var retired []config.RetiredProject
+	if len(cfg.MissingProjects) > 0 && !options.localOnly && !options.activity {
+		if retired, err = retireMissingProjects(path); err != nil {
+			return err
+		}
+	}
 	cfg.Sources = append([]config.Source(nil), cfg.Projects...)
 	cfg.Repositories = nil
 	mode := prindex.RefreshStale
@@ -85,6 +91,7 @@ func (a App) runPullRequests(
 	if err != nil {
 		return err
 	}
+	result.Warnings = append(result.Warnings, retiredWarnings(retired)...)
 	if options.jsonOutput {
 		return json.NewEncoder(a.Out).Encode(result)
 	}

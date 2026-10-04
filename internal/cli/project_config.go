@@ -71,6 +71,7 @@ func (a App) configuredProjectsCommand(configPath *string) *cobra.Command {
 		a.configuredProjectRemoveCommand(configPath),
 		a.configuredProjectIgnoreCommand(configPath, true),
 		a.configuredProjectIgnoreCommand(configPath, false),
+		a.configuredProjectRestoreCommand(configPath),
 		a.configuredProjectListCommand(configPath),
 	)
 	return command

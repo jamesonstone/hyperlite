@@ -55,10 +55,23 @@ type Config struct {
 	Projects     []Source
 	Sources      []Source
 	Repositories []Repository
-	Path         string
+	// MissingProjects are configured projects whose directory no longer
+	// exists. They load without failing and are written back unchanged until
+	// RetireMissingProjects moves them to RetiredProjects.
+	MissingProjects []Source
+	// RetiredProjects are soft-deleted projects: kept for audit and restore,
+	// never scanned.
+	RetiredProjects []RetiredProject
+	Path            string
 	// RefreshOnly is a per-invocation, never persisted limit on which project
 	// paths a pull-request refresh may query.
 	RefreshOnly []string
+}
+
+type RetiredProject struct {
+	Path      string
+	Reason    string
+	RetiredAt time.Time
 }
 
 type rawConfig struct {
@@ -67,6 +80,13 @@ type rawConfig struct {
 	Projects     []rawSource     `yaml:"projects"`
 	Sources      []rawSource     `yaml:"sources"`
 	Repositories []rawRepository `yaml:"repositories"`
+	Retired      []rawRetired    `yaml:"retired_projects,omitempty"`
+}
+
+type rawRetired struct {
+	Path      string    `yaml:"path"`
+	Reason    string    `yaml:"reason"`
+	RetiredAt time.Time `yaml:"retired_at"`
 }
 
 type rawSettings struct {
