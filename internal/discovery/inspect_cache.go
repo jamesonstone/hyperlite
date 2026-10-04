@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 
 	"github.com/jamesonstone/hyperlite/internal/config"
@@ -18,19 +19,27 @@ type InspectCache struct {
 	entries map[string]cachedInspection
 	dirty   bool
 	loaded  bool
+	// sources are the global and system git configuration files git reads in
+	// this process's environment, resolved once per discovery run.
+	sources []string
 }
 
 type cachedInspection struct {
+	Sources    []string          `json:"sources"`
 	Stamps     []fileStamp       `json:"stamps"`
 	Repository config.Repository `json:"repository"`
 	CommonDir  string            `json:"common_dir"`
 }
 
-type fileStamp struct {
-	Path    string `json:"path"`
-	Exists  bool   `json:"exists"`
-	Size    int64  `json:"size"`
-	ModNano int64  `json:"mod_nano"`
+// useSources records the configuration sources for this run. Entries saved
+// under different sources (another environment, a new include) are not reused.
+func (c *InspectCache) useSources(sources []string) {
+	if c == nil {
+		return
+	}
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.sources = sources
 }
 
 func (c *InspectCache) lookup(root string) (candidate, bool) {
@@ -40,8 +49,9 @@ func (c *InspectCache) lookup(root string) (candidate, bool) {
 	c.mutex.Lock()
 	c.loadLocked()
 	entry, found := c.entries[root]
+	sources := c.sources
 	c.mutex.Unlock()
-	if !found || !stampsCurrent(entry.Stamps) {
+	if !found || !equalStrings(entry.Sources, sources) || !stampsCurrent(entry.Stamps) {
 		return candidate{}, false
 	}
 	repository := entry.Repository
@@ -53,11 +63,16 @@ func (c *InspectCache) store(root string, item candidate) {
 	if c == nil {
 		return
 	}
-	stamps := inspectionStamps(root, item.commonDir, item.repo.Remote)
+	c.mutex.Lock()
+	sources := c.sources
+	c.mutex.Unlock()
+	stamps := inspectionStamps(root, item.commonDir, item.repo.Remote, sources)
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	c.loadLocked()
-	c.entries[root] = cachedInspection{Stamps: stamps, Repository: item.repo, CommonDir: item.commonDir}
+	c.entries[root] = cachedInspection{
+		Sources: sources, Stamps: stamps, Repository: item.repo, CommonDir: item.commonDir,
+	}
 	c.dirty = true
 }
 
@@ -99,50 +114,6 @@ func (c *InspectCache) loadLocked() {
 	}
 }
 
-// inspectionStamps lists every file whose change can alter the common
-// directory, the GitHub remote, or the local base branch.
-func inspectionStamps(root, commonDir, remote string) []fileStamp {
-	paths := []string{
-		filepath.Join(root, ".git"),
-		filepath.Join(commonDir, "config"),
-		filepath.Join(commonDir, "packed-refs"),
-		filepath.Join(commonDir, "refs", "heads", "main"),
-		filepath.Join(commonDir, "refs", "heads", "master"),
-		filepath.Join(commonDir, "refs", "heads", "trunk"),
-	}
-	paths = append(paths, "/etc/gitconfig")
-	if remote != "" {
-		paths = append(paths, filepath.Join(commonDir, "refs", "remotes", remote, "HEAD"))
-	}
-	if home, err := os.UserHomeDir(); err == nil {
-		paths = append(paths, filepath.Join(home, ".gitconfig"), filepath.Join(home, ".config", "git", "config"))
-	}
-	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
-		paths = append(paths, filepath.Join(xdg, "git", "config"))
-	}
-	stamps := make([]fileStamp, 0, len(paths))
-	for _, path := range paths {
-		stamps = append(stamps, stampFor(path))
-	}
-	return stamps
-}
-
-func stampFor(path string) fileStamp {
-	info, err := os.Lstat(path)
-	if err != nil {
-		return fileStamp{Path: path}
-	}
-	return fileStamp{Path: path, Exists: true, Size: info.Size(), ModNano: info.ModTime().UnixNano()}
-}
-
-func stampsCurrent(stamps []fileStamp) bool {
-	if len(stamps) == 0 {
-		return false
-	}
-	for _, stamp := range stamps {
-		if stampFor(stamp.Path) != stamp {
-			return false
-		}
-	}
-	return true
+func equalStrings(left, right []string) bool {
+	return slices.Equal(left, right)
 }
