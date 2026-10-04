@@ -25,9 +25,11 @@ enum HyperliteMarkdownParser {
         }
         for rawLine in markdown.components(separatedBy: "\n") {
             let trimmed = rawLine.trimmingCharacters(in: .whitespaces)
-            // Backtick or tilde fences; a block closes only on a fence of the
-            // same character at least as long as its opener.
-            if let marker = fenceMarker(trimmed), code == nil || (marker.first == fence.first && marker.count >= fence.count) {
+            // Backtick or tilde fences. An opener may carry an info string; a
+            // block closes only on a bare fence of the same character at least
+            // as long as its opener.
+            if let marker = fenceMarker(trimmed),
+               code == nil || (marker.first == fence.first && marker.count >= fence.count && trimmed == marker) {
                 if let lines = code {
                     blocks.append(.code(lines.joined(separator: "\n")))
                     code = nil

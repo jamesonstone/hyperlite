@@ -39,3 +39,21 @@ func TestDescriptionMarkdownMeasuresParagraphBoundaryInRunes(t *testing.T) {
 		t.Fatalf("an early non-ASCII paragraph break must not discard the budget; got %d runes", utf8RuneCount)
 	}
 }
+
+func TestDescriptionMarkdownNeverCutsInsideFencedCode(t *testing.T) {
+	body := "Intro paragraph.\n\n```text\n" + strings.Repeat("code\n\n", 400) + "```\n\ntail"
+	got := descriptionMarkdown(body)
+	if strings.Count(got, "```")%2 != 0 {
+		t.Fatalf("truncation left an unclosed fence: %q", got[len(got)-40:])
+	}
+	if !strings.HasSuffix(got, "\n\n…") {
+		t.Fatalf("got %q", got[len(got)-20:])
+	}
+}
+
+func TestDescriptionMarkdownKeepsFenceWithTrailingTextAsCode(t *testing.T) {
+	body := "```\nline  \n``` not a closer\n\n\n\nstill code  \n```"
+	if got := descriptionMarkdown(body); got != body {
+		t.Fatalf("got %q\nwant %q", got, body)
+	}
+}

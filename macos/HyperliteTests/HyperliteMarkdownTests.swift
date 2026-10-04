@@ -37,6 +37,9 @@ enum HyperliteMarkdownTests {
             .code("a ``` b"), .listItem(marker: "1)", depth: 0, text: "one"),
             .listItem(marker: "1000.", depth: 0, text: "big"),
         ], "tilde fences close only on a tilde fence; ) and long ordered markers are list items")
+        expect(HyperliteMarkdownParser.blocks("```swift\nlet a = 1\n``` not a closer\n```") == [
+            .code("let a = 1\n``` not a closer"),
+        ], "a fence followed by text is code, not a closer")
     }
 
     private static func expect(_ condition: @autoclosure () -> Bool, _ message: String) {
