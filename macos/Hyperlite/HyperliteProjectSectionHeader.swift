@@ -21,10 +21,15 @@ struct HyperliteProjectSectionHeader: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            lantern
-            if let collapsed {
-                disclosureChevron(collapsed)
+            // Lantern and chevron share the rows' checkbox column, so the
+            // repository name lines up with each row's PR number.
+            HStack(spacing: 3) {
+                lantern
+                if let collapsed {
+                    disclosureChevron(collapsed)
+                }
             }
+            .frame(width: chromeLeading - 6, alignment: .leading)
             Button {
                 open(section.repositoryURL)
             } label: {
@@ -33,7 +38,6 @@ struct HyperliteProjectSectionHeader: View {
             .buttonStyle(.plain)
             .disabled(section.repositoryURL == nil)
             .help(section.repositoryURL == nil ? "" : "Open \(section.repository) on GitHub")
-            .padding(.leading, collapsed == nil ? chromeLeading : 0)
             .layoutPriority(0)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(accessibilityLabel)
@@ -82,7 +86,6 @@ struct HyperliteProjectSectionHeader: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .padding(.leading, chromeLeading - 20)
         .help(collapsed.wrappedValue ? "Show pull requests" : "Hide pull requests")
         .accessibilityLabel(
             collapsed.wrappedValue

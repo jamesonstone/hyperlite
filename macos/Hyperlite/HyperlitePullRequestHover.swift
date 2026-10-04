@@ -36,6 +36,10 @@ struct HyperlitePullRequestHoverSnapshot: Equatable {
 }
 
 enum HyperlitePullRequestHoverPresentation {
+    static let cardWidth: CGFloat = 480
+    /// Hovering must settle for this long before the card opens.
+    static let openDelay: Duration = .milliseconds(1350)
+
     static func snapshot(
         row: HyperlitePullRequestRow,
         reviewStatus: HyperlitePullRequestReviewStatus
@@ -123,7 +127,7 @@ struct HyperlitePullRequestHoverCard: View {
             Text(card.title)
                 .font(HyperliteTypography.heading)
                 .foregroundStyle(HyperliteTheme.primaryText.color)
-                .lineLimit(2)
+                .lineLimit(3)
                 .fixedSize(horizontal: false, vertical: true)
             Text(card.assignee)
                 .font(HyperliteTypography.compact)
@@ -134,7 +138,7 @@ struct HyperlitePullRequestHoverCard: View {
                 Text(card.summary)
                     .font(HyperliteTypography.compact)
                     .foregroundStyle(HyperliteTheme.secondaryText.color)
-                    .lineLimit(3)
+                    .lineLimit(12)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Rectangle()
@@ -155,8 +159,8 @@ struct HyperlitePullRequestHoverCard: View {
             }
         }
         .textSelection(.enabled)
-        .padding(12)
-        .frame(maxWidth: 320, alignment: .leading)
+        .padding(14)
+        .frame(width: HyperlitePullRequestHoverPresentation.cardWidth, alignment: .leading)
         .background(HyperliteTheme.elevatedSurface.color)
         .hyperliteTheme()
         .accessibilityElement(children: .combine)
