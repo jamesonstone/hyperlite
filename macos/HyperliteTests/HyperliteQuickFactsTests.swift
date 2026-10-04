@@ -32,6 +32,9 @@ enum HyperliteQuickFactsTests {
             == "hyperlite v1.2.0 · abc1234", "release builds show version and commit")
         expect(HyperliteAppVersion.label(info: ["CFBundleShortVersionString": "abc1234", "HyperliteCommit": "abc1234"])
             == "hyperlite abc1234", "a commit-only version is not repeated")
+        expect(HyperliteAppVersion.label(info: [
+            "CFBundleShortVersionString": "1.0.0", "HyperliteDescribe": "v1.2.0-3-gabc1234", "HyperliteCommit": "abc1234",
+        ]) == "hyperlite v1.2.0-3-gabc1234", "the describe string wins over the numeric bundle version")
     }
 
     private static func expect(_ condition: @autoclosure () -> Bool, _ message: String) {
