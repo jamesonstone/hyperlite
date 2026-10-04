@@ -162,6 +162,8 @@ struct HyperlitePullRequestRow: Equatable, Identifiable {
     let unresolvedReviewThreads: Int?
     let updatedAt: Date
     var glance: HyperlitePullRequestGlance = .empty
+    /// Failed GitHub Actions pipelines on the current head commit.
+    var failedPipelines: [HyperliteFailedPipeline] = []
 
     /// Section grouping key. Two configured projects can share a repository,
     /// so rows group by project identity; hand-built rows without a project
@@ -194,7 +196,13 @@ enum HyperlitePullRequestPresentation {
                     hasMergeConflict: pullRequest.hasMergeConflict,
                     unresolvedReviewThreads: pullRequest.unresolvedReviewThreads,
                     updatedAt: pullRequest.updatedAt,
-                    glance: pullRequest.glance
+                    glance: pullRequest.glance,
+                    failedPipelines: HyperliteFailedPipelinePresentation.failures(
+                        runs: project.workflows?.runs ?? [],
+                        pullRequestNumber: pullRequest.number,
+                        headOID: pullRequest.headRefOID,
+                        rollup: pullRequest.glance.ciState
+                    )
                 )
             }
         }.sorted {

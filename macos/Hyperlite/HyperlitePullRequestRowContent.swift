@@ -34,10 +34,10 @@ struct HyperlitePullRequestRowContent: View {
                 HStack(alignment: .firstTextBaseline, spacing: 7) {
                     statusBadge
                     mergeConflictGlyph
-                    reviewLabel
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         titleLabel
                             .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+                        attentionCluster
                         ageLabel
                     }
                 }
@@ -108,18 +108,31 @@ struct HyperlitePullRequestRowContent: View {
             .frame(minWidth: 42, alignment: .leading)
     }
 
-    private var reviewLabel: some View {
-        Text(review.text)
-            .lineLimit(1)
-            .fixedSize(horizontal: true, vertical: false)
-            .layoutPriority(Self.layout.metadataLayoutPriority)
-            .frame(
-                minWidth: Self.layout.reviewFeedbackColumnWidth,
-                alignment: .leading
-            )
-            .foregroundStyle(review.needsAttention
-                ? HyperliteTheme.orange.color : HyperliteTheme.mutedText.color)
+    /// Unresolved work, in red beside the age: failed pipelines by short
+    /// name, then unresolved review feedback (CodeRabbit or human threads).
+    @ViewBuilder
+    private var attentionCluster: some View {
+        let reviewCount = review.needsAttention ? (row.unresolvedReviewThreads ?? 0) : 0
+        if !row.failedPipelines.isEmpty || reviewCount > 0 {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                ForEach(row.failedPipelines) { pipeline in
+                    Label(pipeline.shortName, systemImage: "xmark")
+                        .labelStyle(HyperliteCompactLabelStyle())
+                        .help("\(pipeline.name) failed")
+                }
+                if reviewCount > 0 {
+                    Label("\(reviewCount)", systemImage: "text.bubble")
+                        .labelStyle(HyperliteCompactLabelStyle())
+                        .help(review.accessibilityLabel)
+                }
+            }
+            .font(HyperliteTypography.compact)
+            .foregroundStyle(HyperliteTheme.red.color)
             .monospacedDigit()
+            .lineLimit(1)
+            .fixedSize()
+            .layoutPriority(Self.layout.metadataLayoutPriority)
+        }
     }
 
     private var titleLabel: some View {
@@ -166,5 +179,15 @@ struct HyperlitePullRequestRowContent: View {
         HyperlitePullRequestHoverPresentation.snapshot(
             row: row, reviewStatus: reviewStatus
         ).accessibilityLabel
+    }
+}
+
+/// Icon then text with a tight gap, sized for compact row metadata.
+struct HyperliteCompactLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 2) {
+            configuration.icon.font(.system(size: 8, weight: .bold))
+            configuration.title
+        }
     }
 }

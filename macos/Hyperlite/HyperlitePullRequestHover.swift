@@ -64,7 +64,10 @@ enum HyperlitePullRequestHoverPresentation {
     ) -> (text: String, needsAttention: Bool) {
         let ci = glance.ciState.uppercased()
         if row.hasMergeConflict { return ("fix merge conflicts", true) }
-        if ci == "FAILURE" || ci == "ERROR" { return ("CI failing", true) }
+        if ci == "FAILURE" || ci == "ERROR" || !row.failedPipelines.isEmpty {
+            let names = row.failedPipelines.map(\.name)
+            return (names.isEmpty ? "CI failing" : "failed: \(names.joined(separator: ", "))", true)
+        }
         if let threads = row.unresolvedReviewThreads, threads > 0 {
             let noun = threads == 1 ? "thread" : "threads"
             return ("\(threads) unresolved review \(noun)", true)
