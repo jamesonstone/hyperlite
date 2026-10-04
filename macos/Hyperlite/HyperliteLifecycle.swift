@@ -6,8 +6,6 @@ import Foundation
 final class HyperliteApplicationDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var hotKey: HyperliteHotKeyController?
     private weak var window: NSWindow?
-    private var terminationPending = false
-    private var dailyDateObservers: [NSObjectProtocol] = []
     private var wakeObserver: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -15,28 +13,13 @@ final class HyperliteApplicationDelegate: NSObject, NSApplicationDelegate, NSWin
             self?.showWindow()
         }
         hotKey?.start()
-        dailyDateObservers = [
-            Notification.Name.NSCalendarDayChanged,
-            Notification.Name.NSSystemClockDidChange,
-            Notification.Name.NSSystemTimeZoneDidChange,
-        ].map { name in
-            NotificationCenter.default.addObserver(
-                forName: name,
-                object: nil,
-                queue: .main
-            ) { _ in
-                Task { @MainActor in
-                    HyperliteState.shared.refreshDailyNoteDateIfNeeded()
-                }
-            }
-        }
         wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didWakeNotification,
             object: nil,
             queue: .main
         ) { _ in
             Task { @MainActor in
-                HyperliteState.shared.refreshAllIfStale()
+                HyperliteState.shared.refreshIfStale()
             }
         }
         DispatchQueue.main.async { [weak self] in
@@ -50,11 +33,7 @@ final class HyperliteApplicationDelegate: NSObject, NSApplicationDelegate, NSWin
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {
-        HyperliteState.shared.refreshAllIfStale()
-    }
-
-    func applicationDidResignActive(_ notification: Notification) {
-        Task { await HyperliteNotepadState.shared.flush() }
+        HyperliteState.shared.refreshIfStale()
     }
 
     func windowDidChangeOcclusionState(_ notification: Notification) {
@@ -62,23 +41,7 @@ final class HyperliteApplicationDelegate: NSObject, NSApplicationDelegate, NSWin
         HyperliteState.shared.setWindowVisible(window.occlusionState.contains(.visible))
     }
 
-    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        guard HyperliteNotepadState.shared.isDirty || HyperliteNotepadState.shared.isSaving else {
-            return .terminateNow
-        }
-        guard !terminationPending else { return .terminateLater }
-        terminationPending = true
-        Task { [weak self] in
-            let saved = await HyperliteNotepadState.shared.flush()
-            self?.terminationPending = false
-            sender.reply(toApplicationShouldTerminate: saved)
-        }
-        return .terminateLater
-    }
-
     func applicationWillTerminate(_ notification: Notification) {
-        dailyDateObservers.forEach(NotificationCenter.default.removeObserver)
-        dailyDateObservers.removeAll()
         if let wakeObserver { NSWorkspace.shared.notificationCenter.removeObserver(wakeObserver) }
         wakeObserver = nil
         hotKey?.stop()
@@ -87,7 +50,6 @@ final class HyperliteApplicationDelegate: NSObject, NSApplicationDelegate, NSWin
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
     func windowShouldClose(_ sender: NSWindow) -> Bool {
-        Task { await HyperliteNotepadState.shared.flush() }
         sender.orderOut(nil)
         return false
     }

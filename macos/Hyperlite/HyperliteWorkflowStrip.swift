@@ -2,24 +2,13 @@ import SwiftUI
 
 struct HyperliteWorkflowStrip: View {
     let chips: [HyperliteWorkflowChip]
-    let compact: Bool
-    var expands = false
 
     var body: some View {
-        let shown = compact
-            ? HyperliteWorkflowStripPresentation.compactChips(chips)
-            : (visible: chips, hiddenCount: 0)
         HStack(alignment: .bottom, spacing: 8) {
-            ForEach(shown.visible) { chip in
+            ForEach(chips) { chip in
                 HyperliteWorkflowChipView(chip: chip)
             }
-            if shown.hiddenCount > 0 {
-                Text("+\(shown.hiddenCount)")
-                    .font(HyperliteTypography.compact.monospacedDigit())
-                    .foregroundStyle(HyperliteTheme.mutedText.color)
-            }
         }
-        .frame(maxWidth: expands ? .infinity : nil, alignment: .leading)
     }
 }
 

@@ -38,14 +38,6 @@ enum HyperliteTypography {
         appKitFont(size, weight: weight, family: resolvedFamily)
     }
 
-    static func plainTextAppKitFont(_ size: CGFloat) -> NSFont {
-        appKitFont(size)
-    }
-
-    static func editorAppKitFont() -> NSFont {
-        appKitFont(HyperliteAppearance.shared.bodySize + 1)
-    }
-
     static func resolveFamily(in installedFamilies: [String]) -> String? {
         installedFamilies.first {
             $0.compare(

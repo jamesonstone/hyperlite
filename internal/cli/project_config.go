@@ -55,7 +55,7 @@ func (a App) configuredProjectsCommand(configPath *string) *cobra.Command {
 	var browserRoot string
 	command := &cobra.Command{
 		Use:   "projects",
-		Short: "Select projects Hyperlite scans",
+		Short: "Select projects Hyperlite watches",
 		Args:  noArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			colorMode, _ := cmd.Flags().GetString("color")
@@ -70,7 +70,6 @@ func (a App) configuredProjectsCommand(configPath *string) *cobra.Command {
 		a.configuredProjectAddCommand(configPath),
 		a.configuredProjectRemoveCommand(configPath),
 		a.configuredProjectListCommand(configPath),
-		a.configuredProjectUpdateDefaultsCommand(configPath),
 	)
 	return command
 }

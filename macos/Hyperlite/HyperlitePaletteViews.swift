@@ -6,7 +6,6 @@ struct HyperliteCommandPalette: View {
     let pullRequests: HyperliteProjectPullRequestScan?
     let visibleOpenPullRequestCount: Int
     let mergePromptCopied: Bool
-    @ObservedObject var notepad: HyperliteNotepadState
     @ObservedObject private var appearance = HyperliteAppearance.shared
     let onAction: (HyperlitePaletteAction) -> Void
     let onDismiss: () -> Void
@@ -14,16 +13,13 @@ struct HyperliteCommandPalette: View {
     @State private var expandedProjects: Set<String> = []
     @State private var query = ""
     @State private var selection = 0
-    @State private var noteEntries: [HyperlitePaletteEntry] = []
     @FocusState private var searchFocused: Bool
     private var unfilteredEntries: [HyperlitePaletteEntry] {
         switch mode {
         case .commands:
             return HyperliteInteractionModel.commandEntries(
                 visibleOpenPullRequestCount: visibleOpenPullRequestCount,
-                mergePromptCopied: mergePromptCopied,
-                verticalMode: appearance.verticalMode,
-                notesOnly: appearance.notesOnly
+                mergePromptCopied: mergePromptCopied
             )
         case .projects:
             let effectiveExpansion = HyperliteInteractionModel.effectiveProjectExpansion(
@@ -46,8 +42,7 @@ struct HyperliteCommandPalette: View {
     }
 
     private var entries: [HyperlitePaletteEntry] {
-        let filtered = HyperliteInteractionModel.filteredEntries(unfilteredEntries, query: query)
-        return mode == .commands ? filtered + noteEntries : filtered
+        HyperliteInteractionModel.filteredEntries(unfilteredEntries, query: query)
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -91,7 +86,6 @@ struct HyperliteCommandPalette: View {
         .onChange(of: entries.count) { count in
             selection = HyperliteInteractionModel.movedSelection(selection, by: 0, count: count)
         }
-        .task(id: "\(notepad.searchIndexRevision):\(query)") { await searchNotes() }
     }
 
     private var paletteHeader: some View {
@@ -154,7 +148,7 @@ struct HyperliteCommandPalette: View {
     private var searchPrompt: String { HyperlitePaletteChrome.searchPrompt(for: mode) }
     private var emptyListTitle: String {
         switch mode {
-        case .commands: "Type to search commands and notes"
+        case .commands: "No commands"
         case .themes: "No matching themes"
         case .fontSizes: "No matching font sizes"
         case .projects, .removeProjects: "No configured projects"
@@ -261,27 +255,6 @@ struct HyperliteCommandPalette: View {
         case let .action(action): onAction(action)
         }
     }
-    private func searchNotes() async {
-        guard mode == .commands else {
-            noteEntries = []
-            return
-        }
-        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            noteEntries = []
-            return
-        }
-        do {
-            try await Task.sleep(for: .milliseconds(120))
-        } catch {
-            return
-        }
-        guard !Task.isCancelled else { return }
-        let results = await notepad.searchNotes(trimmed)
-        guard !Task.isCancelled else { return }
-        noteEntries = HyperliteInteractionModel.noteEntries(results: results)
-    }
-
     private func toggleProject(_ project: String) {
         if expandedProjects.contains(project) {
             expandedProjects.remove(project)

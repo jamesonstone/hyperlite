@@ -102,7 +102,7 @@ enum HyperliteError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .helperMissing: "Hyperlite's scan helper is unavailable"
+        case .helperMissing: "Hyperlite's command-line helper is unavailable"
         case let .commandFailed(operation, message): "Hyperlite \(operation) failed: \(message)"
         case let .commandTimedOut(operation): "Hyperlite \(operation) timed out"
         }

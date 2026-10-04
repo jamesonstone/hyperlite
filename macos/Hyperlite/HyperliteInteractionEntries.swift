@@ -3,9 +3,7 @@ import Foundation
 extension HyperliteInteractionModel {
     static func commandEntries(
         visibleOpenPullRequestCount: Int = 0,
-        mergePromptCopied: Bool = false,
-        verticalMode: Bool = false,
-        notesOnly: Bool = false
+        mergePromptCopied: Bool = false
     ) -> [HyperlitePaletteEntry] {
         [
             actionEntry(
@@ -19,35 +17,14 @@ extension HyperliteInteractionModel {
                 "textformat.size", .showFontSizes
             ),
             actionEntry(
-                "action:vertical-mode", "Vertical Mode",
-                verticalMode
-                    ? "Current · Open PRs on the left, notes on the right"
-                    : "Put Open PRs on the left and notes on the right",
-                verticalMode ? "checkmark" : "rectangle.split.2x1",
-                .toggleVerticalMode
-            ),
-            actionEntry(
-                "action:notes-only", "Notes Only",
-                notesOnly
-                    ? "Current · Hide Open PRs and give the editor the window"
-                    : "Hide Open PRs and give the editor the rest of the window",
-                notesOnly ? "checkmark" : "note.text",
-                .toggleNotesOnly
-            ),
-            actionEntry(
                 "action:refresh", "Refresh",
-                "Refresh open pull requests and the daily note date",
+                "Refresh open pull requests and configured projects",
                 "arrow.clockwise", .refresh
             ),
             actionEntry(
                 "action:force-cache-refresh", "Force Cache Refresh",
                 "Retry GitHub data and replace cached errors",
                 "arrow.triangle.2.circlepath", .forceCacheRefresh
-            ),
-            actionEntry(
-                "action:update-default-branches", "Update Default Branches",
-                "Fast-forward each configured default branch when Git allows",
-                "arrow.down.circle", .updateDefaultBranches
             ),
             actionEntry(
                 "action:sweep-worktrees", "Sweep Worktrees",

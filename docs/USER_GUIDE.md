@@ -1,8 +1,8 @@
 # User guide
 
-Hyperlite combines a native macOS workspace with CLI and JSON interfaces for
-inspecting active Git work. This guide covers its user-facing behavior and
-local data boundaries.
+Hyperlite is a native macOS window plus a CLI that watch open pull requests
+across your configured projects. This guide covers its user-facing behavior
+and local data boundaries.
 
 ## Launch and configuration
 
@@ -15,44 +15,31 @@ opens the fresh windowed app.
 
 The first default run copies `~/.config/beacon/config.yaml` directly to
 `~/.config/hyperlite/config.yaml` when Hyperlite does not already own a config.
-Later runs use only the Hyperlite copy. Select projects with `hyperlite projects`
-or scan a source path directly with `hyperlite scan /path/to/projects`.
+Later runs use only the Hyperlite copy. Select projects with
+`hyperlite projects`, or add and remove them with `hyperlite projects add` and
+`hyperlite projects remove`.
 
 ## Native workspace
 
-The native app is one window: Open PRs above Notepad/Daily. Launch always
-opens that window. It does not start a menu bar extra, workspace switcher,
-Projects map, Pinboard, Agent Tasks, Agent Island, or pinned Codex surface.
-The window title is `👻 hyperlite`. GitHub GraphQL quota, Update Default
-Branches, Sweep Worktrees, a subtly orange Refresh action, and Settings sit
-on the Notepad/Daily row. Command-K Vertical Mode is a persistent toggle that
-puts Open PRs on the left and notes on the right; the default stacked layout
-keeps Open PRs above notes and sizes the list to its content so leftover
-height goes to the editor. Vertical Mode defaults Open PRs to a narrower
-left pane. Pinned mixed rows wrap onto two lines so repository identity stays
-readable; unpinned project-section rows stay one line under the heading. Drag the
-divider to persist a separate ratio for stacked and left-right layouts;
-double-click restores that layout's default. Command-K Notes Only hides the
-Open PR rows, leaves a one-line `Open PRs N · Pinned N` summary, and gives
-the editor the rest of the window; click the summary or toggle Notes Only
-again to restore the list. Notepad/Daily wraps to the leftover pane width.
-The default Control+Shift+H hotkey brings the window
-forward; becoming active still refreshes stale Open PRs, but the hotkey
-itself does not force GitHub work. Command-P, Remove Project, and Settings
-load the configured project list when opened, not at launch. Command-K
-indexes note text for literal search immediately and loads on-device
-sentence embeddings only when a query has no exact match. Theme, Font Size,
-Vertical Mode, and Notes Only live only in Command-K; they are not in
-Settings.
+The native app is one window, and the Open PRs list fills it. Launch always
+opens that window; it does not start a menu bar extra or any other surface.
+The window title is `👻 hyperlite`. GitHub GraphQL quota, Sweep Worktrees, a
+subtly orange Refresh action, and Settings sit in a row above the list. The
+default Control+Shift+H hotkey brings the window forward; becoming active
+still refreshes stale Open PRs, but the hotkey itself does not force GitHub
+work. Command-P, Remove Project, and Settings load the configured project list
+when opened, not at launch. Theme and Font Size live only in Command-K; they
+are not in Settings.
 
-Inferred attention remains available through CLI and JSON but is hidden from
-the window. Launch and Refresh do not scan inferred threads. Refresh updates
-Open PRs and the current daily-note date.
+Configured repositories determine which Open PRs appear. Add or remove them
+from Settings, Command-K, or the CLI. Command-P is a cheap lookup of those
+repositories and their loaded pull requests; it is not a dashboard map.
 
-Configured repositories still determine which Open PRs appear and which
-default branches Update Default Branches can fast-forward. Add or remove them
-from Settings or Command-K. Command-P is a cheap lookup of those repositories
-and their loaded pull requests; it is not a dashboard map.
+Earlier releases also offered notes, a pinboard, agent sessions, inferred
+attention threads, pinned and reordered Open PR rows, and a default-branch
+fast-forward action. Those features are retired. Files they wrote under
+`~/.local/share/hyperlite` and `~/.local/state/hyperlite` are left on disk
+untouched; Hyperlite no longer reads or writes them.
 
 ### GitHub quota
 
@@ -102,54 +89,42 @@ repeated cursor or bounded page limit instead of risking an unbounded GitHub
 query loop.
 
 Every configured project has its own section, even with no open pull
-requests. The section header carries the repository name, its row count, a
-strip of the project's workflows, and two small buttons that open the
-repository's Pulls and Actions pages on GitHub. Clicking the repository name
-opens the repository itself. A project with nothing open collapses to one
-quiet heading that folds in `no open pull requests`; cached or unavailable
-projects show their availability text there instead. Projects without an open
-pull request are hidden by default; the eye control on the Open PRs title row
-shows or hides them. Hiding keeps only projects with an open pull request in
-the main list — a no-PR project is hidden even when a workflow is running or
-failing — so the list reads as open work, and the hidden projects (including
-any failing pipeline) move into the `watching the quiet ones` launcher below.
-The panel title
-is larger and brighter than repository headings. Headings for projects with
-open PRs use primary semibold type; idle headings drop to compact muted type
-so they recede. A no-PR project with a running or failing workflow stays one
-line in secondary text. Repository names, workflow
-chips, and pull-request text share one left edge past the drag/pin/review
-rail. Each visible project, and Pinned when it has rows, is marked by a thin
-left lantern instead of a filled card; running work lights that lantern cyan,
-and a cached main/deploy pipeline failure lights it orange. Drag handles, unpinned pins, and empty review boxes stay quiet
-until the row is hovered. In Vertical Mode, Pulls and Actions wait on heading
-hover so the name can breathe. The hide-idle eye stays quiet while idle
-projects are hidden, and
-brightens only when those projects are shown. Workflow chips sit on the
-heading row after the repository name so pull-request rows follow the heading
-immediately. Failed default-branch **main**/**ci** or **deploy** pipelines keep
-a persistent orange **main** or **deploy** badge on that heading until the next
-matching run is green; those badges reuse the already-fetched Actions cache and
-do not add GitHub calls. The Pinned caption appears only while something is pinned. Each
-project heading is larger than its pull-request rows, and projects with open
-pull requests can be collapsed with the chevron at the left of the heading.
-Collapsed, a project keeps its name and open-PR count so the pane can be
-scanned by project; the collapse state persists per project. In
-Vertical Mode, when the hide-idle eye is on, the hidden projects collapse
-into a standard disclosure list (`watching the quiet ones`) below the open
-work, labeled with the hidden count and — when any hidden project has a
-failing pipeline or workflow — an attention count. It doubles as a project
-launcher, so its expanded state persists across launches; expand it to see
-each hidden project's heading, with the same availability text, workflow
-chips, pipeline-alert badges, and Pulls/Actions links as an inline project,
-and open any project from there. Showing all projects (eye off) lists
-them inline instead. Stacked layout still gives leftover height to notes.
+requests. Projects with open pull requests come first, ordered by their most
+recently updated pull request; projects without rows follow in configuration
+order. The section header carries the repository name, its row count, a strip
+of the project's workflows, and two small buttons that open the repository's
+Pulls and Actions pages on GitHub. Clicking the repository name opens the
+repository itself. A project with nothing open collapses to one quiet heading
+that folds in `no open pull requests`; cached or unavailable projects show
+their availability text there instead.
 
-Each row carries a pin button next to its drag handle, so pinning a pull
-request to the top no longer requires a drag. In a row, the number opens the
-issue the pull request tracks when its branch or title names one through the
-`GH-<n>` convention (and shows that issue number); the title always opens the
-pull request, and rows with no tracked issue keep the pull request number.
+Projects without an open pull request are hidden by default; the eye control
+on the Open PRs title row shows or hides them. Hiding keeps only projects with
+an open pull request in the main list — a no-PR project is hidden even when a
+workflow is running or failing — and the hidden projects move into a standard
+disclosure list (`watching the quiet ones`) below the open work, labeled with
+the hidden count and — when any hidden project has a failing pipeline or
+workflow — an attention count. It doubles as a project launcher, so its
+expanded state persists across launches; expand it to see each hidden
+project's heading, with the same availability text, workflow chips,
+pipeline-alert badges, and Pulls/Actions links as an inline project. Showing
+all projects (eye off) lists them inline instead. The hide-idle eye stays
+quiet while idle projects are hidden and brightens only when they are shown.
+
+The panel title is larger and brighter than repository headings. Headings for
+projects with open PRs use primary semibold type; idle headings drop to
+compact muted type so they recede. A no-PR project with a running or failing
+workflow stays one line in secondary text. Repository names, workflow chips,
+and pull-request text share one left edge past the review checkbox. Each
+visible project is marked by a thin left lantern instead of a filled card;
+running work lights that lantern cyan, and a cached main/deploy pipeline
+failure lights it orange. Workflow chips sit on the heading row after the
+repository name. Failed default-branch **main**/**ci** or **deploy** pipelines
+keep a persistent orange **main** or **deploy** badge on that heading until the
+next matching run is green; those badges reuse the already-fetched Actions
+cache and do not add GitHub calls. Projects with open pull requests can be
+collapsed with the chevron at the left of the heading. Collapsed, a project
+keeps its name and open-PR count; the collapse state persists per project.
 
 The workflow strip sits on the repository heading row. It lists every file
 under `.github/workflows` on the default
@@ -160,8 +135,7 @@ and the elapsed run time. Older active data shows a quiet `last seen HH:mm`
 instead.
 Finished workflows show a green, red, or muted dot. Hovering a chip shows the
 run status, trigger, deployment environment, and links to the run and
-deployment log. In Vertical Mode the strip shows only running and failed
-chips, without a leftover `+N` count.
+deployment log.
 
 While a scan reports running work, Hyperlite polls that activity about once a
 minute with one small GraphQL query for only the affected repositories. The
@@ -172,17 +146,24 @@ of 1,000 points or thirty percent of the limit remaining, a projected twenty
 percent left at reset, and at most sixty polls per quota window. Refresh and
 Force Cache Refresh cancel the loop and fetch pull requests early.
 
-Each row leads with number, a compact ready/draft badge, optional
-merge-conflict icon, and the review-feedback count. Number and ready/draft
-stay whole words; a long title truncates instead of wrapping. Unpinned rows sit under a
-semibold repository section heading so the project name is obvious without
-repeating on every line. The pull-request title is the primary scanned text.
-Age sits beside the title. Pinned rows keep a muted repository label because
-that list can mix projects. In Vertical Mode every compact row uses two
-lines (identity, then title plus age) so the title is readable and `ready` /
-`draft` remain whole words on the identity line. Compact headings use the short
-repository name; hover still names the full GitHub path. Stacked rows stay one line.
-The conflict column stays aligned when there is no confirmed conflict;
+While a scan reports running work, Hyperlite polls that activity about once a
+minute with one small GraphQL query for only the affected repositories. The
+poll runs only while the window is visible on screen (it may sit beside your
+editor), stops after thirty minutes, and defers to the quota governor: it
+needs at least the larger
+of 1,000 points or thirty percent of the limit remaining, a projected twenty
+percent left at reset, and at most sixty polls per quota window. Refresh and
+Force Cache Refresh cancel the loop and fetch pull requests early.
+
+Each row is one line: number, a compact ready/draft badge, optional
+merge-conflict icon, the review-feedback count, the title, and its age. Number
+and ready/draft stay whole words; a long title truncates instead of wrapping.
+Rows sit under their repository heading, so the project name is not repeated
+on every line. In a row, the number opens the issue the pull request tracks
+when its branch or title names one through the `GH-<n>` convention (and shows
+that issue number); the title always opens the pull request, and rows with no
+tracked issue keep the pull request number. The conflict column stays aligned
+when there is no confirmed conflict;
 `MERGEABLE`, `UNKNOWN`, and older cache entries without the field stay blank.
 VoiceOver names confirmed conflicts only and omits unconfirmed `MERGEABLE`,
 `UNKNOWN`, and legacy rows. Only unresolved, non-outdated GitHub review
@@ -190,7 +171,8 @@ threads count. Nonzero counts use the orange attention color, confirmed zero
 uses a quiet dash, and unavailable legacy cache data uses `?` until a
 complete refresh supplies an exact count. The row content opens the pull
 request; its separate leading checkbox, immediately before the row text,
-changes only the private `Reviewed by me` marker. Hovering a row shows
+changes only the private `Reviewed by me` marker, and an empty checkbox stays
+quiet until the row is hovered. Hovering a row shows
 a delayed glance card with compact identity, the title, who is assigned or
 `unassigned`, a short what-and-why when the scan has one, and one next step
 such as fix merge conflicts, failing CI, unresolved review threads, or
@@ -203,15 +185,6 @@ GitHub evidence reports a new head commit, Hyperlite restores normal emphasis
 and shows an orange stale marker until the new revision is reviewed or the mark
 is cleared. Cached or unavailable evidence preserves the last mark; a cached
 row may clear that mark but cannot create or replace one.
-
-The Open PRs list has a Pinned section above repository sections for the
-remaining rows. Drag a row by its leading handle to reorder it, including into
-Pinned (which pins it) or out of Pinned (which unpins it). Dragging inside a
-repository section reorders that project's rows; dragging onto another
-repository moves the whole project group. Pin membership and order persist
-locally and never call GitHub. Accessible Move up and Move down actions cross
-the pin boundary and move project groups the same way. Sort, filter,
-hide-drafts, and enter/exit reorder chrome are not on the title line.
 
 Copy Open PR Merge Prompt remains in Command-K. Copy writes a durable
 instruction plus each visible pull request's identity, URL, draft/ready
@@ -230,166 +203,56 @@ does not post a comment, label, or review. A merge operator or coding agent must
 still refresh and verify the exact head, feedback, checks, conflicts, protection
 rules, and final merged state.
 
-### Local git maintenance
-
-Update Default Branches fetches each configured repository, then fast-forwards
-that repository's default branch when Git allows a clean fast-forward. If the
-working tree is dirty, the history is not a fast-forward, or Git refuses to
-update a checked-out ref, Hyperlite skips that repository and reports why. It
-never resets, stashes, force-updates, or deletes branches.
+### Sweep Worktrees
 
 Sweep Worktrees opens Terminal running interactive `git wt sweep`. Hyperlite
 does not pass `--auto` and does not delete worktrees itself; confirmation stays
 in `git-wt`.
 
-Command-P lists configured repositories and can expand loaded open pull
-requests. It does not present a dashboard project map.
-
-### Notepad
-
-The Notepad is private operator memory, not another source of project truth.
-Its compact tab row keeps the permanent Notepad separate from
-`Daily: <formatted date>` with both a vertical divider and active tab styling.
-Daily opens today by default; selecting Notepad opens the durable note, and
-selecting Daily returns to the current dated note.
-
-Daily continues following the current calendar day while Hyperlite remains
-open. Calendar-day, system-clock, and time-zone changes move it without
-polling; foreground activation and explicit refresh recover a missed change.
-Choosing a historical date pauses that rollover until today is selected again
-from the calendar.
-
-The single larger chevron to the left of Notepad opens the native calendar.
-Selecting a date activates Daily and directly loads that note after safely
-flushing a pending daily edit. There are no previous/next, Today, right-side
-date-field, or recent-ten-days controls. A missing daily file is created only
-after the first edit.
-
-The active editor contains regular UTF-8 text rendered with JetBrainsMono Nerd
-Font through the shared application resolver and a system monospaced fallback.
-It wraps to the leftover notepad pane width. It does not render Markdown
-or feed content into thread inference or attention.
-Typing stays in memory, the latest edit saves after three idle seconds, and
-pending text flushes when the window or application yields.
-
-### Pinboard
-
-The native window no longer opens Pinboard. The CLI `hyperlite pinboard`
-commands and the private board store remain for existing local data.
-
 ### Keyboard shortcuts
 
-- `Command+1` reveals and focuses the Open PRs pane; `Command+2` focuses the
-  active Notes editor. The focused pane shows a cyan ring.
-- With the Open PRs pane focused, `j`/`k` and the `Down`/`Up` arrows move a
-  highlighted selection between pinned rows, project headings, pull-request
+- Whenever no palette or text field is focused, `j`/`k` and the `Down`/`Up`
+  arrows move a highlighted selection between project headings, pull-request
   rows, the `watching the quiet ones` toggle, and the hidden project headings
-  it reveals. `Return` opens the selected pull request or repository, or expands
-  and collapses the quiet-ones list. Navigation keys never intercept typing in
-  the Notes editor.
-- `Command+R` refreshes Open PRs and the current daily-note date.
+  it reveals. `Return` opens the selected pull request or repository, or
+  expands and collapses the quiet-ones list. The highlight appears only after
+  the first navigation key.
+- `Command+R` refreshes Open PRs and the configured project list.
 - `Command+K` opens a searchable command palette with Theme, Font Size,
-  Vertical Mode, Notes Only, Refresh, Force Cache Refresh, Update Default
-  Branches, Sweep Worktrees, Copy Open PR Merge Prompt, Settings, Add Project,
-  Remove Project, and exact or on-device semantic matches from pinned and daily
-  note filenames,
-  dates, and contents.
+  Refresh, Force Cache Refresh, Sweep Worktrees, Copy Open PR Merge Prompt,
+  Add Project, Remove Project, and Settings.
   Force Cache Refresh retries every configured GitHub repository regardless of
   cache age so a successful check replaces stale cached errors. Copy Open PR
-  Merge Prompt copies the same durable merge-ready prompt as the Open PRs
-  header for the currently visible rows and stays open to confirm the copy.
-  Selecting a pinned result opens Notepad; selecting a daily result opens the
-  matching Daily date.
+  Merge Prompt copies the merge-ready prompt for the currently visible rows and
+  stays open to confirm the copy.
 - `Command+P` opens the same searchable surface in configured-project mode.
-  Projects start collapsed and expand to show loaded open pull requests.
+  Projects start collapsed and expand to show loaded open pull requests and
+  local worktrees.
 
 Add Project is also available from Settings. Project selection changes are
 written atomically by the bundled helper. Hyperlite does not expose
-worktree-pruning functionality; scan diagnostics remain available through CLI
-output and JSON.
+worktree-pruning functionality.
 
 ## CLI reference
 
+Running `hyperlite` with no subcommand prints help.
+
 ```sh
-hyperlite --json
-hyperlite infer --json
-hyperlite pull-requests --json
+hyperlite pull-requests [--json]
 hyperlite pull-requests --json --local
 hyperlite pull-requests --json --force
+hyperlite pull-requests --json --activity
 hyperlite projects
 hyperlite projects list [--json]
 hyperlite projects add /path/to/repository
 hyperlite projects remove /path/to/repository
-hyperlite projects update-defaults [--json]
-hyperlite notepad
-hyperlite notepad show [--date YYYY-MM-DD] [--json]
-hyperlite notepad set --stdin [--date YYYY-MM-DD] [--json]
-hyperlite notepad path [--date YYYY-MM-DD]
-hyperlite notepad index
-hyperlite pinboard show
-hyperlite pinboard mutate --stdin
-hyperlite thread seen <thread-id> --revision <digest>
-hyperlite thread note <thread-id> --stdin
+hyperlite version
 ```
 
 ## Local data
 
-Thread state is stored atomically with user-only permissions at
-`$XDG_STATE_HOME/hyperlite/threads.json`, or
-`~/.local/state/hyperlite/threads.json` by default. Notes and seen state are
-presentation metadata; neither can create or complete a thread.
-
-The project pull-request cache is stored independently with user-only
-permissions at `$XDG_STATE_HOME/hyperlite/pull-requests.json`, or
-`~/.local/state/hyperlite/pull-requests.json` by default.
-
-The Notepad uses the same atomic, user-only boundary beneath
-`$XDG_DATA_HOME/hyperlite/notes`, or `~/.local/share/hyperlite/notes` by
-default. The pinned note is `pinned.md`; daily notes are
-`daily/YYYY-MM-DD.md`. On first use, Hyperlite adopts the prior `notepad.txt`
-or default `notepad.md` document as the pinned note without changing its
-content. Every document is limited to 256 KiB.
-
-The CLI Pinboard store remains at
-`$XDG_DATA_HOME/hyperlite/board`, or `~/.local/share/hyperlite/board` by
-default. `board.json` contains only the schema, finite board and section
-geometry, note membership, and note geometry. Active note content and metadata
-use opaque filenames beneath `notes/<note-id>.md`; archived notes move to
-`archive/<note-id>.md`. Title-derived paths are never used. Content files are
-canonical for IDs, text, Created/Updated timestamps, fork lineage, and archive
-metadata, so layout-only movement does not rewrite content recency. Loads and
-mutations are bounded, locked, user-only, atomic per file, and fail closed on
-unsafe, malformed, oversized, orphaned, or inconsistent state.
-
-## Status and attention model
-
-Hyperlite treats issues, active specs, pull requests, review threads, material
-worktrees, and referenced operational documents as evidence for inferred goal
-threads. Exact issue, branch, PR, spec, and link identifiers own membership.
-Recent open pull requests are strong working-set evidence, but they are not
-perpetual activity: an untouched ordinary pull request can become dormant,
-while a still-supported material review decision keeps the thread current.
-
-Issues and local Git state must be recent and corroborated by a selected
-checkout or exact durable issue lane. Old issues, default-branch dirt, temporary
-automation worktrees, and unrelated historical specs do not become active
-threads. The configured local Ollama model may synthesize cited rationale,
-implications, obligations, and relationships, but it cannot merge threads or
-establish completion.
-
-Attention is a material change in coordination: a decision, durable direction
-change, dependency, operational obligation, consequential delivery boundary,
-architectural review challenge, closure gap, or evidence conflict. Commits,
-dirty counts, CI churn, routine review repairs, and agent lifecycle activity
-remain artifact progress. Boundary attention requires an actionable
-consequential change, not a negative safety statement or incidental keyword.
-
-A surfaced moment states the expected cognitive action, consequence, and
-condition that keeps it valid. Hyperlite re-evaluates that claim on every scan;
-unsupported, superseded, or missing evidence retracts attention without
-requiring acknowledgement. Once seen, the same supported situation stays
-acknowledged across unrelated evidence refreshes. Only a changed coordination
-situation can demand attention again.
-
-A merged PR advances a goal; it does not complete a goal that still has
-delivery, deployment, infrastructure, or reflection work.
+The project pull-request cache is stored with user-only permissions at
+`$XDG_STATE_HOME/hyperlite/pull-requests.json`, or
+`~/.local/state/hyperlite/pull-requests.json` by default. Review marks, project
+collapse state, the hide-idle choice, theme, and font size are stored in the
+application's user defaults.

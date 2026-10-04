@@ -18,7 +18,7 @@ extension HyperliteState {
         if visible {
             // Revealing the window is the moment someone looks; catch up at
             // once instead of waiting for the next ambient tick.
-            refreshAllIfStale()
+            refreshIfStale()
         }
         scheduleActivityPollIfNeeded()
     }

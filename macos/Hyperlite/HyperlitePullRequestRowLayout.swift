@@ -29,18 +29,7 @@ struct HyperlitePullRequestRowLayout: Equatable {
         titleLayoutPriority: 1
     )
 
-    /// Drag handle, pin, and review toggle plus the row HStack spacing before
-    /// `#number` / title. Section labels and chips indent to this column.
-    static let rowChromeLeading: CGFloat = 16 + 4 + 16 + 4 + 20 + 4
-
-    static func usesCompactStack(compact: Bool, showRepository _: Bool = true) -> Bool {
-        compact
-    }
-
-    static func reservesAlignedConflictColumn(
-        compact: Bool,
-        showRepository: Bool
-    ) -> Bool {
-        !usesCompactStack(compact: compact, showRepository: showRepository)
-    }
+    /// Review toggle plus the row HStack spacing before `#number` / title.
+    /// Section labels and chips indent to this column.
+    static let rowChromeLeading: CGFloat = 20 + 4
 }

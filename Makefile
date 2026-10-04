@@ -1,22 +1,20 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help build test test-race vet fmt fmt-check install scan scan-json macos-build macos-test stop-hyper hyper run
+.PHONY: help build test test-race vet fmt fmt-check install macos-build macos-test stop-hyper hyper run
 
 HYPERLITE_APP ?= $(CURDIR)/build/Hyperlite.app
 SWIFT_SOURCES := $(sort $(wildcard macos/Hyperlite/*.swift))
-SWIFT_MODEL_TEST_SOURCES := macos/Hyperlite/HyperliteModels.swift macos/Hyperlite/HyperliteProjectModels.swift macos/Hyperlite/HyperlitePullRequestModels.swift macos/Hyperlite/HyperlitePullRequestPanel.swift macos/Hyperlite/HyperlitePullRequestRows.swift macos/Hyperlite/HyperlitePullRequestHover.swift macos/Hyperlite/HyperlitePullRequestPinning.swift macos/Hyperlite/HyperlitePullRequestPinStore.swift macos/Hyperlite/HyperliteRateLimit.swift macos/Hyperlite/HyperliteRateLimitModels.swift macos/Hyperlite/HyperliteRateLimitIndicator.swift macos/Hyperlite/HyperliteRateLimitPopover.swift macos/Hyperlite/HyperlitePresentation.swift macos/Hyperlite/HyperliteInteractionModels.swift macos/Hyperlite/HyperliteInteractionEntries.swift macos/Hyperlite/HyperlitePalettePresentation.swift macos/Hyperlite/HyperliteTheme.swift macos/Hyperlite/HyperliteThemeCatalog.swift macos/Hyperlite/HyperliteThemePalettesDark.swift macos/Hyperlite/HyperliteThemePalettesLight.swift macos/Hyperlite/HyperliteAppearance.swift
+SWIFT_MODEL_TEST_SOURCES := macos/Hyperlite/HyperliteModels.swift macos/Hyperlite/HyperliteProjectModels.swift macos/Hyperlite/HyperlitePullRequestModels.swift macos/Hyperlite/HyperlitePullRequestPanel.swift macos/Hyperlite/HyperlitePullRequestRows.swift macos/Hyperlite/HyperlitePullRequestHover.swift macos/Hyperlite/HyperliteRateLimit.swift macos/Hyperlite/HyperliteRateLimitModels.swift macos/Hyperlite/HyperliteRateLimitIndicator.swift macos/Hyperlite/HyperliteRateLimitPopover.swift macos/Hyperlite/HyperlitePresentation.swift macos/Hyperlite/HyperliteInteractionModels.swift macos/Hyperlite/HyperliteInteractionEntries.swift macos/Hyperlite/HyperlitePalettePresentation.swift macos/Hyperlite/HyperliteTheme.swift macos/Hyperlite/HyperliteThemeCatalog.swift macos/Hyperlite/HyperliteThemePalettesDark.swift macos/Hyperlite/HyperliteThemePalettesLight.swift macos/Hyperlite/HyperliteAppearance.swift
 SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteDashboardListState.swift macos/Hyperlite/HyperliteDashboardListControls.swift macos/Hyperlite/HyperlitePullRequestReviewMarkers.swift
-SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteProcess.swift macos/Hyperlite/HyperliteProcessSupport.swift macos/Hyperlite/HyperliteNotepadModels.swift macos/Hyperlite/HyperliteNoteSearchIndex.swift macos/Hyperlite/HyperliteNotepadState.swift macos/Hyperlite/HyperliteNotepadNavigation.swift macos/Hyperlite/HyperliteNotepadPersistence.swift
-SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteGitMaintenance.swift macos/HyperliteTests/HyperliteGitMaintenanceTests.swift
+SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteProcess.swift macos/Hyperlite/HyperliteProcessSupport.swift
 SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteTypography.swift macos/HyperliteTests/HyperliteInteractionModelTests.swift macos/HyperliteTests/HyperliteProjectIndexTests.swift
 SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperlitePaletteTests.swift
-SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperliteNotepadTests.swift macos/HyperliteTests/HyperliteNotepadNavigationTests.swift macos/HyperliteTests/HyperliteNotepadPersistenceTests.swift macos/HyperliteTests/HyperliteNotepadSearchTests.swift macos/HyperliteTests/HyperliteNotepadTestSupport.swift macos/HyperliteTests/HyperliteNotepadRecoveryTests.swift
 SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperlitePullRequestTests.swift macos/HyperliteTests/HyperliteRateLimitTests.swift macos/HyperliteTests/HyperliteTypographyTests.swift
 SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperliteOpenPRControlsTests.swift
 SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteOpenPRMergePrompt.swift macos/HyperliteTests/HyperliteOpenPRMergePromptTests.swift
 SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteOpenPRTitleCluster.swift
 SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperlitePullRequestReviewMarkerTests.swift
-SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperliteAppearanceTests.swift macos/HyperliteTests/HyperlitePullRequestHoverTests.swift macos/HyperliteTests/HyperlitePullRequestPinningTests.swift macos/Hyperlite/HyperliteWorkspaceSplit.swift macos/Hyperlite/HyperlitePullRequestRowContent.swift macos/HyperliteTests/HyperliteWorkspaceSplitTests.swift
+SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperliteAppearanceTests.swift macos/HyperliteTests/HyperlitePullRequestHoverTests.swift macos/Hyperlite/HyperlitePullRequestRowContent.swift
 SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperlitePullRequestRowLayout.swift macos/Hyperlite/HyperliteWorkflowActivityModels.swift macos/Hyperlite/HyperlitePullRequestSections.swift macos/Hyperlite/HyperliteWorkflowStripPresentation.swift macos/Hyperlite/HyperliteRunningWorkflowChip.swift macos/Hyperlite/HyperliteWorkflowStrip.swift macos/Hyperlite/HyperliteWorkflowHoverCard.swift macos/Hyperlite/HyperliteProjectSectionHeader.swift macos/Hyperlite/HyperliteActivityPollSchedule.swift macos/Hyperlite/HyperliteAmbientRefreshSchedule.swift
 SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperliteAmbientRefreshScheduleTests.swift
 SWIFT_MODEL_TEST_SOURCES += macos/HyperliteTests/HyperliteWorkflowActivityTests.swift macos/HyperliteTests/HyperlitePullRequestSectionsTests.swift macos/HyperliteTests/HyperliteActivityPollScheduleTests.swift
@@ -53,19 +51,13 @@ fmt-check:
 install:
 	go install ./cmd/hyperlite
 
-scan:
-	go run ./cmd/hyperlite
-
-scan-json:
-	go run ./cmd/hyperlite --json
-
 macos-build:
 	HYPERLITE_APP="$(HYPERLITE_APP)" ./scripts/build-macos-app.sh
 
 macos-test:
-	xcrun swiftc -parse-as-library -typecheck -framework SwiftUI -framework AppKit -framework Carbon -framework NaturalLanguage $(SWIFT_SOURCES)
+	xcrun swiftc -parse-as-library -typecheck -framework SwiftUI -framework AppKit -framework Carbon $(SWIFT_SOURCES)
 	mkdir -p "$(dir $(SWIFT_MODEL_TEST_BINARY))"
-	xcrun swiftc -parse-as-library -framework SwiftUI -framework AppKit -framework NaturalLanguage $(SWIFT_MODEL_TEST_SOURCES) -o "$(SWIFT_MODEL_TEST_BINARY)"
+	xcrun swiftc -parse-as-library -framework SwiftUI -framework AppKit $(SWIFT_MODEL_TEST_SOURCES) -o "$(SWIFT_MODEL_TEST_BINARY)"
 	"$(SWIFT_MODEL_TEST_BINARY)"
 
 stop-hyper:

@@ -1,10 +1,7 @@
 import Foundation
 
 enum HyperliteWorkspaceSizing {
-    static let sectionSpacing: CGFloat = 14
-    static let minimumNotepadEditorHeight: CGFloat = 44
-    static let stackedMinWidth: CGFloat = 480
-    static let verticalMinWidth: CGFloat = 720
+    static let minWidth: CGFloat = 480
     static let minHeight: CGFloat = 580
 }
 
@@ -22,7 +19,6 @@ enum HyperlitePaletteAction: Equatable {
     case refresh
     case forceCacheRefresh
     case copyOpenPRMergePrompt
-    case updateDefaultBranches
     case sweepWorktrees
     case settings
     case addProject
@@ -30,15 +26,11 @@ enum HyperlitePaletteAction: Equatable {
     case removeProject(String)
     case openPullRequest(String)
     case revealPath(String)
-    case focusPinnedNote
-    case openDailyNote(String)
     case showCommands
     case showThemes
     case showFontSizes
     case setTheme(String)
     case setFontSize(HyperliteFontSize)
-    case toggleVerticalMode
-    case toggleNotesOnly
 }
 
 struct HyperlitePaletteEntry: Equatable, Identifiable {
@@ -149,27 +141,6 @@ enum HyperliteInteractionModel {
                 "minus.circle",
                 .removeProject(project.path)
             )
-        }
-    }
-
-    static func noteEntries(
-        results: [HyperliteNoteSearchResult]
-    ) -> [HyperlitePaletteEntry] {
-        results.map { result in
-            let match = result.matchKind == .exact ? "exact" : "semantic"
-            let subtitle = [match, result.filename, result.snippet]
-                .filter { !$0.isEmpty }
-                .joined(separator: " · ")
-            switch result.noteID {
-            case .pinned:
-                return actionEntry(
-                    result.id, "Pinned", subtitle, "pin.fill", .focusPinnedNote
-                )
-            case let .daily(date):
-                return actionEntry(
-                    result.id, date, subtitle, "calendar", .openDailyNote(date)
-                )
-            }
         }
     }
 

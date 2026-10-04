@@ -2,57 +2,19 @@ import Foundation
 
 enum HyperliteOpenPRWatchStageTests {
     static func run() {
-        testCompactRowsUseTwoLineStack()
-        testStageKindAndDragChrome()
+        testRowLayoutAndStageKind()
         testHiddenProjectListPresentation()
     }
 
-    private static func testCompactRowsUseTwoLineStack() {
-        expect(
-            HyperlitePullRequestRowLayout.usesCompactStack(
-                compact: true, showRepository: true
-            ),
-            "pinned mixed Vertical Mode rows should keep the two-line stack"
-        )
-        expect(
-            HyperlitePullRequestRowLayout.usesCompactStack(
-                compact: true, showRepository: false
-            ),
-            "unpinned Vertical Mode rows should use the two-line stack so titles get a line"
-        )
-        expect(
-            !HyperlitePullRequestRowLayout.usesCompactStack(
-                compact: false, showRepository: false
-            ),
-            "stacked project-section rows should stay one line"
-        )
+    private static func testRowLayoutAndStageKind() {
         let layout = HyperlitePullRequestPanelRow.layout
         expect(
             layout.metadataLayoutPriority > layout.titleLayoutPriority,
             "ready/draft and number should keep intrinsic width before the title truncates"
         )
         expect(
-            !HyperlitePullRequestRowLayout.reservesAlignedConflictColumn(
-                compact: true, showRepository: false
-            ),
-            "two-line compact stacks should not insert a conflict spacer"
-        )
-        expect(
-            HyperlitePullRequestRowLayout.reservesAlignedConflictColumn(
-                compact: false, showRepository: false
-            ),
-            "one-line stacked rows should still reserve conflict width"
-        )
-    }
-
-    private static func testStageKindAndDragChrome() {
-        expect(
-            HyperlitePullRequestPanelRow.dragHandleRestOpacity == 0.18,
-            "drag handles should recede at rest"
-        )
-        expect(
-            HyperlitePullRequestPanelRow.pinRestOpacity == 0.2,
-            "unpinned pins should recede at rest"
+            HyperlitePullRequestRowLayout.rowChromeLeading == 24,
+            "section labels should indent past only the review toggle"
         )
         expect(
             HyperliteOpenPRProjectStageKind.notable.lanternIsLive &&

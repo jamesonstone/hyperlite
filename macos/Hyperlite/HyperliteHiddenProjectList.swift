@@ -29,11 +29,11 @@ struct HyperliteHiddenProjectList<Content: View>: View {
 
     var body: some View {
         DisclosureGroup(isExpanded: $expanded) {
-            VStack(alignment: .leading, spacing: HyperliteWorkspaceSplit.stackedStageSpacing) {
+            VStack(alignment: .leading, spacing: HyperliteOpenPRSpacing.stageSpacing) {
                 content
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, HyperliteWorkspaceSplit.stackedStageSpacing)
+            .padding(.top, HyperliteOpenPRSpacing.stageSpacing)
         } label: {
             label
         }

@@ -2,20 +2,17 @@ import Foundation
 
 @main
 struct HyperliteInteractionModelTests {
-    static func main() async throws {
+    static func main() throws {
         try testStructuredDiagnosticDecoding()
         HyperlitePaletteTests.run()
         HyperliteAppearanceTests.run()
-        HyperliteWorkspaceSplitTests.run()
         HyperlitePullRequestHoverTests.run()
         testSelectionClamping()
         testProcessEnvironment()
-        HyperliteGitMaintenanceTests.run()
         HyperliteTypographyTests.run()
         try HyperliteProjectIndexTests.run()
         try HyperlitePullRequestTests.run()
         try HyperliteOpenPRControlsTests.run()
-        HyperlitePullRequestPinningTests.run()
         HyperliteOpenPRMergePromptTests.run()
         try HyperliteWorkflowActivityTests.run()
         HyperlitePipelineAlertTests.run()
@@ -27,7 +24,6 @@ struct HyperliteInteractionModelTests {
         HyperliteAmbientRefreshScheduleTests.run()
         try HyperlitePullRequestReviewMarkerTests.run()
         HyperliteRateLimitTests.run()
-        try await HyperliteNotepadTests.run()
         print("Hyperlite interaction model tests passed")
     }
 

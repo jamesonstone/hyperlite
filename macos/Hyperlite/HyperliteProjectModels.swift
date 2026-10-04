@@ -92,3 +92,21 @@ enum HyperliteProjectIndexPresentation {
         return "~/" + standardizedPath.dropFirst(prefix.count)
     }
 }
+
+struct HyperliteConfiguredProjectList: Codable, Equatable {
+    let projects: [HyperliteConfiguredProject]
+}
+
+struct HyperliteConfiguredProject: Codable, Equatable {
+    let id: String
+    let name: String
+    let path: String
+    let repository: String?
+    let base: String?
+
+    var location: HyperliteProjectLocation {
+        HyperliteProjectLocation(
+            id: id, name: name, path: path, repository: repository, lanes: []
+        )
+    }
+}

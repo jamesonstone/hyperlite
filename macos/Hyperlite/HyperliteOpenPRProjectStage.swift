@@ -1,7 +1,6 @@
 import SwiftUI
 
 enum HyperliteOpenPRProjectStageKind: Equatable {
-    case pinned
     case active
     case notable
     case alert
@@ -31,7 +30,7 @@ enum HyperliteOpenPRProjectStageKind: Equatable {
     var lanternOpacity: Double {
         switch self {
         case .notable, .alert: 0.92
-        case .pinned, .active: 0.28
+        case .active: 0.28
         case .idle: 0.10
         }
     }
@@ -55,12 +54,12 @@ struct HyperliteOpenPRProjectStage<Content: View>: View {
                 .padding(.vertical, 3)
                 .opacity(kind.lanternOpacity)
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: HyperliteWorkspaceSplit.stackedLazySpacing) {
+            VStack(alignment: .leading, spacing: HyperliteOpenPRSpacing.lazySpacing) {
                 content
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.vertical, HyperliteWorkspaceSplit.stackedStageVerticalPadding)
+        .padding(.vertical, HyperliteOpenPRSpacing.stageVerticalPadding)
     }
 }
 
@@ -85,28 +84,19 @@ enum HyperliteOpenPRProjectSectionPresentation {
 struct HyperliteOpenPRProjectSection<Rows: View>: View {
     let section: HyperliteProjectSection
     let chips: [HyperliteWorkflowChip]
-    let compact: Bool
     var headerSelected: Bool
-    @Binding var draggedRowID: String?
-    let drop: (String) -> Void
     @ViewBuilder var rows: Rows
     @AppStorage private var collapsed: Bool
 
     init(
         section: HyperliteProjectSection,
         chips: [HyperliteWorkflowChip],
-        compact: Bool,
         headerSelected: Bool = false,
-        draggedRowID: Binding<String?>,
-        drop: @escaping (String) -> Void,
         @ViewBuilder rows: () -> Rows
     ) {
         self.section = section
         self.chips = chips
-        self.compact = compact
         self.headerSelected = headerSelected
-        self._draggedRowID = draggedRowID
-        self.drop = drop
         self.rows = rows()
         self._collapsed = AppStorage(
             wrappedValue: false,
@@ -128,10 +118,7 @@ struct HyperliteOpenPRProjectSection<Rows: View>: View {
             HyperliteProjectSectionHeader(
                 section: section,
                 chips: chips,
-                compact: compact,
-                collapsed: canCollapse ? $collapsed : nil,
-                draggedRowID: $draggedRowID,
-                drop: drop
+                collapsed: canCollapse ? $collapsed : nil
             )
             .hyperliteNavHighlight(selected: headerSelected)
             if !canCollapse || !collapsed {
