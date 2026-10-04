@@ -76,7 +76,8 @@ enum HyperliteMarkdownParser {
     }
 
     static func inline(_ text: String) -> AttributedString {
-        (try? AttributedString(
+        let text = HyperliteEmoji.render(text)
+        return (try? AttributedString(
             markdown: text,
             options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
         )) ?? AttributedString(text)

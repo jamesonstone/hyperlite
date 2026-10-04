@@ -222,7 +222,8 @@ inline emphasis and links; HTML comments and bot summaries omitted; long
 descriptions end at a paragraph boundary and scroll inside the card), and one
 next step
 such as fix merge conflicts, failing CI, unresolved review threads, or
-waiting on review. Hover does not dump author, diffstat, SHA, or URL, and it
+waiting on review. GitHub emoji shortcodes such as `:sparkles:` render as
+emoji in pull request titles and descriptions; code blocks stay literal. Hover does not dump author, diffstat, SHA, or URL, and it
 does not call GitHub.
 
 A review mark is stored locally for the exact observed head commit and survives

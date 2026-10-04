@@ -27,6 +27,7 @@ SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperlitePullRequestPanelModel.swift
 SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperlitePullRequestJump.swift macos/HyperliteTests/HyperlitePullRequestJumpTests.swift
 SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteHideIdleEye.swift
 SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteMarkdown.swift macos/HyperliteTests/HyperliteMarkdownTests.swift
+SWIFT_MODEL_TEST_SOURCES += macos/Hyperlite/HyperliteEmoji.swift macos/HyperliteTests/HyperliteEmojiTests.swift
 SWIFT_MODEL_TEST_BINARY := build/tests/HyperliteInteractionModelTests
 
 help:

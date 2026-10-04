@@ -191,7 +191,7 @@ enum HyperlitePullRequestPresentation {
                     repository: project.repository ?? project.name,
                     status: project.status,
                     number: pullRequest.number,
-                    title: pullRequest.title,
+                    title: HyperliteEmoji.render(pullRequest.title),
                     url: URL(string: pullRequest.url),
                     headRefName: pullRequest.headRefName,
                     headRefOID: pullRequest.headRefOID,
