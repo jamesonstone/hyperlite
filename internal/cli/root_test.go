@@ -1,12 +1,8 @@
 package cli
 
 import (
-	"context"
 	"strings"
 	"testing"
-
-	"github.com/jamesonstone/hyperlite/internal/config"
-	"github.com/jamesonstone/hyperlite/internal/model"
 )
 
 func TestResolveColor(t *testing.T) {
@@ -45,46 +41,6 @@ func TestResolveColor(t *testing.T) {
 	})
 }
 
-func TestRunScanPassesResolvedColorToTerminalOutput(t *testing.T) {
-	source := t.TempDir()
-	result := model.ThreadScan{Errors: []model.ScanError{{Repository: "owner/repo", Stage: "fetch", Message: "network unavailable"}}}
-	t.Run("always enables color", func(t *testing.T) {
-		var output strings.Builder
-		app := App{
-			Out:               &output,
-			OutputIsTTY:       func() bool { return false },
-			workScannerSource: testWorkSnapshotScanner{result: result},
-		}
-		if err := app.runScan(t.Context(), "", scanOptions{paths: []string{source}, localOnly: true}, "always"); err != nil {
-			t.Fatal(err)
-		}
-		if !strings.Contains(output.String(), terminalRed+"ERROR"+terminalReset) {
-			t.Fatalf("terminal output is not colored: %q", output.String())
-		}
-	})
-
-	t.Run("NO_COLOR disables automatic color", func(t *testing.T) {
-		t.Setenv("NO_COLOR", "1")
-		var output strings.Builder
-		app := App{
-			Out:               &output,
-			OutputIsTTY:       func() bool { return true },
-			workScannerSource: testWorkSnapshotScanner{result: result},
-		}
-		if err := app.runScan(t.Context(), "", scanOptions{paths: []string{source}, localOnly: true}, "auto"); err != nil {
-			t.Fatal(err)
-		}
-		if strings.Contains(output.String(), "\x1b[") {
-			t.Fatalf("terminal output unexpectedly colored: %q", output.String())
-		}
-	})
-}
-
-type testWorkSnapshotScanner struct {
-	result model.ThreadScan
-	err    error
-}
-
 func TestRootDoesNotExposeWorktreePruning(t *testing.T) {
 	for _, command := range (App{}).Root().Commands() {
 		if command.Name() == "prune-worktree" {
@@ -93,14 +49,24 @@ func TestRootDoesNotExposeWorktreePruning(t *testing.T) {
 	}
 }
 
-func (s testWorkSnapshotScanner) Scan(_ context.Context, _ config.Config, _, _ bool) (model.ThreadScan, error) {
-	return s.result, s.err
-}
-
-func (s testWorkSnapshotScanner) ScanLocal(_ context.Context, _ config.Config, _ bool) (model.ThreadScan, error) {
-	return s.result, s.err
-}
-
-func (s testWorkSnapshotScanner) Infer(_ context.Context, _ config.Config) (model.ThreadScan, error) {
-	return s.result, s.err
+func TestRootWithoutSubcommandPrintsHelp(t *testing.T) {
+	var output strings.Builder
+	root := (App{Out: &output}).Root()
+	root.SetOut(&output)
+	root.SetArgs(nil)
+	if err := root.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"pull-requests", "projects", "version"} {
+		if !strings.Contains(output.String(), want) {
+			t.Fatalf("help output missing %q: %q", want, output.String())
+		}
+	}
+	for _, removed := range []string{"scan", "infer", "thread", "notepad", "pinboard", "agent"} {
+		for _, command := range root.Commands() {
+			if command.Name() == removed {
+				t.Fatalf("retired command %q is still registered", removed)
+			}
+		}
+	}
 }

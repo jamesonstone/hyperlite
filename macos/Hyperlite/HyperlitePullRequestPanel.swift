@@ -3,13 +3,10 @@ import SwiftUI
 struct HyperlitePullRequestPanel: View {
     let scan: HyperliteProjectPullRequestScan
     @ObservedObject var organization: HyperliteDashboardListState
-    @ObservedObject var pins: HyperlitePullRequestPinStore
-    var compactRows = false
     var isRefreshing = false
     var isPollingActivity = false
     var selectionID: String?
     var onNavItems: ([HyperliteWorkspaceNavItem]) -> Void = { _ in }
-    @State private var draggedRowID: String?
     @State private var chipClock = Date()
     @AppStorage("hyperlite.dashboard.open-pr-hide-idle") private var hideIdleProjects = true
     @AppStorage(HyperliteHiddenProjectListPresentation.expandedStorageKey)
@@ -19,12 +16,8 @@ struct HyperlitePullRequestPanel: View {
         HyperlitePullRequestPresentation.rows(scan: scan)
     }
 
-    private var sections: HyperlitePullRequestPinning.Sections {
-        pins.sections(for: sourceRows)
-    }
-
     private var projectSections: [HyperliteProjectSection] {
-        HyperlitePullRequestSectionPlan.sections(scan: scan, groups: sections.unpinnedGroups)
+        HyperlitePullRequestSectionPlan.sections(scan: scan, rows: sourceRows)
     }
 
     private var visibleProjectSections: [HyperliteProjectSection] {
@@ -44,7 +37,7 @@ struct HyperlitePullRequestPanel: View {
     }
 
     private var showsHiddenList: Bool {
-        compactRows && !hiddenProjectSections.isEmpty
+        !hiddenProjectSections.isEmpty
     }
 
     private var hiddenAttentionCount: Int {
@@ -55,9 +48,6 @@ struct HyperlitePullRequestPanel: View {
     /// Collapsed project rows are skipped because they are not on screen.
     private var navItems: [HyperliteWorkspaceNavItem] {
         var items: [HyperliteWorkspaceNavItem] = []
-        for row in sections.pinned {
-            items.append(HyperliteWorkspaceNavItem(id: row.id, action: .open(row.url)))
-        }
         for section in visibleProjectSections {
             items.append(navHeaderItem(section))
             if !isCollapsed(section) {
@@ -104,21 +94,7 @@ struct HyperlitePullRequestPanel: View {
                     .foregroundStyle(HyperliteTheme.mutedText.color)
                     .padding(.vertical, 2)
             } else {
-                VStack(alignment: .leading, spacing: HyperliteWorkspaceSplit.stackedStageSpacing) {
-                    if sections.pinned.isEmpty {
-                        HyperlitePinnedSectionDropTarget(
-                            draggedRowID: $draggedRowID,
-                            pin: pins.pin
-                        )
-                    } else {
-                        HyperliteOpenPRProjectStage(kind: .pinned) {
-                            pinnedHeader
-                            ForEach(sections.pinned) { row in
-                                pullRequestRow(row, pinned: true)
-                                    .hyperliteNavHighlight(selected: isSelected(row.id))
-                            }
-                        }
-                    }
+                VStack(alignment: .leading, spacing: HyperliteOpenPRSpacing.stageSpacing) {
                     ForEach(visibleProjectSections) { section in
                         projectSectionStage(section)
                     }
@@ -208,59 +184,25 @@ struct HyperlitePullRequestPanel: View {
         }
     }
 
-    private var pinnedHeader: some View {
-        HStack(spacing: 4) {
-            Text("Pinned")
-                .font(HyperliteTypography.compact)
-                .foregroundStyle(HyperliteTheme.mutedText.color)
-            Text("\(sections.pinned.count)")
-                .font(HyperliteTypography.compact.monospacedDigit())
-                .foregroundStyle(HyperliteTheme.mutedText.color)
-        }
-        .padding(.leading, HyperlitePullRequestRowLayout.rowChromeLeading)
-        .padding(.top, HyperliteWorkspaceSplit.stackedPinnedLabelTopPadding)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Pinned pull requests, \(sections.pinned.count)")
-    }
-
     @ViewBuilder
     private func projectSectionStage(_ section: HyperliteProjectSection) -> some View {
         HyperliteOpenPRProjectSection(
             section: section,
             chips: chips(for: section),
-            compact: compactRows,
-            headerSelected: isSelected(headerID(section)),
-            draggedRowID: $draggedRowID,
-            drop: { dropped in
-                if let first = section.rows.first {
-                    pins.move(dropped, over: first.id, rows: sourceRows)
-                } else {
-                    pins.unpin(dropped)
-                }
-            }
+            headerSelected: isSelected(headerID(section))
         ) {
             ForEach(section.rows) { row in
-                pullRequestRow(row, pinned: false)
+                pullRequestRow(row)
                     .hyperliteNavHighlight(selected: isSelected(row.id))
             }
         }
     }
 
-    private func pullRequestRow(
-        _ row: HyperlitePullRequestRow,
-        pinned: Bool
-    ) -> some View {
+    private func pullRequestRow(_ row: HyperlitePullRequestRow) -> some View {
         HyperlitePullRequestPanelRow(
             row: row,
             reviewStatus: organization.pullRequestReviewStatus(for: row),
-            pinned: pinned,
-            compact: compactRows,
-            showRepository: pinned,
-            draggedRowID: $draggedRowID,
-            toggleReview: { organization.togglePullRequestReviewed(row) },
-            togglePin: { pinned ? pins.unpin(row.id) : pins.pin(row.id) },
-            move: { pins.move($0, over: $1, rows: sourceRows) },
-            moveBy: { pins.move($0, by: $1, rows: sourceRows) }
+            toggleReview: { organization.togglePullRequestReviewed(row) }
         )
     }
 }

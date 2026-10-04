@@ -12,7 +12,7 @@ enum HyperliteWorkflowActivityTests {
         testConcurrentDeploymentEnvironments()
         testHoverCardStaysOpenAcrossChipAndCard()
         testLabelsAndSummary()
-        testCompactChipsAndHover()
+        testWorkflowHover()
     }
 
     private static func testDecodingWithAndWithoutActivity() throws {
@@ -142,13 +142,10 @@ enum HyperliteWorkflowActivityTests {
                "summary names every notable chip; got \(summary)")
     }
 
-    private static func testCompactChipsAndHover() {
+    private static func testWorkflowHover() {
         let chips = HyperliteWorkflowStripPresentation.chips(
             activity: sampleActivity(observedAt: now.addingTimeInterval(-60)), now: now
         )
-        let compact = HyperliteWorkflowStripPresentation.compactChips(chips)
-        expect(compact.visible.map(\.id) == ["ci.yaml", "deploy.yaml", "codeql"] && compact.hiddenCount == 0,
-               "compact strip keeps running and failed chips and drops the idle count")
         let card = HyperliteWorkflowHoverPresentation.snapshot(chip: chips[0], now: now, timeZone: utc)
         expect(card.statusLine == "running · 3m 00s", "hover status; got \(card.statusLine)")
         expect(card.triggerLine == "pull_request · #7 GH-7 · run #9", "hover trigger; got \(card.triggerLine)")

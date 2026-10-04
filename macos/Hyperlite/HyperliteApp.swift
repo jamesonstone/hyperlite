@@ -23,10 +23,7 @@ struct HyperliteApp: App {
 
     var body: some Scene {
         WindowGroup(HyperliteWindowChrome.title, id: "hyperlite") {
-            HyperliteWindow(
-                state: state,
-                notepad: HyperliteNotepadState.shared
-            )
+            HyperliteWindow(state: state)
                 .font(HyperliteTypography.chrome)
                 .background(HyperliteSettingsActionInstaller())
                 .hyperliteTheme()
@@ -35,17 +32,11 @@ struct HyperliteApp: App {
         .windowResizability(.contentMinSize)
         .commands {
             CommandMenu("Navigate") {
-                Button("Focus Open PRs") { HyperliteWorkspaceFocus.shared.focusPullRequests() }
-                    .keyboardShortcut("1", modifiers: .command)
-                Button("Focus Notes") { HyperliteWorkspaceFocus.shared.focusNotes() }
-                    .keyboardShortcut("2", modifiers: .command)
-                Divider()
-                Button("Refresh") { state.refreshAll() }
+                Button("Refresh") { state.refresh() }
                     .keyboardShortcut("r", modifiers: .command)
-                Button("Update Default Branches") { state.updateDefaultBranches() }
                 Button("Sweep Worktrees") {
                     do {
-                        try HyperliteGitMaintenance.startSweep()
+                        try HyperliteWorktreeSweep.start()
                     } catch {
                         state.presentError(error.localizedDescription)
                     }

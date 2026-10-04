@@ -9,7 +9,7 @@ enum HyperlitePullRequestSectionsTests {
         testGroupOrderPrecedesConfigurationOrder()
         testHideIdleProjectsFilter()
         testHiddenAttentionCount()
-        testIdleAndCompactStripsDropQuietChips()
+        testIdleStripsDropQuietChips()
         testIdleHeadingsUseQuieterWeight()
         testHideIdleHiddenSections()
         testProjectSectionCollapseGating()
@@ -22,9 +22,7 @@ enum HyperlitePullRequestSectionsTests {
             project(path: "/repo/three", repository: nil, numbers: []),
         ])
         let rows = HyperlitePullRequestPresentation.rows(scan: scan)
-        let sections = HyperlitePullRequestSectionPlan.sections(
-            scan: scan, groups: HyperlitePullRequestPinning.grouped(rows)
-        )
+        let sections = HyperlitePullRequestSectionPlan.sections(scan: scan, rows: rows)
         expect(sections.map(\.id) == ["/repo/one", "/repo/two", "/repo/three"],
                "every configured project gets a section; got \(sections.map(\.id))")
         expect(sections[0].rows.map(\.number) == [3, 4], "rows stay under their project")
@@ -47,9 +45,7 @@ enum HyperlitePullRequestSectionsTests {
             project(path: "/repo/b", repository: "owner/same", numbers: [2]),
         ])
         let rows = HyperlitePullRequestPresentation.rows(scan: scan)
-        let sections = HyperlitePullRequestSectionPlan.sections(
-            scan: scan, groups: HyperlitePullRequestPinning.grouped(rows)
-        )
+        let sections = HyperlitePullRequestSectionPlan.sections(scan: scan, rows: rows)
         expect(sections.count == 2 && sections.map(\.id) == ["/repo/a", "/repo/b"],
                "two configured projects on one repository each keep a section; got \(sections.map(\.id))")
         expect(sections[0].rows.map(\.number) == [1] && sections[1].rows.map(\.number) == [2],
@@ -60,16 +56,14 @@ enum HyperlitePullRequestSectionsTests {
 
     private static func testGroupOrderPrecedesConfigurationOrder() {
         let scan = scan(projects: [
-            project(path: "/repo/one", repository: "owner/one", numbers: [1]),
-            project(path: "/repo/two", repository: "owner/two", numbers: [2]),
+            project(path: "/repo/one", repository: "owner/one", numbers: [5]),
+            project(path: "/repo/two", repository: "owner/two", numbers: [1]),
             project(path: "/repo/three", repository: "owner/three", numbers: []),
         ])
         let rows = HyperlitePullRequestPresentation.rows(scan: scan)
-        var groups = HyperlitePullRequestPinning.grouped(rows)
-        groups.reverse()
-        let sections = HyperlitePullRequestSectionPlan.sections(scan: scan, groups: groups)
+        let sections = HyperlitePullRequestSectionPlan.sections(scan: scan, rows: rows)
         expect(sections.map(\.repository) == ["owner/two", "owner/one", "owner/three"],
-               "pin-store group order wins, idle projects follow in configuration order; got \(sections.map(\.repository))")
+               "projects with rows follow their newest row, idle projects follow in configuration order; got \(sections.map(\.repository))")
     }
 
     private static func testHideIdleProjectsFilter() {
@@ -88,9 +82,7 @@ enum HyperlitePullRequestSectionsTests {
             project(path: "/repo/three", repository: "owner/three", numbers: [], workflows: deploying),
         ])
         let rows = HyperlitePullRequestPresentation.rows(scan: scan)
-        let sections = HyperlitePullRequestSectionPlan.sections(
-            scan: scan, groups: HyperlitePullRequestPinning.grouped(rows)
-        )
+        let sections = HyperlitePullRequestSectionPlan.sections(scan: scan, rows: rows)
         let shown = HyperliteOpenPRProjectFilter.visibleSections(sections, hideIdle: true, now: now)
         expect(shown.map(\.id) == ["/repo/one"],
                "hiding idle keeps only projects with open pull requests, even past an active deploy; got \(shown.map(\.id))")
@@ -123,9 +115,7 @@ enum HyperlitePullRequestSectionsTests {
             project(path: "/repo/quiet", repository: "owner/quiet", numbers: []),
         ])
         let rows = HyperlitePullRequestPresentation.rows(scan: scan)
-        let sections = HyperlitePullRequestSectionPlan.sections(
-            scan: scan, groups: HyperlitePullRequestPinning.grouped(rows)
-        )
+        let sections = HyperlitePullRequestSectionPlan.sections(scan: scan, rows: rows)
         let hidden = HyperliteOpenPRProjectFilter.hiddenSections(sections, hideIdle: true, now: now)
         expect(hidden.map(\.id) == ["/repo/fail", "/repo/deploy", "/repo/quiet"],
                "every no-PR project is hidden regardless of workflow activity; got \(hidden.map(\.id))")
@@ -140,9 +130,7 @@ enum HyperlitePullRequestSectionsTests {
             project(path: "/repo/three", repository: "owner/quiet", numbers: []),
         ])
         let rows = HyperlitePullRequestPresentation.rows(scan: scan)
-        let sections = HyperlitePullRequestSectionPlan.sections(
-            scan: scan, groups: HyperlitePullRequestPinning.grouped(rows)
-        )
+        let sections = HyperlitePullRequestSectionPlan.sections(scan: scan, rows: rows)
         let hidden = HyperliteOpenPRProjectFilter.hiddenSections(
             sections, hideIdle: true, now: now
         )
@@ -160,9 +148,7 @@ enum HyperlitePullRequestSectionsTests {
             project(path: "/repo/idle", repository: "owner/idle", numbers: []),
         ])
         let rows = HyperlitePullRequestPresentation.rows(scan: scan)
-        let sections = HyperlitePullRequestSectionPlan.sections(
-            scan: scan, groups: HyperlitePullRequestPinning.grouped(rows)
-        )
+        let sections = HyperlitePullRequestSectionPlan.sections(scan: scan, rows: rows)
         let active = sections.first { $0.id == "/repo/active" }!
         let idle = sections.first { $0.id == "/repo/idle" }!
         expect(
@@ -180,7 +166,7 @@ enum HyperlitePullRequestSectionsTests {
         )
     }
 
-    private static func testIdleAndCompactStripsDropQuietChips() {
+    private static func testIdleStripsDropQuietChips() {
         let chips = [
             HyperliteWorkflowChip(id: "ci.yaml", title: "ci", state: .idle, run: nil, deployment: nil),
             HyperliteWorkflowChip(
@@ -191,19 +177,14 @@ enum HyperlitePullRequestSectionsTests {
             HyperliteWorkflowChip(id: "codeql", title: "codeql", state: .failure, run: nil, deployment: nil),
         ]
         expect(
-            HyperliteProjectSectionChrome.stripChips(chips, idle: true, compact: false).map(\.id)
+            HyperliteProjectSectionChrome.stripChips(chips, idle: true).map(\.id)
                 == ["deploy.yaml", "codeql"],
             "idle projects keep only running and attention chips"
         )
         expect(
-            HyperliteProjectSectionChrome.stripChips(chips, idle: false, compact: true).map(\.id)
-                == ["deploy.yaml", "codeql"],
-            "compact rows keep only running and attention chips"
-        )
-        expect(
-            HyperliteProjectSectionChrome.stripChips(chips, idle: false, compact: false).map(\.id)
+            HyperliteProjectSectionChrome.stripChips(chips, idle: false).map(\.id)
                 == ["ci.yaml", "deploy.yaml", "codeql"],
-            "wide active projects still list every workflow"
+            "active projects still list every workflow"
         )
     }
 

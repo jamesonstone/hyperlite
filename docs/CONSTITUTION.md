@@ -2,63 +2,35 @@
 
 ## PRINCIPLES
 
-- Hyperlite infers coordination state from the evidence a selected project
-  already produces. It must not require users to create goals, link artifacts,
-  assign lifecycle state, order work, or record completion in Hyperlite.
-- Durable thread memory, the current working set, and human attention are
-  separate projections. Attention is reserved for supported decisions,
-  consequential boundaries, authoritative coordination needs, post-merge
-  operational obligations, and consequential uncertainty; ordinary artifact
-  motion remains progress without becoming an attention event.
+- Hyperlite shows open pull requests across the operator's configured
+  projects. It reads the evidence those projects already produce and must not
+  require users to create goals, link artifacts, assign lifecycle state, or
+  record completion in Hyperlite.
+- Everything Hyperlite displays is informational. It never establishes
+  approval, readiness, merge order, or merge authorization.
 
 ## CONSTRAINTS
 
-- Artifact completion is not goal completion. A thread may complete only when
-  canonical evidence establishes delivery or reflection, anchored issues and
-  pull requests are resolved, and no explicit or extracted obligation remains.
-- In-flight status requires positive evidence of unresolved coordination.
-  Missing canonical closure may prevent completion, but terminal-only artifacts
-  and dormant intent do not remain active or retain unread attention.
-- Issues and local Git state are corroborating evidence, not perpetual
-  activity. Old issues, default-branch dirt, temporary automation worktrees,
-  and unrelated historical specs do not establish an in-flight goal.
-- An attention moment states the expected cognitive action, why it matters now,
-  the consequence of inaction, and the condition that keeps it valid. Negative
-  safety statements, incidental boundary keywords, ordinary metadata
-  enrichment, and missing evidence alone are context, not attention;
-  invalidated unread moments retire automatically. Acknowledgement survives
-  unrelated evidence revisions while the underlying coordination situation is
-  unchanged.
-- Inferred attention remains available through CLI/JSON behind one native
-  presentation boundary. The native window omits thread and attention counts,
-  rows, palette entries, and remote enrichment so notes and open pull requests
-  own the interface.
-- The native window is notes and Open PRs. It does not present a configured-
-  project map, Pinboard, Agent Tasks, Agent Island, pinned Codex, or a menu bar
-  extra. Launch and Refresh do not scan inferred threads or start those unused
-  surfaces. The global hotkey shows the window and does not force a GitHub
-  refresh. Launch indexes note literals without loading the sentence
-  embedding, and it does not spawn `projects list` until Command-P, Remove
-  Project, Settings, or explicit Refresh needs the configured-project list.
-- Configured repositories remain the source list for Open PRs and local git
-  maintenance. Adding or removing a project changes Hyperlite's configuration
-  only; it never deletes a repository, worktree, or branch. Command-P is a
-  navigation lookup and may list configured checkouts and loaded pull requests
-  without establishing activity or attention.
+- The native window is the Open PRs list, which fills the window. It does not
+  present notes, a pinboard, agent sessions, inferred threads or attention, a
+  configured-project map, or a menu bar extra. The global hotkey shows the
+  window and does not force a GitHub refresh. Launch does not spawn
+  `projects list` until Command-P, Remove Project, Settings, or explicit
+  Refresh needs the configured-project list.
+- Retiring a feature never deletes the local data it wrote; Hyperlite simply
+  stops reading it.
+- Configured repositories remain the source list for Open PRs. Adding or
+  removing a project changes Hyperlite's configuration only; it never deletes a
+  repository, worktree, or branch. Command-P is a navigation lookup and may
+  list configured checkouts and loaded pull requests.
 - Noninteractive configured-project add/remove changes are explicit user
   actions written atomically and serialized across concurrent helper processes.
-- Update Default Branches may only fetch and fast-forward a configured default
-  branch when Git allows a clean fast-forward. Dirty trees, non-fast-forward
-  histories, and checked-out refs Git refuses to update are skipped with an
-  explicit reason. Hyperlite never resets, stashes, force-updates, or deletes
-  branches to complete that action.
 - Sweep Worktrees launches interactive `git wt sweep` in Terminal. Hyperlite
   does not pass `--auto` and does not delete worktrees itself.
-- The configured-project pull-request index is a separate informational
-  projection. Open pull requests from any author remain visible without
-  establishing thread membership, liveness, lifecycle, or attention. Its
-  GitHub access is read-only, bounded, cached separately from thread state, and
-  refreshed only by startup or foreground staleness and explicit user action.
+- The configured-project pull-request index shows open pull requests from any
+  author. Its GitHub access is read-only, bounded, cached privately, and
+  refreshed only by startup, the ambient staleness check while the window is
+  visible, foreground or wake staleness, and explicit user action.
   The sole automatic follow-up is the bounded workflow-activity poll: at most
   once per minute, only while a scan reports an Actions run or deployment in
   progress, only while the window is visible on screen, never longer than
@@ -71,64 +43,34 @@
   A refresh isolates failures per repository: pull-request detail queries
   select one repository each, only cheap probes batch repositories, and one
   slow, missing, or failing repository never fails another repository's rows.
-  Unresolved, non-outdated review thread counts and observed workflow runs
-  are informational metadata in this projection; they do not establish
-  inferred attention or thread lifecycle state, and only an observation
-  younger than two minutes may present a run as currently running. Caller
-  rate-limit metadata rides with those same bounded GraphQL requests and is
-  cached only as a complete observation; quota visibility never adds polling
-  or changes refresh authority. Quota observations may only deny automatic
-  work (the activity poll, and stale refreshes below the automatic floor),
-  never enable other requests or block an explicit Refresh. A local `Reviewed by me` marker is
-  private presentation metadata bound to the exact observed pull-request head
-  commit. Only current repository evidence with a nonempty head may create or
-  replace a marker. A new current head invalidates that review, and only current
-  repository evidence may prune it; cached or unavailable evidence cannot
-  create, replace, invalidate, or prune a marker, though the operator may clear
-  an existing mark. The marker never publishes GitHub state or establishes
-  approval, attention, readiness, merge order, or merge authorization.
-- Pinned Codex threads remain a CLI and helper contract, not a native-window
-  projection. When those commands run, a valid Desktop `pinned-thread-ids`
-  array alone establishes membership; read-only SQLite metadata may enrich
-  those opaque IDs but may not add or remove membership. Access is bounded and
-  fail-closed. The native window does not load, observe, or display Codex pins.
-- Live coding-agent sessions remain a CLI helper contract, not a native-window
-  projection. Exact provider and session identifiers own membership when that
-  helper runs. The native window does not start the agent helper, notch panel,
-  or Agent Tasks workspace.
-- Exact evidence owns thread membership. Semantic inference may relate
-  separate threads, but it may not merge them, establish authoritative
-  lifecycle state, suppress a thread, or close a goal.
-- Notes and seen state are optional presentation metadata. They never create,
-  order, advance, or complete project work.
-- The global notepad is private operator memory, not project evidence.
-  Hyperlite never interprets it as a thread, relation, obligation, lifecycle
-  signal, or attention moment. Its bounded Markdown source of truth is one
-  permanent pinned note plus ISO-dated daily notes; the fixed Notepad/Daily tab
-  selection and derived search projection never become lifecycle authority.
-  The pinned note safely adopts the prior single-document store without
-  rewriting its content.
-- The global Pinboard store remains private graphical working memory for the
-  CLI, not project evidence, Notepad/Daily content, task state, lifecycle
-  state, attention, or agent input. The native window does not open Pinboard.
-- Technical and user-authored content, including editable notepad text, paths,
-  commands, arguments, messages, and results, uses JetBrainsMono Nerd Font
-  through one shared SwiftUI/AppKit resolver, with the system monospaced family
-  as the unavailable-font fallback. Native macOS chrome, controls, status
-  labels, navigation, menus, and settings may use system typography so their
-  hierarchy and accessibility remain consistent with the platform.
-- Application theme, list type size, Vertical Mode, Notes Only, and split
-  ratios are local operator preferences. Command-K is the switch for Theme,
-  Font Size, Vertical Mode, and Notes Only nested or toggle commands. Split
-  ratios persist from the divider, separately for stacked and left-right
-  layouts. Light themes recolor Hyperlite-painted surfaces and native
-  `colorScheme`. Default remains Selenized Dark at 12 pt list type, stacked
-  Open PRs above notes, and a content-sized Open PRs pane.
-- Open PR pin membership and order are local presentation metadata. Every
-  configured project owns one Open PRs section, including projects with no
-  open pull requests, and unpinned rows group under it as local presentation.
-  They do not change GitHub state. Unpinning restores a row to its project
-  section.
+  Only an observation younger than two minutes may present a run as currently
+  running. Caller rate-limit metadata rides with those same bounded GraphQL
+  requests and is cached only as a complete observation; quota visibility
+  never adds polling or changes refresh authority. Quota observations may only
+  deny automatic work (the activity poll, and stale refreshes below the
+  automatic floor), never enable other requests or block an explicit Refresh.
+- A local `Reviewed by me` marker is private presentation metadata bound to the
+  exact observed pull-request head commit. Only current repository evidence
+  with a nonempty head may create or replace a marker. A new current head
+  invalidates that review, and only current repository evidence may prune it;
+  cached or unavailable evidence cannot create, replace, invalidate, or prune a
+  marker, though the operator may clear an existing mark. The marker never
+  publishes GitHub state.
+- Every configured project owns one Open PRs section, including projects with
+  no open pull requests. Rows group under their project; there is no pinning or
+  manual reordering. Projects with rows follow their most recently updated pull
+  request, and projects without rows follow in configuration order. Section
+  collapse, the hide-idle choice, and the quiet-ones expansion are local
+  presentation state and never change GitHub state.
+- Technical content, including paths, commands, arguments, messages, and
+  results, uses JetBrainsMono Nerd Font through one shared SwiftUI/AppKit
+  resolver, with the system monospaced family as the unavailable-font
+  fallback. Native macOS chrome, controls, status labels, navigation, menus,
+  and settings may use system typography so their hierarchy and accessibility
+  remain consistent with the platform.
+- Application theme and list type size are local operator preferences, and
+  Command-K is their switch. Light themes recolor Hyperlite-painted surfaces
+  and native `colorScheme`. Default remains Selenized Dark at 12 pt list type.
 
 ### Kit-Managed Baseline Rules
 
@@ -171,25 +113,16 @@
 
 ## NON-GOALS
 
-- Hyperlite is not a second task tracker. It does not require manual goal,
-  relationship, ordering, lifecycle, or completion bookkeeping.
+- Hyperlite is not a task tracker or note-taking tool. It does not require
+  manual goal, relationship, ordering, lifecycle, or completion bookkeeping.
 - Hyperlite does not use agent lifecycle events, transcripts, continuous
   background polling, or notifications as project authority.
-- Hyperlite does not select hosted models, mutate deployments, or treat
-  indirect cloud observations as proof of operational completion.
+- Hyperlite itself does not mutate pull requests, deployments, or other
+  GitHub state.
 
 ## DEFINITIONS
 
-- **Thread**: an inferred, evidence-backed projection of one project goal and
-  its complete coordination lifecycle.
-- **Artifact**: a source-backed issue, specification, plan, pull request,
-  review, branch, worktree, or infrastructure document observed by Hyperlite.
-- **Obligation**: a required outcome that must be satisfied before a thread can
-  be considered complete.
-- **Attention moment**: a temporary, evidence-supported relationship between a
-  current situation and a useful human cognitive action, including deciding,
-  guarding, reconciling, or inspecting consequential uncertainty.
-- **Exact evidence**: an identifier or explicit link that can authoritatively
-  establish artifact membership or lifecycle state.
-- **Hypothesis**: a cited semantic relationship that may warn or explain but
-  cannot merge, close, suppress, or otherwise authoritatively change a thread.
+- **Configured project**: a local Git repository selected in Hyperlite's
+  configuration whose open pull requests and workflow activity Hyperlite shows.
+- **Open PRs index**: the private, read-only cache of open pull requests,
+  workflow activity, and quota observations for configured projects.

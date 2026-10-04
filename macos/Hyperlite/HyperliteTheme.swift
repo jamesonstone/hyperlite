@@ -12,10 +12,6 @@ struct HyperliteColorToken: Equatable {
         Color(.sRGB, red: red, green: green, blue: blue, opacity: 1)
     }
 
-    var appKitColor: NSColor {
-        NSColor(srgbRed: red, green: green, blue: blue, alpha: 1)
-    }
-
     private var red: Double { Double((hex >> 16) & 0xff) / 255 }
     private var green: Double { Double((hex >> 8) & 0xff) / 255 }
     private var blue: Double { Double(hex & 0xff) / 255 }

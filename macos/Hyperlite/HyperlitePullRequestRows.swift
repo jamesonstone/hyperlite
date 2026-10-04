@@ -1,22 +1,11 @@
 import AppKit
 import SwiftUI
-import UniformTypeIdentifiers
 
 struct HyperlitePullRequestPanelRow: View {
     static let layout = HyperlitePullRequestRowLayout.titleFirst
     let row: HyperlitePullRequestRow
     let reviewStatus: HyperlitePullRequestReviewStatus
-    let pinned: Bool
-    let compact: Bool
-    var showRepository = true
-    @Binding var draggedRowID: String?
     let toggleReview: () -> Void
-    let togglePin: () -> Void
-    let move: (String, String) -> Void
-    let moveBy: (String, Int) -> Void
-
-    static let dragHandleRestOpacity: Double = 0.18
-    static let pinRestOpacity: Double = 0.2
 
     @State private var hoverPresented = false
     @State private var hoverTask: Task<Void, Never>?
@@ -24,27 +13,6 @@ struct HyperlitePullRequestPanelRow: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            Image(systemName: "line.3.horizontal")
-                .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(HyperliteTheme.mutedText.color)
-                .opacity(rowHovering ? 1 : Self.dragHandleRestOpacity)
-                .frame(width: 16, height: 16)
-                .contentShape(Rectangle())
-                .onDrag {
-                    draggedRowID = row.id
-                    return NSItemProvider(object: row.id as NSString)
-                }
-            Button(action: togglePin) {
-                Image(systemName: pinned ? "pin.fill" : "pin")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(pinned ? HyperliteTheme.cyan.color : HyperliteTheme.mutedText.color)
-                    .opacity(pinned || rowHovering ? 1 : Self.pinRestOpacity)
-                    .frame(width: 16, height: 16)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .help(pinned ? "Unpin from top" : "Pin to top")
-            .accessibilityLabel(pinned ? "Unpin pull request" : "Pin pull request")
             HyperlitePullRequestReviewToggle(
                 row: row,
                 status: reviewStatus,
@@ -54,8 +22,6 @@ struct HyperlitePullRequestPanelRow: View {
             HyperlitePullRequestRowContent(
                 row: row,
                 reviewStatus: reviewStatus,
-                compact: compact,
-                showRepository: showRepository,
                 openNumber: openNumber,
                 openPullRequest: openPullRequest
             )
@@ -72,21 +38,10 @@ struct HyperlitePullRequestPanelRow: View {
             ) { openNumber() }
         }
         .contentShape(Rectangle())
-        .onDrop(
-            of: [UTType.text.identifier],
-            delegate: HyperliteReorderDropDelegate(
-                targetID: row.id,
-                draggedID: $draggedRowID,
-                move: move
-            )
-        )
         .onHover(perform: handleHover)
         .popover(isPresented: $hoverPresented, arrowEdge: .trailing) {
             HyperlitePullRequestHoverCard(row: row, reviewStatus: reviewStatus)
         }
-        .accessibilityAction(named: "Move up") { moveBy(row.id, -1) }
-        .accessibilityAction(named: "Move down") { moveBy(row.id, 1) }
-        .accessibilityValue(pinned ? "pinned" : "unpinned")
     }
 
     private func openPullRequest() {
@@ -169,38 +124,5 @@ struct HyperlitePullRequestReviewToggle: View {
         .accessibilityLabel("Reviewed by me")
         .accessibilityValue(status.accessibilityLabel)
         .accessibilityHint(help)
-    }
-}
-
-struct HyperlitePinnedSectionDropTarget: View {
-    @Binding var draggedRowID: String?
-    let pin: (String) -> Void
-
-    var body: some View {
-        Color.clear
-            .frame(height: 8)
-            .contentShape(Rectangle())
-            .onDrop(
-                of: [UTType.text.identifier],
-                delegate: HyperliteSectionPinDropDelegate(
-                    draggedID: $draggedRowID,
-                    pin: pin
-                )
-            )
-    }
-}
-
-struct HyperliteSectionPinDropDelegate: DropDelegate {
-    @Binding var draggedID: String?
-    let pin: (String) -> Void
-
-    func performDrop(info _: DropInfo) -> Bool {
-        if let draggedID { pin(draggedID) }
-        draggedID = nil
-        return true
-    }
-
-    func dropUpdated(info _: DropInfo) -> DropProposal? {
-        DropProposal(operation: .move)
     }
 }

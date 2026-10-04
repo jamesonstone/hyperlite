@@ -165,10 +165,6 @@ enum HyperliteWorkflowStripPresentation {
         }.min()
     }
 
-    static func compactChips(_ chips: [HyperliteWorkflowChip]) -> (visible: [HyperliteWorkflowChip], hiddenCount: Int) {
-        (chips.filter { $0.isRunning || $0.needsAttention }, 0)
-    }
-
     static func elapsedLabel(since: Date, now: Date) -> String {
         let seconds = max(0, Int(now.timeIntervalSince(since).rounded(.down)))
         if seconds < 60 { return "\(seconds)s" }

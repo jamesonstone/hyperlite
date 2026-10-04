@@ -15,10 +15,6 @@ struct HyperliteProjectSection: Equatable, Identifiable {
         guard let repo = project.repository, repo.contains("/") else { return nil }
         return URL(string: "https://github.com/\(repo)")
     }
-    /// The trailing path segment (`owner/name` → `name`) for compact headings.
-    var shortName: String {
-        repository.split(separator: "/").last.map(String.init) ?? repository
-    }
     var pullsButtonLabel: String { "Open pull requests for \(repository) on GitHub" }
     var actionsButtonLabel: String { "Open GitHub Actions for \(repository)" }
 
@@ -37,14 +33,21 @@ struct HyperliteProjectSection: Equatable, Identifiable {
 }
 
 enum HyperlitePullRequestSectionPlan {
-    /// Groups with rows keep the pin store's project order so drag and move
-    /// across project groups still work; projects without unpinned rows follow
-    /// in configuration order. Sections are keyed by project identity, so two
-    /// configured projects that point at one repository each keep a section.
+    /// Projects with open pull-request rows come first, in the order of their
+    /// first row (the presentation sorts rows newest first); projects without
+    /// rows follow in configuration order. Sections are keyed by project
+    /// identity, so two configured projects that point at one repository each
+    /// keep a section.
     static func sections(
         scan: HyperliteProjectPullRequestScan,
-        groups: [HyperlitePullRequestPinning.ProjectGroup]
+        rows: [HyperlitePullRequestRow]
     ) -> [HyperliteProjectSection] {
+        var rowsByGroup: [String: [HyperlitePullRequestRow]] = [:]
+        var groupOrder: [String] = []
+        for row in rows {
+            if rowsByGroup[row.groupKey] == nil { groupOrder.append(row.groupKey) }
+            rowsByGroup[row.groupKey, default: []].append(row)
+        }
         var projectsByID: [String: HyperliteProjectPullRequests] = [:]
         var order: [String] = []
         for project in scan.projects {
@@ -54,10 +57,10 @@ enum HyperlitePullRequestSectionPlan {
         }
         var result: [HyperliteProjectSection] = []
         var used = Set<String>()
-        for group in groups {
-            guard let project = projectsByID[group.projectID] else { continue }
-            used.insert(group.projectID)
-            result.append(section(for: project, rows: group.rows))
+        for key in groupOrder {
+            guard let project = projectsByID[key], let groupRows = rowsByGroup[key] else { continue }
+            used.insert(key)
+            result.append(section(for: project, rows: groupRows))
         }
         for id in order where !used.contains(id) {
             guard let project = projectsByID[id] else { continue }
@@ -98,10 +101,9 @@ enum HyperliteProjectSectionChrome {
 
     static func stripChips(
         _ chips: [HyperliteWorkflowChip],
-        idle: Bool,
-        compact: Bool
+        idle: Bool
     ) -> [HyperliteWorkflowChip] {
-        if idle || compact {
+        if idle {
             return chips.filter { $0.isRunning || $0.needsAttention }
         }
         return chips

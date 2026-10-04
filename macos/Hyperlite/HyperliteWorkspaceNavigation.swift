@@ -1,7 +1,7 @@
 import Foundation
 
 /// One keyboard-navigable entry in the Open PRs pane. The panel builds these in
-/// render order (pinned rows, visible project headings and their rows, the
+/// render order (visible project headings and their rows, the
 /// quiet-ones toggle, and expanded hidden headings) so selection movement and
 /// activation stay in lockstep with what is on screen.
 struct HyperliteWorkspaceNavItem: Equatable, Identifiable {
@@ -22,8 +22,8 @@ enum HyperliteWorkspaceNavAction: Equatable {
     case toggleQuietOnes
 }
 
-/// The command a bare (unmodified) key press maps to while the Open PRs pane
-/// owns focus. `j`/`k` mirror the arrow keys the way the command palette
+/// The command a bare (unmodified) key press maps to in the Open PRs list.
+/// `j`/`k` mirror the arrow keys the way the command palette
 /// already treats them.
 enum HyperliteWorkspaceNavCommand: Equatable {
     case next

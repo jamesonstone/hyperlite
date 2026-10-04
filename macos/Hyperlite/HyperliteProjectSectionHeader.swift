@@ -1,20 +1,15 @@
 import AppKit
 import SwiftUI
-import UniformTypeIdentifiers
 
 struct HyperliteProjectSectionHeader: View {
     let section: HyperliteProjectSection
     let chips: [HyperliteWorkflowChip]
-    let compact: Bool
     var collapsed: Binding<Bool>? = nil
-    @Binding var draggedRowID: String?
-    let drop: (String) -> Void
-    @State private var headingHovering = false
 
     private var isIdle: Bool { section.rows.isEmpty }
     private var stripChips: [HyperliteWorkflowChip] {
         HyperliteProjectSectionChrome.stripChips(
-            chips, idle: isIdle, compact: compact
+            chips, idle: isIdle
         )
     }
     private var chromeLeading: CGFloat {
@@ -45,34 +40,17 @@ struct HyperliteProjectSectionHeader: View {
                     .layoutPriority(2)
             }
             if !stripChips.isEmpty {
-                HyperliteWorkflowStrip(chips: stripChips, compact: false)
+                HyperliteWorkflowStrip(chips: stripChips)
                     .fixedSize(horizontal: true, vertical: false)
                     .layoutPriority(1)
             }
             Spacer(minLength: 4)
-            if !compact {
-                githubButtons
-            }
-        }
-        .overlay(alignment: .trailing) {
-            if compact {
-                githubButtons
-                    .opacity(headingHovering ? 1 : 0)
-                    .allowsHitTesting(headingHovering)
-            }
+            githubButtons
         }
         .contentShape(Rectangle())
-        .onHover { headingHovering = $0 }
-        .onDrop(
-            of: [UTType.text.identifier],
-            delegate: HyperliteSectionPinDropDelegate(
-                draggedID: $draggedRowID,
-                pin: drop
-            )
-        )
         .padding(.top, isIdle
-            ? HyperliteWorkspaceSplit.stackedIdleSectionTopPadding
-            : HyperliteWorkspaceSplit.stackedActiveSectionTopPadding)
+            ? HyperliteOpenPRSpacing.idleSectionTopPadding
+            : HyperliteOpenPRSpacing.activeSectionTopPadding)
     }
 
     private func disclosureChevron(_ collapsed: Binding<Bool>) -> some View {
@@ -97,7 +75,7 @@ struct HyperliteProjectSectionHeader: View {
 
     private var label: some View {
         HStack(spacing: 6) {
-            Text(compact ? section.shortName : section.repository)
+            Text(section.repository)
                 .font(headingFont)
                 .foregroundStyle(headingColor)
                 .lineLimit(1)

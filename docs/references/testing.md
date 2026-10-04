@@ -8,48 +8,31 @@
 
 ## Current State
 
-- Go package tests cover deterministic scanner, correlation, state, inference,
-  CLI, git maintenance, and failure behavior, including the concurrent
-  probe-then-detail Open PR fetch with per-repository failure isolation.
+- Go package tests cover configuration, project discovery and selection, the
+  Open PR index (including the concurrent probe-then-detail fetch with
+  per-repository failure isolation), CLI commands, and failure behavior.
 - Swift executable model tests and native type-checking cover schema and
-  presentation behavior.
-- Go contract and integration tests cover the remaining CLI agent-session
-  authority, provider registry, exact actions, configuration safety, private
-  socket, Codex stdio protocol, discovery-only `notLoaded` rollout fallback,
-  incremental cursors, current-date discovery, replacement recovery, adaptive
-  child ownership, exact process proof, action queues, health/self-test,
-  coalescing, resolved-input transitions, pre-store expiry, and redaction.
-- Swift executable tests cover Command-K without unused workspace actions,
-  helper PATH including `~/.local/bin`, default-branch update summaries, Open
-  PRs merge-conflict decoding, conflict-column layout
-  reservation, Copy Open PR Merge Prompt labels, Command-K Theme and Font Size
-  nested lists, Open PR hover what-and-why, assignee, and next-step presentation,
-  pin/reorder presentation, stacked Open PRs above notes with Command-K
-  Vertical Mode, Notes Only, content-sized and draggable splits, title-first
-  Open PR rows grouped by repository section, inline ready/draft badges,
-  notepad pane-fill wrapping, per-project workflow
-  activity decoding, chip derivation with the two-minute freshness boundary,
-  persistent main/deploy pipeline failure badges, every-project section plans with Pulls/Actions links,
-  the bounded activity poll schedule, the ambient Open PRs refresh schedule, Open PR title hierarchy and folded idle
-  headings, compact workflow strips without a leftover `+N`, Vertical Mode
-  project lanterns and the collapsible hidden-project list, two-line compact
-  Open PR rows, hide-idle hiding every project without an open pull request with
-  a quiet-ones attention count, Open PRs keyboard-navigation selection and key
-  classification, and Command-K
-  literal search without loading
-  sentence embeddings. The native
-  window no longer compiles Agent Island, Agent Tasks, Pinboard, or pinned Codex
-  presentation tests.
-- A read-only local live-integration suite validates recovery of the selected
-  R2 and Event Sink goal threads against current repository and GitHub
-  evidence.
+  presentation behavior: Command-K entries (Theme and Font Size nested lists,
+  without retired workspace actions), helper PATH including `~/.local/bin`,
+  configured-project decoding, Open PR merge-conflict decoding and
+  conflict-column layout, Copy Open PR Merge Prompt labels, hover
+  what-and-why, assignee, and next-step presentation, title-first one-line
+  rows grouped by project section, review-mark reconciliation, per-project
+  workflow activity decoding and chip freshness, persistent main/deploy
+  pipeline failure badges, every-project section plans with Pulls/Actions
+  links, the bounded activity poll and ambient refresh schedules, heading
+  hierarchy, project lanterns, the collapsible hidden-project list,
+  hide-idle filtering with a quiet-ones attention count, and Open PRs
+  keyboard-navigation selection and key classification.
+- No live-integration suite is currently defined; the retired inferred
+  attention and agent-session suites were removed with those features.
 
 ## Code-Level Validation
 
 | Layer | Command | PR workflow or check | Required | Notes |
 | --- | --- | --- | --- | --- |
 | Formatting and static analysis | `make fmt-check vet` | `Go validation` | yes | Go formatting and vet across the module |
-| Go behavior | `make test test-race` | `Go validation` | yes | Includes fake GitHub/Ollama boundaries and golden R2/Event Sink fixtures |
+| Go behavior | `make test test-race` | `Go validation` | yes | Includes fake GitHub boundaries for the Open PR index |
 | CLI build | `make build` | `Go validation` | yes | Builds `bin/hyperlite` |
 | Native behavior | `make macos-test` | `macOS validation` | yes | Swift type-check plus executable presentation-model tests |
 | Universal app | `make macos-build` | `macOS validation` | yes | Builds and ad-hoc signs both architectures |
@@ -58,46 +41,26 @@
 
 | Suite | Type | Environment | Command | Automation | Evidence |
 | --- | --- | --- | --- | --- | --- |
-| inferred attention recovery | live-integration | local | `tests/live-integration/local/inferred-attention-live-scan.sh <r2-path> <event-sink-path>` | manual milestone | `tmp/<UTC-date>/inferred-attention-live-scan.sh/<run-number>/` |
-| agent sessions bridge | live-integration | local | `tests/live-integration/local/agent-session-bridge-live.sh` | manual milestone | `tmp/<UTC-date>/agent-session-bridge-live.sh/<run-number>/` |
-| agent session cross-process discovery | live-integration | local | isolated `hyperlite-cli agent sessions serve` with a metadata-only JSON projection | manual milestone | `tmp/<UTC-date>/agent-session-discovery-live/<run-number>/` |
-| agent session resources | live-integration | local | `tests/live-integration/local/agent-session-resource-live.sh` | manual release gate | `tmp/<UTC-date>/agent-session-resource-live.sh/<run-number>/result.json` |
-| agent sessions provider/display matrix | live-integration | local | manual acceptance matrix | manual milestone | provider and physical-display evidence pending |
 | production | end-to-end | production | not applicable | not applicable | Hyperlite is a local desktop application without a deployed production environment |
 
 ## Environment Preflights
 
 - The full local gate requires Go, Xcode command-line tools, SwiftUI/AppKit,
   Carbon, `make`, and the checked-in icon source.
-- The live scan requires readable local R2 and Event Sink Git repositories,
-  authenticated read access through `gh`, `jq`, and no repository mutation.
-- Ollama is optional. Contract behavior uses a fake server in Go tests; live
-  semantic enrichment runs only when `settings.ollama_model` is configured.
 - Production validation is `NOT_APPLICABLE`; Hyperlite is packaged locally and
   does not deploy a service.
-- Resource acceptance additionally requires `lsof`, `ps`, and `jq`. The
-  resource suite defaults to a 30-minute post-warmup sample. Set
-  `HYPERLITE_RESOURCE_SOAK_SECONDS=28800` for the required eight-hour soak and
-  `HYPERLITE_APP_PID` to include the packaged app in combined CPU sampling.
 
 ## Credentials And Test Data
 
-- The live scan uses the operator's existing `gh` authentication and never
-  records credentials or authorization material.
-- Repository, GitHub, provider, and application live operations remain
-  read-only. The resource suite creates only metadata-only sessions, rollout
-  files, and a private socket beneath one task-owned temporary home, then
-  verifies owner-EOF cleanup and removes that exact directory. It creates no
-  provider, infrastructure, or durable application record and requires no
-  cleanup credential, rate budget, or cost budget.
+- Code-level suites use fake GitHub boundaries and temporary repositories; they
+  record no credentials or authorization material.
 - Any future retained test-state cleanup follows `rules/deletion-safety.md`:
   default to a recoverable lifecycle, and require an exact inventory plus
   specific post-outline manual confirmation before hard deletion.
 
 ## Evidence And Retention
 
-- `tmp/` is ignored. Each live run atomically reserves its own directory and
-  records redacted `output.txt`, `scan.json`, state, and `result.json`.
+- `tmp/` is ignored and reserved for future live-run evidence directories.
 - CI results remain in GitHub Actions under the repository's configured
   retention policy.
 - `tests/RUN_STATUS.md` contains one current row per suite and environment and
@@ -106,26 +69,9 @@
 ## Automation And Fallbacks
 
 - Pull requests run the complete code-level Go and native macOS gates.
-- Live recovery remains a manual milestone because it depends on the
-  operator's selected repositories, worktrees, GitHub identity, and current
-  remote evidence. Deterministic golden fixtures cover the same structural
-  acceptance contract in pull-request CI.
 
 ## Known Gaps
 
-- A live Ollama response is unobserved when no model is configured; fake-server
-  contract tests prove cited-schema validation and deterministic fallback.
-- The local live scan proves current read-only evidence recovery, not deployed
-  operational state in the referenced projects.
-- Agent sessions are enabled by default, but full provider-parity evidence
-  remains partial until every frozen provider passes a real local lifecycle
-  smoke, action-capable providers pass one bounded response round trip, and
-  both physical-notch and external/notchless display journeys pass.
-  Deterministic fixtures do not replace that residual acceptance evidence.
-- Issue #49 live regression evidence proves current external idle transparency
-  and cross-process Codex discovery. Direct pointer-only hover remains a
-  deterministic policy assertion because the local Computer Use API exposes
-  clicks and drags rather than pointer-only motion.
-- Feature 0012's short resource smoke proves the harness and bounded synthetic
-  load, not the mandatory 30-minute combined-app sample or eight-hour soak;
-  those remain `PARTIAL` until their full wall-clock observations complete.
+- Native view rendering (SwiftUI layout, hover, keyboard monitor wiring) is
+  covered by type-checking and pure presentation-model tests, not by automated
+  UI tests.

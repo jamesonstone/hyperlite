@@ -34,14 +34,6 @@ extension HyperliteWindow {
             HyperliteAppearance.shared.setFontSize(size)
             return
         }
-        if action == .toggleVerticalMode {
-            HyperliteAppearance.shared.toggleVerticalMode()
-            return
-        }
-        if action == .toggleNotesOnly {
-            HyperliteAppearance.shared.toggleNotesOnly()
-            return
-        }
         if action == .copyOpenPRMergePrompt {
             copyVisibleOpenPRMergePrompt()
             return
@@ -49,17 +41,15 @@ extension HyperliteWindow {
         state.dismissPalette()
         switch action {
         case .refresh:
-            state.refreshAll()
+            state.refresh()
         case .forceCacheRefresh:
             state.forceCacheRefresh()
         case .copyOpenPRMergePrompt, .showCommands, .showThemes, .showFontSizes,
-             .setTheme, .setFontSize, .toggleVerticalMode, .toggleNotesOnly:
+             .setTheme, .setFontSize:
             break
-        case .updateDefaultBranches:
-            state.updateDefaultBranches()
         case .sweepWorktrees:
             do {
-                try HyperliteGitMaintenance.startSweep()
+                try HyperliteWorktreeSweep.start()
             } catch {
                 state.presentError(error.localizedDescription)
             }
@@ -77,10 +67,6 @@ extension HyperliteWindow {
             NSWorkspace.shared.open(url)
         case let .revealPath(path):
             NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
-        case .focusPinnedNote:
-            notepad.focusPinned()
-        case let .openDailyNote(date):
-            Task { await notepad.selectDateIdentifier(date, focus: true) }
         }
     }
 

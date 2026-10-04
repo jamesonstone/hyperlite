@@ -5,6 +5,20 @@ enum HyperliteProjectIndexTests {
         try testSchemaDecoding()
         testPathPresentation()
         testOpenPullRequestLaneProjection()
+        try testConfiguredProjectListDecoding()
+    }
+
+    private static func testConfiguredProjectListDecoding() throws {
+        let list = try JSONDecoder().decode(
+            HyperliteConfiguredProjectList.self,
+            from: Data("""
+            {"projects":[{"id":"project:/repo/kit","name":"kit","path":"/repo/kit","repository":"owner/kit","base":"main"}]}
+            """.utf8)
+        )
+        expect(list.projects.count == 1 && list.projects[0].name == "kit",
+               "configured project list JSON should decode")
+        expect(list.projects[0].location.lanes.isEmpty,
+               "project list should not invent worktree lanes")
     }
 
     private static func testSchemaDecoding() throws {

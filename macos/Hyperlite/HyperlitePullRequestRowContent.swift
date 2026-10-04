@@ -4,8 +4,6 @@ struct HyperlitePullRequestRowContent: View {
     static let layout = HyperlitePullRequestRowLayout.titleFirst
     let row: HyperlitePullRequestRow
     let reviewStatus: HyperlitePullRequestReviewStatus
-    let compact: Bool
-    var showRepository = true
     var openNumber: () -> Void = {}
     var openPullRequest: () -> Void = {}
 
@@ -21,21 +19,8 @@ struct HyperlitePullRequestRowContent: View {
             : HyperliteTheme.mutedText.color
     }
 
-    private var usesCompactStack: Bool {
-        HyperlitePullRequestRowLayout.usesCompactStack(
-            compact: compact,
-            showRepository: showRepository
-        )
-    }
-
     var body: some View {
-        Group {
-            if usesCompactStack {
-                compactStack
-            } else {
-                wideRow
-            }
-        }
+        wideRow
         .font(HyperliteTypography.body)
         .foregroundStyle(HyperliteTheme.secondaryText.color)
         .opacity(reviewStatus == .reviewed ? 0.62 : 1)
@@ -43,16 +28,6 @@ struct HyperlitePullRequestRowContent: View {
 
     private var wideRow: some View {
         HStack(alignment: .firstTextBaseline, spacing: 7) {
-            if showRepository {
-                pullRequestTarget { repositoryLabel }
-                    .frame(
-                        minWidth: 72,
-                        idealWidth: 132,
-                        maxWidth: Self.layout.repositoryColumnWidth,
-                        alignment: .leading
-                    )
-                    .layoutPriority(Self.layout.repositoryLayoutPriority)
-            }
             numberButton
             pullRequestTarget {
                 HStack(alignment: .firstTextBaseline, spacing: 7) {
@@ -71,34 +46,6 @@ struct HyperlitePullRequestRowContent: View {
         }
     }
 
-    private var compactStack: some View {
-        VStack(alignment: .leading, spacing: 1) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                if showRepository {
-                    pullRequestTarget { repositoryLabel }
-                        .layoutPriority(-1)
-                }
-                numberButton
-                pullRequestTarget {
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        statusBadge
-                        mergeConflictGlyph
-                        reviewLabel
-                    }
-                }
-            }
-            .lineLimit(1)
-            pullRequestTarget {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    titleLabel
-                        .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
-                    ageLabel
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
     // A plain button so a click anywhere but the number opens the pull request,
     // preserving the row's prior single-target behavior.
     private func pullRequestTarget(@ViewBuilder _ content: () -> some View) -> some View {
@@ -107,14 +54,6 @@ struct HyperlitePullRequestRowContent: View {
         }
         .buttonStyle(.plain)
         .disabled(row.url == nil)
-    }
-
-    private var repositoryLabel: some View {
-        Text(row.repository)
-            .font(HyperliteTypography.compact)
-            .foregroundStyle(HyperliteTheme.mutedText.color)
-            .lineLimit(1)
-            .truncationMode(.tail)
     }
 
     // The number opens the tracked issue when the pull request names one, so
@@ -140,7 +79,7 @@ struct HyperlitePullRequestRowContent: View {
             .lineLimit(1)
             .fixedSize(horizontal: true, vertical: false)
             .layoutPriority(Self.layout.metadataLayoutPriority)
-            .frame(minWidth: usesCompactStack ? 0 : 42, alignment: .leading)
+            .frame(minWidth: 42, alignment: .leading)
             .foregroundStyle(
                 row.numberOpensIssue ? HyperliteTheme.secondaryText.color : titleColor
             )
@@ -159,7 +98,7 @@ struct HyperlitePullRequestRowContent: View {
             .lineLimit(1)
             .fixedSize(horizontal: true, vertical: false)
             .layoutPriority(Self.layout.metadataLayoutPriority)
-            .frame(minWidth: usesCompactStack ? 0 : 42, alignment: .leading)
+            .frame(minWidth: 42, alignment: .leading)
     }
 
     private var reviewLabel: some View {
@@ -168,9 +107,7 @@ struct HyperlitePullRequestRowContent: View {
             .fixedSize(horizontal: true, vertical: false)
             .layoutPriority(Self.layout.metadataLayoutPriority)
             .frame(
-                minWidth: usesCompactStack
-                    ? 0
-                    : Self.layout.reviewFeedbackColumnWidth,
+                minWidth: Self.layout.reviewFeedbackColumnWidth,
                 alignment: .leading
             )
             .foregroundStyle(review.needsAttention
@@ -201,13 +138,11 @@ struct HyperlitePullRequestRowContent: View {
                 .font(.system(size: 9, weight: .semibold))
                 .foregroundStyle(HyperliteTheme.orange.color)
                 .frame(
-                    width: usesCompactStack
-                        ? nil
-                        : Self.layout.mergeConflictColumnWidth,
+                    width: Self.layout.mergeConflictColumnWidth,
                     alignment: .leading
                 )
                 .accessibilityHidden(true)
-        } else if !usesCompactStack {
+        } else {
             Color.clear
                 .frame(
                     width: Self.layout.mergeConflictColumnWidth,

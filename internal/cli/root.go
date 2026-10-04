@@ -12,7 +12,6 @@ import (
 	"github.com/jamesonstone/hyperlite/internal/config"
 	"github.com/jamesonstone/hyperlite/internal/model"
 	"github.com/jamesonstone/hyperlite/internal/prindex"
-	"github.com/jamesonstone/hyperlite/internal/workscan"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -30,15 +29,8 @@ type App struct {
 	Runner                          command.Runner
 	InputIsTTY                      func() bool
 	OutputIsTTY                     func() bool
-	workScannerSource               workSnapshotScanner
 	pullRequestScannerSource        projectPullRequestScanner
 	configuredProjectPrompterSource configuredProjectPrompter
-}
-
-type workSnapshotScanner interface {
-	Scan(context.Context, config.Config, bool, bool) (model.ThreadScan, error)
-	ScanLocal(context.Context, config.Config, bool) (model.ThreadScan, error)
-	Infer(context.Context, config.Config) (model.ThreadScan, error)
 }
 
 type projectPullRequestScanner interface {
@@ -67,39 +59,27 @@ func newApp() App {
 func (a App) Root() *cobra.Command {
 	var configPath string
 	var colorMode string
-	var options scanOptions
 	root := &cobra.Command{
 		Use:           "hyperlite",
-		Short:         "Fast status for active Git work",
+		Short:         "Watch open pull requests across configured projects",
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		Args:          noArgs,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			if cmd.Name() == "version" ||
-				strings.HasPrefix(cmd.CommandPath(), "hyperlite agent") ||
-				strings.HasPrefix(cmd.CommandPath(), "hyperlite notepad") ||
-				strings.HasPrefix(cmd.CommandPath(), "hyperlite pinboard") ||
-				(cmd.Name() == "scan" && len(args) > 0) {
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			if cmd == cmd.Root() || cmd.Name() == "version" || cmd.Name() == "help" {
 				return nil
 			}
 			_, err := config.EnsureDefaultConfig(configPath)
 			return err
 		},
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return a.runScan(cmd.Context(), configPath, options, colorMode)
+			return cmd.Help()
 		},
 	}
 	root.PersistentFlags().StringVar(&configPath, "config", "", "Hyperlite configuration file path")
 	root.PersistentFlags().StringVar(&colorMode, "color", "auto", "color output: auto, always, or never")
-	addScanFlags(root, &options)
 	root.SetFlagErrorFunc(func(_ *cobra.Command, err error) error { return usageError{err} })
 	root.AddCommand(
-		a.agentCommand(),
-		a.scanCommand(&configPath),
-		a.inferCommand(&configPath),
-		a.notepadCommand(),
-		a.pinboardCommand(),
-		a.threadCommand(),
 		a.pullRequestsCommand(&configPath),
 		a.configuredProjectsCommand(&configPath),
 		versionCommand(a.Out),
@@ -117,13 +97,6 @@ func versionCommand(out io.Writer) *cobra.Command {
 			return err
 		},
 	}
-}
-
-func (a App) workScanner() workSnapshotScanner {
-	if a.workScannerSource != nil {
-		return a.workScannerSource
-	}
-	return workscan.New(a.Runner)
 }
 
 func (a App) pullRequestScanner() projectPullRequestScanner {

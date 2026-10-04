@@ -9,22 +9,18 @@ final class HyperliteState: ObservableObject {
     @Published private(set) var configuredProjects: [HyperliteProjectLocation] = []
     @Published private(set) var isRefreshingPullRequests = false
     @Published private(set) var isUpdatingProjects = false
-    @Published private(set) var isUpdatingDefaults = false
     @Published private(set) var errorMessage: String?
-    @Published private(set) var statusMessage: String?
     @Published private(set) var paletteMode: HyperlitePaletteMode?
     @Published var activityPolling = HyperliteActivityPollRuntime()
     /// Tracks whether the current error banner belongs to the pull-request
     /// refresh, so a successful scan clears only its own error and never one
-    /// owned by a concurrent project or default-branch operation.
+    /// owned by a concurrent project operation.
     private var errorFromPullRequests = false
     private var pullRequestRefreshTask: Task<Void, Never>?
     private var projectMutationTask: Task<Void, Never>?
-    private var defaultsTask: Task<Void, Never>?
     private var pullRequestRefreshGeneration = 0
     var ambientRefreshTask: Task<Void, Never>?
 
-    var isRefreshing: Bool { isRefreshingPullRequests || isUpdatingDefaults }
     var isPollingActivity: Bool { activityPolling.isPolling }
 
     init() {
@@ -36,7 +32,6 @@ final class HyperliteState: ObservableObject {
         ambientRefreshTask?.cancel()
         pullRequestRefreshTask?.cancel()
         projectMutationTask?.cancel()
-        defaultsTask?.cancel()
     }
 
     func replacePullRequestScan(_ scan: HyperliteProjectPullRequestScan) {
@@ -79,13 +74,6 @@ final class HyperliteState: ObservableObject {
     func presentError(_ message: String, fromPullRequests: Bool = false) {
         errorMessage = message
         errorFromPullRequests = fromPullRequests
-        statusMessage = nil
-    }
-
-    func presentStatus(_ message: String?) {
-        statusMessage = message
-        errorMessage = nil
-        errorFromPullRequests = false
     }
 
     func updateConfiguredProject(path: String, action: String) {
@@ -114,32 +102,6 @@ final class HyperliteState: ObservableObject {
                 presentError(error.localizedDescription)
                 isUpdatingProjects = false
                 projectMutationTask = nil
-            }
-        }
-    }
-
-    func updateDefaultBranches() {
-        guard !isUpdatingDefaults else { return }
-        isUpdatingDefaults = true
-        defaultsTask?.cancel()
-        defaultsTask = Task { [weak self] in
-            guard let self else { return }
-            defer {
-                isUpdatingDefaults = false
-                defaultsTask = nil
-            }
-            do {
-                let data = try await HyperliteProcess.run(
-                    arguments: ["projects", "update-defaults", "--json"],
-                    operation: "update default branches",
-                    timeoutSeconds: 600
-                )
-                let list = try HyperliteJSON.decoder.decode(HyperliteDefaultBranchUpdateList.self, from: data)
-                presentStatus(HyperliteGitMaintenance.summary(list.results))
-            } catch is CancellationError {
-                return
-            } catch {
-                presentError(error.localizedDescription)
             }
         }
     }
@@ -196,7 +158,7 @@ final class HyperliteState: ObservableObject {
                     // stale error banner from an earlier transient failure
                     // (e.g. a one-time cache rebuild) must not linger. Only
                     // clear an error this refresh owns, never one set by a
-                    // concurrent project or default-branch operation.
+                    // concurrent project operation.
                     if self.errorFromPullRequests {
                         self.errorMessage = nil
                         self.errorFromPullRequests = false

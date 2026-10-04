@@ -32,25 +32,3 @@ struct HyperliteDashboardControlButton: View {
         .accessibilityLabel(label)
     }
 }
-
-struct HyperliteReorderDropDelegate: DropDelegate {
-    let targetID: String
-    @Binding var draggedID: String?
-    let move: (String, String) -> Void
-
-    func dropEntered(info _: DropInfo) {
-        guard let draggedID, draggedID != targetID else { return }
-        move(draggedID, targetID)
-    }
-
-    func dropUpdated(info _: DropInfo) -> DropProposal? {
-        DropProposal(operation: .move)
-    }
-
-    func performDrop(info _: DropInfo) -> Bool {
-        draggedID = nil
-        return true
-    }
-
-    func dropExited(info _: DropInfo) {}
-}

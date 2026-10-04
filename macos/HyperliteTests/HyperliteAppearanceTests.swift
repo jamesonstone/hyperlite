@@ -8,8 +8,6 @@ enum HyperliteAppearanceTests {
         testNestedThemeAndFontEntriesMarkCurrent()
         testIsolatedAppearancePersistence()
         testWindowTitle()
-        testVerticalModeToggleAndPersistence()
-        testNotesOnlyAndSplitPersistence()
     }
 
     private static func testCatalogHasElevenFamiliesWithLightAndDark() {
@@ -74,17 +72,13 @@ enum HyperliteAppearanceTests {
                "new appearance should default to Selenized Dark")
         expect(appearance.fontSize == .readable,
                "new appearance should default to 12 pt")
-        expect(!appearance.verticalMode,
-               "new appearance should default to stacked Open PRs above notes")
         appearance.setTheme("gruvbox-light")
         appearance.setFontSize(.compact)
-        appearance.setVerticalMode(true)
         let restored = HyperliteAppearance(defaults: defaults)
         expect(restored.themeID == "gruvbox-light" && restored.palette.colorScheme == .light,
                "theme choice should persist and flip native color scheme")
         expect(restored.fontSize == .compact && restored.compactSize == 8,
                "compact font size should persist with 8 pt chrome")
-        expect(restored.verticalMode, "vertical mode should persist")
         defaults.removePersistentDomain(forName: suite)
     }
 
@@ -93,70 +87,6 @@ enum HyperliteAppearanceTests {
             HyperliteWindowChrome.title == "👻 hyperlite",
             "the window title should use the lowercase ghost brand"
         )
-    }
-
-    private static func testVerticalModeToggleAndPersistence() {
-        let off = HyperliteInteractionModel.commandEntries(verticalMode: false)
-        let on = HyperliteInteractionModel.commandEntries(verticalMode: true)
-        let idle = off.first { $0.id == "action:vertical-mode" }
-        let active = on.first { $0.id == "action:vertical-mode" }
-        expect(idle?.kind == .action(.toggleVerticalMode),
-               "Vertical Mode should toggle the workspace arrangement")
-        expect(idle?.symbol == "rectangle.split.2x1",
-               "stacked layout should show an unmarked Vertical Mode command")
-        expect(active?.symbol == "checkmark" &&
-                active?.subtitle.contains("Current") == true,
-               "enabled Vertical Mode should be marked in Command-K")
-    }
-
-    private static func testNotesOnlyAndSplitPersistence() {
-        let off = HyperliteInteractionModel.commandEntries(notesOnly: false)
-        let on = HyperliteInteractionModel.commandEntries(notesOnly: true)
-        let idle = off.first { $0.id == "action:notes-only" }
-        let active = on.first { $0.id == "action:notes-only" }
-        expect(idle?.kind == .action(.toggleNotesOnly),
-               "Notes Only should toggle the editor-first layout")
-        expect(idle?.symbol == "note.text",
-               "stacked notes-and-PRs should show an unmarked Notes Only command")
-        expect(active?.symbol == "checkmark" &&
-                active?.subtitle.contains("Current") == true,
-               "enabled Notes Only should be marked in Command-K")
-
-        let suite = "hyperlite.tests.layout.\(UUID().uuidString)"
-        guard let defaults = UserDefaults(suiteName: suite) else {
-            expect(false, "layout tests need an isolated defaults suite")
-            return
-        }
-        defaults.removePersistentDomain(forName: suite)
-        let appearance = HyperliteAppearance(defaults: defaults)
-        expect(!appearance.notesOnly,
-               "new appearance should show Open PRs")
-        expect(appearance.stackedSplitFraction == HyperliteWorkspaceSplit.fitContent,
-               "stacked split should default to content-sized Open PRs")
-        expect(
-            abs(appearance.verticalSplitFraction -
-                HyperliteWorkspaceSplit.defaultVerticalFraction) < 0.0001,
-            "vertical split should default narrower than half"
-        )
-        appearance.setNotesOnly(true)
-        appearance.setStackedSplitFraction(0.41)
-        appearance.setVerticalSplitFraction(0.29)
-        let restored = HyperliteAppearance(defaults: defaults)
-        expect(restored.notesOnly, "Notes Only should persist")
-        expect(abs(restored.stackedSplitFraction - 0.41) < 0.0001,
-               "stacked split ratio should persist")
-        expect(abs(restored.verticalSplitFraction - 0.29) < 0.0001,
-               "vertical split ratio should persist")
-        appearance.resetStackedSplit()
-        appearance.resetVerticalSplit()
-        expect(appearance.stackedSplitFraction == HyperliteWorkspaceSplit.fitContent,
-               "reset stacked split should restore fit-content")
-        expect(
-            abs(appearance.verticalSplitFraction -
-                HyperliteWorkspaceSplit.defaultVerticalFraction) < 0.0001,
-            "reset vertical split should restore the 36 percent default"
-        )
-        defaults.removePersistentDomain(forName: suite)
     }
 
     private static func expect(_ condition: @autoclosure () -> Bool, _ message: String) {

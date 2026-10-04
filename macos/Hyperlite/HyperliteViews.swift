@@ -3,12 +3,9 @@ import SwiftUI
 
 struct HyperliteWindow: View {
     @ObservedObject var state: HyperliteState
-    let notepad: HyperliteNotepadState
     @StateObject private var dashboardLists = HyperliteDashboardListState()
-    @StateObject private var pullRequestPins = HyperlitePullRequestPinStore()
     @ObservedObject private var appearance = HyperliteAppearance.shared
     @ObservedObject private var focus = HyperliteWorkspaceFocus.shared
-    @AppStorage("hyperlite.dashboard.open-pr-hide-idle") private var hideIdleProjects = true
     @State var pendingProjectRemoval: HyperliteProjectLocation?
     @State var mergePromptCopied = false
     @State var mergePromptCopyGeneration = 0
@@ -17,16 +14,19 @@ struct HyperliteWindow: View {
 
     var visibleOpenPullRequests: [HyperlitePullRequestRow] {
         guard let scan = pullRequestScan else { return [] }
-        let sections = pullRequestPins.sections(
-            for: HyperlitePullRequestPresentation.rows(scan: scan)
-        )
-        return sections.pinned + sections.unpinned
+        return HyperlitePullRequestPresentation.rows(scan: scan)
     }
 
     var body: some View {
         let pullRequests = pullRequestScan
         return ZStack(alignment: .topLeading) {
-            workspace
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Spacer(minLength: 0)
+                    windowActions
+                }
+                pullRequestColumn
+            }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .padding(20)
             .environment(\.colorScheme, appearance.palette.colorScheme)
@@ -47,7 +47,6 @@ struct HyperliteWindow: View {
                             pullRequests: pullRequests,
                             visibleOpenPullRequestCount: visibleOpenPullRequests.count,
                             mergePromptCopied: mergePromptCopied,
-                            notepad: notepad,
                             onAction: handlePaletteAction,
                             onDismiss: state.dismissPalette
                         )
@@ -59,9 +58,7 @@ struct HyperliteWindow: View {
             }
         }
         .frame(
-            minWidth: appearance.verticalMode
-                ? HyperliteWorkspaceSizing.verticalMinWidth
-                : HyperliteWorkspaceSizing.stackedMinWidth,
+            minWidth: HyperliteWorkspaceSizing.minWidth,
             minHeight: HyperliteWorkspaceSizing.minHeight
         )
         .task(id: mergePromptCopyGeneration) {
@@ -75,10 +72,6 @@ struct HyperliteWindow: View {
             mergePromptCopied = false
         }
         .background(HyperliteKeyCapture(onKeyDown: { focus.handleKey($0) }))
-        .onAppear {
-            focus.revealPullRequests = { appearance.setNotesOnly(false) }
-            focus.focusNotesEditor = { notepad.focusActive() }
-        }
         .confirmationDialog(
             "Remove project from Hyperlite?",
             isPresented: projectRemovalConfirmationPresented,
@@ -99,126 +92,21 @@ struct HyperliteWindow: View {
         }
     }
 
-    private var workspace: some View {
-        Group {
-            if appearance.notesOnly {
-                VStack(alignment: .leading, spacing: HyperliteWorkspaceSizing.sectionSpacing) {
-                    openPRSummaryBar
-                    notepadPane
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            } else {
-                HyperliteWorkspacePanes(
-                    verticalMode: appearance.verticalMode,
-                    stackedFraction: appearance.stackedSplitFraction,
-                    verticalFraction: appearance.verticalSplitFraction,
-                    onStackedFraction: { appearance.setStackedSplitFraction($0) },
-                    onVerticalFraction: { appearance.setVerticalSplitFraction($0) },
-                    onResetStacked: { appearance.resetStackedSplit() },
-                    onResetVertical: { appearance.resetVerticalSplit() },
-                    stackedContentHeight: stackedPullRequestContentHeight
-                ) {
-                    pullRequestColumn
-                } notepad: {
-                    notepadPane
-                }
-            }
-        }
-    }
-
-    private var notepadPane: some View {
-        HyperliteNotepadView(state: notepad) {
-            windowActions
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .clipped()
-        .overlay { paneFocusRing(active: focus.focusVisible && focus.pane == .notes) }
-    }
-
-    private var openPRSummaryBar: some View {
-        Button {
-            appearance.setNotesOnly(false)
-        } label: {
-            Text(HyperliteWorkspaceSplit.summaryTitle(
-                openCount: visibleOpenPullRequests.count,
-                pinnedCount: pinnedPullRequestCount
-            ))
-            .font(HyperliteTypography.heading)
-            .foregroundStyle(HyperliteTheme.secondaryText.color)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .help("Show Open PRs")
-        .accessibilityLabel("Show Open PRs")
-        .accessibilityValue(notesOnlyAccessibilityValue)
-    }
-
-    private var notesOnlyAccessibilityValue: String {
-        let summary = HyperliteWorkspaceSplit.summaryTitle(
-            openCount: visibleOpenPullRequests.count,
-            pinnedCount: pinnedPullRequestCount
-        )
-        guard state.isRefreshingPullRequests else { return summary }
-        return "\(summary). \(HyperliteOpenPRRefreshStatus.accessibilityRefreshing)"
-    }
-
-    private var pinnedPullRequestCount: Int {
-        guard let scan = pullRequestScan else { return 0 }
-        return pullRequestPins.sections(
-            for: HyperlitePullRequestPresentation.rows(scan: scan)
-        ).pinned.count
-    }
-
-    private var stackedPullRequestContentHeight: CGFloat {
-        guard let scan = pullRequestScan else {
-            return HyperliteWorkspaceSplit.stackedLoadingHeight
-        }
-        let sections = pullRequestPins.sections(
-            for: HyperlitePullRequestPresentation.rows(scan: scan)
-        )
-        let now = Date()
-        let plan = HyperliteOpenPRProjectFilter.visibleSections(
-            HyperlitePullRequestSectionPlan.sections(scan: scan, groups: sections.unpinnedGroups),
-            hideIdle: hideIdleProjects,
-            now: now
-        )
-        return HyperliteWorkspaceSplit.estimatedStackedContentHeight(
-            pinnedCount: sections.pinned.count,
-            openCount: sections.unpinned.count,
-            projectSectionCount: plan.count,
-            compactRows: false,
-            hasStatusMessage: state.errorMessage != nil || state.statusMessage != nil,
-            idleProjectCount: plan.filter { $0.rows.isEmpty }.count
-        )
-    }
-
     private var pullRequestColumn: some View {
-        let compact = HyperliteWorkspaceSplit.compactRows(
-            verticalMode: appearance.verticalMode,
-            notesOnly: appearance.notesOnly
-        )
-        return HyperliteOpenPRWatchColumn {
+        HyperliteOpenPRWatchColumn {
             VStack(alignment: .leading, spacing: 10) {
                 if let errorMessage = state.errorMessage {
                     Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
                         .font(HyperliteTypography.body)
                         .foregroundStyle(HyperliteTheme.red.color)
-                } else if let statusMessage = state.statusMessage {
-                    Label(statusMessage, systemImage: "checkmark.circle")
-                        .font(HyperliteTypography.body)
-                        .foregroundStyle(HyperliteTheme.secondaryText.color)
                 }
                 if let pullRequests = pullRequestScan {
                     HyperlitePullRequestPanel(
                         scan: pullRequests,
                         organization: dashboardLists,
-                        pins: pullRequestPins,
-                        compactRows: compact,
                         isRefreshing: state.isRefreshingPullRequests,
                         isPollingActivity: state.isPollingActivity,
-                        selectionID: focus.focusVisible && focus.pane == .pullRequests
-                            ? focus.selectionID : nil,
+                        selectionID: focus.focusVisible ? focus.selectionID : nil,
                         onNavItems: { focus.setItems($0) }
                     )
                 } else {
@@ -233,28 +121,14 @@ struct HyperliteWindow: View {
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
-        .overlay { paneFocusRing(active: focus.focusVisible && focus.pane == .pullRequests) }
-    }
-
-    private func paneFocusRing(active: Bool) -> some View {
-        RoundedRectangle(cornerRadius: 8, style: .continuous)
-            .strokeBorder(HyperliteTheme.cyan.color.opacity(active ? 0.5 : 0), lineWidth: 1)
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
     }
 
     private var windowActions: some View {
         HStack(alignment: .center, spacing: 6) {
             HyperliteGitHubRateLimitIndicator(rateLimit: pullRequestScan?.rateLimit)
-            Button { state.updateDefaultBranches() } label: {
-                Image(systemName: "arrow.down.circle")
-            }
-            .buttonStyle(.bordered)
-            .disabled(state.isRefreshing || state.isUpdatingProjects)
-            .help("Fast-forward configured default branches")
             Button {
                 do {
-                    try HyperliteGitMaintenance.startSweep()
+                    try HyperliteWorktreeSweep.start()
                 } catch {
                     state.presentError(error.localizedDescription)
                 }
@@ -263,10 +137,10 @@ struct HyperliteWindow: View {
             }
             .buttonStyle(.bordered)
             .help("Open interactive git wt sweep in Terminal")
-            Button { state.refreshAll() } label: { Image(systemName: "arrow.clockwise") }
+            Button { state.refresh() } label: { Image(systemName: "arrow.clockwise") }
                 .buttonStyle(.bordered)
                 .tint(HyperliteTheme.orange.color.opacity(0.82))
-                .disabled(state.isRefreshing || state.isUpdatingProjects)
+                .disabled(state.isRefreshingPullRequests || state.isUpdatingProjects)
                 .help("Refresh open pull requests (⌘R)")
             Button(action: openHyperliteSettings) { Image(systemName: "gearshape.fill") }
                 .buttonStyle(.bordered)
