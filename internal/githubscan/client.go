@@ -111,7 +111,7 @@ func (c Client) enrichMinePullRequests(ctx context.Context, configured map[strin
 	cutoff := c.now().Add(-6 * time.Hour)
 	for _, match := range matches {
 		repository := match.Repository.NameWithOwner
-		if _, ok := configured[repository]; ok && (IncludeInactivePullRequestsFor(ctx, repository) || match.UpdatedAt.After(cutoff)) {
+		if _, ok := configured[repository]; ok && match.UpdatedAt.After(cutoff) {
 			tasks = append(tasks, task{repository: repository, number: match.Number})
 		}
 	}

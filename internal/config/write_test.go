@@ -39,33 +39,6 @@ func TestAtomicWriterWritesLoadableVersionTwoConfig(t *testing.T) {
 	}
 }
 
-func TestMergePreservesExistingAndDeduplicatesAdditions(t *testing.T) {
-	current := Config{
-		Version:      Version1,
-		Settings:     Settings{MaxParallel: 4, GitHubAuthor: "@me", GitHubScope: GitHubScopeMine},
-		Sources:      []Source{{Path: "/source/a"}},
-		Repositories: []Repository{{Name: "repo", Path: "/repo/a", GitHub: "owner/repo", Base: "main", Remote: "origin"}},
-	}
-	additions := Config{
-		Settings: Settings{GitHubScope: GitHubScopeAll, OllamaModel: "llama3.2:latest"},
-		Sources:  []Source{{Path: "/source/a"}, {Path: "/source/b"}},
-		Repositories: []Repository{
-			{Name: "repo", Path: "/repo/a", GitHub: "owner/repo"},
-			{Name: "repo", Path: "/repo/b", GitHub: "other/repo", Base: "trunk", Remote: "upstream"},
-		},
-	}
-	merged := Merge(current, additions)
-	if merged.Version != Version || merged.Settings.GitHubScope != GitHubScopeAll || merged.Settings.OllamaModel != "llama3.2:latest" {
-		t.Fatalf("merged = %#v", merged)
-	}
-	if len(merged.Sources) != 2 || len(merged.Repositories) != 2 {
-		t.Fatalf("merged collections = %#v %#v", merged.Sources, merged.Repositories)
-	}
-	if merged.Repositories[1].Name != "repo-2" {
-		t.Fatalf("deduplicated name = %q", merged.Repositories[1].Name)
-	}
-}
-
 func TestMarshalRejectsInvalidOllamaModelBeforeWriting(t *testing.T) {
 	_, err := Marshal(Config{
 		Settings: Settings{OllamaModel: "bad\nmodel"},

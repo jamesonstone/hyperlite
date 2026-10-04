@@ -61,6 +61,18 @@ func (c *rateLimitCollector) observe(data map[string]json.RawMessage) {
 	}
 }
 
+// merge keeps the most consumed observation from concurrent batches: the
+// latest reset window first, then the lowest remaining quota.
+func (c *rateLimitCollector) merge(other rateLimitCollector) {
+	if other.latest == nil {
+		return
+	}
+	if c.latest == nil || other.latest.ResetAt.After(c.latest.ResetAt) ||
+		(other.latest.ResetAt.Equal(c.latest.ResetAt) && other.latest.Remaining < c.latest.Remaining) {
+		c.latest = other.latest
+	}
+}
+
 func validRawRateLimit(value rawRateLimit) bool {
 	return validRateLimitFields(rateLimitFields(value))
 }

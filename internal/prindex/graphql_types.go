@@ -56,7 +56,8 @@ type rawCommitConnection struct {
 }
 
 type rawRepository struct {
-	PullRequests struct {
+	OpenPullRequests *rawCount `json:"openPullRequests"`
+	PullRequests     struct {
 		Nodes    []rawPullRequest `json:"nodes"`
 		PageInfo struct {
 			HasNextPage bool   `json:"hasNextPage"`

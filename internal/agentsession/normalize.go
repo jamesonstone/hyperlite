@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -191,11 +190,4 @@ func firstInt(values map[string]any, keys ...string) int {
 		return 0
 	}
 	return value
-}
-
-func BridgeExecutable(appBundle string) string {
-	if appBundle == "" {
-		return "hyperlite"
-	}
-	return filepath.Join(appBundle, "Contents", "MacOS", "hyperlite-cli")
 }

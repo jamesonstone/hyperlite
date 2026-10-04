@@ -210,18 +210,4 @@ enum HyperliteInteractionModel {
         return min(max(selection + delta, 0), count - 1)
     }
 
-    static func hoverTitle(for thread: HyperliteThread) -> String {
-        truncated("\(thread.projectName) · \(thread.title)", limit: 120)
-    }
-
-    static func hoverSummary(for thread: HyperliteThread) -> String {
-        truncated("\(thread.phase.label). \(thread.whyNow)", limit: 300)
-    }
-
-    static func truncated(_ value: String, limit: Int) -> String {
-        guard limit > 0, value.count > limit else { return limit > 0 ? value : "" }
-        if limit == 1 { return "…" }
-        return String(value.prefix(limit - 1)) + "…"
-    }
-
 }

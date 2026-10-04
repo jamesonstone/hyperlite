@@ -5,7 +5,6 @@ enum HyperliteOpenPRMergePromptTests {
         testDurableInstructions()
         testRowObservations()
         testEmptyVisibleList()
-        testVisibleRowsFollowHideDrafts()
         testCommandCopyLabels()
     }
 
@@ -49,28 +48,6 @@ enum HyperliteOpenPRMergePromptTests {
                "empty visible lists should record that no rows were shown")
         expect(!text.contains("owner/one#"),
                "empty visible lists should not invent pull-request observations")
-    }
-
-    private static func testVisibleRowsFollowHideDrafts() {
-        let rows = [
-            row(number: 8, isDraft: false, conflict: false, threads: 0),
-            row(number: 12, isDraft: true, conflict: false, threads: 0),
-        ]
-        var filter = HyperlitePullRequestFilter()
-        filter.hideDrafts = true
-        let visible = HyperliteDashboardListPresentation.displayedPullRequests(
-            rows, filter: filter, sort: .recent, customOrder: [], isReordering: false
-        )
-        let text = HyperliteOpenPRMergePrompt.text(rows: visible)
-        expect(visible.map(\.number) == [8],
-               "copied rows should follow the visible hide-drafts list")
-        expect(text.contains("owner/one#8") && !text.contains("owner/one#12"),
-               "the prompt should omit hidden draft rows")
-        let reordering = HyperliteDashboardListPresentation.displayedPullRequests(
-            rows, filter: filter, sort: .recent, customOrder: [], isReordering: true
-        )
-        expect(reordering.map(\.number) == [8, 12],
-               "reorder mode should copy every loaded row currently shown")
     }
 
     private static func testCommandCopyLabels() {

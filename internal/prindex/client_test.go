@@ -3,7 +3,6 @@ package prindex
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -11,13 +10,15 @@ import (
 	"github.com/jamesonstone/hyperlite/internal/config"
 )
 
-func TestGitHubClientBatchesRepositoriesAndPaginatesOnlyWhenNeeded(t *testing.T) {
-	runner := &graphQLRunner{respond: func(query string, call int) ([]byte, error) {
-		switch call {
-		case 1:
-			if !strings.Contains(query, `name: "one"`) ||
-				!strings.Contains(query, `name: "two"`) ||
-				!strings.Contains(query, "headRefOid") ||
+func TestGitHubClientPaginatesOnlyWhenNeeded(t *testing.T) {
+	runner := &graphQLRunner{respond: func(query string, _ int) ([]byte, error) {
+		switch {
+		case queriedRepository(query) == "one" && strings.Contains(query, `after: "cursor-one"`):
+			return responseJSON(map[string]any{
+				"repository0": repositoryPage(3, false, ""),
+			}, nil), nil
+		case queriedRepository(query) == "one":
+			if !strings.Contains(query, "headRefOid") ||
 				!strings.Contains(query, "bodyText") ||
 				!strings.Contains(query, "messageHeadline") ||
 				!strings.Contains(query, "commits(last: 3)") ||
@@ -25,23 +26,18 @@ func TestGitHubClientBatchesRepositoriesAndPaginatesOnlyWhenNeeded(t *testing.T)
 				!strings.Contains(query, "additions deletions changedFiles") ||
 				!strings.Contains(query, "statusCheckRollup { state }") ||
 				!strings.Contains(query, `nodes { isResolved isOutdated }`) {
-				t.Fatalf("first query = %s", query)
+				t.Errorf("first query = %s", query)
 			}
 			return responseJSON(map[string]any{
 				"repository0": repositoryPage(1, true, "cursor-one"),
-				"repository1": repositoryPage(2, false, ""),
 			}, nil), nil
-		case 2:
-			if !strings.Contains(query, `after: "cursor-one"`) ||
-				strings.Contains(query, `name: "two"`) {
-				t.Fatalf("pagination query = %s", query)
-			}
+		case queriedRepository(query) == "two":
 			return responseJSON(map[string]any{
-				"repository0": repositoryPage(3, false, ""),
+				"repository0": repositoryPage(2, false, ""),
 			}, nil), nil
 		default:
-			t.Fatalf("unexpected call %d", call)
-			return nil, nil
+			t.Errorf("unexpected query %s", query)
+			return nil, errors.New("unexpected")
 		}
 	}}
 	client := GitHubClient{Runner: runner}
@@ -49,7 +45,7 @@ func TestGitHubClientBatchesRepositoriesAndPaginatesOnlyWhenNeeded(t *testing.T)
 		{GitHub: "owner/one"},
 		{GitHub: "owner/two"},
 	}).Repositories
-	if runner.calls != 2 {
+	if runner.calls != 3 {
 		t.Fatalf("calls = %d", runner.calls)
 	}
 	if got := results["owner/one"]; got.Error != "" ||
@@ -169,41 +165,18 @@ func TestGitHubClientRejectsMissingReviewThreadData(t *testing.T) {
 	}
 }
 
-func TestGitHubClientUsesBoundedBatches(t *testing.T) {
-	runner := &graphQLRunner{respond: func(query string, _ int) ([]byte, error) {
-		count := strings.Count(query, ": repository(")
-		data := make(map[string]any, count)
-		for index := 0; index < count; index++ {
-			data[fmt.Sprintf("repository%d", index)] = repositoryPage(index+1, false, "")
-		}
-		return responseJSON(data, nil), nil
-	}}
-	var repositories []config.Repository
-	for index := 0; index < queryBatchSize+1; index++ {
-		repositories = append(repositories, config.Repository{
-			GitHub: fmt.Sprintf("owner/repository-%02d", index),
-		})
-	}
-	results := (GitHubClient{Runner: runner}).ListOpen(
-		context.Background(), repositories,
-	).Repositories
-	if runner.calls != 2 || len(results) != len(repositories) {
-		t.Fatalf("calls=%d results=%d", runner.calls, len(results))
-	}
-}
-
 func TestGitHubClientKeepsPartialGraphQLFailureRepositoryScoped(t *testing.T) {
-	runner := &graphQLRunner{respond: func(_ string, _ int) ([]byte, error) {
+	runner := &graphQLRunner{respond: func(query string, _ int) ([]byte, error) {
+		if queriedRepository(query) == "one" {
+			return responseJSON(map[string]any{"repository0": repositoryPage(1, false, "")}, nil), nil
+		}
 		return responseJSON(
-			map[string]any{
-				"repository0": repositoryPage(1, false, ""),
-				"repository1": nil,
-			},
+			map[string]any{"repository0": nil},
 			[]map[string]any{{
 				"message": "Repository not found",
-				"path":    []any{"repository1"},
+				"path":    []any{"repository0"},
 			}},
-		), nil
+		), errors.New("exit status 1")
 	}}
 	results := (GitHubClient{Runner: runner}).ListOpen(
 		context.Background(),
@@ -218,35 +191,32 @@ func TestGitHubClientKeepsPartialGraphQLFailureRepositoryScoped(t *testing.T) {
 }
 
 func TestGitHubClientCompletesReviewPaginationForUnaffectedRepository(t *testing.T) {
-	runner := &graphQLRunner{respond: func(query string, call int) ([]byte, error) {
-		switch call {
-		case 1:
-			return responseJSON(map[string]any{
-				"repository0": repositoryPage(1, true, "pull-request-cursor"),
-				"repository1": repositoryPageWithReviewThreads(
-					2, false, "",
-					[]map[string]any{{"isResolved": false, "isOutdated": false}},
-					true, "review-thread-cursor",
-				),
-			}, nil), nil
-		case 2:
-			if !strings.Contains(query, `after: "pull-request-cursor"`) {
-				t.Fatalf("pull request pagination query = %s", query)
-			}
+	runner := &graphQLRunner{respond: func(query string, _ int) ([]byte, error) {
+		switch {
+		case strings.Contains(query, `after: "pull-request-cursor"`):
 			return nil, errors.New("pull request pagination failed")
-		case 3:
-			if !strings.Contains(query, `after: "review-thread-cursor"`) {
-				t.Fatalf("review thread pagination query = %s", query)
-			}
+		case strings.Contains(query, `after: "review-thread-cursor"`):
 			return responseJSON(map[string]any{
 				"repository0": reviewThreadRepositoryPage(
 					[]map[string]any{{"isResolved": false, "isOutdated": false}},
 					false, "",
 				),
 			}, nil), nil
+		case queriedRepository(query) == "one":
+			return responseJSON(map[string]any{
+				"repository0": repositoryPage(1, true, "pull-request-cursor"),
+			}, nil), nil
+		case queriedRepository(query) == "two":
+			return responseJSON(map[string]any{
+				"repository0": repositoryPageWithReviewThreads(
+					2, false, "",
+					[]map[string]any{{"isResolved": false, "isOutdated": false}},
+					true, "review-thread-cursor",
+				),
+			}, nil), nil
 		default:
-			t.Fatalf("unexpected call %d", call)
-			return nil, nil
+			t.Errorf("unexpected query %s", query)
+			return nil, errors.New("unexpected")
 		}
 	}}
 	results := (GitHubClient{Runner: runner}).ListOpen(
@@ -257,7 +227,7 @@ func TestGitHubClientCompletesReviewPaginationForUnaffectedRepository(t *testing
 		t.Fatalf("owner/one = %#v", results["owner/one"])
 	}
 	ownerTwo := results["owner/two"]
-	if runner.calls != 3 || ownerTwo.Error != "" ||
+	if runner.calls != 4 || ownerTwo.Error != "" ||
 		ownerTwo.PullRequests[0].UnresolvedReviewThreads == nil ||
 		*ownerTwo.PullRequests[0].UnresolvedReviewThreads != 2 {
 		t.Fatalf("calls=%d owner/two=%#v", runner.calls, ownerTwo)

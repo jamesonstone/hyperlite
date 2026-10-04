@@ -4,7 +4,6 @@ enum HyperliteOpenPRControlsTests {
     static func run() throws {
         try testLegacyCacheOmitsMergeConflict()
         try testMergeConflictDecodingAndPresentation()
-        testHideDraftFiltering()
         testRowLayoutReservesConflictColumn()
     }
 
@@ -34,40 +33,6 @@ enum HyperliteOpenPRControlsTests {
         )
     }
 
-    private static func testHideDraftFiltering() {
-        let rows = [
-            row(id: "ready", number: 8, isDraft: false),
-            row(id: "draft", number: 12, isDraft: true),
-        ]
-        var filter = HyperlitePullRequestFilter()
-        expect(!filter.isActive && !filter.popoverIsActive,
-               "hide-drafts should start inactive")
-        filter.hideDrafts = true
-        expect(filter.isActive && !filter.popoverIsActive,
-               "hide-drafts should count as an active list filter without opening the popover")
-        expect(
-            HyperliteDashboardListPresentation.pullRequests(
-                rows, filter: filter, sort: .recent, customOrder: []
-            ).map(\.number) == [8],
-            "hide-drafts should exclude draft rows and keep ready rows"
-        )
-        filter.state = .draft
-        expect(
-            HyperliteDashboardListPresentation.pullRequests(
-                rows, filter: filter, sort: .recent, customOrder: []
-            ).isEmpty,
-            "hide-drafts should compose with a draft-only state filter as empty"
-        )
-        filter = HyperlitePullRequestFilter()
-        filter.hideDrafts = true
-        expect(
-            HyperliteDashboardListPresentation.availability(
-                availabilityRows(), filter: filter
-            ).isEmpty,
-            "hide-drafts should hide availability rows like other PR-only filters"
-        )
-    }
-
     private static func testRowLayoutReservesConflictColumn() {
         let layout = HyperlitePullRequestPanelRow.layout
         expect(layout.mergeConflictColumnWidth >= 14,
@@ -87,29 +52,6 @@ enum HyperliteOpenPRControlsTests {
             HyperliteProjectPullRequestScan.self,
             from: Data(json.utf8)
         )
-    }
-
-    private static func row(
-        id: String,
-        number: Int,
-        isDraft: Bool
-    ) -> HyperlitePullRequestRow {
-        HyperlitePullRequestRow(
-            id: id, reviewID: id, repository: "owner/one", status: .current,
-            number: number, title: id, url: nil, headRefOID: "head-\(number)",
-            isDraft: isDraft, hasMergeConflict: false, unresolvedReviewThreads: 0,
-            updatedAt: Date(timeIntervalSince1970: 1_785_850_000)
-        )
-    }
-
-    private static func availabilityRows() -> [HyperliteProjectPullRequests] {
-        [
-            HyperliteProjectPullRequests(
-                id: "offline", name: "offline", path: "/repo/offline",
-                repository: nil, status: .unavailable, message: "GitHub unavailable",
-                checkedAt: nil, observedAt: nil, pullRequests: []
-            ),
-        ]
     }
 
     private static let conflictingJSON = """

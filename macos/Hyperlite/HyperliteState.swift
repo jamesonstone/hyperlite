@@ -22,15 +22,18 @@ final class HyperliteState: ObservableObject {
     private var projectMutationTask: Task<Void, Never>?
     private var defaultsTask: Task<Void, Never>?
     private var pullRequestRefreshGeneration = 0
+    var ambientRefreshTask: Task<Void, Never>?
 
     var isRefreshing: Bool { isRefreshingPullRequests || isUpdatingDefaults }
     var isPollingActivity: Bool { activityPolling.isPolling }
 
     init() {
         refreshPullRequests(mode: .local, continueIfStale: true)
+        startAmbientRefresh()
     }
 
     deinit {
+        ambientRefreshTask?.cancel()
         pullRequestRefreshTask?.cancel()
         projectMutationTask?.cancel()
         defaultsTask?.cancel()

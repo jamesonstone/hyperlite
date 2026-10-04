@@ -14,24 +14,6 @@ enum HyperlitePullRequestReviewStatus: String, Equatable {
     }
 }
 
-enum HyperlitePullRequestLocalReviewFilter: String, CaseIterable, Identifiable {
-    case all
-    case unreviewed
-    case reviewed
-    case stale
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .all: "All review marks"
-        case .unreviewed: "Not reviewed by me"
-        case .reviewed: "Reviewed by me"
-        case .stale: "Review mark stale"
-        }
-    }
-}
-
 struct HyperlitePullRequestReviewMark: Codable, Equatable {
     let repository: String
     let headRefOID: String

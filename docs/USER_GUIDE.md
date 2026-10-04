@@ -74,13 +74,18 @@ minute remain explicitly measuring rather than projecting.
 
 ### Open pull requests
 
-Open PRs load from a separate private cache. Hyperlite refreshes stale
-configured repositories on startup or foreground activation no more often than
-every five minutes and uses bounded GraphQL batches instead of one `gh` process
-per repository. Refresh forces the index current; Force Cache Refresh in
-Command-K retries only this cache without refreshing unrelated projections.
-While that fetch is in flight, a large 👻 overlays the Open PRs pane and
-spins a full turn, pauses at rest, then spins again; cached rows stay on screen.
+Open PRs load from a separate private cache. Hyperlite keeps the list current
+on its own: while the window is visible it checks once a minute, and revealing
+the window, foreground activation, or waking the Mac checks immediately. Each
+configured repository is re-queried no more often than every five minutes.
+A refresh first probes repositories cheaply in batches of ten for their open
+pull-request count and workflow activity, then reads full pull-request details
+one repository per query, concurrently, only where pull requests are open. One
+slow, missing, or failing repository therefore never hides another's rows.
+Refresh forces the index current; Force Cache Refresh in Command-K retries only
+this cache without refreshing unrelated projections. While a fetch is in
+flight, a small spinner sits beside the Open PRs title; cached rows stay on
+screen.
 The packaged app preserves its inherited executable search path and adds the
 standard Apple Silicon and Intel Homebrew directories plus `~/.local/bin` so
 Finder launches can resolve `gh` and `git-wt`.
@@ -144,9 +149,9 @@ The workflow strip sits on the repository heading row. It lists every file
 under `.github/workflows` on the default
 branch, named by the file's `name:` key, plus any observed dynamic workflow
 such as CodeQL. A workflow or environment deployment that GitHub reported
-running within the last two minutes becomes a cyan chip with a small 👻
-gliding along a track and the elapsed run time. Older active data shows a
-quiet `last seen HH:mm` instead; Hyperlite never animates stale data.
+running within the last two minutes becomes a cyan chip with a still cyan dot
+and the elapsed run time. Older active data shows a quiet `last seen HH:mm`
+instead.
 Finished workflows show a green, red, or muted dot. Hovering a chip shows the
 run status, trigger, deployment environment, and links to the run and
 deployment log. In Vertical Mode the strip shows only running and failed
@@ -159,8 +164,7 @@ editor), stops after thirty minutes, and defers to the quota governor: it
 needs at least the larger
 of 1,000 points or thirty percent of the limit remaining, a projected twenty
 percent left at reset, and at most sixty polls per quota window. Refresh and
-Force Cache Refresh cancel the loop and remain the only ways to fetch pull
-requests early.
+Force Cache Refresh cancel the loop and fetch pull requests early.
 
 Each row leads with number, a compact ready/draft badge, optional
 merge-conflict icon, and the review-feedback count. Number and ready/draft
