@@ -68,15 +68,18 @@ struct HyperlitePullRequestPanel<Actions: View>: View {
                             .font(HyperliteTypography.compact)
                             .foregroundStyle(HyperliteTheme.mutedText.color)
                     }
-                    ForEach(model.visibleSections) { section in
-                        Section {
-                            if !collapse.isCollapsed(section.id) {
-                                ForEach(section.rows) { row in
-                                    pullRequestRow(row)
+                    ForEach(model.organizations) { organization in
+                        HyperliteOrganizationHeading(group: organization)
+                        ForEach(organization.sections) { section in
+                            Section {
+                                if !collapse.isCollapsed(section.id) {
+                                    ForEach(section.rows) { row in
+                                        pullRequestRow(row)
+                                    }
                                 }
+                            } header: {
+                                sectionHeader(section)
                             }
-                        } header: {
-                            sectionHeader(section)
                         }
                     }
                 }
@@ -130,7 +133,7 @@ struct HyperlitePullRequestPanel<Actions: View>: View {
     /// Navigable entries in render order; collapsed rows are skipped.
     private func navItems(_ model: HyperlitePullRequestPanelModel) -> [HyperliteWorkspaceNavItem] {
         var items: [HyperliteWorkspaceNavItem] = []
-        for section in model.visibleSections {
+        for section in model.organizations.flatMap(\.sections) {
             items.append(HyperliteWorkspaceNavItem(
                 id: HyperliteWorkspaceNavigation.headerID(sectionID: section.id),
                 action: .open(section.repositoryURL ?? section.pullsURL)

@@ -105,6 +105,11 @@ identity or cache is shown as unavailable. Pagination fails safely on a
 repeated cursor or bounded page limit instead of risking an unbounded GitHub
 query loop.
 
+Projects are grouped under their GitHub organization (for example
+`LSMC-BIO` or `JAMESONSTONE`), with the organization's pull request and
+project counts; click the heading to open the organization on GitHub.
+Organizations follow the order of their most recently updated pull request.
+
 Every configured project has its own section, even with no open pull
 requests. Projects with open pull requests come first, ordered by their most
 recently updated pull request; projects without rows follow in configuration
