@@ -13,37 +13,17 @@ struct HyperlitePullRequestPanel: View {
     @AppStorage(HyperliteHiddenProjectListPresentation.expandedStorageKey)
     private var quietOnesExpanded = false
 
-    private var sourceRows: [HyperlitePullRequestRow] {
-        HyperlitePullRequestPresentation.rows(scan: scan)
+    @State private var modelCache = HyperlitePullRequestPanelModelCache()
+
+    private var model: HyperlitePullRequestPanelModel {
+        modelCache.model(scan: scan, hideIdle: hideIdleProjects, now: chipClock)
     }
 
-    private var projectSections: [HyperliteProjectSection] {
-        HyperlitePullRequestSectionPlan.sections(scan: scan, rows: sourceRows)
-    }
-
-    private var visibleProjectSections: [HyperliteProjectSection] {
-        HyperliteOpenPRProjectFilter.visibleSections(
-            projectSections, hideIdle: hideIdleProjects, now: chipClock
-        )
-    }
-
-    private var hiddenProjectSections: [HyperliteProjectSection] {
-        HyperliteOpenPRProjectFilter.hiddenSections(
-            projectSections, hideIdle: hideIdleProjects, now: chipClock
-        )
-    }
-
-    private var hiddenProjectCount: Int {
-        projectSections.count - visibleProjectSections.count
-    }
-
-    private var showsHiddenList: Bool {
-        !hiddenProjectSections.isEmpty
-    }
-
-    private var hiddenAttentionCount: Int {
-        HyperliteOpenPRProjectFilter.attentionCount(hiddenProjectSections, now: chipClock)
-    }
+    private var visibleProjectSections: [HyperliteProjectSection] { model.visibleSections }
+    private var hiddenProjectSections: [HyperliteProjectSection] { model.hiddenSections }
+    private var hiddenProjectCount: Int { model.hiddenCount }
+    private var showsHiddenList: Bool { !model.hiddenSections.isEmpty }
+    private var hiddenAttentionCount: Int { model.hiddenAttentionCount }
 
     /// Navigable entries in render order so keyboard selection tracks the list.
     /// Collapsed project rows are skipped because they are not on screen.
@@ -95,7 +75,8 @@ struct HyperlitePullRequestPanel: View {
                     .foregroundStyle(HyperliteTheme.mutedText.color)
                     .padding(.vertical, 2)
             } else {
-                VStack(alignment: .leading, spacing: HyperliteOpenPRSpacing.stageSpacing) {
+                // Lazy so sections scrolled out of view are not built or laid out.
+                LazyVStack(alignment: .leading, spacing: HyperliteOpenPRSpacing.stageSpacing) {
                     ForEach(visibleProjectSections) { section in
                         projectSectionStage(section)
                     }
@@ -137,7 +118,7 @@ struct HyperlitePullRequestPanel: View {
     private var header: some View {
         HStack(alignment: .center, spacing: 6) {
             HyperliteOpenPRTitleCluster(
-                count: sourceRows.count,
+                count: model.rowCount,
                 isRefreshing: isRefreshing
             )
             .layoutPriority(1)
