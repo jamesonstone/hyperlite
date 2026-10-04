@@ -60,8 +60,12 @@ type scanContext struct {
 
 func New(runner command.Runner) Scanner {
 	client := GitHubClient{Runner: runner}
+	var inspections *discovery.InspectCache
+	if cachePath, err := ResolveCachePath(); err == nil {
+		inspections = &discovery.InspectCache{Path: filepath.Join(filepath.Dir(cachePath), "discovery.json")}
+	}
 	return Scanner{
-		Discovery: discovery.Discoverer{Runner: runner},
+		Discovery: discovery.Discoverer{Runner: runner, Cache: inspections},
 		Client:    client,
 		Workflows: client,
 		Git:       runner,

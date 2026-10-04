@@ -37,6 +37,8 @@ type Result struct {
 
 type Discoverer struct {
 	Runner command.Runner
+	// Cache, when set, reuses inspections whose inputs are unchanged.
+	Cache *InspectCache
 }
 
 type candidate struct {
@@ -92,10 +94,18 @@ func (d Discoverer) inspectAll(ctx context.Context, roots []string) ([]candidate
 			defer group.Done()
 			slots <- struct{}{}
 			defer func() { <-slots }()
+			if cached, ok := d.Cache.lookup(root); ok {
+				items[index] = cached
+				return
+			}
 			items[index], errs[index] = d.inspect(ctx, root)
+			if errs[index] == nil {
+				d.Cache.store(root, items[index])
+			}
 		}()
 	}
 	group.Wait()
+	d.Cache.Save()
 	var candidates []candidate
 	var warnings []Warning
 	for index, root := range roots {

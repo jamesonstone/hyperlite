@@ -74,8 +74,10 @@ struct HyperlitePullRequestPanel: View {
                     .foregroundStyle(HyperliteTheme.mutedText.color)
                     .padding(.vertical, 2)
             } else {
-                // Lazy so sections scrolled out of view are not built or laid out.
-                LazyVStack(alignment: .leading, spacing: HyperliteOpenPRSpacing.stageSpacing) {
+                // Eager on purpose: a LazyVStack nested below the ScrollView's
+                // direct content keeps re-estimating very uneven section
+                // heights while scrolling and can spin the main thread.
+                VStack(alignment: .leading, spacing: HyperliteOpenPRSpacing.stageSpacing) {
                     ForEach(visibleProjectSections) { section in
                         projectSectionStage(section)
                             .id(section.id)
