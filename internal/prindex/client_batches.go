@@ -38,6 +38,16 @@ func (c GitHubClient) ListOpen(
 	ctx context.Context,
 	repositories []config.Repository,
 ) ClientResult {
+	return c.ListOpenReusing(ctx, repositories, nil)
+}
+
+// ListOpenReusing is ListOpen that skips the detail query for repositories
+// whose probe matches their cached ListingHint.
+func (c GitHubClient) ListOpenReusing(
+	ctx context.Context,
+	repositories []config.Repository,
+	hints map[string]ListingHint,
+) ClientResult {
 	unique := uniqueRepositories(repositories)
 	collected := listCollector{results: make(map[string]RepositoryResult, len(unique))}
 	var group sync.WaitGroup
@@ -54,7 +64,7 @@ func (c GitHubClient) ListOpen(
 	for start := 0; start < len(unique); start += probeBatchSize {
 		batch := unique[start:min(start+probeBatchSize, len(unique))]
 		spawn(func() {
-			probes, probeRateLimit := c.probeBatch(ctx, batch)
+			probes, probeRateLimit := c.probeBatch(ctx, batch, hints)
 			final := make(map[string]RepositoryResult, len(batch))
 			for _, repository := range batch {
 				key := repositoryKey(repository.GitHub)

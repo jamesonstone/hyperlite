@@ -144,7 +144,7 @@ func githubRateLimit(used, cost, nodeCount int) map[string]any {
 	}
 }
 
-const probeSelection = "openPullRequests: pullRequests(states: OPEN)"
+const probeSelection = "openPullRequests: pullRequests(states: OPEN"
 
 func probeResponse(query string, openCount int) []byte {
 	count := strings.Count(query, ": repository(")

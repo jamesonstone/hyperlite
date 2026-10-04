@@ -111,6 +111,11 @@ func buildScanResult(
 			Stage: "pull-request-cache", Message: scan.cacheWarning,
 		})
 	}
+	if scan.quotaWarning != "" {
+		result.Warnings = append(result.Warnings, model.ScanError{
+			Stage: "pull-request-quota", Message: scan.quotaWarning,
+		})
+	}
 	warnings := warningsByPath(scan.discovered.Warnings)
 	checksComplete := true
 	for _, source := range scan.sources {

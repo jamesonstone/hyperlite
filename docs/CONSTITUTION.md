@@ -77,8 +77,9 @@
   younger than two minutes may present a run as currently running. Caller
   rate-limit metadata rides with those same bounded GraphQL requests and is
   cached only as a complete observation; quota visibility never adds polling
-  or changes refresh authority, and the quota governor may only deny the
-  activity poll, never enable other requests. A local `Reviewed by me` marker is
+  or changes refresh authority. Quota observations may only deny automatic
+  work (the activity poll, and stale refreshes below the automatic floor),
+  never enable other requests or block an explicit Refresh. A local `Reviewed by me` marker is
   private presentation metadata bound to the exact observed pull-request head
   commit. Only current repository evidence with a nonempty head may create or
   replace a marker. A new current head invalidates that review, and only current

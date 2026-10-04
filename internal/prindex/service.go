@@ -28,7 +28,7 @@ type RepositoryDiscoverer interface {
 }
 
 type PullRequestClient interface {
-	ListOpen(context.Context, []config.Repository) ClientResult
+	ListOpenReusing(context.Context, []config.Repository, map[string]ListingHint) ClientResult
 }
 
 // WorkflowClient owns the two small follow-up queries: workflow catalogs for
@@ -51,6 +51,7 @@ type Scanner struct {
 type scanContext struct {
 	cache        cacheState
 	cacheWarning string
+	quotaWarning string
 	sources      []config.Source
 	discovered   discovery.Result
 	resolved     map[string]config.Repository
@@ -107,8 +108,14 @@ func (s Scanner) Scan(
 		var rateLimit *GitHubRateLimit
 		var catalogs map[string]CatalogEntry
 		repositories := repositoriesToRefresh(sources, scan.resolved, cache, mode, now)
+		if pause := automaticRefreshPause(cache.RateLimit, mode, now); pause != "" {
+			repositories = nil
+			scan.quotaWarning = pause
+		}
 		if len(repositories) > 0 {
-			clientResult := s.Client.ListOpen(ctx, repositories)
+			clientResult := s.Client.ListOpenReusing(
+				ctx, repositories, listingHints(repositories, cache, mode, now),
+			)
 			queryResults = clientResult.Repositories
 			if queryResults == nil {
 				queryResults = make(map[string]RepositoryResult, len(repositories))
@@ -267,6 +274,9 @@ func applyQueryResults(
 		entry.ObservedAt = now
 		entry.LastError = ""
 		entry.PullRequests = pullRequests
+		if !result.Reused {
+			entry.DetailCheckedAt = now
+		}
 		var catalog *CatalogEntry
 		if fetched, hasCatalog := catalogs[key]; hasCatalog {
 			catalog = &fetched

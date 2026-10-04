@@ -78,6 +78,12 @@ Open PRs load from a separate private cache. Hyperlite keeps the list current
 on its own: while the window is visible it checks once a minute, and revealing
 the window, foreground activation, or waking the Mac checks immediately. Each
 configured repository is re-queried no more often than every five minutes.
+Automatic refreshes reuse cached pull-request details for up to fifteen minutes
+when the probe shows a repository's open count and newest update unchanged and
+no check is pending, so an idle watch list costs only the probe (about one
+GraphQL point per ten repositories). They pause entirely while fewer than the
+larger of 1,000 points or twenty percent of the hourly quota remain, and the
+Open PRs warning says until when; Refresh always fetches everything.
 A refresh first probes repositories cheaply in batches of ten for their open
 pull-request count and workflow activity, then reads full pull-request details
 one repository per query, concurrently, only where pull requests are open. One
