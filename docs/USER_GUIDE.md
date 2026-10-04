@@ -84,8 +84,9 @@ one repository per query, concurrently, only where pull requests are open. One
 slow, missing, or failing repository therefore never hides another's rows.
 Refresh forces the index current; Force Cache Refresh in Command-K retries only
 this cache without refreshing unrelated projections. While a fetch is in
-flight, a small spinner sits beside the quick facts; cached rows stay on
-screen.
+flight, a thin bar sweeps across the top of the list and the top bar reads
+`updating from GitHub…` (or `checking workflows…` during the running-workflow
+poll); cached rows stay on screen, and nothing animates when idle.
 
 The top bar shows quick facts in priority order, as many as fit the window:
 open pull requests, projects with open pull requests, failing CI, pull
@@ -108,7 +109,9 @@ query loop.
 Projects are grouped under their GitHub organization (for example
 `LSMC-BIO` or `JAMESONSTONE`), with the organization's pull request and
 project counts; click the heading to open the organization on GitHub.
-Organizations follow the order of their most recently updated pull request.
+Organizations follow the order of their most recently updated pull request. Within an
+organization, expanded projects come first and collapsed projects move to the
+bottom; each group keeps its order.
 
 Every configured project has its own section, even with no open pull
 requests. Projects with open pull requests come first, ordered by their most

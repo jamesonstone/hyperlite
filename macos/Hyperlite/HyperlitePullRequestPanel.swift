@@ -51,8 +51,8 @@ struct HyperlitePullRequestPanel<Actions: View>: View {
         HStack(alignment: .center, spacing: 10) {
             HyperliteQuickFactsBar(facts: HyperliteQuickFacts.facts(model: model, now: chipClock))
                 .layoutPriority(1)
-            if isRefreshing {
-                ProgressView().controlSize(.mini).accessibilityLabel(HyperliteOpenPRRefreshStatus.accessibilityRefreshing)
+            if isRefreshing || isPollingActivity {
+                HyperliteRefreshBadge(polling: !isRefreshing)
             }
             Spacer(minLength: 4)
             HyperliteHideIdleEye(hideIdle: $hideIdleProjects, hiddenSections: model.hiddenSections)
@@ -72,7 +72,7 @@ struct HyperlitePullRequestPanel<Actions: View>: View {
                     }
                     ForEach(model.organizations) { organization in
                         HyperliteOrganizationHeading(group: organization)
-                        ForEach(organization.sections) { section in
+                        ForEach(organization.sectionsOrdered(collapsed: collapse.collapsed)) { section in
                             Section {
                                 if !collapse.isCollapsed(section.id) {
                                     ForEach(section.rows) { row in
@@ -92,6 +92,13 @@ struct HyperlitePullRequestPanel<Actions: View>: View {
                 // Keep the keyboard selection in the middle of the list.
                 proxy.scrollTo(request.id, anchor: .center)
             }
+            .overlay(alignment: .top) {
+                if isRefreshing || isPollingActivity {
+                    HyperliteRefreshBar()
+                        .transition(.opacity)
+                }
+            }
+            .animation(.easeInOut(duration: 0.25), value: isRefreshing || isPollingActivity)
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Open pull requests across configured projects")
             .accessibilityValue(isPollingActivity ? HyperliteOpenPRRefreshStatus.accessibilityPolling : "")
@@ -137,7 +144,7 @@ struct HyperlitePullRequestPanel<Actions: View>: View {
     /// Navigable entries in render order; collapsed rows are skipped.
     private func navItems(_ model: HyperlitePullRequestPanelModel) -> [HyperliteWorkspaceNavItem] {
         var items: [HyperliteWorkspaceNavItem] = []
-        for section in model.organizations.flatMap(\.sections) {
+        for section in model.organizations.flatMap({ $0.sectionsOrdered(collapsed: collapse.collapsed) }) {
             items.append(HyperliteWorkspaceNavItem(
                 id: HyperliteWorkspaceNavigation.headerID(sectionID: section.id),
                 action: .open(section.repositoryURL ?? section.pullsURL)

@@ -20,6 +20,10 @@ enum HyperlitePullRequestPanelModelTests {
         let showAll = HyperlitePullRequestPanelModel(scan: scan, hideIdle: false, now: now)
         expect(showAll.organizations.map(\.name) == ["o"] && showAll.organizations[0].sections.count == 2 &&
                showAll.organizations[0].pullRequestCount == 1, "projects group under their GitHub organization")
+        expect(showAll.organizations[0].sectionsOrdered(collapsed: ["/a"]).map(\.id) == ["/b", "/a"],
+               "collapsed projects sink to the bottom of their organization")
+        expect(showAll.organizations[0].sectionsOrdered(collapsed: []).map(\.id) == ["/a", "/b"],
+               "expanded projects keep their order")
         expect(showAll.visibleSections.count == 2 && showAll.hiddenSections.isEmpty, "show-all lists every project")
 
         let cache = HyperlitePullRequestPanelModelCache()
