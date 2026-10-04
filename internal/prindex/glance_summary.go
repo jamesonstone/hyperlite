@@ -5,7 +5,9 @@ import (
 	"unicode"
 )
 
-const glanceSummaryLimit = 160
+// glanceSummaryLimit sizes the hover card's description: a few sentences,
+// enough to say what the change is about without opening GitHub.
+const glanceSummaryLimit = 600
 
 func glanceSummary(title, body string, headlines []string) string {
 	if text := firstUsefulBody(body, title); text != "" {
@@ -20,14 +22,21 @@ func firstUsefulBody(body, title string) string {
 	if ask := labeledParagraph(normalized, "original ask:"); ask != "" && !repeatsTitle(ask, title) {
 		return ask
 	}
+	// Join the leading useful paragraphs until the summary budget is spent.
+	var parts []string
+	length := 0
 	for _, paragraph := range strings.Split(normalized, "\n\n") {
 		text := collapseSpace(stripMarkdownPrefix(paragraph))
 		if text == "" || isMetaParagraph(text) || repeatsTitle(text, title) {
 			continue
 		}
-		return text
+		parts = append(parts, text)
+		length += len([]rune(text))
+		if length >= glanceSummaryLimit {
+			break
+		}
 	}
-	return ""
+	return strings.Join(parts, " ")
 }
 
 func labeledParagraph(body, label string) string {

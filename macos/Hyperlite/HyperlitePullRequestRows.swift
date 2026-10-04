@@ -58,7 +58,7 @@ struct HyperlitePullRequestPanelRow: View {
         rowHovering = hovering
         hoverTask?.cancel()
         hoverTask = Task { @MainActor in
-            let delay: Duration = hovering ? .milliseconds(350) : .milliseconds(200)
+            let delay: Duration = hovering ? HyperlitePullRequestHoverPresentation.openDelay : .milliseconds(200)
             try? await Task.sleep(for: delay)
             guard !Task.isCancelled else { return }
             hoverPresented = hovering
