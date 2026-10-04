@@ -48,6 +48,23 @@ so the next project add or remove would rewrite an almost empty configuration.
 Orchestration: single-lane, because config loading, retirement, and the
 scan wiring share one contract.
 
+## REQUIREMENTS
+
+- R1: A configured project whose directory disappeared never breaks loading
+  and stops being scanned, recoverably.
+- R2: A project whose GitHub repository no longer resolves, with its directory
+  present, shows an actionable message naming the directory.
+- R3: No configuration write may treat a missing project directory as a
+  missing configuration file.
+
+## ACCEPTED PLAN
+
+1. Load missing project directories into `MissingProjects` instead of failing.
+2. Fix `Mutate` to decide a missing config from the config file itself.
+3. Retire missing projects during stale and forced refreshes and report them;
+   add `projects restore`.
+4. Rewrite GitHub's missing-repository error per project.
+
 ## DECISIONS
 
 - Retirement is a soft delete (deletion-safety rule): the entry moves to
@@ -62,6 +79,11 @@ scan wiring share one contract.
   gets an actionable message; the directory may hold unpushed work, so
   Hyperlite never deletes or retires it automatically.
 
+## DISCOVERIES
+
+- The latent config-wipe path described under CONTEXT was found while tracing
+  why a missing directory would error; it is now covered by a regression test.
+
 ## VALIDATION
 
 - Go tests: missing directories load and never wipe the config (regression),
@@ -70,6 +92,12 @@ scan wiring share one contract.
 - Live: both dead repositories show the new message; the operator's config was
   unchanged because every directory exists.
 - `make fmt-check vet test-race build` passed.
+
+## OUTCOME
+
+- Vanished projects retire with a restorable record; deleted repositories show
+  what to delete; the configuration can no longer be wiped by a missing
+  project directory.
 
 ## REPOSITORY MEMORY
 

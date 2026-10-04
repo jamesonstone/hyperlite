@@ -77,7 +77,7 @@ references:
     name: Reduce GraphQL rate-limit cost of Open PR glance fields
     type: github-issue
     target: https://github.com/jamesonstone/hyperlite/issues/99
-    relation: refines
+    relation: informs
     read_policy: must
     used_for: dropping the unused labels connection and correcting cost accounting
     status: active

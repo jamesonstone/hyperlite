@@ -121,6 +121,10 @@ Observable acceptance:
   scan clears only its own error and never one owned by a concurrent project or
   default-branch operation.
 
+## DISCOVERIES
+
+- No additional information required.
+
 ## VALIDATION
 
 - `make macos-test` passed: full app typecheck plus Swift model tests,
