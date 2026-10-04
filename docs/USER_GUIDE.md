@@ -113,6 +113,8 @@ project's heading, with the same availability text, workflow chips,
 pipeline-alert badges, and Pulls/Actions links as an inline project. Showing
 all projects (eye off) lists them inline instead. The hide-idle eye stays
 quiet while idle projects are hidden and brightens only when they are shown.
+Hovering it while projects are hidden lists every hidden project by name
+(ignored ones are marked), scrolling when the list is long.
 
 The panel title is larger and brighter than repository headings. Headings for
 projects with open PRs use primary semibold type; idle headings drop to

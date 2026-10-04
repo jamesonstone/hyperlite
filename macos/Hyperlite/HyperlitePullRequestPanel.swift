@@ -21,7 +21,6 @@ struct HyperlitePullRequestPanel: View {
 
     private var visibleProjectSections: [HyperliteProjectSection] { model.visibleSections }
     private var hiddenProjectSections: [HyperliteProjectSection] { model.hiddenSections }
-    private var hiddenProjectCount: Int { model.hiddenCount }
     private var showsHiddenList: Bool { !model.hiddenSections.isEmpty }
     private var hiddenAttentionCount: Int { model.hiddenAttentionCount }
 
@@ -124,11 +123,7 @@ struct HyperlitePullRequestPanel: View {
             )
             .layoutPriority(1)
             Spacer(minLength: 4)
-            HyperliteDashboardControlButton(
-                systemName: hideIdleProjects ? "eye.slash" : "eye",
-                active: !hideIdleProjects,
-                label: hideIdleLabel
-            ) { hideIdleProjects.toggle() }
+            HyperliteHideIdleEye(hideIdle: $hideIdleProjects, hiddenSections: hiddenProjectSections)
             Text(HyperlitePullRequestPresentation.freshnessLabel(
                 observedAt: scan.observedAt
             ))
@@ -137,16 +132,6 @@ struct HyperlitePullRequestPanel: View {
                 .lineLimit(1)
                 .layoutPriority(-1)
         }
-    }
-
-    private var hideIdleLabel: String {
-        if hideIdleProjects {
-            if hiddenProjectCount > 0 {
-                return "Showing only projects with open pull requests or active workflows. \(hiddenProjectCount) hidden. Show all projects."
-            }
-            return "Showing only projects with open pull requests or active workflows. Show all projects."
-        }
-        return "Hide projects with no open pull requests"
     }
 
     private func chips(for section: HyperliteProjectSection) -> [HyperliteWorkflowChip] {
