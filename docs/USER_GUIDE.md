@@ -172,8 +172,8 @@ of 1,000 points or thirty percent of the limit remaining, a projected twenty
 percent left at reset, and at most sixty polls per quota window. Refresh and
 Force Cache Refresh cancel the loop and fetch pull requests early.
 
-Each row is one line: number, a compact ready/draft badge, optional
-merge-conflict icon, the review-feedback count, the title, and its age. Number
+Each row is one line: numbers, a compact ready/draft badge, optional
+merge-conflict icon, the title, unresolved work in red, and its age. Number
 and ready/draft stay whole words; a long title truncates instead of wrapping.
 Rows sit under their repository heading, so the project name is not repeated
 on every line. Each row leads with two labeled numbers: `PR #<n>` opens the
@@ -183,10 +183,15 @@ The title also opens the pull request. The conflict column stays aligned
 when there is no confirmed conflict;
 `MERGEABLE`, `UNKNOWN`, and older cache entries without the field stay blank.
 VoiceOver names confirmed conflicts only and omits unconfirmed `MERGEABLE`,
-`UNKNOWN`, and legacy rows. Only unresolved, non-outdated GitHub review
-threads count. Nonzero counts use the orange attention color, confirmed zero
-uses a quiet dash, and unavailable legacy cache data uses `?` until a
-complete refresh supplies an exact count. The row content opens the pull
+`UNKNOWN`, and legacy rows. Unresolved work sits in red just before the age:
+each failed GitHub Actions pipeline on the current head by a short name (for
+example `✕ docs`, so a docs-check failure you can judge harmless is visible
+without opening the repository; hover shows the full name), `✕ checks` when a
+non-Actions check failed, then a speech-bubble count of unresolved,
+non-outdated review threads (CodeRabbit or human feedback). Clean rows show
+nothing there. Failed pipeline names come from one small follow-up query for
+failing heads only; green pull requests cost nothing extra, and a failed pull
+request run never turns the project heading red. The row content opens the pull
 request; its separate leading checkbox, immediately before the row text,
 changes only the private `Reviewed by me` marker, and an empty checkbox stays
 quiet until the row is hovered. Hovering a row shows

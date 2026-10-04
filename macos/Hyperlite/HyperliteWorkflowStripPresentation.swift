@@ -61,15 +61,18 @@ enum HyperliteWorkflowStripPresentation {
         guard let activity else { return [] }
         let fresh = isFresh(activity, now: now)
         let lastSeen = activity.observedAt ?? now
+        // Finished pull-request runs describe that PR, not the project, so a
+        // failed PR check never turns the heading red; rows show those.
+        let headingRuns = activity.runs.filter { !$0.isPullRequestScope || $0.isActive }
         var files = activity.catalog.map { ($0.file, $0.name) }
         let known = Set(files.map(\.0))
-        for run in activity.runs where !known.contains(run.file) &&
+        for run in headingRuns where !known.contains(run.file) &&
             !files.contains(where: { $0.0 == run.file })
         {
             files.append((run.file, run.name))
         }
         var chips = files.map { file, name -> HyperliteWorkflowChip in
-            let run = latestRun(activity.runs.filter { $0.file == file })
+            let run = latestRun(headingRuns.filter { $0.file == file })
             return HyperliteWorkflowChip(
                 id: file, title: name, state: state(for: run, fresh: fresh, lastSeen: lastSeen),
                 run: run, deployment: nil

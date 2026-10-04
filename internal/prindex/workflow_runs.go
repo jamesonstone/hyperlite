@@ -43,8 +43,10 @@ func repositoryActivityFromRaw(existing *repositoryActivity, raw *rawRepository,
 			activity.TreeOID = raw.WorkflowsTree.OID
 		}
 	}
+	// Pending heads show running chips; failing heads name the failed
+	// pipelines on their rows. Green heads cost no follow-up query.
 	for _, pullRequest := range raw.PullRequests.Nodes {
-		if isPendingRollup(ciState(pullRequest.Commits)) {
+		if state := ciState(pullRequest.Commits); isPendingRollup(state) || isFailedRollup(state) {
 			activity.PendingHeads = append(activity.PendingHeads, pullRequest.Number)
 		}
 	}
@@ -54,6 +56,14 @@ func repositoryActivityFromRaw(existing *repositoryActivity, raw *rawRepository,
 func isPendingRollup(state string) bool {
 	switch strings.ToUpper(strings.TrimSpace(state)) {
 	case "PENDING", "EXPECTED":
+		return true
+	}
+	return false
+}
+
+func isFailedRollup(state string) bool {
+	switch strings.ToUpper(strings.TrimSpace(state)) {
+	case "FAILURE", "ERROR":
 		return true
 	}
 	return false
