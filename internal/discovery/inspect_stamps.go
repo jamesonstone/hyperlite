@@ -21,10 +21,22 @@ type fileStamp struct {
 const maxIncludeDepth = 5
 
 // prepareCache resolves this run's configuration sources before any lookup.
+// Configuration passed through the environment (GIT_CONFIG_COUNT with its
+// key/value pairs, or GIT_CONFIG_PARAMETERS) can override a remote without
+// any file changing, so reuse is bypassed for such runs.
 func (d Discoverer) prepareCache(ctx context.Context) {
-	if d.Cache != nil {
-		d.Cache.useSources(d.configSources(ctx))
+	if d.Cache == nil {
+		return
 	}
+	if commandScopeConfig() {
+		d.Cache.disable()
+		return
+	}
+	d.Cache.useSources(d.configSources(ctx))
+}
+
+func commandScopeConfig() bool {
+	return os.Getenv("GIT_CONFIG_COUNT") != "" || os.Getenv("GIT_CONFIG_PARAMETERS") != ""
 }
 
 // configSources asks git, once per run, which global and system configuration
@@ -75,7 +87,10 @@ func inspectionStamps(root, commonDir, remote string, sources []string) []fileSt
 		configs = append(configs, filepath.Join(gitDir, "config.worktree"))
 	}
 	paths = append(paths, withIncludes(configs)...)
-	paths = append(paths, sources...)
+	// Follow the global and system sources' own includes too: an
+	// includeIf "gitdir:" file applies only inside this repository, so the
+	// run-wide probe outside any repository does not list it.
+	paths = append(paths, withIncludes(sources)...)
 	stamps := make([]fileStamp, 0, len(paths))
 	for _, path := range paths {
 		stamps = append(stamps, stampFor(path))
@@ -128,9 +143,49 @@ func includePaths(configPath string) []string {
 		if !inInclude || !found || !strings.EqualFold(strings.TrimSpace(key), "path") {
 			continue
 		}
-		paths = append(paths, resolveIncludePath(strings.Trim(strings.TrimSpace(value), `"`), configPath))
+		if path := parseConfigValue(value); path != "" {
+			paths = append(paths, resolveIncludePath(path, configPath))
+		}
 	}
 	return paths
+}
+
+// parseConfigValue applies git's value rules: double quotes group text,
+// backslash escapes the next character, and an unquoted # or ; starts a
+// comment. Surrounding unquoted whitespace is dropped.
+func parseConfigValue(raw string) string {
+	var value strings.Builder
+	quoted, escaped := false, false
+	pendingSpace := ""
+	for _, char := range strings.TrimSpace(raw) {
+		switch {
+		case escaped:
+			value.WriteString(pendingSpace)
+			pendingSpace = ""
+			switch char {
+			case 'n':
+				value.WriteRune('\n')
+			case 't':
+				value.WriteRune('\t')
+			default:
+				value.WriteRune(char)
+			}
+			escaped = false
+		case char == '\\':
+			escaped = true
+		case char == '"':
+			quoted = !quoted
+		case !quoted && (char == '#' || char == ';'):
+			return value.String()
+		case !quoted && (char == ' ' || char == '\t'):
+			pendingSpace += string(char)
+		default:
+			value.WriteString(pendingSpace)
+			pendingSpace = ""
+			value.WriteRune(char)
+		}
+	}
+	return value.String()
 }
 
 func resolveIncludePath(value, configPath string) string {

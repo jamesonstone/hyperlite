@@ -118,3 +118,45 @@ func TestInspectCacheInvalidatesOnIncludeSymlinkAndSourceChanges(t *testing.T) {
 		t.Fatal("a different set of configuration sources must not reuse the entry")
 	}
 }
+
+func TestParseConfigValueFollowsGitRules(t *testing.T) {
+	for raw, want := range map[string]string{
+		` included.conf # note`:       "included.conf",
+		`included.conf;comment`:       "included.conf",
+		`"has # hash.conf" ; comment`: "has # hash.conf",
+		`dir\ name/x.conf`:            "dir name/x.conf",
+		`~/a b.conf`:                  "~/a b.conf",
+	} {
+		if got := parseConfigValue(raw); got != want {
+			t.Errorf("parseConfigValue(%q) = %q, want %q", raw, got, want)
+		}
+	}
+}
+
+func TestInspectCacheFollowsGlobalIncludesAndSkipsCommandScope(t *testing.T) {
+	repo := gitRepository(t, "git@github.com:owner/first.git")
+	dir := t.TempDir()
+	global := filepath.Join(dir, "global.conf")
+	conditional := filepath.Join(dir, "conditional.conf")
+	_ = os.WriteFile(conditional, []byte("[core]\n"), 0o600)
+	_ = os.WriteFile(global, []byte("[includeIf \"gitdir:"+repo+"/\"]\n\tpath = "+conditional+" # repo only\n"), 0o600)
+	stamps := inspectionStamps(repo, filepath.Join(repo, ".git"), "origin", []string{global})
+	if err := os.WriteFile(conditional, []byte("[core]\n\tbare = false\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if stampsCurrent(stamps) {
+		t.Fatal("editing a global gitdir-conditional include must invalidate the entry")
+	}
+
+	t.Setenv("GIT_CONFIG_COUNT", "1")
+	cache := &InspectCache{Path: filepath.Join(t.TempDir(), "d.json")}
+	runner := &countingRunner{}
+	discoverer := Discoverer{Runner: runner, Cache: cache}
+	sources := []config.Source{{Path: repo}}
+	discoverer.Discover(context.Background(), sources)
+	runner.calls.Store(0)
+	discoverer.Discover(context.Background(), sources)
+	if runner.calls.Load() == 0 {
+		t.Fatal("command-scope configuration must bypass reuse")
+	}
+}

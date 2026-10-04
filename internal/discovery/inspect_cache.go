@@ -22,6 +22,8 @@ type InspectCache struct {
 	// sources are the global and system git configuration files git reads in
 	// this process's environment, resolved once per discovery run.
 	sources []string
+	// disabled skips reuse and storage for this run.
+	disabled bool
 }
 
 type cachedInspection struct {
@@ -40,6 +42,13 @@ func (c *InspectCache) useSources(sources []string) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	c.sources = sources
+	c.disabled = false
+}
+
+func (c *InspectCache) disable() {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.disabled = true
 }
 
 func (c *InspectCache) lookup(root string) (candidate, bool) {
@@ -49,9 +58,9 @@ func (c *InspectCache) lookup(root string) (candidate, bool) {
 	c.mutex.Lock()
 	c.loadLocked()
 	entry, found := c.entries[root]
-	sources := c.sources
+	sources, disabled := c.sources, c.disabled
 	c.mutex.Unlock()
-	if !found || !equalStrings(entry.Sources, sources) || !stampsCurrent(entry.Stamps) {
+	if disabled || !found || !equalStrings(entry.Sources, sources) || !stampsCurrent(entry.Stamps) {
 		return candidate{}, false
 	}
 	repository := entry.Repository
@@ -64,8 +73,11 @@ func (c *InspectCache) store(root string, item candidate) {
 		return
 	}
 	c.mutex.Lock()
-	sources := c.sources
+	sources, disabled := c.sources, c.disabled
 	c.mutex.Unlock()
+	if disabled {
+		return
+	}
 	stamps := inspectionStamps(root, item.commonDir, item.repo.Remote, sources)
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
