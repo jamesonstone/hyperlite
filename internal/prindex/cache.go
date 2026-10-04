@@ -21,12 +21,15 @@ const cacheVersion = 1
 var cacheMutex sync.Mutex
 
 type cacheEntry struct {
-	Repository   string                         `json:"repository"`
-	CheckedAt    time.Time                      `json:"checked_at,omitempty"`
-	ObservedAt   time.Time                      `json:"observed_at"`
-	LastError    string                         `json:"last_error,omitempty"`
-	PullRequests []model.ProjectPullRequest     `json:"pull_requests"`
-	Workflows    *model.ProjectWorkflowActivity `json:"workflows,omitempty"`
+	Repository string    `json:"repository"`
+	CheckedAt  time.Time `json:"checked_at,omitempty"`
+	ObservedAt time.Time `json:"observed_at"`
+	LastError  string    `json:"last_error,omitempty"`
+	// DetailCheckedAt is when pull-request details were last read rather
+	// than reused from a matching probe.
+	DetailCheckedAt time.Time                      `json:"detail_checked_at,omitempty"`
+	PullRequests    []model.ProjectPullRequest     `json:"pull_requests"`
+	Workflows       *model.ProjectWorkflowActivity `json:"workflows,omitempty"`
 }
 
 type cacheState struct {

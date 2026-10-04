@@ -21,15 +21,18 @@ func (f fakeProjectDiscoverer) Discover(
 type fakePullRequestClient struct {
 	calls        int
 	repositories [][]config.Repository
+	hints        []map[string]ListingHint
 	results      map[string]RepositoryResult
 	rateLimit    *GitHubRateLimit
 }
 
-func (f *fakePullRequestClient) ListOpen(
+func (f *fakePullRequestClient) ListOpenReusing(
 	_ context.Context,
 	repositories []config.Repository,
+	hints map[string]ListingHint,
 ) ClientResult {
 	f.calls++
+	f.hints = append(f.hints, hints)
 	f.repositories = append(
 		f.repositories, append([]config.Repository(nil), repositories...),
 	)

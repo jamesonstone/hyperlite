@@ -56,7 +56,7 @@ type rawCommitConnection struct {
 }
 
 type rawRepository struct {
-	OpenPullRequests *rawCount `json:"openPullRequests"`
+	OpenPullRequests *rawOpenPullRequestProbe `json:"openPullRequests"`
 	PullRequests     struct {
 		Nodes    []rawPullRequest `json:"nodes"`
 		PageInfo struct {

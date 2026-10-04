@@ -32,7 +32,7 @@ func buildProbeQuery(repositories []config.Repository) (string, map[string]confi
 		alias := "repository" + strconv.Itoa(index)
 		aliases[alias] = repository
 		writeRepositoryOpen(&query, alias, repository)
-		query.WriteString("    openPullRequests: pullRequests(states: OPEN) { totalCount }\n")
+		query.WriteString("    openPullRequests: pullRequests(states: OPEN, first: 1, orderBy: {field: UPDATED_AT, direction: DESC}) { totalCount nodes { updatedAt } }\n")
 		writeRepositoryActivitySelections(&query, "    ")
 		query.WriteString("  }\n")
 	}
@@ -46,6 +46,7 @@ func buildProbeQuery(repositories []config.Repository) (string, map[string]confi
 func (c GitHubClient) probeBatch(
 	ctx context.Context,
 	repositories []config.Repository,
+	hints map[string]ListingHint,
 ) (map[string]probeResult, rateLimitCollector) {
 	var collector rateLimitCollector
 	query, aliases := buildProbeQuery(repositories)
@@ -76,6 +77,14 @@ func (c GitHubClient) probeBatch(
 			}
 		case raw.OpenPullRequests == nil:
 			results[key] = probeResult{}
+		case raw.OpenPullRequests.TotalCount > 0 && hints[key].matches(raw.OpenPullRequests):
+			activity := repositoryActivityFromRaw(nil, raw, repository.GitHub)
+			activity.PullRequestRuns = append([]model.WorkflowRun{}, hints[key].PullRequestRuns...)
+			results[key] = probeResult{final: true, result: RepositoryResult{
+				PullRequests: append([]model.ProjectPullRequest(nil), hints[key].PullRequests...),
+				Activity:     activity,
+				Reused:       true,
+			}}
 		case raw.OpenPullRequests.TotalCount > 0:
 			results[key] = probeResult{openCount: raw.OpenPullRequests.TotalCount}
 		default:

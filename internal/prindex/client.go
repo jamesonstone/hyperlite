@@ -28,6 +28,9 @@ type RepositoryResult struct {
 	PullRequests []model.ProjectPullRequest
 	Activity     *repositoryActivity
 	Error        string
+	// Reused marks cached details confirmed unchanged by the probe; the
+	// detail age is not renewed.
+	Reused bool
 }
 
 type GitHubClient struct {
