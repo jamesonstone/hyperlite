@@ -25,18 +25,14 @@ extension HyperlitePullRequestRow {
         HyperliteIssueReference.number(branch: headRefName, title: title)
     }
 
-    /// The number shown in the row: the tracked issue when known, else the
-    /// pull request's own number.
-    var displayNumber: Int { linkedIssueNumber ?? number }
+    /// The pull request's own number, labeled so it never reads as the issue.
+    var pullRequestLabel: String { "PR #\(number)" }
 
-    var numberOpensIssue: Bool { linkedIssueNumber != nil }
+    /// The tracked issue in the repository's `GH-<n>` convention, when known.
+    var issueLabel: String? { linkedIssueNumber.map { "GH-\($0)" } }
 
     var issueURL: URL? {
         guard let issue = linkedIssueNumber, repository.contains("/") else { return nil }
         return URL(string: "https://github.com/\(repository)/issues/\(issue)")
     }
-
-    /// Where the number chip navigates: the tracked issue when known, else the
-    /// pull request itself.
-    var numberURL: URL? { issueURL ?? url }
 }

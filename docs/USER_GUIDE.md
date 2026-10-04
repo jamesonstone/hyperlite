@@ -176,10 +176,10 @@ Each row is one line: number, a compact ready/draft badge, optional
 merge-conflict icon, the review-feedback count, the title, and its age. Number
 and ready/draft stay whole words; a long title truncates instead of wrapping.
 Rows sit under their repository heading, so the project name is not repeated
-on every line. In a row, the number opens the issue the pull request tracks
-when its branch or title names one through the `GH-<n>` convention (and shows
-that issue number); the title always opens the pull request, and rows with no
-tracked issue keep the pull request number. The conflict column stays aligned
+on every line. Each row leads with two labeled numbers: `PR #<n>` opens the
+pull request, and `GH-<n>` opens the issue it tracks when its branch or title
+names one through the `GH-<n>` convention (the column stays blank otherwise).
+The title also opens the pull request. The conflict column stays aligned
 when there is no confirmed conflict;
 `MERGEABLE`, `UNKNOWN`, and older cache entries without the field stay blank.
 VoiceOver names confirmed conflicts only and omits unconfirmed `MERGEABLE`,

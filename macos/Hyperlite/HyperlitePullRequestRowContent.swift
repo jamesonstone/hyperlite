@@ -4,7 +4,7 @@ struct HyperlitePullRequestRowContent: View {
     static let layout = HyperlitePullRequestRowLayout.titleFirst
     let row: HyperlitePullRequestRow
     let reviewStatus: HyperlitePullRequestReviewStatus
-    var openNumber: () -> Void = {}
+    var openIssue: () -> Void = {}
     var openPullRequest: () -> Void = {}
 
     private var review: HyperliteReviewFeedbackPresentation {
@@ -28,7 +28,8 @@ struct HyperlitePullRequestRowContent: View {
 
     private var wideRow: some View {
         HStack(alignment: .firstTextBaseline, spacing: 7) {
-            numberButton
+            pullRequestNumberButton
+            issueNumberButton
             pullRequestTarget {
                 HStack(alignment: .firstTextBaseline, spacing: 7) {
                     statusBadge
@@ -56,33 +57,39 @@ struct HyperlitePullRequestRowContent: View {
         .disabled(row.url == nil)
     }
 
-    // The number opens the tracked issue when the pull request names one, so
-    // the ticket is one click away while the title still opens the PR.
-    private var numberButton: some View {
-        Button(action: openNumber) {
-            numberLabel.contentShape(Rectangle())
+    // Two labeled numbers: the pull request opens the PR, the `GH-<n>` issue
+    // opens the tracked issue, so neither number is ambiguous.
+    private var pullRequestNumberButton: some View {
+        Button(action: openPullRequest) {
+            Text(row.pullRequestLabel)
+                .foregroundStyle(titleColor)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .frame(minWidth: HyperlitePullRequestRowLayout.pullRequestNumberColumnWidth, alignment: .leading)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .disabled(row.numberURL == nil)
-        .help(numberHelp)
-        .accessibilityLabel(numberHelp)
+        .disabled(row.url == nil)
+        .layoutPriority(Self.layout.metadataLayoutPriority)
+        .help("Open pull request #\(row.number) on GitHub")
+        .accessibilityLabel("Pull request \(row.number)")
     }
 
-    private var numberHelp: String {
-        row.numberOpensIssue
-            ? "Open issue #\(row.displayNumber)"
-            : "Open pull request #\(row.number)"
-    }
-
-    private var numberLabel: some View {
-        Text("#\(row.displayNumber)")
-            .lineLimit(1)
-            .fixedSize(horizontal: true, vertical: false)
-            .layoutPriority(Self.layout.metadataLayoutPriority)
-            .frame(minWidth: 42, alignment: .leading)
-            .foregroundStyle(
-                row.numberOpensIssue ? HyperliteTheme.secondaryText.color : titleColor
-            )
+    private var issueNumberButton: some View {
+        Button(action: openIssue) {
+            Text(row.issueLabel ?? "")
+                .foregroundStyle(HyperliteTheme.secondaryText.color)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .frame(minWidth: HyperlitePullRequestRowLayout.issueNumberColumnWidth, alignment: .leading)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(row.issueURL == nil)
+        .layoutPriority(Self.layout.metadataLayoutPriority)
+        .help(row.linkedIssueNumber.map { "Open issue #\($0) on GitHub" } ?? "")
+        .accessibilityLabel(row.linkedIssueNumber.map { "Issue \($0)" } ?? "")
+        .accessibilityHidden(row.issueLabel == nil)
     }
 
     private var statusBadge: some View {
