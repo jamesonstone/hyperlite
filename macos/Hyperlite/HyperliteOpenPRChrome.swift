@@ -57,7 +57,9 @@ struct HyperliteOpenPRFooter: View {
 enum HyperliteAppVersion {
     /// `hyperlite v1.2.3 · abc1234` from the bundle, tolerating dev builds.
     static func label(info: [String: Any]) -> String {
-        let version = (info["CFBundleShortVersionString"] as? String) ?? "dev"
+        let version = (info["HyperliteDescribe"] as? String)
+            ?? (info["CFBundleShortVersionString"] as? String)
+            ?? "dev"
         let commit = (info["HyperliteCommit"] as? String) ?? ""
         let shown = version.first?.isNumber == true ? "v\(version)" : version
         return commit.isEmpty || version.contains(commit) ? "hyperlite \(shown)" : "hyperlite \(shown) · \(commit)"
