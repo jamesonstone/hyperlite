@@ -26,6 +26,11 @@ enum HyperlitePullRequestPanelModelTests {
         let toggled = cache.model(scan: scan, hideIdle: false, now: now)
         expect(first.visibleSections.map(\.id) == again.visibleSections.map(\.id) &&
                toggled.visibleSections.count == 2, "the cache rebuilds only when its inputs change")
+        expect(HyperliteHideIdlePresentation.hiddenNames(model.hiddenSections) == ["o/b"],
+               "the eye lists hidden projects by name")
+        expect(HyperliteHideIdlePresentation.hint(hideIdle: true, hiddenCount: 1).hasPrefix("1 project hidden") &&
+               HyperliteHideIdlePresentation.hint(hideIdle: true, hiddenCount: 3).hasPrefix("3 projects hidden"),
+               "the hint counts hidden projects")
     }
 
     private static func expect(_ condition: @autoclosure () -> Bool, _ message: String) {
