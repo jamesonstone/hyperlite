@@ -50,8 +50,8 @@ func TestInspectCacheReusesUntilGitConfigChanges(t *testing.T) {
 	runner.calls.Store(0)
 	reloaded := Discoverer{Runner: runner, Cache: &InspectCache{Path: cache.Path}}
 	second := reloaded.Discover(context.Background(), sources)
-	if runner.calls.Load() != 0 || second.Repositories[0] != first.Repositories[0] {
-		t.Fatalf("a persisted, unchanged inspection must spawn no git; calls=%d", runner.calls.Load())
+	if runner.calls.Load() != 1 || second.Repositories[0] != first.Repositories[0] {
+		t.Fatalf("a persisted, unchanged inspection spawns only the config-sources probe; calls=%d", runner.calls.Load())
 	}
 
 	if output, err := exec.Command("git", "-C", repo, "remote", "set-url", "origin", "https://github.com/owner/renamed.git").CombinedOutput(); err != nil {
@@ -60,8 +60,61 @@ func TestInspectCacheReusesUntilGitConfigChanges(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(repo, ".git", "config")); err != nil {
 		t.Fatal(err)
 	}
+	runner.calls.Store(0)
 	third := Discoverer{Runner: runner, Cache: &InspectCache{Path: cache.Path}}.Discover(context.Background(), sources)
-	if runner.calls.Load() == 0 || third.Repositories[0].GitHub != "owner/renamed" {
+	if runner.calls.Load() <= 1 || third.Repositories[0].GitHub != "owner/renamed" {
 		t.Fatalf("a changed git config must re-inspect; calls=%d got=%#v", runner.calls.Load(), third.Repositories)
+	}
+}
+
+func TestInspectCacheInvalidatesOnIncludeSymlinkAndSourceChanges(t *testing.T) {
+	repo := gitRepository(t, "git@github.com:owner/first.git")
+	dir := t.TempDir()
+	included := filepath.Join(dir, "included.conf")
+	target := filepath.Join(dir, "target.conf")
+	link := filepath.Join(dir, "link.conf")
+	if err := os.WriteFile(included, []byte("[core]\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(target, []byte("[core]\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(target, link); err != nil {
+		t.Fatal(err)
+	}
+	configFile, err := os.OpenFile(filepath.Join(repo, ".git", "config"), os.O_APPEND|os.O_WRONLY, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _ = configFile.WriteString("[includeIf \"gitdir:" + repo + "/\"]\n\tpath = " + included + "\n")
+	_ = configFile.Close()
+
+	stamps := inspectionStamps(repo, filepath.Join(repo, ".git"), "origin", []string{link})
+	if !stampsCurrent(stamps) {
+		t.Fatal("fresh stamps must be current")
+	}
+	if err := os.WriteFile(included, []byte("[core]\n\tbare = false\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if stampsCurrent(stamps) {
+		t.Fatal("an edited included config must invalidate the entry")
+	}
+	stamps = inspectionStamps(repo, filepath.Join(repo, ".git"), "origin", []string{link})
+	if err := os.WriteFile(target, []byte("[core]\n\tbare = false\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if stampsCurrent(stamps) {
+		t.Fatal("editing a symlinked config's target must invalidate the entry")
+	}
+
+	cache := &InspectCache{}
+	cache.useSources([]string{"/one"})
+	cache.store(repo, candidate{path: repo, commonDir: filepath.Join(repo, ".git"), repo: config.Repository{Path: repo, GitHub: "owner/first", Remote: "origin"}})
+	if _, ok := cache.lookup(repo); !ok {
+		t.Fatal("unchanged sources reuse the entry")
+	}
+	cache.useSources([]string{"/two"})
+	if _, ok := cache.lookup(repo); ok {
+		t.Fatal("a different set of configuration sources must not reuse the entry")
 	}
 }

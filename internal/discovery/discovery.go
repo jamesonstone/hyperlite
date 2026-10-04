@@ -84,6 +84,7 @@ func (d Discoverer) Discover(ctx context.Context, sources []config.Source) Resul
 // inspectAll inspects roots concurrently and returns candidates in root
 // order so discovery output stays deterministic.
 func (d Discoverer) inspectAll(ctx context.Context, roots []string) ([]candidate, []Warning) {
+	d.prepareCache(ctx)
 	items := make([]candidate, len(roots))
 	errs := make([]error, len(roots))
 	var group sync.WaitGroup
