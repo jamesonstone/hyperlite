@@ -68,7 +68,7 @@ func buildProject(
 		return project
 	}
 	if queried, found := queryResults[key]; found && queried.Error != "" {
-		project.Message = queried.Error
+		project.Message = explainedError(queried.Error, project.Repository, path)
 		if hasObservation {
 			project.Status = model.ProjectPullRequestsCached
 		}
@@ -76,7 +76,7 @@ func buildProject(
 	}
 	if !hasObservation {
 		if entry.LastError != "" {
-			project.Message = entry.LastError
+			project.Message = explainedError(entry.LastError, project.Repository, path)
 			return project
 		}
 		project.Message = "No cached pull request data is available"
@@ -84,7 +84,7 @@ func buildProject(
 	}
 	if entry.LastError != "" {
 		project.Status = model.ProjectPullRequestsCached
-		project.Message = entry.LastError
+		project.Message = explainedError(entry.LastError, project.Repository, path)
 		return project
 	}
 	if mode == RefreshLocal && now.Sub(entry.ObservedAt) >= RefreshInterval {

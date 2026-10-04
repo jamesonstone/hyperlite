@@ -135,6 +135,14 @@ section. The same switch is `hyperlite projects ignore <path>` and
 `hyperlite projects watch <path>`; the choice is stored as `ignored: true` on
 the project in the Hyperlite config.
 
+When a configured project's local directory disappears, the next refresh
+moves it to `retired_projects` in the config (with the reason and time) and
+the Open PRs warnings name it; it is no longer scanned. Restore it with
+`hyperlite projects restore <path>` once the directory exists again, or by
+adding the project back. When GitHub reports that a project's repository no
+longer exists but the local directory is still there, its heading says so and
+names the directory to delete.
+
 The workflow strip sits on the repository heading row. It lists every file
 under `.github/workflows` on the default
 branch, named by the file's `name:` key, plus any observed dynamic workflow

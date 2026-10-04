@@ -43,6 +43,10 @@
   A refresh isolates failures per repository: pull-request detail queries
   select one repository each, only cheap probes batch repositories, and one
   slow, missing, or failing repository never fails another repository's rows.
+  A configured project whose directory is gone is soft-deleted into
+  `retired_projects` (restorable, with reason and time), never silently
+  dropped, and configuration writes never treat a missing project directory as
+  a missing configuration file.
   Only an observation younger than two minutes may present a run as currently
   running. Caller rate-limit metadata rides with those same bounded GraphQL
   requests and is cached only as a complete observation; quota visibility

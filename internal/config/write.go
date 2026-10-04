@@ -30,12 +30,14 @@ func Mutate(path string, mutate func(*Config) (bool, error)) error {
 	mutationMutex.Lock()
 	defer mutationMutex.Unlock()
 	return withMutationLock(resolved, func() error {
-		cfg, err := Load(resolved)
-		if err != nil {
-			if !errors.Is(err, os.ErrNotExist) {
-				return err
-			}
+		// Decide "no config yet" from the config file itself: a Load error can
+		// also wrap ErrNotExist for a path inside the config, and treating that
+		// as a missing file would overwrite the whole configuration.
+		var cfg Config
+		if _, statErr := os.Stat(resolved); errors.Is(statErr, os.ErrNotExist) {
 			cfg = Config{Version: Version, Path: resolved}
+		} else if cfg, err = Load(resolved); err != nil {
+			return err
 		}
 		changed, err := mutate(&cfg)
 		if err != nil {
@@ -159,6 +161,14 @@ func Marshal(cfg Config) ([]byte, error) {
 	for _, project := range cfg.Projects {
 		raw.Projects = append(raw.Projects, rawSource(project))
 	}
+	for _, project := range cfg.MissingProjects {
+		raw.Projects = append(raw.Projects, rawSource(project))
+	}
+	for _, retired := range cfg.RetiredProjects {
+		raw.Retired = append(raw.Retired, rawRetired{
+			Path: retired.Path, Reason: retired.Reason, RetiredAt: retired.RetiredAt.UTC(),
+		})
+	}
 	for _, source := range cfg.Sources {
 		raw.Sources = append(raw.Sources, rawSource{Path: source.Path})
 	}
@@ -196,6 +206,10 @@ func ReplaceProjectPaths(current Config, paths []string) (Config, error) {
 		}
 		selected[project.Path] = struct{}{}
 		project.Ignored = ignored[project.Path]
+		// Adding a project back ends its retirement.
+		replacement.RetiredProjects = removeRetired(
+			append([]RetiredProject(nil), replacement.RetiredProjects...), project.Path,
+		)
 		replacement.Projects = append(replacement.Projects, project)
 	}
 	Sort(&replacement)

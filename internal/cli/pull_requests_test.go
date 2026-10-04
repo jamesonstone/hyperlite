@@ -71,3 +71,31 @@ func (s *recordingProjectPullRequestScanner) Scan(
 	s.modes = append(s.modes, mode)
 	return s.result, nil
 }
+
+func TestRunPullRequestsRetiresProjectsWhoseDirectoryIsGone(t *testing.T) {
+	kept := t.TempDir()
+	gone := filepath.Join(t.TempDir(), "gone")
+	configPath := filepath.Join(t.TempDir(), "config.yaml")
+	contents := []byte("version: 2\nprojects:\n  - path: " + kept + "\n  - path: " + gone + "\n")
+	if err := os.WriteFile(configPath, contents, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	scanner := &recordingProjectPullRequestScanner{result: model.ProjectPullRequestScan{
+		Projects: []model.ProjectPullRequests{}, Errors: []model.ScanError{}, Warnings: []model.ScanError{},
+	}}
+	var output bytes.Buffer
+	app := App{Out: &output, pullRequestScannerSource: scanner}
+	if err := app.runPullRequests(t.Context(), configPath, pullRequestOptions{jsonOutput: true}); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(output.Bytes(), []byte("project-retired")) {
+		t.Fatalf("output = %s", output.String())
+	}
+	cfg, err := config.Load(configPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg.Projects) != 1 || len(cfg.MissingProjects) != 0 || len(cfg.RetiredProjects) != 1 {
+		t.Fatalf("cfg = %#v", cfg)
+	}
+}
