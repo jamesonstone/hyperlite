@@ -1,143 +1,146 @@
 import SwiftUI
 
-struct HyperlitePullRequestPanel: View {
+/// The whole Open PRs pane: a top bar of quick facts and window actions, the
+/// pull request list with pinned project headers, and a footer. The list is a
+/// LazyVStack that is the ScrollView's direct content, so only rows on screen
+/// are built, headers pin natively, and scrolling to an entry is exact.
+struct HyperlitePullRequestPanel<Actions: View>: View {
     let scan: HyperliteProjectPullRequestScan
     @ObservedObject var organization: HyperliteDashboardListState
     var isRefreshing = false
     var isPollingActivity = false
+    var errorMessage: String?
     var selectionID: String?
+    var scrollRequest: HyperliteScrollRequest?
     var onNavItems: ([HyperliteWorkspaceNavItem]) -> Void = { _ in }
     var onToggleIgnore: (HyperliteProjectPullRequests) -> Void = { _ in }
+    @ViewBuilder var actions: Actions
+    @ObservedObject private var collapse = HyperliteSectionCollapseStore.shared
     @State private var chipClock = Date()
-    @AppStorage("hyperlite.dashboard.open-pr-hide-idle") private var hideIdleProjects = true
-    @AppStorage(HyperliteHiddenProjectListPresentation.expandedStorageKey)
-    private var quietOnesExpanded = false
-
     @State private var modelCache = HyperlitePullRequestPanelModelCache()
+    @AppStorage("hyperlite.dashboard.open-pr-hide-idle") private var hideIdleProjects = true
 
     private var model: HyperlitePullRequestPanelModel {
         modelCache.model(scan: scan, hideIdle: hideIdleProjects, now: chipClock)
     }
 
-    private var visibleProjectSections: [HyperliteProjectSection] { model.visibleSections }
-    private var hiddenProjectSections: [HyperliteProjectSection] { model.hiddenSections }
-    private var showsHiddenList: Bool { !model.hiddenSections.isEmpty }
-    private var hiddenAttentionCount: Int { model.hiddenAttentionCount }
-
-    /// Navigable entries in render order so keyboard selection tracks the list.
-    /// Collapsed project rows are skipped because they are not on screen.
-    private var navItems: [HyperliteWorkspaceNavItem] {
-        var items: [HyperliteWorkspaceNavItem] = []
-        for section in visibleProjectSections {
-            items.append(navHeaderItem(section))
-            if !isCollapsed(section) {
-                for row in section.rows {
-                    items.append(HyperliteWorkspaceNavItem(id: row.id, action: .open(row.url)))
-                }
-            }
-        }
-        if showsHiddenList {
-            items.append(HyperliteWorkspaceNavItem(
-                id: HyperliteWorkspaceNavigation.quietOnesID, action: .toggleQuietOnes
-            ))
-            if quietOnesExpanded {
-                for section in hiddenProjectSections { items.append(navHeaderItem(section)) }
-            }
-        }
-        return items
-    }
-
-    private func navHeaderItem(_ section: HyperliteProjectSection) -> HyperliteWorkspaceNavItem {
-        HyperliteWorkspaceNavItem(
-            id: headerID(section), action: .open(section.repositoryURL ?? section.pullsURL)
-        )
-    }
-
-    private func headerID(_ section: HyperliteProjectSection) -> String {
-        HyperliteWorkspaceNavigation.headerID(sectionID: section.id)
-    }
-
-    private func isCollapsed(_ section: HyperliteProjectSection) -> Bool {
-        UserDefaults.standard.bool(
-            forKey: HyperliteOpenPRProjectSectionPresentation.storageKey(projectID: section.id)
-        )
-    }
-
-    private func isSelected(_ id: String) -> Bool { selectionID == id }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            header
-            if scan.projects.isEmpty {
-                Text("No configured projects")
-                    .font(HyperliteTypography.compact)
-                    .foregroundStyle(HyperliteTheme.mutedText.color)
-                    .padding(.vertical, 2)
-            } else {
-                // Eager on purpose: a LazyVStack nested below the ScrollView's
-                // direct content keeps re-estimating very uneven section
-                // heights while scrolling and can spin the main thread.
-                VStack(alignment: .leading, spacing: HyperliteOpenPRSpacing.stageSpacing) {
-                    ForEach(visibleProjectSections) { section in
-                        projectSectionStage(section)
-                            .id(section.id)
-                    }
-                    if showsHiddenList {
-                        HyperliteHiddenProjectList(
-                            count: hiddenProjectSections.count,
-                            attentionCount: hiddenAttentionCount,
-                            selected: isSelected(HyperliteWorkspaceNavigation.quietOnesID)
-                        ) {
-                            ForEach(hiddenProjectSections) { section in
-                                projectSectionStage(section)
-                            }
-                        }
-                    }
-                }
+        let model = model
+        VStack(alignment: .leading, spacing: 0) {
+            topBar(model)
+            if let errorMessage {
+                Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                    .font(HyperliteTypography.body)
+                    .foregroundStyle(HyperliteTheme.red.color)
+                    .padding(.bottom, 6)
             }
+            list(model)
+            HyperliteOpenPRFooter(observedAt: scan.observedAt)
         }
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Open pull requests across configured projects")
-        .accessibilityValue(accessibilityValue)
-        .onChange(of: navItems) { items in
-            onNavItems(items)
-        }
-        .onAppear { onNavItems(navItems) }
+        .onChange(of: navItems(model)) { onNavItems($0) }
+        .onAppear { onNavItems(navItems(model)) }
         .task(id: scan.generatedAt) {
             organization.reconcilePullRequestReviewMarks(scan: scan)
             await advanceChipClock()
         }
     }
 
-    private var accessibilityValue: String {
-        var parts: [String] = []
-        if isRefreshing { parts.append(HyperliteOpenPRRefreshStatus.accessibilityRefreshing) }
-        if isPollingActivity { parts.append(HyperliteOpenPRRefreshStatus.accessibilityPolling) }
-        return parts.joined(separator: ". ")
+    private func topBar(_ model: HyperlitePullRequestPanelModel) -> some View {
+        HStack(alignment: .center, spacing: 10) {
+            HyperliteQuickFactsBar(facts: HyperliteQuickFacts.facts(model: model, now: chipClock))
+                .layoutPriority(1)
+            if isRefreshing {
+                ProgressView().controlSize(.mini).accessibilityLabel(HyperliteOpenPRRefreshStatus.accessibilityRefreshing)
+            }
+            Spacer(minLength: 4)
+            HyperliteHideIdleEye(hideIdle: $hideIdleProjects, hiddenSections: model.hiddenSections)
+            actions
+        }
+        .padding(.bottom, 8)
     }
 
-    private var header: some View {
-        HStack(alignment: .center, spacing: 6) {
-            HyperliteOpenPRTitleCluster(
-                count: model.rowCount,
-                isRefreshing: isRefreshing
-            )
-            .layoutPriority(1)
-            Spacer(minLength: 4)
-            HyperliteHideIdleEye(hideIdle: $hideIdleProjects, hiddenSections: hiddenProjectSections)
-            Text(HyperlitePullRequestPresentation.freshnessLabel(
-                observedAt: scan.observedAt
-            ))
-                .font(HyperliteTypography.compact)
-                .foregroundStyle(HyperliteTheme.mutedText.color)
-                .lineLimit(1)
-                .layoutPriority(-1)
+    private func list(_ model: HyperlitePullRequestPanelModel) -> some View {
+        ScrollViewReader { proxy in
+            ScrollView(.vertical, showsIndicators: false) {
+                LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
+                    if model.sections.isEmpty {
+                        Text("No configured projects")
+                            .font(HyperliteTypography.compact)
+                            .foregroundStyle(HyperliteTheme.mutedText.color)
+                    }
+                    ForEach(model.visibleSections) { section in
+                        Section {
+                            if !collapse.isCollapsed(section.id) {
+                                ForEach(section.rows) { row in
+                                    pullRequestRow(row)
+                                }
+                            }
+                        } header: {
+                            sectionHeader(section)
+                        }
+                    }
+                }
+                .padding(.bottom, 12)
+            }
+            .onChange(of: scrollRequest) { request in
+                guard let request else { return }
+                // Keep the keyboard selection in the middle of the list.
+                proxy.scrollTo(request.id, anchor: .center)
+            }
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("Open pull requests across configured projects")
+            .accessibilityValue(isPollingActivity ? HyperliteOpenPRRefreshStatus.accessibilityPolling : "")
         }
     }
 
-    private func chips(for section: HyperliteProjectSection) -> [HyperliteWorkflowChip] {
-        HyperliteWorkflowStripPresentation.chips(activity: section.project.workflows, now: chipClock)
+    private func sectionHeader(_ section: HyperliteProjectSection) -> some View {
+        let chips = HyperliteWorkflowStripPresentation.chips(activity: section.project.workflows, now: chipClock)
+        let id = HyperliteWorkspaceNavigation.headerID(sectionID: section.id)
+        return HyperliteProjectSectionHeader(
+            section: section,
+            chips: chips,
+            collapsed: HyperliteOpenPRProjectSectionPresentation.canCollapse(section) ? Binding(
+                get: { collapse.isCollapsed(section.id) },
+                set: { collapse.setCollapsed(section.id, $0) }
+            ) : nil,
+            onToggleIgnore: { onToggleIgnore(section.project) },
+            stageKind: .forSection(
+                section, chips: chips,
+                alerts: HyperlitePipelineAlertPresentation.alerts(from: section.project.workflows)
+            )
+        )
+        .padding(.vertical, 4)
+        .hyperliteNavHighlight(selected: selectionID == id)
+        .background(HyperliteTheme.canvas.color)
+        .id(id)
+    }
+
+    private func pullRequestRow(_ row: HyperlitePullRequestRow) -> some View {
+        HyperlitePullRequestPanelRow(
+            row: row,
+            reviewStatus: organization.pullRequestReviewStatus(for: row),
+            toggleReview: { organization.togglePullRequestReviewed(row) }
+        )
+        .frame(height: HyperliteOpenPRSpacing.rowHeight(bodySize: HyperliteAppearance.shared.bodySize))
+        .padding(.vertical, HyperliteOpenPRSpacing.rowVerticalPadding)
+        .hyperliteNavHighlight(selected: selectionID == row.id)
+        .id(row.id)
+    }
+
+    /// Navigable entries in render order; collapsed rows are skipped.
+    private func navItems(_ model: HyperlitePullRequestPanelModel) -> [HyperliteWorkspaceNavItem] {
+        var items: [HyperliteWorkspaceNavItem] = []
+        for section in model.visibleSections {
+            items.append(HyperliteWorkspaceNavItem(
+                id: HyperliteWorkspaceNavigation.headerID(sectionID: section.id),
+                action: .open(section.repositoryURL ?? section.pullsURL)
+            ))
+            guard !collapse.isCollapsed(section.id) else { continue }
+            for row in section.rows {
+                items.append(HyperliteWorkspaceNavItem(id: row.id, action: .open(row.url)))
+            }
+        }
+        return items
     }
 
     /// Re-renders once each time a fresh running chip would turn stale, so a
@@ -152,29 +155,5 @@ struct HyperlitePullRequestPanel: View {
             guard !Task.isCancelled else { return }
             chipClock = Date()
         }
-    }
-
-    @ViewBuilder
-    private func projectSectionStage(_ section: HyperliteProjectSection) -> some View {
-        HyperliteOpenPRProjectSection(
-            section: section,
-            chips: chips(for: section),
-            headerSelected: isSelected(headerID(section)),
-            onToggleIgnore: { onToggleIgnore(section.project) }
-        ) {
-            ForEach(section.rows) { row in
-                pullRequestRow(row)
-                    .hyperliteNavHighlight(selected: isSelected(row.id))
-                    .id(row.id)
-            }
-        }
-    }
-
-    private func pullRequestRow(_ row: HyperlitePullRequestRow) -> some View {
-        HyperlitePullRequestPanelRow(
-            row: row,
-            reviewStatus: organization.pullRequestReviewStatus(for: row),
-            toggleReview: { organization.togglePullRequestReviewed(row) }
-        )
     }
 }

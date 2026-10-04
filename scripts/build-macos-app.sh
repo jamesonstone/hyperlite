@@ -5,7 +5,11 @@ set -euo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repository_root="$(cd "$script_dir/.." && pwd)"
 application="${HYPERLITE_APP:-$repository_root/build/Hyperlite.app}"
-version="${HYPERLITE_VERSION:-dev}"
+# The footer shows the full describe string; CFBundleShortVersionString must
+# stay Apple's numeric major.minor.patch form.
+describe="$(git -C "$repository_root" describe --tags --always --dirty 2>/dev/null || echo dev)"
+version="${HYPERLITE_VERSION:-$describe}"
+bundle_version="$(printf '%s' "$version" | sed -nE 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/p')"
 commit="${HYPERLITE_COMMIT:-$(git -C "$repository_root" rev-parse --short HEAD)}"
 build_date="${HYPERLITE_BUILD_DATE:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"
 build_number_file="$repository_root/build/.hyperlite-build-number"
@@ -30,8 +34,12 @@ if [[ -f "$build_number_file" ]]; then
 fi
 printf '%s\n' "$build_number" > "$build_number_file"
 cp "$repository_root/macos/Hyperlite/Info.plist" "$application/Contents/Info.plist"
-/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $version" "$application/Contents/Info.plist"
+if [[ -n "$bundle_version" ]]; then
+  /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $bundle_version" "$application/Contents/Info.plist"
+fi
+/usr/libexec/PlistBuddy -c "Add :HyperliteDescribe string $version" "$application/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $build_number" "$application/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Add :HyperliteCommit string $commit" "$application/Contents/Info.plist"
 
 icon_source="$repository_root/macos/Hyperlite/Assets/HyperliteIcon.png"
 iconset="$repository_root/build/Hyperlite.iconset"

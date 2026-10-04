@@ -16,10 +16,7 @@ extension HyperliteState {
                 if ignore {
                     refreshPullRequests(mode: .local, continueIfStale: false, supersedeExisting: true)
                 } else {
-                    UserDefaults.standard.set(
-                        false,
-                        forKey: HyperliteOpenPRProjectSectionPresentation.storageKey(projectID: project.id)
-                    )
+                    HyperliteSectionCollapseStore.shared.setCollapsed(project.id, false)
                     refreshPullRequests(mode: .project(path), continueIfStale: false, supersedeExisting: true)
                 }
             } catch {

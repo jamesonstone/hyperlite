@@ -96,10 +96,6 @@ enum HyperliteWorkspaceNavigationTests {
             HyperliteWorkspaceNavigation.headerID(sectionID: "/repo/one") == "header:/repo/one",
             "header ids namespace the section id so headings and rows never collide"
         )
-        expect(
-            HyperliteWorkspaceNavigation.quietOnesID == "quiet-ones",
-            "the quiet-ones toggle keeps a stable navigation id"
-        )
     }
 
     private static func expect(_ condition: @autoclosure () -> Bool, _ message: String) {

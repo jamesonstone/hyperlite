@@ -22,7 +22,7 @@
   pipeline failure badges, every-project section plans with Pulls/Actions
   links, the bounded activity poll and ambient refresh schedules, heading
   hierarchy, project lanterns, the collapsible hidden-project list,
-  hide-idle filtering with a quiet-ones attention count, and Open PRs
+  hide-idle filtering, quick facts and the footer version label, and Open PRs
   keyboard-navigation selection and key classification.
 - No live-integration suite is currently defined; the retired inferred
   attention and agent-session suites were removed with those features.

@@ -6,6 +6,7 @@ struct HyperliteProjectSectionHeader: View {
     let chips: [HyperliteWorkflowChip]
     var collapsed: Binding<Bool>? = nil
     var onToggleIgnore: (() -> Void)? = nil
+    var stageKind: HyperliteOpenPRProjectStageKind = .active
 
     private var isIdle: Bool { section.rows.isEmpty }
     private var isIgnored: Bool { section.project.isIgnored }
@@ -20,6 +21,7 @@ struct HyperliteProjectSectionHeader: View {
 
     var body: some View {
         HStack(spacing: 6) {
+            lantern
             if let collapsed {
                 disclosureChevron(collapsed)
             }
@@ -53,9 +55,20 @@ struct HyperliteProjectSectionHeader: View {
             githubButtons
         }
         .contentShape(Rectangle())
-        .padding(.top, isIdle
-            ? HyperliteOpenPRSpacing.idleSectionTopPadding
-            : HyperliteOpenPRSpacing.activeSectionTopPadding)
+    }
+
+    /// The project's state at a glance: cyan while running, orange on a
+    /// pipeline alert, quiet otherwise.
+    private var lantern: some View {
+        Capsule()
+            .fill(
+                stageKind.lanternUsesAttentionColor
+                    ? HyperliteTheme.orange.color
+                    : stageKind.lanternIsLive ? HyperliteTheme.cyan.color : HyperliteTheme.mutedText.color
+            )
+            .frame(width: 3, height: 16)
+            .opacity(stageKind.lanternOpacity)
+            .accessibilityHidden(true)
     }
 
     private func disclosureChevron(_ collapsed: Binding<Bool>) -> some View {
