@@ -64,7 +64,31 @@ enum HyperliteTypography {
         return NSFont.monospacedSystemFont(ofSize: size, weight: weight)
     }
 
+    /// Fonts are matched once per size and weight. Every row reads several
+    /// fonts on each render, and font descriptor matching is expensive.
     private static func swiftUIFont(size: CGFloat, weight: NSFont.Weight) -> Font {
-        Font(appKitFont(size, weight: weight))
+        fontCache.font(size: size, weight: weight) { Font(appKitFont(size, weight: weight)) }
+    }
+
+    private static let fontCache = HyperliteFontCache()
+}
+
+private final class HyperliteFontCache: @unchecked Sendable {
+    private struct Key: Hashable {
+        let size: CGFloat
+        let weight: CGFloat
+    }
+
+    private let lock = NSLock()
+    private var fonts: [Key: Font] = [:]
+
+    func font(size: CGFloat, weight: NSFont.Weight, make: () -> Font) -> Font {
+        let key = Key(size: size, weight: weight.rawValue)
+        lock.lock()
+        defer { lock.unlock() }
+        if let font = fonts[key] { return font }
+        let font = make()
+        fonts[key] = font
+        return font
     }
 }

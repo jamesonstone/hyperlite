@@ -26,71 +26,48 @@ struct HyperlitePullRequestRowContent: View {
         .opacity(reviewStatus == .reviewed ? 0.62 : 1)
     }
 
+    /// One button opens the pull request from anywhere on the row; the
+    /// `GH-<n>` issue number is a separate button laid over its column. Fewer
+    /// interactive regions per row keeps scrolling cheap, because SwiftUI
+    /// hit-tests every visible region on each scroll frame.
     private var wideRow: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 7) {
-            pullRequestNumberButton
-            issueNumberButton
-            pullRequestTarget {
-                HStack(alignment: .firstTextBaseline, spacing: 7) {
-                    statusBadge
-                    mergeConflictGlyph
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        titleLabel
-                            .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
-                        attentionCluster
-                        ageLabel
-                    }
-                }
+        Button(action: openPullRequest) {
+            HStack(alignment: .center, spacing: Self.columnSpacing) {
+                Text(row.pullRequestLabel)
+                    .foregroundStyle(titleColor)
+                    .lineLimit(1)
+                    .frame(width: HyperlitePullRequestRowLayout.pullRequestNumberColumnWidth, alignment: .leading)
+                Color.clear
+                    .frame(width: HyperlitePullRequestRowLayout.issueNumberColumnWidth, height: 1)
+                statusBadge
+                mergeConflictGlyph
+                titleLabel
+                    .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+                    .layoutPriority(Self.layout.titleLayoutPriority)
+                attentionCluster
+                ageLabel
             }
-            .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
-            .layoutPriority(Self.layout.titleLayoutPriority)
-        }
-    }
-
-    // A plain button so a click anywhere but the number opens the pull request,
-    // preserving the row's prior single-target behavior.
-    private func pullRequestTarget(@ViewBuilder _ content: () -> some View) -> some View {
-        Button(action: openPullRequest) {
-            content().contentShape(Rectangle())
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .disabled(row.url == nil)
+        .overlay(alignment: .leading) {
+            if let issueLabel = row.issueLabel {
+                Button(action: openIssue) {
+                    Text(issueLabel)
+                        .foregroundStyle(HyperliteTheme.secondaryText.color)
+                        .lineLimit(1)
+                        .frame(width: HyperlitePullRequestRowLayout.issueNumberColumnWidth, alignment: .leading)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .offset(x: HyperlitePullRequestRowLayout.pullRequestNumberColumnWidth + Self.columnSpacing)
+                .accessibilityLabel("Issue \(issueLabel)")
+            }
+        }
     }
 
-    // Two labeled numbers: the pull request opens the PR, the `GH-<n>` issue
-    // opens the tracked issue, so neither number is ambiguous.
-    private var pullRequestNumberButton: some View {
-        Button(action: openPullRequest) {
-            Text(row.pullRequestLabel)
-                .foregroundStyle(titleColor)
-                .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
-                .frame(minWidth: HyperlitePullRequestRowLayout.pullRequestNumberColumnWidth, alignment: .leading)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .disabled(row.url == nil)
-        .layoutPriority(Self.layout.metadataLayoutPriority)
-        .help("Open pull request #\(row.number) on GitHub")
-        .accessibilityLabel("Pull request \(row.number)")
-    }
-
-    private var issueNumberButton: some View {
-        Button(action: openIssue) {
-            Text(row.issueLabel ?? "")
-                .foregroundStyle(HyperliteTheme.secondaryText.color)
-                .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
-                .frame(minWidth: HyperlitePullRequestRowLayout.issueNumberColumnWidth, alignment: .leading)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .disabled(row.issueURL == nil)
-        .layoutPriority(Self.layout.metadataLayoutPriority)
-        .help(row.linkedIssueNumber.map { "Open issue #\($0) on GitHub" } ?? "")
-        .accessibilityLabel(row.linkedIssueNumber.map { "Issue \($0)" } ?? "")
-        .accessibilityHidden(row.issueLabel == nil)
-    }
+    private static let columnSpacing: CGFloat = 7
 
     private var statusBadge: some View {
         Text(row.isDraft ? "draft" : "ready")
@@ -114,16 +91,14 @@ struct HyperlitePullRequestRowContent: View {
     private var attentionCluster: some View {
         let reviewCount = review.needsAttention ? (row.unresolvedReviewThreads ?? 0) : 0
         if !row.failedPipelines.isEmpty || reviewCount > 0 {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
+            HStack(alignment: .center, spacing: 6) {
                 ForEach(row.failedPipelines) { pipeline in
                     Label(pipeline.shortName, systemImage: "xmark")
                         .labelStyle(HyperliteCompactLabelStyle())
-                        .help("\(pipeline.name) failed")
                 }
                 if reviewCount > 0 {
                     Label("\(reviewCount)", systemImage: "text.bubble")
                         .labelStyle(HyperliteCompactLabelStyle())
-                        .help(review.accessibilityLabel)
                 }
             }
             .font(HyperliteTypography.compact)
@@ -164,10 +139,7 @@ struct HyperlitePullRequestRowContent: View {
                 .accessibilityHidden(true)
         } else {
             Color.clear
-                .frame(
-                    width: Self.layout.mergeConflictColumnWidth,
-                    alignment: .leading
-                )
+                .frame(width: Self.layout.mergeConflictColumnWidth, height: 1)
                 .accessibilityHidden(true)
         }
     }
@@ -185,7 +157,7 @@ struct HyperlitePullRequestRowContent: View {
 /// Icon then text with a tight gap, sized for compact row metadata.
 struct HyperliteCompactLabelStyle: LabelStyle {
     func makeBody(configuration: Configuration) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 2) {
+        HStack(alignment: .center, spacing: 2) {
             configuration.icon.font(.system(size: 8, weight: .bold))
             configuration.title
         }

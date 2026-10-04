@@ -79,11 +79,6 @@ final class HyperliteWorkspaceFocus: ObservableObject {
         switch item.action {
         case let .open(url):
             if let url { NSWorkspace.shared.open(url) }
-        case .toggleQuietOnes:
-            let key = HyperliteHiddenProjectListPresentation.expandedStorageKey
-            UserDefaults.standard.set(
-                !UserDefaults.standard.bool(forKey: key), forKey: key
-            )
         }
     }
 

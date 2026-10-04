@@ -84,8 +84,18 @@ one repository per query, concurrently, only where pull requests are open. One
 slow, missing, or failing repository therefore never hides another's rows.
 Refresh forces the index current; Force Cache Refresh in Command-K retries only
 this cache without refreshing unrelated projections. While a fetch is in
-flight, a small spinner sits beside the Open PRs title; cached rows stay on
+flight, a small spinner sits beside the quick facts; cached rows stay on
 screen.
+
+The top bar shows quick facts in priority order, as many as fit the window:
+open pull requests, projects with open pull requests, failing CI, pull
+requests needing review feedback, merge conflicts, pull requests older than 10
+and 30 days, ready and draft counts, updated today, bot pull requests, running
+projects, hidden projects with a failing pipeline, ignored projects, and the
+oldest pull request's age. Hover a fact for its definition. The footer shows
+when Open PRs were last updated (left) and the Hyperlite version and commit
+(right). While you scroll, the current project's heading stays pinned at the
+top until the next project's heading replaces it.
 The packaged app preserves its inherited executable search path and adds the
 standard Apple Silicon and Intel Homebrew directories plus `~/.local/bin` so
 Finder launches can resolve `gh` and `git-wt`.
@@ -106,21 +116,17 @@ that folds in `no open pull requests`; cached or unavailable projects show
 their availability text there instead.
 
 Projects without an open pull request are hidden by default; the eye control
-on the Open PRs title row shows or hides them. Hiding keeps only projects with
-an open pull request in the main list — a no-PR project is hidden even when a
-workflow is running or failing — and the hidden projects move into a standard
-disclosure list (`watching the quiet ones`) below the open work, labeled with
-the hidden count and — when any hidden project has a failing pipeline or
-workflow — an attention count. It doubles as a project launcher, so its
-expanded state persists across launches; expand it to see each hidden
-project's heading, with the same availability text, workflow chips,
-pipeline-alert badges, and Pulls/Actions links as an inline project. Showing
-all projects (eye off) lists them inline instead. The hide-idle eye stays
+in the top bar shows or hides them. Hiding keeps only projects with an open
+pull request in the list — a no-PR project is hidden even when a workflow is
+running or failing; the `hidden failing` quick fact counts hidden projects
+with a failing pipeline. Showing all projects (eye off) lists them inline with
+their availability text, workflow chips, pipeline-alert badges, and
+Pulls/Actions links. The hide-idle eye stays
 quiet while idle projects are hidden and brightens only when they are shown.
 Hovering it while projects are hidden lists every hidden project by name
 (ignored ones are marked), scrolling when the list is long.
 
-The panel title is larger and brighter than repository headings. Headings for
+The open count leads the top bar in larger type. Headings for
 projects with open PRs use primary semibold type; idle headings drop to
 compact muted type so they recede. A no-PR project with a running or failing
 workflow stays one line in secondary text. Repository names, workflow chips,
@@ -243,12 +249,11 @@ in `git-wt`.
 ### Keyboard shortcuts
 
 - Whenever no palette or text field is focused, `j`/`k` and the `Down`/`Up`
-  arrows move a highlighted selection between project headings, pull-request
-  rows, the `watching the quiet ones` toggle, and the hidden project headings
-  it reveals. `Return` opens the selected pull request or repository, or
-  expands and collapses the quiet-ones list. The highlight appears only after
-  the first navigation key, and the list scrolls to keep it on screen, so the
-  keyboard is the fastest way through Open PRs.
+  arrows move a highlighted selection between project headings and
+  pull-request rows. `Return` opens the selected pull request or repository.
+  The highlight appears only after the first navigation key, and the list
+  scrolls to keep the selection centered, so the keyboard is the fastest way
+  through Open PRs.
 - `Command+R` refreshes Open PRs and the configured project list.
 - `Command+K` opens a searchable command palette with Theme, Font Size,
   Refresh, Force Cache Refresh, Sweep Worktrees, Copy Open PR Merge Prompt,

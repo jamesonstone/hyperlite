@@ -64,7 +64,7 @@
   no open pull requests. Rows group under their project; there is no pinning or
   manual reordering. Projects with rows follow their most recently updated pull
   request, and projects without rows follow in configuration order. Section
-  collapse, the hide-idle choice, and the quiet-ones expansion are local
+  collapse and the hide-idle choice are local
   presentation state and never change GitHub state.
 - Technical content, including paths, commands, arguments, messages, and
   results, uses JetBrainsMono Nerd Font through one shared SwiftUI/AppKit

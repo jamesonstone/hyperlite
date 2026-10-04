@@ -20,13 +20,7 @@ struct HyperliteWindow: View {
     var body: some View {
         let pullRequests = pullRequestScan
         return ZStack(alignment: .topLeading) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    Spacer(minLength: 0)
-                    windowActions
-                }
-                pullRequestColumn
-            }
+            pullRequestColumn
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .padding(20)
             .environment(\.colorScheme, appearance.palette.colorScheme)
@@ -92,37 +86,41 @@ struct HyperliteWindow: View {
         }
     }
 
+    @ViewBuilder
     private var pullRequestColumn: some View {
-        HyperliteOpenPRWatchColumn(scrollRequest: focus.scrollRequest) {
-            VStack(alignment: .leading, spacing: 10) {
+        if let pullRequests = pullRequestScan {
+            HyperlitePullRequestPanel(
+                scan: pullRequests,
+                organization: dashboardLists,
+                isRefreshing: state.isRefreshingPullRequests,
+                isPollingActivity: state.isPollingActivity,
+                errorMessage: state.errorMessage,
+                selectionID: focus.focusVisible ? focus.selectionID : nil,
+                scrollRequest: focus.scrollRequest,
+                onNavItems: { focus.setItems($0) },
+                onToggleIgnore: { state.toggleIgnored($0) }
+            ) {
+                windowActions
+            }
+            .environment(\.hyperliteWindowVisible, state.activityPolling.isWindowVisible)
+        } else {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    if state.isRefreshingPullRequests {
+                        ProgressView().controlSize(.mini)
+                            .accessibilityLabel(HyperliteOpenPRRefreshStatus.accessibilityRefreshing)
+                    }
+                    Spacer(minLength: 0)
+                    windowActions
+                }
                 if let errorMessage = state.errorMessage {
                     Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
                         .font(HyperliteTypography.body)
                         .foregroundStyle(HyperliteTheme.red.color)
                 }
-                if let pullRequests = pullRequestScan {
-                    HyperlitePullRequestPanel(
-                        scan: pullRequests,
-                        organization: dashboardLists,
-                        isRefreshing: state.isRefreshingPullRequests,
-                        isPollingActivity: state.isPollingActivity,
-                        selectionID: focus.focusVisible ? focus.selectionID : nil,
-                        onNavItems: { focus.setItems($0) },
-                        onToggleIgnore: { state.toggleIgnored($0) }
-                    )
-                } else {
-                    HyperliteOpenPRTitleCluster(count: nil, isRefreshing: state.isRefreshingPullRequests)
-                        .frame(maxWidth: .infinity, alignment: .topLeading)
-                        .accessibilityValue(
-                            state.isRefreshingPullRequests
-                                ? HyperliteOpenPRRefreshStatus.accessibilityRefreshing
-                                : ""
-                        )
-                }
+                Spacer(minLength: 0)
             }
-            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
-        .environment(\.hyperliteWindowVisible, state.activityPolling.isWindowVisible)
     }
 
     private var windowActions: some View {

@@ -36,33 +36,6 @@ enum HyperliteOpenPRProjectStageKind: Equatable {
     }
 }
 
-struct HyperliteOpenPRProjectStage<Content: View>: View {
-    let kind: HyperliteOpenPRProjectStageKind
-    @ViewBuilder var content: Content
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 6) {
-            Capsule()
-                .fill(
-                    kind.lanternUsesAttentionColor
-                        ? HyperliteTheme.orange.color
-                        : kind.lanternIsLive
-                            ? HyperliteTheme.cyan.color
-                            : HyperliteTheme.mutedText.color
-                )
-                .frame(width: 3)
-                .padding(.vertical, 3)
-                .opacity(kind.lanternOpacity)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: HyperliteOpenPRSpacing.lazySpacing) {
-                content
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(.vertical, HyperliteOpenPRSpacing.stageVerticalPadding)
-    }
-}
-
 /// Presentation helpers for a collapsible Open PRs project section, kept free
 /// of the view's generic row type so they stay unit-testable.
 enum HyperliteOpenPRProjectSectionPresentation {
@@ -74,61 +47,5 @@ enum HyperliteOpenPRProjectSectionPresentation {
 
     static func storageKey(projectID: String) -> String {
         "hyperlite.openpr.collapsed.\(projectID)"
-    }
-}
-
-/// One project cluster in the Open PRs list: a lantern stage whose heading can
-/// collapse the pull-request rows beneath it. Collapsed keeps the project name
-/// and its open-PR count visible so the list stays scannable by project. The
-/// collapsed state persists per project. Only projects with rows can collapse.
-struct HyperliteOpenPRProjectSection<Rows: View>: View {
-    let section: HyperliteProjectSection
-    let chips: [HyperliteWorkflowChip]
-    var headerSelected: Bool
-    var onToggleIgnore: (() -> Void)?
-    @ViewBuilder var rows: Rows
-    @AppStorage private var collapsed: Bool
-
-    init(
-        section: HyperliteProjectSection,
-        chips: [HyperliteWorkflowChip],
-        headerSelected: Bool = false,
-        onToggleIgnore: (() -> Void)? = nil,
-        @ViewBuilder rows: () -> Rows
-    ) {
-        self.section = section
-        self.chips = chips
-        self.headerSelected = headerSelected
-        self.onToggleIgnore = onToggleIgnore
-        self.rows = rows()
-        self._collapsed = AppStorage(
-            wrappedValue: false,
-            HyperliteOpenPRProjectSectionPresentation.storageKey(projectID: section.id)
-        )
-    }
-
-    private var canCollapse: Bool {
-        HyperliteOpenPRProjectSectionPresentation.canCollapse(section)
-    }
-
-    var body: some View {
-        HyperliteOpenPRProjectStage(
-            kind: .forSection(
-                section, chips: chips,
-                alerts: HyperlitePipelineAlertPresentation.alerts(from: section.project.workflows)
-            )
-        ) {
-            HyperliteProjectSectionHeader(
-                section: section,
-                chips: chips,
-                collapsed: canCollapse ? $collapsed : nil,
-                onToggleIgnore: onToggleIgnore
-            )
-            .hyperliteNavHighlight(selected: headerSelected)
-            .id(HyperliteWorkspaceNavigation.headerID(sectionID: section.id))
-            if !canCollapse || !collapsed {
-                rows
-            }
-        }
     }
 }

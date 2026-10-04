@@ -30,9 +30,15 @@ final class HyperliteAppearance: ObservableObject {
 
     private let defaults: UserDefaults
 
+    /// Resolved once per theme: views read palette colors many times per row.
     var palette: HyperliteColorPalette {
-        HyperliteThemeCatalog.palette(for: themeID)
+        if let cachedPalette, cachedPalette.themeID == themeID { return cachedPalette.palette }
+        let resolved = HyperliteThemeCatalog.palette(for: themeID)
+        cachedPalette = (themeID, resolved)
+        return resolved
     }
+
+    private var cachedPalette: (themeID: String, palette: HyperliteColorPalette)?
 
     var bodySize: CGFloat { CGFloat(fontSize.rawValue) }
     var compactSize: CGFloat { fontSize.compactChrome }

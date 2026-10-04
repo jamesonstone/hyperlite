@@ -18,8 +18,6 @@ enum HyperliteWorkspaceNavAction: Equatable {
     /// Open a pull request or repository on GitHub. A `nil` URL is a no-op so a
     /// heading without a resolvable GitHub target still occupies a slot.
     case open(URL?)
-    /// Toggle the `watching the quiet ones` disclosure.
-    case toggleQuietOnes
 }
 
 /// The command a bare (unmodified) key press maps to in the Open PRs list.
@@ -34,8 +32,6 @@ enum HyperliteWorkspaceNavCommand: Equatable {
 /// Pure navigation math for the Open PRs pane, free of AppKit and SwiftUI so it
 /// is covered by the executable model tests.
 enum HyperliteWorkspaceNavigation {
-    static let quietOnesID = "quiet-ones"
-
     static func headerID(sectionID: String) -> String { "header:\(sectionID)" }
 
     /// Classify a bare key press. Callers must first confirm no command,
