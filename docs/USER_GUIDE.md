@@ -61,6 +61,9 @@ minute remain explicitly measuring rather than projecting.
 
 ### Open pull requests
 
+The Open PRs list has no visible scroll bar; scroll with the trackpad or wheel,
+or move through it with `j`/`k` and the arrow keys.
+
 Open PRs load from a separate private cache. Hyperlite keeps the list current
 on its own: while the window is visible it checks once a minute, and revealing
 the window, foreground activation, or waking the Mac checks immediately. Each
