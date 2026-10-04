@@ -33,6 +33,10 @@ enum HyperliteMarkdownTests {
                "inline markdown renders without markup characters")
         expect(HyperliteMarkdownParser.blocks("#nospace").first == .paragraph("#nospace"),
                "a hash without a space is not a heading")
+        expect(HyperliteMarkdownParser.blocks("~~~\na ``` b\n~~~\n1) one\n1000. big") == [
+            .code("a ``` b"), .listItem(marker: "1)", depth: 0, text: "one"),
+            .listItem(marker: "1000.", depth: 0, text: "big"),
+        ], "tilde fences close only on a tilde fence; ) and long ordered markers are list items")
     }
 
     private static func expect(_ condition: @autoclosure () -> Bool, _ message: String) {
