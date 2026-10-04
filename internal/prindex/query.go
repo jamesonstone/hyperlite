@@ -38,7 +38,7 @@ func buildQuery(requests []pageRequest) (string, map[string]pageRequest) {
 		query.WriteString("        author { login }\n")
 		query.WriteString("        assignees(first: 6) { nodes { login } }\n")
 		query.WriteString("        comments { totalCount }\n")
-		query.WriteString("        bodyText\n")
+		query.WriteString("        bodyText body\n")
 		query.WriteString("        reviewRequests(first: 8) { nodes { requestedReviewer { ... on User { login } ... on Team { name } } } }\n")
 		query.WriteString("        commits(last: 3) { nodes { commit { messageHeadline statusCheckRollup { state } } } }\n")
 		writeReviewThreadConnection(&query, "        ", "")

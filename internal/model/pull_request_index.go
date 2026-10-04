@@ -13,23 +13,26 @@ const (
 )
 
 type ProjectPullRequest struct {
-	ID                      string    `json:"id"`
-	Number                  int       `json:"number"`
-	Title                   string    `json:"title"`
-	URL                     string    `json:"url"`
-	HeadRefName             string    `json:"head_ref_name"`
-	HeadRefOID              string    `json:"head_ref_oid"`
-	BaseRefName             string    `json:"base_ref_name,omitempty"`
-	AuthorLogin             string    `json:"author_login,omitempty"`
-	Assignees               []string  `json:"assignees,omitempty"`
-	ReviewRequests          []string  `json:"review_requests,omitempty"`
-	ReviewDecision          string    `json:"review_decision,omitempty"`
-	Additions               int       `json:"additions,omitempty"`
-	Deletions               int       `json:"deletions,omitempty"`
-	ChangedFiles            int       `json:"changed_files,omitempty"`
-	CommentCount            int       `json:"comment_count,omitempty"`
-	CIState                 string    `json:"ci_state,omitempty"`
-	Summary                 string    `json:"summary,omitempty"`
+	ID             string   `json:"id"`
+	Number         int      `json:"number"`
+	Title          string   `json:"title"`
+	URL            string   `json:"url"`
+	HeadRefName    string   `json:"head_ref_name"`
+	HeadRefOID     string   `json:"head_ref_oid"`
+	BaseRefName    string   `json:"base_ref_name,omitempty"`
+	AuthorLogin    string   `json:"author_login,omitempty"`
+	Assignees      []string `json:"assignees,omitempty"`
+	ReviewRequests []string `json:"review_requests,omitempty"`
+	ReviewDecision string   `json:"review_decision,omitempty"`
+	Additions      int      `json:"additions,omitempty"`
+	Deletions      int      `json:"deletions,omitempty"`
+	ChangedFiles   int      `json:"changed_files,omitempty"`
+	CommentCount   int      `json:"comment_count,omitempty"`
+	CIState        string   `json:"ci_state,omitempty"`
+	Summary        string   `json:"summary,omitempty"`
+	// Description is the pull request body as Markdown, cleaned and bounded
+	// for the hover card.
+	Description             string    `json:"description,omitempty"`
 	IsDraft                 bool      `json:"is_draft"`
 	HasMergeConflict        bool      `json:"has_merge_conflict,omitempty"`
 	UnresolvedReviewThreads *int      `json:"unresolved_review_threads,omitempty"`

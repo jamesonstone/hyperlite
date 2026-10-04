@@ -34,6 +34,7 @@ func mappedPullRequest(
 			pullRequest.BodyText,
 			commitHeadlines(pullRequest.Commits),
 		),
+		Description:             descriptionMarkdown(pullRequest.Body),
 		IsDraft:                 pullRequest.IsDraft,
 		HasMergeConflict:        mergeableIsConflicting(pullRequest.Mergeable),
 		UnresolvedReviewThreads: &unresolvedReviewThreads,
