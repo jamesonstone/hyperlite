@@ -46,6 +46,11 @@ struct HyperliteOrganizationGroup: Identifiable, Equatable {
         return String(repository[..<slash]).lowercased()
     }
 
+    /// Expanded projects first, then collapsed ones, each keeping its order.
+    func sectionsOrdered(collapsed: Set<String>) -> [HyperliteProjectSection] {
+        sections.filter { !collapsed.contains($0.id) } + sections.filter { collapsed.contains($0.id) }
+    }
+
     static func groups(_ sections: [HyperliteProjectSection]) -> [HyperliteOrganizationGroup] {
         var order: [String] = []
         var members: [String: [HyperliteProjectSection]] = [:]

@@ -101,3 +101,53 @@ struct HyperliteOrganizationHeading: View {
         return "\(prs) PR\(prs == 1 ? "" : "s") · \(projects) project\(projects == 1 ? "" : "s")"
     }
 }
+
+/// A spinner and label in the top bar while GitHub data is being fetched.
+struct HyperliteRefreshBadge: View {
+    var polling = false
+
+    var body: some View {
+        HStack(spacing: 5) {
+            ProgressView().controlSize(.mini)
+            Text(polling ? "checking workflows…" : "updating from GitHub…")
+                .font(HyperliteTypography.compact)
+                .foregroundStyle(HyperliteTheme.cyan.color)
+                .lineLimit(1)
+                .fixedSize()
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(polling ? HyperliteOpenPRRefreshStatus.accessibilityPolling : HyperliteOpenPRRefreshStatus.accessibilityRefreshing)
+    }
+}
+
+/// An indeterminate bar sweeping across the top of the list while fetching.
+/// It lives in an overlay and animates only its own offset, so the list is
+/// never re-laid out, and it exists only while a fetch is in flight.
+struct HyperliteRefreshBar: View {
+    @State private var phase: CGFloat = -0.35
+
+    var body: some View {
+        GeometryReader { geometry in
+            let width = geometry.size.width
+            ZStack(alignment: .leading) {
+                Rectangle().fill(HyperliteTheme.cyan.color.opacity(0.12))
+                Capsule()
+                    .fill(LinearGradient(
+                        colors: [.clear, HyperliteTheme.cyan.color, .clear],
+                        startPoint: .leading, endPoint: .trailing
+                    ))
+                    .frame(width: width * 0.35)
+                    .offset(x: phase * width)
+            }
+        }
+        .frame(height: 2)
+        .clipped()
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+        .onAppear {
+            withAnimation(.linear(duration: 1.1).repeatForever(autoreverses: false)) {
+                phase = 1.0
+            }
+        }
+    }
+}
