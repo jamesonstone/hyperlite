@@ -177,7 +177,8 @@ struct HyperlitePullRequestHoverCard: View {
         .background(HyperliteTheme.elevatedSurface.color)
         .hyperliteTheme()
         .onHover(perform: onHover)
+        // Children stay individually reachable so VoiceOver can read the
+        // rendered description block by block.
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(card.accessibilityLabel)
     }
 }

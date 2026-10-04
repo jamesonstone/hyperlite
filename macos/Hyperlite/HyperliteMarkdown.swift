@@ -18,19 +18,23 @@ enum HyperliteMarkdownParser {
         var blocks: [HyperliteMarkdownBlock] = []
         var paragraph: [String] = []
         var code: [String]?
+        var fence = ""
         func flushParagraph() {
             if !paragraph.isEmpty { blocks.append(.paragraph(paragraph.joined(separator: " "))) }
             paragraph = []
         }
         for rawLine in markdown.components(separatedBy: "\n") {
             let trimmed = rawLine.trimmingCharacters(in: .whitespaces)
-            if trimmed.hasPrefix("```") {
+            // Backtick or tilde fences; a block closes only on a fence of the
+            // same character at least as long as its opener.
+            if let marker = fenceMarker(trimmed), code == nil || (marker.first == fence.first && marker.count >= fence.count) {
                 if let lines = code {
                     blocks.append(.code(lines.joined(separator: "\n")))
                     code = nil
                 } else {
                     flushParagraph()
                     code = []
+                    fence = marker
                 }
                 continue
             }
@@ -80,6 +84,14 @@ enum HyperliteMarkdownParser {
         return !prefix[open...].contains("]")
     }
 
+    private static func fenceMarker(_ line: String) -> String? {
+        for char in ["`", "~"] as [Character] {
+            let run = line.prefix { $0 == char }
+            if run.count >= 3 { return String(run) }
+        }
+        return nil
+    }
+
     private static func heading(_ line: String) -> HyperliteMarkdownBlock? {
         let hashes = line.prefix { $0 == "#" }.count
         guard (1...6).contains(hashes), line.dropFirst(hashes).first == " " else { return nil }
@@ -97,9 +109,11 @@ enum HyperliteMarkdownParser {
         for bullet in ["- ", "* ", "+ "] where body.hasPrefix(bullet) {
             return .listItem(marker: "•", depth: depth, text: String(body.dropFirst(2)))
         }
+        // Ordered items: up to nine digits followed by "." or ")".
         let digits = body.prefix { $0.isNumber }
-        if !digits.isEmpty, digits.count < 4, body.dropFirst(digits.count).hasPrefix(". ") {
-            return .listItem(marker: "\(digits).", depth: depth, text: String(body.dropFirst(digits.count + 2)))
+        let rest = body.dropFirst(digits.count)
+        if !digits.isEmpty, digits.count <= 9, rest.hasPrefix(". ") || rest.hasPrefix(") ") {
+            return .listItem(marker: "\(digits)\(rest.prefix(1))", depth: depth, text: String(rest.dropFirst(2)))
         }
         return nil
     }

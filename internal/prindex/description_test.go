@@ -23,3 +23,19 @@ func TestDescriptionMarkdownTruncatesAtParagraphBoundary(t *testing.T) {
 		t.Fatalf("got %d runes ending %q", len([]rune(got)), got[len(got)-10:])
 	}
 }
+
+func TestDescriptionMarkdownPreservesFencedCode(t *testing.T) {
+	body := "Intro  \n\n\n\n~~~\nline one  \n\n\n\nline two\t\n~~~\n\n```go\nx := 1   \n```"
+	want := "Intro\n\n~~~\nline one  \n\n\n\nline two\t\n~~~\n\n```go\nx := 1   \n```"
+	if got := descriptionMarkdown(body); got != want {
+		t.Fatalf("got %q\nwant %q", got, want)
+	}
+}
+
+func TestDescriptionMarkdownMeasuresParagraphBoundaryInRunes(t *testing.T) {
+	body := strings.Repeat("é", 300) + "\n\n" + strings.Repeat("a", 1600)
+	got := descriptionMarkdown(body)
+	if utf8RuneCount := len([]rune(got)); utf8RuneCount < descriptionLimit {
+		t.Fatalf("an early non-ASCII paragraph break must not discard the budget; got %d runes", utf8RuneCount)
+	}
+}

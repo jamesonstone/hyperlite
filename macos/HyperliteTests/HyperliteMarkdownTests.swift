@@ -46,6 +46,10 @@ enum HyperliteMarkdownTests {
         let rendered = HyperliteMarkdownParser.inline("Closes #7", repository: "o/r")
         expect(rendered.runs.contains { $0.link?.absoluteString == "https://github.com/o/r/issues/7" },
                "rendered text carries a clickable issue link")
+        expect(HyperliteMarkdownParser.blocks("~~~\na ``` b\n~~~\n1) one\n1000. big") == [
+            .code("a ``` b"), .listItem(marker: "1)", depth: 0, text: "one"),
+            .listItem(marker: "1000.", depth: 0, text: "big"),
+        ], "tilde fences close only on a tilde fence; ) and long ordered markers are list items")
     }
 
     private static func expect(_ condition: @autoclosure () -> Bool, _ message: String) {
