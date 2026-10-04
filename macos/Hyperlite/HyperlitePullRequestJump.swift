@@ -44,12 +44,12 @@ enum HyperlitePullRequestJump {
                 let issue = HyperliteIssueReference.number(branch: pullRequest.headRefName, title: pullRequest.title)
                 if pullRequest.number == jump.number {
                     pullRequestMatches.append(entry(
-                        rowID, "PR #\(pullRequest.number) · \(pullRequest.title)",
+                        rowID, "PR #\(pullRequest.number) · \(HyperliteEmoji.render(pullRequest.title))",
                         "pull request #\(jump.number) in \(repository)"
                     ))
                 } else if issue == jump.number {
                     issueMatches.append(entry(
-                        rowID, "GH-\(jump.number) → PR #\(pullRequest.number) · \(pullRequest.title)",
+                        rowID, "GH-\(jump.number) → PR #\(pullRequest.number) · \(HyperliteEmoji.render(pullRequest.title))",
                         "issue #\(jump.number) in \(repository)"
                     ))
                 }

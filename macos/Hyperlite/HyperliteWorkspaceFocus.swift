@@ -15,6 +15,8 @@ final class HyperliteWorkspaceFocus: ObservableObject {
     @Published private(set) var focusVisible = false
     /// Asks the Open PRs list to bring the selection on screen.
     @Published private(set) var scrollRequest: HyperliteScrollRequest?
+    /// The pull request row whose hover card is open from the keyboard.
+    @Published private(set) var detailsID: String?
 
     private var items: [HyperliteWorkspaceNavItem] = []
 
@@ -46,11 +48,25 @@ final class HyperliteWorkspaceFocus: ObservableObject {
         case .next: move(by: 1)
         case .previous: move(by: -1)
         case .activate: activateSelection()
+        case .toggleDetails: toggleDetails()
+        case .dismissDetails: closeDetails()
         }
         return true
     }
 
+    /// Space shows the selected pull request's card; Space again hides it.
+    /// Headings have no card.
+    private func toggleDetails() {
+        guard let selectionID, selectionID.contains("\u{1F}") else { return }
+        detailsID = detailsID == selectionID ? nil : selectionID
+    }
+
+    func closeDetails() {
+        if detailsID != nil { detailsID = nil }
+    }
+
     private func move(by delta: Int) {
+        detailsID = nil
         selectionID = HyperliteWorkspaceNavigation.movedSelectionID(
             current: selectionID, ids: items.map(\.id), by: delta
         )

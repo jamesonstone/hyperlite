@@ -27,6 +27,8 @@ enum HyperliteWorkspaceNavCommand: Equatable {
     case next
     case previous
     case activate
+    case toggleDetails
+    case dismissDetails
 }
 
 /// Pure navigation math for the Open PRs pane, free of AppKit and SwiftUI so it
@@ -41,6 +43,8 @@ enum HyperliteWorkspaceNavigation {
         case 125: return .next // down arrow
         case 126: return .previous // up arrow
         case 36, 76: return .activate // return, keypad enter
+        case 49: return .toggleDetails // space
+        case 53: return .dismissDetails // escape
         default: break
         }
         switch characters.lowercased() {

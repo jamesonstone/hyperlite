@@ -6,10 +6,28 @@ struct HyperlitePullRequestPanelRow: View {
     let row: HyperlitePullRequestRow
     let reviewStatus: HyperlitePullRequestReviewStatus
     let toggleReview: () -> Void
+    /// Open from the keyboard (Space on the selected row).
+    var keyboardDetails = false
+    var onCloseDetails: () -> Void = {}
 
     @State private var hoverPresented = false
     @State private var hoverTask: Task<Void, Never>?
     @State private var rowHovering = false
+    @State private var cardHovering = false
+
+    private var cardPresented: Binding<Bool> {
+        Binding(
+            get: { hoverPresented || keyboardDetails },
+            set: { presented in
+                guard !presented else { return }
+                hoverPresented = false
+                // Removal may not deliver onHover(false); never let a stale
+                // card-hover flag keep a later hover card open.
+                cardHovering = false
+                if keyboardDetails { onCloseDetails() }
+            }
+        )
+    }
 
     var body: some View {
         HStack(spacing: 4) {
@@ -39,8 +57,12 @@ struct HyperlitePullRequestPanelRow: View {
         }
         .contentShape(Rectangle())
         .onHover(perform: handleHover)
-        .popover(isPresented: $hoverPresented, arrowEdge: .trailing) {
-            HyperlitePullRequestHoverCard(row: row, reviewStatus: reviewStatus)
+        .popover(isPresented: cardPresented, arrowEdge: .trailing) {
+            HyperlitePullRequestHoverCard(row: row, reviewStatus: reviewStatus) { inside in
+                cardHovering = inside
+                if !inside { scheduleClose() }
+            }
+            .onDisappear { cardHovering = false }
         }
     }
 
@@ -54,14 +76,29 @@ struct HyperlitePullRequestPanelRow: View {
         NSWorkspace.shared.open(url)
     }
 
+    /// Opens after a steady hover; closes only once the pointer has left both
+    /// the row and the card for a short grace period, so the pointer can
+    /// travel into the card to read, select text, or click links.
     private func handleHover(_ hovering: Bool) {
         rowHovering = hovering
+        guard hovering else {
+            scheduleClose()
+            return
+        }
         hoverTask?.cancel()
         hoverTask = Task { @MainActor in
-            let delay: Duration = hovering ? HyperlitePullRequestHoverPresentation.openDelay : .milliseconds(200)
-            try? await Task.sleep(for: delay)
-            guard !Task.isCancelled else { return }
-            hoverPresented = hovering
+            try? await Task.sleep(for: HyperlitePullRequestHoverPresentation.openDelay)
+            guard !Task.isCancelled, rowHovering else { return }
+            hoverPresented = true
+        }
+    }
+
+    private func scheduleClose() {
+        hoverTask?.cancel()
+        hoverTask = Task { @MainActor in
+            try? await Task.sleep(for: HyperlitePullRequestHoverPresentation.closeGrace)
+            guard !Task.isCancelled, !rowHovering, !cardHovering else { return }
+            hoverPresented = false
         }
     }
 }

@@ -97,6 +97,8 @@ struct HyperliteWindow: View {
                 errorMessage: state.errorMessage,
                 selectionID: focus.focusVisible ? focus.selectionID : nil,
                 scrollRequest: focus.scrollRequest,
+                detailsID: focus.detailsID,
+                onCloseDetails: { focus.closeDetails() },
                 onNavItems: { focus.setItems($0) },
                 onToggleIgnore: { state.toggleIgnored($0) }
             ) {

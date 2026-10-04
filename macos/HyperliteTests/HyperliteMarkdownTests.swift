@@ -33,6 +33,27 @@ enum HyperliteMarkdownTests {
                "inline markdown renders without markup characters")
         expect(HyperliteMarkdownParser.blocks("#nospace").first == .paragraph("#nospace"),
                "a hash without a space is not a heading")
+        let link = HyperliteMarkdownParser.linkingIssueReferences
+        expect(link("Closes #146 and GH-12", "o/r") ==
+               "Closes [#146](https://github.com/o/r/issues/146) and [GH-12](https://github.com/o/r/issues/12)",
+               "issue references link to the repository's issues")
+        expect(link("see lsmc-bio/labcore#1133", "o/r") ==
+               "see [lsmc-bio/labcore#1133](https://github.com/lsmc-bio/labcore/issues/1133)",
+               "cross-repository references link to their repository")
+        expect(link("[#5](https://x) and https://github.com/o/r/pull/9#issuecomment-1", "o/r") ==
+               "[#5](https://x) and https://github.com/o/r/pull/9#issuecomment-1",
+               "existing links and URL fragments stay untouched")
+        expect(link("See owner/repo#12 and #3", "") ==
+               "See [owner/repo#12](https://github.com/owner/repo/issues/12) and #3",
+               "explicit references link without a default repository; bare #N needs one")
+        expect(link("[result](https://example.test/?anchor=#12) and <https://x.test/#9>", "o/r") ==
+               "[result](https://example.test/?anchor=#12) and <https://x.test/#9>",
+               "references inside link destinations and URLs stay untouched")
+        expect(String(HyperliteMarkdownParser.inline("Use `:bug:` and `#4` :bug: #4", repository: "o/r").characters) ==
+               "Use :bug: and #4 🐛 #4", "code spans stay literal while text outside renders")
+        let rendered = HyperliteMarkdownParser.inline("Closes #7", repository: "o/r")
+        expect(rendered.runs.contains { $0.link?.absoluteString == "https://github.com/o/r/issues/7" },
+               "rendered text carries a clickable issue link")
         expect(HyperliteMarkdownParser.blocks("~~~\na ``` b\n~~~\n1) one\n1000. big") == [
             .code("a ``` b"), .listItem(marker: "1)", depth: 0, text: "one"),
             .listItem(marker: "1000.", depth: 0, text: "big"),

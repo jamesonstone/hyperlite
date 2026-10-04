@@ -57,6 +57,61 @@ enum HyperliteMarkdownParser {
         return blocks
     }
 
+    private static let issueReference = try! NSRegularExpression(
+        pattern: #"(?<![\w/\[#-])(?:([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)#|#|GH-)(\d+)\b"#
+    )
+
+    private static let protectedSpan = try! NSRegularExpression(
+        pattern: #"\]\([^)]*\)|<?https?://[^\s)>]+>?"#
+    )
+
+    /// `#12`, `GH-12`, and `owner/repo#12` become Markdown links to the GitHub
+    /// issue (GitHub redirects issue numbers that are pull requests). `#N` and
+    /// `GH-N` need a default repository; explicit references do not. Link
+    /// text, link destinations, and bare URLs are left alone; code spans are
+    /// excluded by the caller.
+    static func linkingIssueReferences(_ text: String, repository: String) -> String {
+        guard text.contains("#") || text.contains("GH-") else { return text }
+        let range = NSRange(text.startIndex..., in: text)
+        let protected = protectedSpan.matches(in: text, range: range).map(\.range)
+        var result = ""
+        var cursor = text.startIndex
+        for match in issueReference.matches(in: text, range: range) {
+            guard let whole = Range(match.range, in: text), let number = Range(match.range(at: 2), in: text) else { continue }
+            let explicit = Range(match.range(at: 1), in: text).map { String(text[$0]) }
+            guard let target = explicit ?? (repository.contains("/") ? repository : nil) else { continue }
+            if protected.contains(where: { NSIntersectionRange($0, match.range).length > 0 }) ||
+                insideLinkText(text, before: whole.lowerBound) { continue }
+            result += text[cursor..<whole.lowerBound]
+            result += "[\(text[whole])](https://github.com/\(target)/issues/\(text[number]))"
+            cursor = whole.upperBound
+        }
+        return result + text[cursor...]
+    }
+
+    private static func insideLinkText(_ text: String, before index: String.Index) -> Bool {
+        let prefix = text[..<index]
+        guard let open = prefix.lastIndex(of: "[") else { return false }
+        return !prefix[open...].contains("]")
+    }
+
+    /// Applies `transform` to text outside backtick code spans, which stay
+    /// literal (no emoji or issue links inside `code`).
+    static func outsideCodeSpans(_ text: String, _ transform: (String) -> String) -> String {
+        guard text.contains("`") else { return transform(text) }
+        var result = ""
+        var rest = Substring(text)
+        while let open = rest.firstIndex(of: "`") {
+            let ticks = rest[open...].prefix { $0 == "`" }
+            let afterOpen = rest.index(open, offsetBy: ticks.count)
+            guard let close = rest[afterOpen...].range(of: String(ticks)) else { break }
+            result += transform(String(rest[..<open]))
+            result += rest[open..<close.upperBound]
+            rest = rest[close.upperBound...]
+        }
+        return result + transform(String(rest))
+    }
+
     private static func fenceMarker(_ line: String) -> String? {
         for char in ["`", "~"] as [Character] {
             let run = line.prefix { $0 == char }
@@ -91,8 +146,9 @@ enum HyperliteMarkdownParser {
         return nil
     }
 
-    static func inline(_ text: String) -> AttributedString {
-        (try? AttributedString(
+    static func inline(_ text: String, repository: String = "") -> AttributedString {
+        let text = outsideCodeSpans(text) { linkingIssueReferences(HyperliteEmoji.render($0), repository: repository) }
+        return (try? AttributedString(
             markdown: text,
             options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
         )) ?? AttributedString(text)
@@ -102,6 +158,7 @@ enum HyperliteMarkdownParser {
 /// Renders a PR description in the hover card's type scale.
 struct HyperliteMarkdownView: View {
     let markdown: String
+    var repository = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -117,21 +174,21 @@ struct HyperliteMarkdownView: View {
     private func view(for block: HyperliteMarkdownBlock) -> some View {
         switch block {
         case let .heading(level, text):
-            Text(HyperliteMarkdownParser.inline(text))
+            Text(HyperliteMarkdownParser.inline(text, repository: repository))
                 .font(level <= 2 ? HyperliteTypography.heading : HyperliteTypography.semibold(HyperliteAppearance.shared.compactSize + 1))
                 .foregroundStyle(HyperliteTheme.primaryText.color)
                 .padding(.top, 2)
         case let .paragraph(text):
-            Text(HyperliteMarkdownParser.inline(text)).font(HyperliteTypography.compact)
+            Text(HyperliteMarkdownParser.inline(text, repository: repository)).font(HyperliteTypography.compact)
         case let .listItem(marker, depth, text):
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(marker).foregroundStyle(HyperliteTheme.mutedText.color)
-                Text(HyperliteMarkdownParser.inline(text))
+                Text(HyperliteMarkdownParser.inline(text, repository: repository))
             }
             .font(HyperliteTypography.compact)
             .padding(.leading, CGFloat(depth) * 14)
         case let .quote(text):
-            Text(HyperliteMarkdownParser.inline(text))
+            Text(HyperliteMarkdownParser.inline(text, repository: repository))
                 .font(HyperliteTypography.compact)
                 .foregroundStyle(HyperliteTheme.mutedText.color)
                 .padding(.leading, 8)
