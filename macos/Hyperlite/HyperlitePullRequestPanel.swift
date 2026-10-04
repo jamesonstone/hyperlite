@@ -79,6 +79,7 @@ struct HyperlitePullRequestPanel: View {
                 LazyVStack(alignment: .leading, spacing: HyperliteOpenPRSpacing.stageSpacing) {
                     ForEach(visibleProjectSections) { section in
                         projectSectionStage(section)
+                            .id(section.id)
                     }
                     if showsHiddenList {
                         HyperliteHiddenProjectList(
@@ -177,6 +178,7 @@ struct HyperlitePullRequestPanel: View {
             ForEach(section.rows) { row in
                 pullRequestRow(row)
                     .hyperliteNavHighlight(selected: isSelected(row.id))
+                    .id(row.id)
             }
         }
     }

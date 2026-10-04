@@ -31,7 +31,7 @@ enum HyperlitePaletteChrome {
     static func searchPrompt(for mode: HyperlitePaletteMode) -> String {
         switch mode {
         case .commands: "Search commands"
-        case .projects: "Search projects, PRs, and worktrees"
+        case .projects: "Search projects, or jump: project 123 (PR or GH issue number)"
         case .removeProjects: "Search configured projects"
         case .themes: "Search themes"
         case .fontSizes: "Search font sizes"

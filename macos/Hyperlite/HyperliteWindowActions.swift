@@ -40,6 +40,13 @@ extension HyperliteWindow {
         }
         state.dismissPalette()
         switch action {
+        case let .selectPullRequest(rowID):
+            if let sectionID = HyperlitePullRequestJump.sectionID(for: rowID) {
+                UserDefaults.standard.set(
+                    false, forKey: HyperliteOpenPRProjectSectionPresentation.storageKey(projectID: sectionID)
+                )
+            }
+            HyperliteWorkspaceFocus.shared.select(rowID)
         case .refresh:
             state.refresh()
         case .forceCacheRefresh:

@@ -25,6 +25,8 @@ enum HyperlitePaletteAction: Equatable {
     case chooseProjectToRemove
     case removeProject(String)
     case openPullRequest(String)
+    /// Scroll the Open PRs list to this row and highlight it.
+    case selectPullRequest(String)
     case revealPath(String)
     case showCommands
     case showThemes

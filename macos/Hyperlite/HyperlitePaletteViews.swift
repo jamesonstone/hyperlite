@@ -42,7 +42,10 @@ struct HyperliteCommandPalette: View {
     }
 
     private var entries: [HyperlitePaletteEntry] {
-        HyperliteInteractionModel.filteredEntries(unfilteredEntries, query: query)
+        if mode == .projects, let jump = HyperlitePullRequestJump.entries(query: query, scan: pullRequests) {
+            return jump
+        }
+        return HyperliteInteractionModel.filteredEntries(unfilteredEntries, query: query)
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
