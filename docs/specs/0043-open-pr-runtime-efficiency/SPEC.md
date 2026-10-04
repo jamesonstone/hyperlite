@@ -74,11 +74,17 @@ same view and helper paths and were validated together.
   converged, so layout repeated forever. The eager stack keeps the memoized
   panel model from #129, which was the real CPU win, and makes `scrollTo`
   exact.
-- The inspection cache stamps `.git`, the common directory's `config`,
-  `packed-refs`, `refs/heads/{main,master,trunk}`, the remote's `HEAD` ref,
-  and global and system git config. Any change re-runs git, so remotes,
-  renames, and base branches stay exact. The cache is disposable; a missing or
-  corrupt file only costs one inspection.
+- The inspection cache stamps `.git`, the common directory's `config` and
+  `config.worktree` (and a linked worktree's), every file those include
+  (conditional or not), `packed-refs`, `refs/heads/{main,master,trunk}`, and
+  the remote's `HEAD` ref. Global and system sources come from one
+  `git config --list --show-origin` call per helper run, so the current
+  environment (`GIT_CONFIG_GLOBAL`, `XDG_CONFIG_HOME`, a Homebrew system
+  config, their includes) decides them; an entry saved under different sources
+  is not reused. Stamps follow symbolic links to their targets and also record
+  the link. Any change re-runs git, so remotes, renames, and base branches stay
+  exact. The cache is disposable; a missing or corrupt file only costs one
+  inspection. Warm helper calls make one git call instead of about 400.
 - Chip ticks use a visibility-aware TimelineSchedule instead of removing the
   live elapsed time.
 
