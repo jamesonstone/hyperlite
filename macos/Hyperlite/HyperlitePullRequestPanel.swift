@@ -7,6 +7,7 @@ struct HyperlitePullRequestPanel: View {
     var isPollingActivity = false
     var selectionID: String?
     var onNavItems: ([HyperliteWorkspaceNavItem]) -> Void = { _ in }
+    var onToggleIgnore: (HyperliteProjectPullRequests) -> Void = { _ in }
     @State private var chipClock = Date()
     @AppStorage("hyperlite.dashboard.open-pr-hide-idle") private var hideIdleProjects = true
     @AppStorage(HyperliteHiddenProjectListPresentation.expandedStorageKey)
@@ -189,7 +190,8 @@ struct HyperlitePullRequestPanel: View {
         HyperliteOpenPRProjectSection(
             section: section,
             chips: chips(for: section),
-            headerSelected: isSelected(headerID(section))
+            headerSelected: isSelected(headerID(section)),
+            onToggleIgnore: { onToggleIgnore(section.project) }
         ) {
             ForEach(section.rows) { row in
                 pullRequestRow(row)

@@ -32,6 +32,11 @@ func buildProject(
 	} else if cachedRepository := cache.Projects[path]; cachedRepository != "" {
 		project.Repository = cachedRepository
 	}
+	if source.Ignored {
+		project.Ignored = true
+		project.Status = model.ProjectPullRequestsCached
+		return project
+	}
 	key := repositoryKey(project.Repository)
 	entry, cached := cache.Repositories[key]
 	if cached {

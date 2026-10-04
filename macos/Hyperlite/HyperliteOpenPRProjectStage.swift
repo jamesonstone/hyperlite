@@ -85,6 +85,7 @@ struct HyperliteOpenPRProjectSection<Rows: View>: View {
     let section: HyperliteProjectSection
     let chips: [HyperliteWorkflowChip]
     var headerSelected: Bool
+    var onToggleIgnore: (() -> Void)?
     @ViewBuilder var rows: Rows
     @AppStorage private var collapsed: Bool
 
@@ -92,11 +93,13 @@ struct HyperliteOpenPRProjectSection<Rows: View>: View {
         section: HyperliteProjectSection,
         chips: [HyperliteWorkflowChip],
         headerSelected: Bool = false,
+        onToggleIgnore: (() -> Void)? = nil,
         @ViewBuilder rows: () -> Rows
     ) {
         self.section = section
         self.chips = chips
         self.headerSelected = headerSelected
+        self.onToggleIgnore = onToggleIgnore
         self.rows = rows()
         self._collapsed = AppStorage(
             wrappedValue: false,
@@ -118,7 +121,8 @@ struct HyperliteOpenPRProjectSection<Rows: View>: View {
             HyperliteProjectSectionHeader(
                 section: section,
                 chips: chips,
-                collapsed: canCollapse ? $collapsed : nil
+                collapsed: canCollapse ? $collapsed : nil,
+                onToggleIgnore: onToggleIgnore
             )
             .hyperliteNavHighlight(selected: headerSelected)
             if !canCollapse || !collapsed {

@@ -107,7 +107,8 @@ struct HyperliteWindow: View {
                         isRefreshing: state.isRefreshingPullRequests,
                         isPollingActivity: state.isPollingActivity,
                         selectionID: focus.focusVisible ? focus.selectionID : nil,
-                        onNavItems: { focus.setItems($0) }
+                        onNavItems: { focus.setItems($0) },
+                        onToggleIgnore: { state.toggleIgnored($0) }
                     )
                 } else {
                     HyperliteOpenPRTitleCluster(count: nil, isRefreshing: state.isRefreshingPullRequests)

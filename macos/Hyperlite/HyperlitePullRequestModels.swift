@@ -41,9 +41,13 @@ struct HyperliteProjectPullRequests: Codable, Equatable, Identifiable {
     let observedAt: Date?
     let pullRequests: [HyperliteProjectPullRequest]
     var workflows: HyperliteProjectWorkflowActivity? = nil
+    /// Ignored projects are listed by title only and never fetched.
+    var ignored: Bool? = nil
+
+    var isIgnored: Bool { ignored == true }
 
     enum CodingKeys: String, CodingKey {
-        case id, name, path, repository, status, message, workflows
+        case id, name, path, repository, status, message, workflows, ignored
         case checkedAt = "checked_at"
         case observedAt = "observed_at"
         case pullRequests = "pull_requests"

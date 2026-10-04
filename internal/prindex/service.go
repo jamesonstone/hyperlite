@@ -107,7 +107,9 @@ func (s Scanner) Scan(
 		}
 		var rateLimit *GitHubRateLimit
 		var catalogs map[string]CatalogEntry
-		repositories := repositoriesToRefresh(sources, scan.resolved, cache, mode, now)
+		repositories := repositoriesToRefresh(
+			fetchableSources(sources, cfg.RefreshOnly), scan.resolved, cache, mode, now,
+		)
 		if pause := automaticRefreshPause(cache.RateLimit, mode, now); pause != "" {
 			repositories = nil
 			scan.quotaWarning = pause
@@ -134,7 +136,7 @@ func (s Scanner) Scan(
 		scan.cache, err = s.Store.Update(func(current *cacheState) bool {
 			updateProjectMappings(current, sources, scan.resolved)
 			applyQueryResults(current, repositories, queryResults, catalogs, now)
-			recordActivityBurst(current, configuredRepositoryKeys(sources, scan.resolved), now)
+			recordActivityBurst(current, configuredRepositoryKeys(watchedSources(sources), scan.resolved), now)
 			if observed := observedRateLimit(rateLimit, now); observed != nil {
 				current.RateLimit = applyRateLimitBurnRate(observed, current.RateLimit)
 			}
