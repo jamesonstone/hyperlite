@@ -125,6 +125,7 @@ struct HyperliteOpenPRProjectSection<Rows: View>: View {
                 onToggleIgnore: onToggleIgnore
             )
             .hyperliteNavHighlight(selected: headerSelected)
+            .id(HyperliteWorkspaceNavigation.headerID(sectionID: section.id))
             if !canCollapse || !collapsed {
                 rows
             }

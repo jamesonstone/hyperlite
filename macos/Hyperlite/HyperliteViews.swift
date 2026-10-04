@@ -93,7 +93,7 @@ struct HyperliteWindow: View {
     }
 
     private var pullRequestColumn: some View {
-        HyperliteOpenPRWatchColumn {
+        HyperliteOpenPRWatchColumn(scrollRequest: focus.scrollRequest) {
             VStack(alignment: .leading, spacing: 10) {
                 if let errorMessage = state.errorMessage {
                     Label(errorMessage, systemImage: "exclamationmark.triangle.fill")

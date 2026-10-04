@@ -13,6 +13,8 @@ final class HyperliteWorkspaceFocus: ObservableObject {
     /// presses a navigation key, so a fresh launch does not show a highlighted
     /// row that no one selected.
     @Published private(set) var focusVisible = false
+    /// Asks the Open PRs list to bring the selection on screen.
+    @Published private(set) var scrollRequest: HyperliteScrollRequest?
 
     private var items: [HyperliteWorkspaceNavItem] = []
 
@@ -51,6 +53,22 @@ final class HyperliteWorkspaceFocus: ObservableObject {
     private func move(by delta: Int) {
         selectionID = HyperliteWorkspaceNavigation.movedSelectionID(
             current: selectionID, ids: items.map(\.id), by: delta
+        )
+        requestScroll(centered: false)
+    }
+
+    /// Select one entry from outside the list (Command-P), highlight it, and
+    /// center it so Return opens it next.
+    func select(_ id: String) {
+        selectionID = id
+        focusVisible = true
+        requestScroll(centered: true)
+    }
+
+    private func requestScroll(centered: Bool) {
+        guard let selectionID else { return }
+        scrollRequest = HyperliteScrollRequest(
+            id: selectionID, centered: centered, token: (scrollRequest?.token ?? 0) + 1
         )
     }
 

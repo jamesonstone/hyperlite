@@ -241,7 +241,8 @@ in `git-wt`.
   rows, the `watching the quiet ones` toggle, and the hidden project headings
   it reveals. `Return` opens the selected pull request or repository, or
   expands and collapses the quiet-ones list. The highlight appears only after
-  the first navigation key.
+  the first navigation key, and the list scrolls to keep it on screen, so the
+  keyboard is the fastest way through Open PRs.
 - `Command+R` refreshes Open PRs and the configured project list.
 - `Command+K` opens a searchable command palette with Theme, Font Size,
   Refresh, Force Cache Refresh, Sweep Worktrees, Copy Open PR Merge Prompt,
@@ -252,7 +253,12 @@ in `git-wt`.
   stays open to confirm the copy.
 - `Command+P` opens the same searchable surface in configured-project mode.
   Projects start collapsed and expand to show loaded open pull requests and
-  local worktrees.
+  local worktrees. Type a project and a number to jump straight to a pull
+  request: `kahlo 33`, `kahlo #33`, or `kahlo GH-33` lists the pull request
+  numbered 33 and any pull request tracking issue 33, each labeled with which
+  number matched. Choosing one closes the palette, expands its project, scrolls
+  the row to the middle of the list, and highlights it; `Return` then opens it
+  on GitHub.
 
 Add Project is also available from Settings. Project selection changes are
 written atomically by the bundled helper. Hyperlite does not expose

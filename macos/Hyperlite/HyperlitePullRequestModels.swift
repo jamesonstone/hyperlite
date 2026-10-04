@@ -182,7 +182,7 @@ enum HyperlitePullRequestPresentation {
         scan.projects.flatMap { project in
             project.pullRequests.map { pullRequest in
                 HyperlitePullRequestRow(
-                    id: "\(project.id)\u{1F}\(pullRequest.id)",
+                    id: HyperlitePullRequestJump.rowID(projectID: project.id, pullRequestID: pullRequest.id),
                     reviewID: pullRequest.id,
                     projectID: project.id,
                     repository: project.repository ?? project.name,
