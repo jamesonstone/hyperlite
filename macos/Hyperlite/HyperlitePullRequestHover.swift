@@ -42,6 +42,8 @@ enum HyperlitePullRequestHoverPresentation {
     static let descriptionMaxHeight: CGFloat = 340
     /// Hovering must settle for this long before the card opens.
     static let openDelay: Duration = .milliseconds(1350)
+    /// Time to move the pointer from the row into the card before it closes.
+    static let closeGrace: Duration = .milliseconds(450)
 
     static func snapshot(
         row: HyperlitePullRequestRow,
@@ -112,6 +114,7 @@ enum HyperlitePullRequestHoverPresentation {
 struct HyperlitePullRequestHoverCard: View {
     let row: HyperlitePullRequestRow
     let reviewStatus: HyperlitePullRequestReviewStatus
+    var onHover: (Bool) -> Void = { _ in }
 
     var body: some View {
         let card = HyperlitePullRequestHoverPresentation.snapshot(
@@ -139,7 +142,7 @@ struct HyperlitePullRequestHoverCard: View {
                 .fixedSize(horizontal: false, vertical: true)
             if !row.glance.description.isEmpty {
                 ScrollView(.vertical) {
-                    HyperliteMarkdownView(markdown: row.glance.description)
+                    HyperliteMarkdownView(markdown: row.glance.description, repository: row.repository)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .frame(maxHeight: HyperlitePullRequestHoverPresentation.descriptionMaxHeight)
@@ -173,7 +176,8 @@ struct HyperlitePullRequestHoverCard: View {
         .frame(width: HyperlitePullRequestHoverPresentation.cardWidth, alignment: .leading)
         .background(HyperliteTheme.elevatedSurface.color)
         .hyperliteTheme()
-        .accessibilityElement(children: .combine)
+        .onHover(perform: onHover)
+        .accessibilityElement(children: .contain)
         .accessibilityLabel(card.accessibilityLabel)
     }
 }

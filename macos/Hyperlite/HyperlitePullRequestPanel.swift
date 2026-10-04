@@ -12,6 +12,8 @@ struct HyperlitePullRequestPanel<Actions: View>: View {
     var errorMessage: String?
     var selectionID: String?
     var scrollRequest: HyperliteScrollRequest?
+    var detailsID: String?
+    var onCloseDetails: () -> Void = {}
     var onNavItems: ([HyperliteWorkspaceNavItem]) -> Void = { _ in }
     var onToggleIgnore: (HyperliteProjectPullRequests) -> Void = { _ in }
     @ViewBuilder var actions: Actions
@@ -122,7 +124,9 @@ struct HyperlitePullRequestPanel<Actions: View>: View {
         HyperlitePullRequestPanelRow(
             row: row,
             reviewStatus: organization.pullRequestReviewStatus(for: row),
-            toggleReview: { organization.togglePullRequestReviewed(row) }
+            toggleReview: { organization.togglePullRequestReviewed(row) },
+            keyboardDetails: detailsID == row.id,
+            onCloseDetails: onCloseDetails
         )
         .frame(height: HyperliteOpenPRSpacing.rowHeight(bodySize: HyperliteAppearance.shared.bodySize))
         .padding(.vertical, HyperliteOpenPRSpacing.rowVerticalPadding)

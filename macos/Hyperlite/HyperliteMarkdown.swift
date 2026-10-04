@@ -51,6 +51,35 @@ enum HyperliteMarkdownParser {
         return blocks
     }
 
+    private static let issueReference = try! NSRegularExpression(
+        pattern: #"(?<![\w/\[#-])(?:([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)#|#|GH-)(\d+)\b"#
+    )
+
+    /// `#12`, `GH-12`, and `owner/repo#12` become Markdown links to the GitHub
+    /// issue (GitHub redirects issue numbers that are pull requests). Text
+    /// already inside a Markdown link or URL is left alone.
+    static func linkingIssueReferences(_ text: String, repository: String) -> String {
+        guard repository.contains("/"), text.contains("#") || text.contains("GH-") else { return text }
+        let range = NSRange(text.startIndex..., in: text)
+        var result = ""
+        var cursor = text.startIndex
+        for match in issueReference.matches(in: text, range: range) {
+            guard let whole = Range(match.range, in: text), let number = Range(match.range(at: 2), in: text) else { continue }
+            let target = Range(match.range(at: 1), in: text).map { String(text[$0]) } ?? repository
+            if text[..<whole.lowerBound].hasSuffix("](") || insideLinkText(text, before: whole.lowerBound) { continue }
+            result += text[cursor..<whole.lowerBound]
+            result += "[\(text[whole])](https://github.com/\(target)/issues/\(text[number]))"
+            cursor = whole.upperBound
+        }
+        return result + text[cursor...]
+    }
+
+    private static func insideLinkText(_ text: String, before index: String.Index) -> Bool {
+        let prefix = text[..<index]
+        guard let open = prefix.lastIndex(of: "[") else { return false }
+        return !prefix[open...].contains("]")
+    }
+
     private static func heading(_ line: String) -> HyperliteMarkdownBlock? {
         let hashes = line.prefix { $0 == "#" }.count
         guard (1...6).contains(hashes), line.dropFirst(hashes).first == " " else { return nil }
@@ -75,8 +104,8 @@ enum HyperliteMarkdownParser {
         return nil
     }
 
-    static func inline(_ text: String) -> AttributedString {
-        let text = HyperliteEmoji.render(text)
+    static func inline(_ text: String, repository: String = "") -> AttributedString {
+        let text = linkingIssueReferences(HyperliteEmoji.render(text), repository: repository)
         return (try? AttributedString(
             markdown: text,
             options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
@@ -87,6 +116,7 @@ enum HyperliteMarkdownParser {
 /// Renders a PR description in the hover card's type scale.
 struct HyperliteMarkdownView: View {
     let markdown: String
+    var repository = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -102,21 +132,21 @@ struct HyperliteMarkdownView: View {
     private func view(for block: HyperliteMarkdownBlock) -> some View {
         switch block {
         case let .heading(level, text):
-            Text(HyperliteMarkdownParser.inline(text))
+            Text(HyperliteMarkdownParser.inline(text, repository: repository))
                 .font(level <= 2 ? HyperliteTypography.heading : HyperliteTypography.semibold(HyperliteAppearance.shared.compactSize + 1))
                 .foregroundStyle(HyperliteTheme.primaryText.color)
                 .padding(.top, 2)
         case let .paragraph(text):
-            Text(HyperliteMarkdownParser.inline(text)).font(HyperliteTypography.compact)
+            Text(HyperliteMarkdownParser.inline(text, repository: repository)).font(HyperliteTypography.compact)
         case let .listItem(marker, depth, text):
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(marker).foregroundStyle(HyperliteTheme.mutedText.color)
-                Text(HyperliteMarkdownParser.inline(text))
+                Text(HyperliteMarkdownParser.inline(text, repository: repository))
             }
             .font(HyperliteTypography.compact)
             .padding(.leading, CGFloat(depth) * 14)
         case let .quote(text):
-            Text(HyperliteMarkdownParser.inline(text))
+            Text(HyperliteMarkdownParser.inline(text, repository: repository))
                 .font(HyperliteTypography.compact)
                 .foregroundStyle(HyperliteTheme.mutedText.color)
                 .padding(.leading, 8)

@@ -33,6 +33,19 @@ enum HyperliteMarkdownTests {
                "inline markdown renders without markup characters")
         expect(HyperliteMarkdownParser.blocks("#nospace").first == .paragraph("#nospace"),
                "a hash without a space is not a heading")
+        let link = HyperliteMarkdownParser.linkingIssueReferences
+        expect(link("Closes #146 and GH-12", "o/r") ==
+               "Closes [#146](https://github.com/o/r/issues/146) and [GH-12](https://github.com/o/r/issues/12)",
+               "issue references link to the repository's issues")
+        expect(link("see lsmc-bio/labcore#1133", "o/r") ==
+               "see [lsmc-bio/labcore#1133](https://github.com/lsmc-bio/labcore/issues/1133)",
+               "cross-repository references link to their repository")
+        expect(link("[#5](https://x) and https://github.com/o/r/pull/9#issuecomment-1", "o/r") ==
+               "[#5](https://x) and https://github.com/o/r/pull/9#issuecomment-1",
+               "existing links and URL fragments stay untouched")
+        let rendered = HyperliteMarkdownParser.inline("Closes #7", repository: "o/r")
+        expect(rendered.runs.contains { $0.link?.absoluteString == "https://github.com/o/r/issues/7" },
+               "rendered text carries a clickable issue link")
     }
 
     private static func expect(_ condition: @autoclosure () -> Bool, _ message: String) {

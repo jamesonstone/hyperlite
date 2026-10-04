@@ -2,6 +2,10 @@ import Foundation
 
 enum HyperliteWorkspaceNavigationTests {
     static func run() {
+        expect(HyperliteWorkspaceNavigation.command(keyCode: 49, characters: " ") == .toggleDetails,
+               "space toggles the selected pull request's card")
+        expect(HyperliteWorkspaceNavigation.command(keyCode: 53, characters: "") == .dismissDetails,
+               "escape closes the card")
         testCommandClassification()
         testSelectionMovement()
         testReconciledSelection()

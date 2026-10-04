@@ -223,7 +223,12 @@ descriptions end at a paragraph boundary and scroll inside the card), and one
 next step
 such as fix merge conflicts, failing CI, unresolved review threads, or
 waiting on review. GitHub emoji shortcodes such as `:sparkles:` render as
-emoji in pull request titles and descriptions; code blocks stay literal. Hover does not dump author, diffstat, SHA, or URL, and it
+emoji in pull request titles and descriptions; code blocks stay literal. The card
+stays open while the pointer is inside it, so you can read, select text, and
+click links; `#123`, `GH-123`, and `owner/repo#123` references link to their
+GitHub issues. It closes shortly after the pointer leaves both the row and the
+card. With a pull request selected by `j`/`k` or the arrow keys, `Space` opens
+its card and `Space` again (or `Esc`, or moving the selection) closes it. Hover does not dump author, diffstat, SHA, or URL, and it
 does not call GitHub.
 
 A review mark is stored locally for the exact observed head commit and survives
