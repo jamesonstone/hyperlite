@@ -65,7 +65,7 @@ type Config struct {
 	// ExcludedProjects are repositories under a source folder that the
 	// operator removed; automatic discovery never re-adds them.
 	ExcludedProjects []string
-	Path            string
+	Path             string
 	// RefreshOnly is a per-invocation, never persisted limit on which project
 	// paths a pull-request refresh may query.
 	RefreshOnly []string
