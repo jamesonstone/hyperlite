@@ -89,6 +89,15 @@ struct HyperlitePullRequestPanel<Actions: View>: View {
                             }
                         }
                     }
+                    if !model.idleOrganizations.isEmpty {
+                        HyperliteIdleDivider(count: model.idleOrganizations.reduce(0) { $0 + $1.sections.count })
+                        ForEach(model.idleOrganizations) { organization in
+                            HyperliteOrganizationHeading(group: organization)
+                            ForEach(organization.sections) { section in
+                                sectionHeader(section)
+                            }
+                        }
+                    }
                 }
                 .padding(.bottom, 12)
             }
@@ -149,7 +158,9 @@ struct HyperlitePullRequestPanel<Actions: View>: View {
     /// Navigable entries in render order; collapsed rows are skipped.
     private func navItems(_ model: HyperlitePullRequestPanelModel) -> [HyperliteWorkspaceNavItem] {
         var items: [HyperliteWorkspaceNavItem] = []
-        for section in model.organizations.flatMap({ $0.sectionsOrdered(collapsed: collapse.collapsed) }) {
+        let ordered = model.organizations.flatMap { $0.sectionsOrdered(collapsed: collapse.collapsed) } +
+            model.idleOrganizations.flatMap(\.sections)
+        for section in ordered {
             items.append(HyperliteWorkspaceNavItem(
                 id: HyperliteWorkspaceNavigation.headerID(sectionID: section.id),
                 action: .open(section.repositoryURL ?? section.pullsURL)
