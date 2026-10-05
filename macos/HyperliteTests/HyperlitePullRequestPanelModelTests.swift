@@ -32,8 +32,11 @@ enum HyperlitePullRequestPanelModelTests {
         let toggled = cache.model(scan: scan, hideIdle: false, now: now)
         expect(first.visibleSections.map(\.id) == again.visibleSections.map(\.id) &&
                toggled.visibleSections.count == 2, "the cache rebuilds only when its inputs change")
-        expect(HyperliteHideIdlePresentation.hiddenNames(model.hiddenSections) == ["o/b"],
-               "the eye lists hidden projects by name")
+        let eyeGroups = HyperliteHideIdlePresentation.groups(model.sections)
+        expect(eyeGroups.map(\.name) == ["o"] && eyeGroups[0].sections.map(\.repository) == ["o/a", "o/b"],
+               "the eye lists every project grouped by organization")
+        expect(HyperliteHideIdlePresentation.watchLabel(repository: "o/b", ignored: true).hasPrefix("o/b is ignored"),
+               "each project's eye states its watch state")
         expect(HyperliteHideIdlePresentation.hint(hideIdle: true, hiddenCount: 1).hasPrefix("1 project hidden") &&
                HyperliteHideIdlePresentation.hint(hideIdle: true, hiddenCount: 3).hasPrefix("3 projects hidden"),
                "the hint counts hidden projects")
