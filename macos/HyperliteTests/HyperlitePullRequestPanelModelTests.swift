@@ -23,6 +23,10 @@ enum HyperlitePullRequestPanelModelTests {
         expect(showAll.idleOrganizations.map(\.name) == ["o"] && showAll.idleOrganizations[0].sections.map(\.id) == ["/b"],
                "projects without open pull requests follow in their own organization groups")
         expect(model.idleOrganizations.isEmpty, "hide-idle leaves no idle tier")
+        let items = HyperlitePanelListItem.items(model: showAll, collapsed: [])
+        expect(items.map(\.id) == ["org:o", "section:/a", "idle-divider", "idle-org:o", "section:/b"],
+               "one flat item list: open tier, divider, idle tier; got \(items.map(\.id))")
+        expect(Set(items.map(\.id)).count == items.count, "every list item has a unique identity")
         let both = showAll.organizations[0].sections + showAll.idleOrganizations[0].sections
         let group = HyperliteOrganizationGroup(name: "o", sections: both)
         expect(group.sectionsOrdered(collapsed: ["/a"]).map(\.id) == ["/b", "/a"],
