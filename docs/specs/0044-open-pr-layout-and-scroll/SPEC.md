@@ -82,6 +82,11 @@ cost share one list structure.
   duplicated the hover card were dropped; accessibility labels remain.
 - Fonts are matched once per size and weight, and the palette once per theme;
   both had been resolved on every access.
+- Every list entry (organization heading, idle divider, project section)
+  renders from one ForEach over `HyperlitePanelListItem`, each with a single
+  identity. Rendering the idle and open tiers as separate ForEach structures
+  that shared explicit header ids let the lazy list reuse a stale idle heading
+  after a project gained its first pull request (#155).
 - The quiet-ones attention count survives as the `hidden failing` fact.
 - The footer version comes from `git describe --tags --always --dirty` and the
   commit stamped into Info.plist by the build script.

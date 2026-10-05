@@ -98,3 +98,38 @@ final class HyperlitePullRequestPanelModelCache {
         return built
     }
 }
+
+/// One entry in the Open PRs list. The whole list renders from a single
+/// ForEach over these, so every project section has exactly one identity and
+/// moving between the open and idle tiers is a reorder. Separate ForEach
+/// structures sharing explicit ids let the lazy list reuse a stale heading.
+enum HyperlitePanelListItem: Identifiable, Equatable {
+    case organization(HyperliteOrganizationGroup, idle: Bool)
+    case idleDivider(count: Int)
+    case section(HyperliteProjectSection, idle: Bool)
+
+    var id: String {
+        switch self {
+        case let .organization(group, idle): "\(idle ? "idle-" : "")\(group.id)"
+        case .idleDivider: "idle-divider"
+        case let .section(section, _): "section:\(section.id)"
+        }
+    }
+
+    static func items(model: HyperlitePullRequestPanelModel, collapsed: Set<String>) -> [HyperlitePanelListItem] {
+        var items: [HyperlitePanelListItem] = []
+        for group in model.organizations {
+            items.append(.organization(group, idle: false))
+            items += group.sectionsOrdered(collapsed: collapsed).map { .section($0, idle: false) }
+        }
+        let idle = model.idleOrganizations
+        if !idle.isEmpty {
+            items.append(.idleDivider(count: idle.reduce(0) { $0 + $1.sections.count }))
+            for group in idle {
+                items.append(.organization(group, idle: true))
+                items += group.sections.map { .section($0, idle: true) }
+            }
+        }
+        return items
+    }
+}

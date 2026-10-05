@@ -75,25 +75,20 @@ struct HyperlitePullRequestPanel<Actions: View>: View {
                             .font(HyperliteTypography.compact)
                             .foregroundStyle(HyperliteTheme.mutedText.color)
                     }
-                    ForEach(model.organizations) { organization in
-                        HyperliteOrganizationHeading(group: organization)
-                        ForEach(organization.sectionsOrdered(collapsed: collapse.collapsed)) { section in
+                    ForEach(HyperlitePanelListItem.items(model: model, collapsed: collapse.collapsed)) { item in
+                        switch item {
+                        case let .organization(group, _):
+                            HyperliteOrganizationHeading(group: group)
+                        case let .idleDivider(count):
+                            HyperliteIdleDivider(count: count)
+                        case let .section(section, idle):
                             Section {
-                                if !collapse.isCollapsed(section.id) {
+                                if !idle && !collapse.isCollapsed(section.id) {
                                     ForEach(section.rows) { row in
                                         pullRequestRow(row)
                                     }
                                 }
                             } header: {
-                                sectionHeader(section)
-                            }
-                        }
-                    }
-                    if !model.idleOrganizations.isEmpty {
-                        HyperliteIdleDivider(count: model.idleOrganizations.reduce(0) { $0 + $1.sections.count })
-                        ForEach(model.idleOrganizations) { organization in
-                            HyperliteOrganizationHeading(group: organization)
-                            ForEach(organization.sections) { section in
                                 sectionHeader(section)
                             }
                         }
@@ -158,9 +153,10 @@ struct HyperlitePullRequestPanel<Actions: View>: View {
     /// Navigable entries in render order; collapsed rows are skipped.
     private func navItems(_ model: HyperlitePullRequestPanelModel) -> [HyperliteWorkspaceNavItem] {
         var items: [HyperliteWorkspaceNavItem] = []
-        let ordered = model.organizations.flatMap { $0.sectionsOrdered(collapsed: collapse.collapsed) } +
-            model.idleOrganizations.flatMap(\.sections)
-        for section in ordered {
+        let sections = HyperlitePanelListItem.items(model: model, collapsed: collapse.collapsed).compactMap { item in
+            if case let .section(section, _) = item { return section } else { return nil }
+        }
+        for section in sections {
             items.append(HyperliteWorkspaceNavItem(
                 id: HyperliteWorkspaceNavigation.headerID(sectionID: section.id),
                 action: .open(section.repositoryURL ?? section.pullsURL)
