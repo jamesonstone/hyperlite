@@ -249,8 +249,8 @@ func updatedExclusions(before, after Config) []string {
 // UnderSource reports whether path is inside one of the source folders.
 func UnderSource(sources []Source, path string) bool {
 	for _, source := range sources {
-		prefix := strings.TrimRight(source.Path, string(filepath.Separator)) + string(filepath.Separator)
-		if strings.HasPrefix(path, prefix) {
+		root := strings.TrimRight(source.Path, string(filepath.Separator))
+		if path == root || strings.HasPrefix(path, root+string(filepath.Separator)) {
 			return true
 		}
 	}

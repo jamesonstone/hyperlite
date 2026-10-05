@@ -13,11 +13,12 @@ import (
 // addNewSourceProjects watches Git repositories that appeared under the
 // configured source folders since the project list was written. Repositories
 // the operator removed (excluded), retired, or missing are never re-added.
-func addNewSourceProjects(configPath string, cfg config.Config) ([]string, error) {
-	if len(cfg.Sources) == 0 || len(cfg.Projects) == 0 {
-		return nil, nil
+func addNewSourceProjects(configPath string, cfg config.Config) ([]string, []model.ScanError, error) {
+	if len(cfg.Sources) == 0 {
+		return nil, nil, nil
 	}
 	var added []string
+	var problems []model.ScanError
 	err := config.Mutate(configPath, func(current *config.Config) (bool, error) {
 		known := map[string]struct{}{}
 		for _, project := range current.Projects {
@@ -32,13 +33,26 @@ func addNewSourceProjects(configPath string, cfg config.Config) ([]string, error
 		for _, excluded := range current.ExcludedProjects {
 			known[excluded] = struct{}{}
 		}
-		added = nil
+		added, problems = nil, nil
 		for _, source := range current.Sources {
-			roots, _ := discovery.RepositoryRoots(source.Path)
+			roots, warnings := discovery.RepositoryRoots(source.Path)
+			for _, warning := range warnings {
+				problems = append(problems, model.ScanError{
+					RepositoryPath: warning.Path, Stage: "project-discovery", Message: warning.Message,
+				})
+			}
 			for _, root := range roots {
 				// Only primary checkouts: a linked worktree or submodule has a
-				// .git file and belongs to a repository watched elsewhere.
-				if info, err := os.Lstat(filepath.Join(root, ".git")); err != nil || !info.IsDir() {
+				// .git file and belongs to a repository watched elsewhere. An
+				// inspection failure is reported, never treated as absence.
+				info, err := os.Lstat(filepath.Join(root, ".git"))
+				if err != nil {
+					problems = append(problems, model.ScanError{
+						RepositoryPath: root, Stage: "project-discovery", Message: err.Error(),
+					})
+					continue
+				}
+				if !info.IsDir() {
 					continue
 				}
 				if _, seen := known[root]; !seen {
@@ -61,7 +75,7 @@ func addNewSourceProjects(configPath string, cfg config.Config) ([]string, error
 		*current = updated
 		return true, nil
 	})
-	return added, err
+	return added, problems, err
 }
 
 func addedProjectWarnings(added []string) []model.ScanError {

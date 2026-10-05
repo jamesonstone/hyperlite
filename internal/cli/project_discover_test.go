@@ -31,7 +31,9 @@ func TestRefreshWatchesNewSourceRepositoriesButNotExclusionsOrWorktrees(t *testi
 	if err := os.MkdirAll(worktreeHolder, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	_ = os.WriteFile(filepath.Join(worktreeHolder, ".git"), []byte("gitdir: "+existing+"/.git/worktrees/linked\n"), 0o600)
+	if err := os.WriteFile(filepath.Join(worktreeHolder, ".git"), []byte("gitdir: "+existing+"/.git/worktrees/linked\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
 
 	configPath := filepath.Join(t.TempDir(), "config.yaml")
 	contents := "version: 2\nprojects:\n  - path: " + existing + "\n  - path: " + removed + "\nsources:\n  - path: " + source + "\n"
@@ -79,7 +81,50 @@ func TestRefreshWatchesNewSourceRepositoriesButNotExclusionsOrWorktrees(t *testi
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if cfg, _ = config.Load(configPath); len(cfg.ExcludedProjects) != 0 {
+	if cfg, err = config.Load(configPath); err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg.ExcludedProjects) != 0 {
 		t.Fatalf("excluded after re-add = %v", cfg.ExcludedProjects)
+	}
+}
+
+func TestDiscoveryWithSourcesOnlyAndSourceRepositoryExclusion(t *testing.T) {
+	source, _ := filepath.EvalSymlinks(t.TempDir())
+	initRepository(t, source)
+	child := filepath.Join(source, "child")
+	initRepository(t, child)
+	if !config.UnderSource([]config.Source{{Path: source}}, source) {
+		t.Fatal("a source that is itself a repository is under the source")
+	}
+	configPath := filepath.Join(t.TempDir(), "config.yaml")
+	if err := os.WriteFile(configPath, []byte("version: 2\nsources:\n  - path: "+source+"\nexcluded_projects:\n  - "+child+"/../child\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.Load(configPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg.ExcludedProjects) != 1 || cfg.ExcludedProjects[0] != child {
+		t.Fatalf("exclusions are canonicalized; got %v", cfg.ExcludedProjects)
+	}
+	added, problems, err := addNewSourceProjects(configPath, cfg)
+	if err != nil || len(problems) != 0 {
+		t.Fatalf("err=%v problems=%v", err, problems)
+	}
+	if len(added) != 1 || added[0] != source {
+		t.Fatalf("a sources-only config discovers repositories (excluded child skipped); got %v", added)
+	}
+}
+
+func TestWritePullRequestsPrintsWarnings(t *testing.T) {
+	var output bytes.Buffer
+	if err := writePullRequests(&output, model.ProjectPullRequestScan{
+		Warnings: []model.ScanError{{Stage: "project-added", Message: "now watching /x"}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output.String(), "project-added: now watching /x") {
+		t.Fatalf("output = %s", output.String())
 	}
 }

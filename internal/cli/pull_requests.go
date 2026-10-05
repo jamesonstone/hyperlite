@@ -62,13 +62,14 @@ func (a App) runPullRequests(
 	}
 	var retired []config.RetiredProject
 	var added []string
+	var discoveryProblems []model.ScanError
 	if !options.localOnly && !options.activity {
 		if len(cfg.MissingProjects) > 0 {
 			if retired, err = retireMissingProjects(path); err != nil {
 				return err
 			}
 		}
-		if added, err = addNewSourceProjects(path, cfg); err != nil {
+		if added, discoveryProblems, err = addNewSourceProjects(path, cfg); err != nil {
 			return err
 		}
 		if len(retired) > 0 || len(added) > 0 {
@@ -104,6 +105,7 @@ func (a App) runPullRequests(
 	}
 	result.Warnings = append(result.Warnings, retiredWarnings(retired)...)
 	result.Warnings = append(result.Warnings, addedProjectWarnings(added)...)
+	result.Warnings = append(result.Warnings, discoveryProblems...)
 	if options.jsonOutput {
 		return json.NewEncoder(a.Out).Encode(result)
 	}
@@ -139,6 +141,11 @@ func writePullRequests(out io.Writer, result model.ProjectPullRequestScan) error
 			); err != nil {
 				return err
 			}
+		}
+	}
+	for _, warning := range result.Warnings {
+		if _, err := fmt.Fprintf(out, "! %s: %s\n", warning.Stage, warning.Message); err != nil {
+			return err
 		}
 	}
 	return nil
