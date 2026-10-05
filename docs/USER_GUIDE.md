@@ -131,8 +131,10 @@ with a failing pipeline. Showing all projects (eye off) lists them inline with
 their availability text, workflow chips, pipeline-alert badges, and
 Pulls/Actions links. The hide-idle eye stays
 quiet while idle projects are hidden and brightens only when they are shown.
-Hovering it while projects are hidden lists every hidden project by name
-(ignored ones are marked), scrolling when the list is long.
+Hovering it lists every configured project grouped by organization, each with
+its own eye: blue and open while watched, gray and closed while ignored;
+clicking that eye toggles ignore. The list scrolls when long and stays open
+while the pointer is over the eye or the list.
 
 The open count leads the top bar in larger type. Headings for
 projects with open PRs use primary semibold type; idle headings drop to

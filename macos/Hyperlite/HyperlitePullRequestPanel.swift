@@ -55,7 +55,12 @@ struct HyperlitePullRequestPanel<Actions: View>: View {
                 HyperliteRefreshBadge(polling: !isRefreshing)
             }
             Spacer(minLength: 4)
-            HyperliteHideIdleEye(hideIdle: $hideIdleProjects, hiddenSections: model.hiddenSections)
+            HyperliteHideIdleEye(
+                hideIdle: $hideIdleProjects,
+                sections: model.sections,
+                hiddenCount: model.hiddenCount,
+                onToggleIgnore: onToggleIgnore
+            )
             actions
         }
         .padding(.bottom, 8)
