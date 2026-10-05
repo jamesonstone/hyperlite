@@ -81,6 +81,20 @@ func normalize(raw rawConfig, path string) (Config, error) {
 		seen[repo.Name] = struct{}{}
 		config.Repositories = append(config.Repositories, repo)
 	}
+	for _, excluded := range raw.Excluded {
+		if strings.TrimSpace(excluded) == "" {
+			continue
+		}
+		// Same identity as projects; a path that no longer exists keeps its
+		// expanded absolute form so the exclusion survives.
+		path, err := CanonicalizeSourcePath(excluded)
+		if err != nil {
+			if path, err = CanonicalizePath(excluded); err != nil {
+				return Config{}, fmt.Errorf("excluded project %q: %w", excluded, err)
+			}
+		}
+		config.ExcludedProjects = append(config.ExcludedProjects, path)
+	}
 	for _, retired := range raw.Retired {
 		if strings.TrimSpace(retired.Path) == "" {
 			return Config{}, errors.New("retired project path is required")

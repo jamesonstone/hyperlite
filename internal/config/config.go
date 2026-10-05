@@ -62,7 +62,10 @@ type Config struct {
 	// RetiredProjects are soft-deleted projects: kept for audit and restore,
 	// never scanned.
 	RetiredProjects []RetiredProject
-	Path            string
+	// ExcludedProjects are repositories under a source folder that the
+	// operator removed; automatic discovery never re-adds them.
+	ExcludedProjects []string
+	Path             string
 	// RefreshOnly is a per-invocation, never persisted limit on which project
 	// paths a pull-request refresh may query.
 	RefreshOnly []string
@@ -81,6 +84,7 @@ type rawConfig struct {
 	Sources      []rawSource     `yaml:"sources"`
 	Repositories []rawRepository `yaml:"repositories"`
 	Retired      []rawRetired    `yaml:"retired_projects,omitempty"`
+	Excluded     []string        `yaml:"excluded_projects,omitempty"`
 }
 
 type rawRetired struct {

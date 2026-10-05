@@ -47,6 +47,8 @@
   `retired_projects` (restorable, with reason and time), never silently
   dropped, and configuration writes never treat a missing project directory as
   a missing configuration file.
+  Repositories under a configured source folder are watched automatically, but
+  a project the operator removed stays excluded until added back.
   Only an observation younger than two minutes may present a run as currently
   running. Caller rate-limit metadata rides with those same bounded GraphQL
   requests and is cached only as a complete observation; quota visibility

@@ -61,9 +61,21 @@ func (a App) runPullRequests(
 		return err
 	}
 	var retired []config.RetiredProject
-	if len(cfg.MissingProjects) > 0 && !options.localOnly && !options.activity {
-		if retired, err = retireMissingProjects(path); err != nil {
+	var added []string
+	var discoveryProblems []model.ScanError
+	if !options.localOnly && !options.activity {
+		if len(cfg.MissingProjects) > 0 {
+			if retired, err = retireMissingProjects(path); err != nil {
+				return err
+			}
+		}
+		if added, discoveryProblems, err = addNewSourceProjects(path, cfg); err != nil {
 			return err
+		}
+		if len(retired) > 0 || len(added) > 0 {
+			if cfg, err = config.Load(path); err != nil {
+				return err
+			}
 		}
 	}
 	cfg.Sources = append([]config.Source(nil), cfg.Projects...)
@@ -89,9 +101,16 @@ func (a App) runPullRequests(
 	}
 	result, err := a.pullRequestScanner().Scan(ctx, cfg, mode)
 	if err != nil {
+		// Config changes already persisted; surface them so a failed scan does
+		// not swallow the only notice for a newly watched or retired project.
+		for _, warning := range append(addedProjectWarnings(added), retiredWarnings(retired)...) {
+			err = fmt.Errorf("%w\n%s: %s", err, warning.Stage, warning.Message)
+		}
 		return err
 	}
 	result.Warnings = append(result.Warnings, retiredWarnings(retired)...)
+	result.Warnings = append(result.Warnings, addedProjectWarnings(added)...)
+	result.Warnings = append(result.Warnings, discoveryProblems...)
 	if options.jsonOutput {
 		return json.NewEncoder(a.Out).Encode(result)
 	}
@@ -127,6 +146,11 @@ func writePullRequests(out io.Writer, result model.ProjectPullRequestScan) error
 			); err != nil {
 				return err
 			}
+		}
+	}
+	for _, warning := range result.Warnings {
+		if _, err := fmt.Fprintf(out, "! %s: %s\n", warning.Stage, warning.Message); err != nil {
+			return err
 		}
 	}
 	return nil

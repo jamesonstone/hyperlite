@@ -163,6 +163,13 @@ section. The same switch is `hyperlite projects ignore <path>` and
 `hyperlite projects watch <path>`; the choice is stored as `ignored: true` on
 the project in the Hyperlite config.
 
+New Git repositories that appear inside a folder listed under `sources:` in the
+Hyperlite config are watched automatically on the next refresh, and the Open
+PRs warnings name each one. Only primary checkouts are added (linked worktrees
+and submodules are skipped). Removing such a project with `hyperlite projects
+remove` records it under `excluded_projects` so it is not re-added; adding it
+back clears the exclusion.
+
 When a configured project's local directory disappears, the next refresh
 moves it to `retired_projects` in the config (with the reason and time) and
 the Open PRs warnings name it; it is no longer scanned. Restore it with

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 	"syscall"
 
@@ -164,6 +165,7 @@ func Marshal(cfg Config) ([]byte, error) {
 	for _, project := range cfg.MissingProjects {
 		raw.Projects = append(raw.Projects, rawSource(project))
 	}
+	raw.Excluded = append(raw.Excluded, cfg.ExcludedProjects...)
 	for _, retired := range cfg.RetiredProjects {
 		raw.Retired = append(raw.Retired, rawRetired{
 			Path: retired.Path, Reason: retired.Reason, RetiredAt: retired.RetiredAt.UTC(),
@@ -212,8 +214,47 @@ func ReplaceProjectPaths(current Config, paths []string) (Config, error) {
 		)
 		replacement.Projects = append(replacement.Projects, project)
 	}
+	replacement.ExcludedProjects = updatedExclusions(current, replacement)
 	Sort(&replacement)
 	return replacement, nil
+}
+
+// updatedExclusions records repositories under a source folder that the
+// operator just removed, so discovery leaves them out, and clears exclusions
+// for repositories added back.
+func updatedExclusions(before, after Config) []string {
+	kept := make(map[string]struct{}, len(after.Projects))
+	for _, project := range after.Projects {
+		kept[project.Path] = struct{}{}
+	}
+	excluded := make(map[string]struct{}, len(before.ExcludedProjects))
+	for _, path := range before.ExcludedProjects {
+		if _, readded := kept[path]; !readded {
+			excluded[path] = struct{}{}
+		}
+	}
+	for _, project := range before.Projects {
+		if _, still := kept[project.Path]; !still && UnderSource(before.Sources, project.Path) {
+			excluded[project.Path] = struct{}{}
+		}
+	}
+	result := make([]string, 0, len(excluded))
+	for path := range excluded {
+		result = append(result, path)
+	}
+	sort.Strings(result)
+	return result
+}
+
+// UnderSource reports whether path is inside one of the source folders.
+func UnderSource(sources []Source, path string) bool {
+	for _, source := range sources {
+		root := strings.TrimRight(source.Path, string(filepath.Separator))
+		if path == root || strings.HasPrefix(path, root+string(filepath.Separator)) {
+			return true
+		}
+	}
+	return false
 }
 
 // SetProjectIgnored marks one configured project ignored or watched. It
