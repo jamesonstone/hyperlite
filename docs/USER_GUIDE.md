@@ -109,7 +109,10 @@ query loop.
 Projects are grouped under their GitHub organization (for example
 `LSMC-BIO` or `JAMESONSTONE`), with the organization's pull request and
 project counts; click the heading to open the organization on GitHub.
-Organizations follow the order of their most recently updated pull request. Within an
+Projects with open pull requests from every organization come first;
+organizations follow the order of their most recently updated pull request.
+When all projects are shown, projects without open pull requests follow below
+a `NO OPEN PULL REQUESTS` divider, again grouped by organization. Within an
 organization, expanded projects come first and collapsed projects move to the
 bottom; each group keeps its order.
 

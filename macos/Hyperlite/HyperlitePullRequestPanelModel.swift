@@ -25,8 +25,16 @@ struct HyperlitePullRequestPanelModel {
     /// the order of their first visible project, so the org with the most
     /// recently updated pull request leads; project order within an org is
     /// unchanged.
+    /// Visible projects with open pull requests, grouped by organization.
+    /// Every organization's open work comes before any idle project.
     var organizations: [HyperliteOrganizationGroup] {
-        HyperliteOrganizationGroup.groups(visibleSections)
+        HyperliteOrganizationGroup.groups(visibleSections.filter { !$0.rows.isEmpty })
+    }
+
+    /// Visible projects without open pull requests (shown only when hide-idle
+    /// is off), grouped by organization below all open work.
+    var idleOrganizations: [HyperliteOrganizationGroup] {
+        HyperliteOrganizationGroup.groups(visibleSections.filter(\.rows.isEmpty))
     }
 }
 

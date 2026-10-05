@@ -18,11 +18,16 @@ enum HyperlitePullRequestPanelModelTests {
         expect(model.visibleSections.map(\.id) == ["/a"] && model.hiddenSections.map(\.id) == ["/b"] &&
                model.hiddenCount == 1, "hide-idle splits the project without rows into the hidden list")
         let showAll = HyperlitePullRequestPanelModel(scan: scan, hideIdle: false, now: now)
-        expect(showAll.organizations.map(\.name) == ["o"] && showAll.organizations[0].sections.count == 2 &&
-               showAll.organizations[0].pullRequestCount == 1, "projects group under their GitHub organization")
-        expect(showAll.organizations[0].sectionsOrdered(collapsed: ["/a"]).map(\.id) == ["/b", "/a"],
+        expect(showAll.organizations.map(\.name) == ["o"] && showAll.organizations[0].sections.map(\.id) == ["/a"] &&
+               showAll.organizations[0].pullRequestCount == 1, "open work groups under its organization first")
+        expect(showAll.idleOrganizations.map(\.name) == ["o"] && showAll.idleOrganizations[0].sections.map(\.id) == ["/b"],
+               "projects without open pull requests follow in their own organization groups")
+        expect(model.idleOrganizations.isEmpty, "hide-idle leaves no idle tier")
+        let both = showAll.organizations[0].sections + showAll.idleOrganizations[0].sections
+        let group = HyperliteOrganizationGroup(name: "o", sections: both)
+        expect(group.sectionsOrdered(collapsed: ["/a"]).map(\.id) == ["/b", "/a"],
                "collapsed projects sink to the bottom of their organization")
-        expect(showAll.organizations[0].sectionsOrdered(collapsed: []).map(\.id) == ["/a", "/b"],
+        expect(group.sectionsOrdered(collapsed: []).map(\.id) == ["/a", "/b"],
                "expanded projects keep their order")
         expect(showAll.visibleSections.count == 2 && showAll.hiddenSections.isEmpty, "show-all lists every project")
 

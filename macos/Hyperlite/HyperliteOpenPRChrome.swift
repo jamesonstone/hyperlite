@@ -98,7 +98,8 @@ struct HyperliteOrganizationHeading: View {
     private var summary: String {
         let projects = group.sections.count
         let prs = group.pullRequestCount
-        return "\(prs) PR\(prs == 1 ? "" : "s") · \(projects) project\(projects == 1 ? "" : "s")"
+        let projectText = "\(projects) project\(projects == 1 ? "" : "s")"
+        return prs == 0 ? projectText : "\(prs) PR\(prs == 1 ? "" : "s") · \(projectText)"
     }
 }
 
@@ -149,5 +150,24 @@ struct HyperliteRefreshBar: View {
                 phase = 1.0
             }
         }
+    }
+}
+
+/// Separates every organization's open work from projects with nothing open.
+struct HyperliteIdleDivider: View {
+    let count: Int
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text("NO OPEN PULL REQUESTS")
+                .font(HyperliteTypography.semibold(HyperliteAppearance.shared.compactSize))
+                .foregroundStyle(HyperliteTheme.mutedText.color)
+            Text("\(count) project\(count == 1 ? "" : "s")")
+                .font(HyperliteTypography.compact)
+                .foregroundStyle(HyperliteTheme.mutedText.color)
+            Rectangle().fill(HyperliteTheme.mutedText.color.opacity(0.25)).frame(height: 1)
+        }
+        .padding(.top, 22)
+        .accessibilityElement(children: .combine)
     }
 }
