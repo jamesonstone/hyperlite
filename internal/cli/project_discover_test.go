@@ -2,6 +2,8 @@ package cli
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -10,6 +12,7 @@ import (
 
 	"github.com/jamesonstone/hyperlite/internal/config"
 	"github.com/jamesonstone/hyperlite/internal/model"
+	"github.com/jamesonstone/hyperlite/internal/prindex"
 )
 
 func initRepository(t *testing.T, path string) {
@@ -126,5 +129,29 @@ func TestWritePullRequestsPrintsWarnings(t *testing.T) {
 	}
 	if !strings.Contains(output.String(), "project-added: now watching /x") {
 		t.Fatalf("output = %s", output.String())
+	}
+}
+
+type failingProjectPullRequestScanner struct{}
+
+func (failingProjectPullRequestScanner) Scan(
+	context.Context, config.Config, prindex.RefreshMode,
+) (model.ProjectPullRequestScan, error) {
+	return model.ProjectPullRequestScan{}, errors.New("scan failed")
+}
+
+func TestFailedScanStillReportsNewlyWatchedProjects(t *testing.T) {
+	source, _ := filepath.EvalSymlinks(t.TempDir())
+	fresh := filepath.Join(source, "fresh")
+	initRepository(t, fresh)
+	configPath := filepath.Join(t.TempDir(), "config.yaml")
+	if err := os.WriteFile(configPath, []byte("version: 2\nsources:\n  - path: "+source+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	app := App{Out: &bytes.Buffer{}, pullRequestScannerSource: failingProjectPullRequestScanner{}}
+	err := app.runPullRequests(t.Context(), configPath, pullRequestOptions{jsonOutput: true})
+	if err == nil || !strings.Contains(err.Error(), "scan failed") || !strings.Contains(err.Error(), "project-added") ||
+		!strings.Contains(err.Error(), fresh) {
+		t.Fatalf("err = %v", err)
 	}
 }

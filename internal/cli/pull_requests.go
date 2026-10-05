@@ -101,6 +101,11 @@ func (a App) runPullRequests(
 	}
 	result, err := a.pullRequestScanner().Scan(ctx, cfg, mode)
 	if err != nil {
+		// Config changes already persisted; surface them so a failed scan does
+		// not swallow the only notice for a newly watched or retired project.
+		for _, warning := range append(addedProjectWarnings(added), retiredWarnings(retired)...) {
+			err = fmt.Errorf("%w\n%s: %s", err, warning.Stage, warning.Message)
+		}
 		return err
 	}
 	result.Warnings = append(result.Warnings, retiredWarnings(retired)...)
