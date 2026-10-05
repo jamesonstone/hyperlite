@@ -81,6 +81,11 @@ func normalize(raw rawConfig, path string) (Config, error) {
 		seen[repo.Name] = struct{}{}
 		config.Repositories = append(config.Repositories, repo)
 	}
+	for _, excluded := range raw.Excluded {
+		if strings.TrimSpace(excluded) != "" {
+			config.ExcludedProjects = append(config.ExcludedProjects, filepath.Clean(excluded))
+		}
+	}
 	for _, retired := range raw.Retired {
 		if strings.TrimSpace(retired.Path) == "" {
 			return Config{}, errors.New("retired project path is required")

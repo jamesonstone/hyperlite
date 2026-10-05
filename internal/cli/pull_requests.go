@@ -61,9 +61,20 @@ func (a App) runPullRequests(
 		return err
 	}
 	var retired []config.RetiredProject
-	if len(cfg.MissingProjects) > 0 && !options.localOnly && !options.activity {
-		if retired, err = retireMissingProjects(path); err != nil {
+	var added []string
+	if !options.localOnly && !options.activity {
+		if len(cfg.MissingProjects) > 0 {
+			if retired, err = retireMissingProjects(path); err != nil {
+				return err
+			}
+		}
+		if added, err = addNewSourceProjects(path, cfg); err != nil {
 			return err
+		}
+		if len(retired) > 0 || len(added) > 0 {
+			if cfg, err = config.Load(path); err != nil {
+				return err
+			}
 		}
 	}
 	cfg.Sources = append([]config.Source(nil), cfg.Projects...)
@@ -92,6 +103,7 @@ func (a App) runPullRequests(
 		return err
 	}
 	result.Warnings = append(result.Warnings, retiredWarnings(retired)...)
+	result.Warnings = append(result.Warnings, addedProjectWarnings(added)...)
 	if options.jsonOutput {
 		return json.NewEncoder(a.Out).Encode(result)
 	}
