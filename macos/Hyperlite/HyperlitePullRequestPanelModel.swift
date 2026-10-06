@@ -9,6 +9,7 @@ struct HyperlitePullRequestPanelModel {
     let visibleSections: [HyperliteProjectSection]
     let hiddenSections: [HyperliteProjectSection]
     let hiddenAttentionCount: Int
+    let undeployed: [HyperliteUndeployedProject]
 
     init(scan: HyperliteProjectPullRequestScan, hideIdle: Bool, now: Date) {
         let rows = HyperlitePullRequestPresentation.rows(scan: scan)
@@ -17,6 +18,7 @@ struct HyperlitePullRequestPanelModel {
         visibleSections = HyperliteOpenPRProjectFilter.visibleSections(sections, hideIdle: hideIdle, now: now)
         hiddenSections = HyperliteOpenPRProjectFilter.hiddenSections(sections, hideIdle: hideIdle, now: now)
         hiddenAttentionCount = HyperliteOpenPRProjectFilter.attentionCount(hiddenSections, now: now)
+        undeployed = HyperliteUndeployedPresentation.projects(sections)
     }
 
     var hiddenCount: Int { sections.count - visibleSections.count }
@@ -104,12 +106,18 @@ final class HyperlitePullRequestPanelModelCache {
 /// moving between the open and idle tiers is a reorder. Separate ForEach
 /// structures sharing explicit ids let the lazy list reuse a stale heading.
 enum HyperlitePanelListItem: Identifiable, Equatable {
+    case undeployedHeading([HyperliteUndeployedProject])
+    case undeployedProject(HyperliteUndeployedProject)
+    case undeployedRow(HyperliteUndeployedProject, HyperliteUndeployedPullRequest)
     case organization(HyperliteOrganizationGroup, idle: Bool)
     case idleDivider(count: Int)
     case section(HyperliteProjectSection, idle: Bool)
 
     var id: String {
         switch self {
+        case .undeployedHeading: HyperliteUndeployedPresentation.bandID
+        case let .undeployedProject(project): project.id
+        case let .undeployedRow(project, pullRequest): project.rowID(pullRequest)
         case let .organization(group, idle): "\(idle ? "idle-" : "")\(group.id)"
         case .idleDivider: "idle-divider"
         case let .section(section, _): "section:\(section.id)"
@@ -118,6 +126,15 @@ enum HyperlitePanelListItem: Identifiable, Equatable {
 
     static func items(model: HyperlitePullRequestPanelModel, collapsed: Set<String>) -> [HyperlitePanelListItem] {
         var items: [HyperlitePanelListItem] = []
+        if !model.undeployed.isEmpty {
+            items.append(.undeployedHeading(model.undeployed))
+            if !collapsed.contains(HyperliteUndeployedPresentation.bandID) {
+                for project in model.undeployed {
+                    items.append(.undeployedProject(project))
+                    items += project.pullRequests.map { .undeployedRow(project, $0) }
+                }
+            }
+        }
         for group in model.organizations {
             items.append(.organization(group, idle: false))
             items += group.sectionsOrdered(collapsed: collapsed).map { .section($0, idle: false) }

@@ -58,6 +58,9 @@ type ProjectWorkflowActivity struct {
 	ObservedAt     *time.Time           `json:"observed_at,omitempty"`
 	Message        string               `json:"message,omitempty"`
 	PipelineAlerts []PipelineAlert      `json:"pipeline_alerts,omitempty"`
+	TipOID         string               `json:"tip_oid,omitempty"`
+	DefaultBranch  string               `json:"default_branch,omitempty"`
+	Deploys        *DeployStatus        `json:"deploys,omitempty"`
 }
 
 // ActivityPollDecision reports whether an automatic activity poll may run so

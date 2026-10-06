@@ -72,9 +72,10 @@ struct HyperliteProjectWorkflowActivity: Codable, Equatable {
     var observedAt: Date? = nil
     var message: String? = nil
     var pipelineAlerts: [HyperlitePipelineAlert]? = nil
+    var deploys: HyperliteDeployStatus? = nil
 
     enum CodingKeys: String, CodingKey {
-        case catalog, runs, deployments, message
+        case catalog, runs, deployments, message, deploys
         case treeOID = "tree_oid"
         case checkedAt = "checked_at"
         case observedAt = "observed_at"

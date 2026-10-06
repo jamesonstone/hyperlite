@@ -17,6 +17,16 @@ func TestClassifyPipeline(t *testing.T) {
 		{"deploy-prod.yaml", "prod", model.PipelineAlertKindDeploy},
 		{"codeql.yaml", "CodeQL", ""},
 		{"ci-cd.yaml", "pipeline", ""},
+		{"main.yaml", "Deploy Web", model.PipelineAlertKindDeploy},
+		{"mint-production.yaml", "Mint Production", model.PipelineAlertKindDeploy},
+		{"promote-prd.yml", "Promote PRD", model.PipelineAlertKindDeploy},
+		{"pages-build-deployment", "pages-build-deployment", model.PipelineAlertKindDeploy},
+		{"pages.yml", "scout-pages", model.PipelineAlertKindDeploy},
+		{"request-promotion.yml", "Request Promotion", ""},
+		{"release.yml", "Release", ""},
+		{"dynamic/dependabot/dependabot-updates", "pip in /deploy", ""},
+		{"dynamic/pages/pages-build-deployment", "pages build and deployment", model.PipelineAlertKindDeploy},
+		{"mint-control.yaml", "Mint Release Control", ""},
 	}
 	for _, test := range cases {
 		if got := ClassifyPipeline(test.file, test.name); got != test.want {

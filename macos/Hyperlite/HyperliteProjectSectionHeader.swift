@@ -42,6 +42,10 @@ struct HyperliteProjectSectionHeader: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(accessibilityLabel)
             .accessibilityHint(section.repositoryURL == nil ? "" : "Opens the repository on GitHub")
+            if let deploys = section.project.workflows?.deploys, deploys.isBehind, !isIgnored {
+                HyperliteDeployBehindBadge(status: deploys)
+                    .layoutPriority(3)
+            }
             if !pipelineAlerts.isEmpty && !isIgnored {
                 HyperlitePipelineAlertStrip(alerts: pipelineAlerts)
                     .fixedSize(horizontal: true, vertical: false)
@@ -150,8 +154,11 @@ struct HyperliteProjectSectionHeader: View {
         }
     }
 
+    /// The deploy badge replaces a deploy alert, so it is not shown twice.
     private var pipelineAlerts: [HyperlitePipelineAlert] {
-        HyperlitePipelineAlertPresentation.alerts(from: section.project.workflows)
+        let alerts = HyperlitePipelineAlertPresentation.alerts(from: section.project.workflows)
+        guard section.project.workflows?.deploys?.isBehind == true else { return alerts }
+        return alerts.filter { $0.kind != "deploy" }
     }
 
     private var headingWeight: HyperliteProjectSectionChrome.HeadingWeight {
@@ -184,6 +191,9 @@ struct HyperliteProjectSectionHeader: View {
             ? "\(section.repository) pull requests, \(section.idleText)"
             : "\(section.repository) pull requests, \(section.rows.count)"
         var parts = [lead, HyperliteWorkflowStripPresentation.headerSummary(chips: chips, now: Date())]
+        if let deploys = section.project.workflows?.deploys, deploys.isBehind {
+            parts.append(HyperliteUndeployedPresentation.badgeHelp(deploys))
+        }
         if !pipelineAlerts.isEmpty {
             parts.append(pipelineAlerts.map(HyperlitePipelineAlertPresentation.accessibilityLabel).joined(separator: ", "))
         }

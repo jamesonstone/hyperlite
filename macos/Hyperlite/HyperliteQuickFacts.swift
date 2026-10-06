@@ -36,6 +36,9 @@ enum HyperliteQuickFacts {
         func add(_ id: String, _ count: Int, _ text: String, _ help: String, _ tone: HyperliteQuickFact.Tone) {
             if count > 0 { facts.append(.init(id: id, text: text, help: help, tone: tone)) }
         }
+        let undeployedPRs = HyperliteUndeployedPresentation.pullRequestCount(model.undeployed)
+        add("undeployed", model.undeployed.count, undeployedPRs > 0 ? "\(undeployedPRs) not deployed" : "\(model.undeployed.count) deploys failed",
+            "Merged pull requests whose deploy did not run (\(model.undeployed.count) project\(model.undeployed.count == 1 ? "" : "s"))", .attention)
         add("failing", failing, "\(failing) failing CI", "Pull requests whose head has a failed check", .alert)
         add("feedback", feedback, "\(feedback) need feedback", "Pull requests with unresolved review threads", .alert)
         add("conflicts", conflicts, "\(conflicts) conflicts", "Pull requests with merge conflicts", .attention)

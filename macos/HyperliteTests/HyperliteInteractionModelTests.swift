@@ -27,6 +27,7 @@ struct HyperliteInteractionModelTests {
         try HyperliteQuickFactsTests.run()
         try HyperlitePullRequestJumpTests.run()
         try HyperlitePullRequestPanelModelTests.run()
+        try HyperliteUndeployedTests.run()
         HyperliteFailedPipelineTests.run()
         try HyperliteProjectIgnoreTests.run()
         try HyperlitePullRequestReviewMarkerTests.run()
