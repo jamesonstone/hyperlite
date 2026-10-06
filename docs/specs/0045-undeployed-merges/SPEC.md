@@ -80,6 +80,13 @@ Swift band share one data contract and each step depends on the previous one.
   changes (tip OID plus deploy tip-run states), every 20 minutes while behind,
   or every 6 hours otherwise. A failed check keeps the cached gap and retries
   after 15 minutes. A repeat forced refresh made zero deploy requests.
+- **Reject stale run listings.** GitHub's `actions/runs?branch=` listing
+  sometimes serves a lagging index. Right after delivery, one call returned 40
+  July runs for a repository with 204 runs, and that hid a real gap. A page
+  counts as stale when it is short while `total_count` reports more runs, or
+  when its newest run is more than 2 minutes older than the newest tip run
+  GraphQL already observed. A stale page is treated as a failed check, which
+  keeps the cached status and retries after the backoff (#161).
 - **Broader deploy classification.** A workflow counts as a deploy when its
   file stem or name contains `deploy`, or has a `pages`, `production`, `prod`,
   `prd`, or `promote` word. Release and publish workflows build artifacts and

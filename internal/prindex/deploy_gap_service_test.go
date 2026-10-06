@@ -56,7 +56,7 @@ func TestRefreshDeployGapsChecksOnlyChangedRepositories(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(client.calls) != 1 || len(client.calls[0]) != 1 || client.calls[0][0] != (DeployRequest{Repository: "owner/moved", DefaultBranch: "main"}) {
+	if len(client.calls) != 1 || len(client.calls[0]) != 1 || client.calls[0][0].Repository != "owner/moved" || client.calls[0][0].DefaultBranch != "main" {
 		t.Fatalf("only the moved tip should be checked: %#v", client.calls)
 	}
 	moved := cache.Repositories["owner/moved"].Workflows.Deploys

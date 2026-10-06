@@ -18,6 +18,9 @@ import (
 type DeployRequest struct {
 	Repository    string
 	DefaultBranch string
+	// NewestRunAt is the newest default-branch deploy tip run already
+	// observed through GraphQL; a listing whose deploy runs are older is stale.
+	NewestRunAt time.Time
 }
 
 // DeployResult is one repository's deploy gaps. Error leaves the cached
@@ -29,18 +32,21 @@ type DeployResult struct {
 }
 
 type rawDeployRuns struct {
-	WorkflowRuns []struct {
-		Path       string    `json:"path"`
-		Name       string    `json:"name"`
-		Event      string    `json:"event"`
-		Status     string    `json:"status"`
-		Conclusion string    `json:"conclusion"`
-		HTMLURL    string    `json:"html_url"`
-		CreatedAt  time.Time `json:"created_at"`
-		HeadCommit *struct {
-			Timestamp time.Time `json:"timestamp"`
-		} `json:"head_commit"`
-	} `json:"workflow_runs"`
+	TotalCount   int            `json:"total_count"`
+	WorkflowRuns []rawDeployRun `json:"workflow_runs"`
+}
+
+type rawDeployRun struct {
+	Path       string    `json:"path"`
+	Name       string    `json:"name"`
+	Event      string    `json:"event"`
+	Status     string    `json:"status"`
+	Conclusion string    `json:"conclusion"`
+	HTMLURL    string    `json:"html_url"`
+	CreatedAt  time.Time `json:"created_at"`
+	HeadCommit *struct {
+		Timestamp time.Time `json:"timestamp"`
+	} `json:"head_commit"`
 }
 
 type rawMergedPull struct {
@@ -90,7 +96,7 @@ const (
 
 func (c GitHubClient) checkDeploy(ctx context.Context, request DeployRequest) DeployResult {
 	branch := url.QueryEscape(request.DefaultBranch)
-	runs, err := c.deployRuns(ctx, request.Repository, branch)
+	runs, err := c.deployRuns(ctx, request.Repository, branch, request.NewestRunAt)
 	if err != nil {
 		return DeployResult{Error: "deploy runs: " + err.Error()}
 	}
@@ -110,7 +116,11 @@ func (c GitHubClient) checkDeploy(ctx context.Context, request DeployRequest) De
 // its last success, so a busy repository whose first page is all newer than
 // that success still gets the true cutoff. Paging stops at a short page or
 // after deployRunMaxPages.
-func (c GitHubClient) deployRuns(ctx context.Context, repository, branch string) ([]deployRun, error) {
+func (c GitHubClient) deployRuns(
+	ctx context.Context,
+	repository, branch string,
+	newestKnown time.Time,
+) ([]deployRun, error) {
 	var mapped []deployRun
 	for page := 1; page <= deployRunMaxPages; page++ {
 		var runs rawDeployRuns
@@ -131,11 +141,48 @@ func (c GitHubClient) deployRuns(ctx context.Context, repository, branch string)
 			}
 			mapped = append(mapped, next)
 		}
+		if err := staleRunsPage(runs, page, mapped, newestKnown); err != nil {
+			return nil, err
+		}
 		if len(runs.WorkflowRuns) < deployRunPageSize || !missingLastSuccess(mapped) {
 			break
 		}
 	}
 	return mapped, nil
+}
+
+// runListingSlack tolerates clock and indexing skew between the GraphQL tip
+// observation and the REST runs listing.
+const runListingSlack = 2 * time.Minute
+
+// staleRunsPage rejects a listing GitHub served from a lagging index: a short
+// page while total_count says more runs exist, or a first page whose newest
+// deploy run is older than a deploy tip run already observed. Only deploy
+// runs count, because a fresh unrelated run proves nothing about the deploy
+// runs the gap is computed from. One such page reported 40
+// July runs for a repository with 204, which hid a real deploy gap.
+func staleRunsPage(runs rawDeployRuns, page int, mapped []deployRun, newestKnown time.Time) error {
+	seen := (page-1)*deployRunPageSize + len(runs.WorkflowRuns)
+	if len(runs.WorkflowRuns) < deployRunPageSize && runs.TotalCount > seen {
+		return fmt.Errorf("stale runs listing: page %d has %d of %d runs", page, len(runs.WorkflowRuns), runs.TotalCount)
+	}
+	if page != 1 || newestKnown.IsZero() {
+		return nil
+	}
+	var newest time.Time
+	for _, run := range mapped {
+		if isPullRequestEvent(run.Event) || ClassifyPipeline(run.Path, run.Name) != model.PipelineAlertKindDeploy {
+			continue
+		}
+		if run.CreatedAt.After(newest) {
+			newest = run.CreatedAt
+		}
+	}
+	if newest.Add(runListingSlack).Before(newestKnown) {
+		return fmt.Errorf("stale runs listing: newest run %s predates observed tip run %s",
+			newest.UTC().Format(time.RFC3339), newestKnown.UTC().Format(time.RFC3339))
+	}
+	return nil
 }
 
 func missingLastSuccess(runs []deployRun) bool {
