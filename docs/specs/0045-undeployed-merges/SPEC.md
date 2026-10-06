@@ -72,8 +72,14 @@ Swift band share one data contract and each step depends on the previous one.
   redeploy of the same commit. A failed gap stays even with no merges, since
   direct pushes are also undeployed.
 - **Commit history, not run listings, and only when something changed.**
-  One GraphQL query per repository, costing about 1 point, reads the last 50
-  default-branch commits. Each commit comes with its GitHub Actions check
+  GraphQL reads default-branch commits 50 per page, about 1 point a page. It
+  stops once the commits reach past the 30-day retirement window and every
+  behind pipeline has found its last success, with at most 4 pages. A commit
+  whose Actions suites overflow a page is completed with follow-up pages, so
+  no deploy attempt is silently missing. One aquarium commit has 75 suites.
+  GraphQL resource paths such as `/o/r/actions/workflows/deploy.yml` map to
+  `.github/workflows/...`, and GitHub-managed subfolders map to `dynamic/...`,
+  so classification still ignores per-run names on those. Each commit comes with its GitHub Actions check
   suites (workflow run, event, conclusion) and the pull request that produced
   it. A repository is rechecked only when its fingerprint changes (tip OID
   plus deploy tip-run states), every 20 minutes while behind, or every 6
@@ -93,7 +99,8 @@ Swift band share one data contract and each step depends on the previous one.
   real gap and emptied the band. Commit check suites stayed current
   throughout, so detection moved to them (#165).
 - **Retired pipelines are not behind.** A deploy whose newest attempt is
-  older than 30 days is dropped. lsmc-vivarium's `deploy-dev` last failed in
+  older than 30 days is dropped before the cutoff is chosen, so it cannot
+  widen the undeployed list of an active pipeline. lsmc-vivarium's `deploy-dev` last failed in
   August and would otherwise list every merge since June.
 - **Broader deploy classification.** A workflow counts as a deploy when its
   file stem or name contains `deploy`, or has a `pages`, `production`, `prod`,

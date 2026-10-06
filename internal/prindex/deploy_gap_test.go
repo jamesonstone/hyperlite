@@ -24,7 +24,7 @@ func TestDeployGapsFlagsSkippedAutomaticRunAfterSuccess(t *testing.T) {
 		run("deploy.yaml", "workflow_run", "completed", "success", -48),
 		run("deploy.yaml", "workflow_run", "completed", "skipped", 0),
 		run("ci.yaml", "push", "completed", "failure", 0),
-	})
+	}, time.Time{})
 	if len(gaps) != 1 || gaps[0].File != "deploy.yaml" || gaps[0].Conclusion != "SKIPPED" {
 		t.Fatalf("skipped automatic deploy after success should be behind: %#v", gaps)
 	}
@@ -57,7 +57,7 @@ func TestDeployGapsIgnoresGreenRunningAndConditionalPipelines(t *testing.T) {
 		},
 	}
 	for name, runs := range cases {
-		if gaps, _ := deployGaps(runs); len(gaps) != 0 {
+		if gaps, _ := deployGaps(runs, time.Time{}); len(gaps) != 0 {
 			t.Fatalf("%s: want no gap, got %#v", name, gaps)
 		}
 	}
@@ -68,7 +68,7 @@ func TestDeployGapsWithoutSuccessUsesOldestFailure(t *testing.T) {
 		run("deploy.yaml", "push", "completed", "cancelled", 0),
 		run("deploy.yaml", "push", "completed", "failure", -3),
 		run("deploy.yaml", "push", "completed", "skipped", -5),
-	})
+	}, time.Time{})
 	if len(gaps) != 1 || gaps[0].Conclusion != "CANCELLED" || gaps[0].LastSuccessAt != nil {
 		t.Fatalf("failures without success should be behind: %#v", gaps)
 	}
@@ -83,7 +83,7 @@ func TestDeployGapsUsesOldestCutoffAcrossPipelines(t *testing.T) {
 		run("deploy-nonprod.yaml", "workflow_run", "completed", "failure", 0),
 		run("deploy.yaml", "workflow_run", "completed", "success", -10),
 		run("deploy-nonprod.yaml", "workflow_run", "completed", "success", -20),
-	})
+	}, time.Time{})
 	if want := deployAt(-20).Add(-time.Minute + mergeCommitSlack); !cutoff.Equal(want) {
 		t.Fatalf("cutoff = %v, want oldest last success %v", cutoff, want)
 	}
@@ -135,5 +135,20 @@ func TestNeedsDeployCheck(t *testing.T) {
 		if got := needsDeployCheck(test.status, test.print, now); got != test.want {
 			t.Fatalf("%s: needsDeployCheck = %v, want %v", test.name, got, test.want)
 		}
+	}
+}
+
+func TestDeployGapsDropsRetiredPipelinesBeforeTheCutoff(t *testing.T) {
+	gaps, cutoff := deployGaps([]deployRun{
+		run("deploy.yaml", "workflow_run", "completed", "skipped", 0),
+		run("deploy.yaml", "workflow_run", "completed", "success", -24),
+		run("deploy-dev.yml", "workflow_dispatch", "completed", "failure", -60*24),
+		run("deploy-dev.yml", "workflow_dispatch", "completed", "success", -90*24),
+	}, deployAt(1))
+	if len(gaps) != 1 || gaps[0].File != "deploy.yaml" {
+		t.Fatalf("the retired pipeline must be dropped: %#v", gaps)
+	}
+	if want := deployAt(-24).Add(-time.Minute + mergeCommitSlack); !cutoff.Equal(want) {
+		t.Fatalf("cutoff = %v, want the active pipeline's last success %v", cutoff, want)
 	}
 }

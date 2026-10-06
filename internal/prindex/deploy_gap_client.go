@@ -2,10 +2,6 @@ package prindex
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -25,62 +21,9 @@ type DeployResult struct {
 	Error        string
 }
 
-const (
-	// deployHistoryDepth is how many default-branch commits are read.
-	deployHistoryDepth = 50
-	// deployAttemptMaxAge drops a pipeline whose newest attempt is older
-	// than this: a deploy nobody has run in a month is retired, not behind.
-	deployAttemptMaxAge = 30 * 24 * time.Hour
-)
-
-type rawDeployHistory struct {
-	DefaultBranchRef *struct {
-		Target *struct {
-			History *struct {
-				Nodes []rawDeployCommit `json:"nodes"`
-			} `json:"history"`
-		} `json:"target"`
-	} `json:"defaultBranchRef"`
-}
-
-type rawDeployCommit struct {
-	CommittedDate          time.Time `json:"committedDate"`
-	AssociatedPullRequests struct {
-		Nodes []rawDeployPullRequest `json:"nodes"`
-	} `json:"associatedPullRequests"`
-	CheckSuites struct {
-		Nodes []rawDeploySuite `json:"nodes"`
-	} `json:"checkSuites"`
-}
-
-type rawDeployPullRequest struct {
-	Number      int        `json:"number"`
-	Title       string     `json:"title"`
-	URL         string     `json:"url"`
-	HeadRefName string     `json:"headRefName"`
-	MergedAt    *time.Time `json:"mergedAt"`
-	Author      *struct {
-		Login string `json:"login"`
-	} `json:"author"`
-}
-
-type rawDeploySuite struct {
-	Status      string `json:"status"`
-	Conclusion  string `json:"conclusion"`
-	WorkflowRun *struct {
-		URL       string    `json:"url"`
-		Event     string    `json:"event"`
-		CreatedAt time.Time `json:"createdAt"`
-		Workflow  struct {
-			Name         string `json:"name"`
-			ResourcePath string `json:"resourcePath"`
-		} `json:"workflow"`
-	} `json:"workflowRun"`
-}
-
 // CheckDeploys reads each repository's recent default-branch commits with
-// their Actions check suites and merged pull requests in one GraphQL query
-// (about one point). The REST runs listings are not used: after the
+// their Actions check suites and merged pull requests through GraphQL
+// (about one point per page of 50 commits). The REST runs listings are not used: after the
 // 2026-10-05 Actions outage they served lagging, inconsistent pages that hid
 // real deploy gaps, while commit check suites stayed current.
 func (c GitHubClient) CheckDeploys(ctx context.Context, requests []DeployRequest) map[string]DeployResult {
@@ -106,54 +49,17 @@ func (c GitHubClient) CheckDeploys(ctx context.Context, requests []DeployRequest
 }
 
 func (c GitHubClient) checkDeploy(ctx context.Context, request DeployRequest, now time.Time) DeployResult {
-	commits, err := c.deployHistory(ctx, request.Repository)
+	commits, err := c.deployHistory(ctx, request.Repository, now)
 	if err != nil {
 		return DeployResult{Error: "deploy history: " + err.Error()}
 	}
 	runs, merged := deployEvidence(commits)
-	gaps, cutoff := deployGaps(runs)
-	gaps = recentGaps(gaps, now)
+	gaps, cutoff := deployGaps(runs, now)
 	if len(gaps) == 0 {
 		return DeployResult{}
 	}
 	undeployed := undeployedPullRequests(merged, cutoff)
 	return DeployResult{Pipelines: keepReportableGaps(gaps, undeployed), PullRequests: undeployed}
-}
-
-func deployHistoryQuery(repository string) string {
-	owner, name, _ := strings.Cut(repository, "/")
-	return "query { repository(owner: " + strconv.Quote(owner) + ", name: " + strconv.Quote(name) + ") {" +
-		" defaultBranchRef { target { ... on Commit { history(first: " + strconv.Itoa(deployHistoryDepth) + ") { nodes {" +
-		" committedDate" +
-		" associatedPullRequests(first: 1) { nodes { number title url headRefName mergedAt author { login } } }" +
-		" checkSuites(first: 20, filterBy: {appId: " + strconv.Itoa(githubActionsAppID) + "}) { nodes { status conclusion" +
-		" workflowRun { url event createdAt workflow { name resourcePath } } } }" +
-		" } } } } } } }"
-}
-
-func (c GitHubClient) deployHistory(ctx context.Context, repository string) ([]rawDeployCommit, error) {
-	output, err := c.run(ctx, deployHistoryQuery(repository))
-	if err != nil {
-		return nil, err
-	}
-	var response struct {
-		Data struct {
-			Repository *rawDeployHistory `json:"repository"`
-		} `json:"data"`
-		Errors []rawGraphQLError `json:"errors"`
-	}
-	if err := json.Unmarshal(output, &response); err != nil {
-		return nil, err
-	}
-	if len(response.Errors) > 0 {
-		return nil, errors.New(response.Errors[0].Message)
-	}
-	repo := response.Data.Repository
-	if repo == nil || repo.DefaultBranchRef == nil || repo.DefaultBranchRef.Target == nil ||
-		repo.DefaultBranchRef.Target.History == nil {
-		return nil, nil
-	}
-	return repo.DefaultBranchRef.Target.History.Nodes, nil
 }
 
 // deployEvidence turns commits into deploy runs keyed to their commit time
@@ -166,7 +72,7 @@ func deployEvidence(commits []rawDeployCommit) ([]deployRun, []mergedPullRequest
 		for _, suite := range commit.CheckSuites.Nodes {
 			if run := suite.WorkflowRun; run != nil {
 				runs = append(runs, deployRun{
-					Path: run.Workflow.ResourcePath, Name: run.Workflow.Name, Event: run.Event,
+					Path: deployRunPath(run.Workflow.ResourcePath), Name: run.Workflow.Name, Event: run.Event,
 					Status: suite.Status, Conclusion: suite.Conclusion, URL: run.URL,
 					CreatedAt: run.CreatedAt, CommitAt: commit.CommittedDate,
 				})
@@ -188,16 +94,6 @@ func deployEvidence(commits []rawDeployCommit) ([]deployRun, []mergedPullRequest
 		}
 	}
 	return runs, merged
-}
-
-func recentGaps(gaps []model.DeployGap, now time.Time) []model.DeployGap {
-	var kept []model.DeployGap
-	for _, gap := range gaps {
-		if now.Sub(gap.AttemptAt) <= deployAttemptMaxAge {
-			kept = append(kept, gap)
-		}
-	}
-	return kept
 }
 
 // keepReportableGaps drops skip-only gaps when nothing merged is waiting:
