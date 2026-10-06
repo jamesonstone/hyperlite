@@ -144,11 +144,14 @@ func TestStaleRunsPageRejectsLaggingListings(t *testing.T) {
 		t.Fatal("a short page while total_count reports more runs must be stale")
 	}
 	complete := rawDeployRuns{TotalCount: 40, WorkflowRuns: short.WorkflowRuns}
-	old := []deployRun{{CreatedAt: deployAt(-2400)}}
-	if staleRunsPage(complete, 1, old, deployAt(0)) == nil {
-		t.Fatal("a first page older than the observed tip run must be stale")
+	deploy := func(at time.Time) deployRun {
+		return deployRun{Path: ".github/workflows/deploy.yaml", Name: "deploy", CreatedAt: at}
 	}
-	if err := staleRunsPage(complete, 1, []deployRun{{CreatedAt: deployAt(0).Add(-time.Minute)}}, deployAt(0)); err != nil {
+	unrelated := deployRun{Path: ".github/workflows/ci.yaml", Name: "ci", CreatedAt: deployAt(0)}
+	if staleRunsPage(complete, 1, []deployRun{deploy(deployAt(-2400)), unrelated}, deployAt(0)) == nil {
+		t.Fatal("deploy runs older than the observed deploy tip run are stale even beside a fresh unrelated run")
+	}
+	if err := staleRunsPage(complete, 1, []deployRun{deploy(deployAt(0).Add(-time.Minute))}, deployAt(0)); err != nil {
 		t.Fatalf("a current page within slack is fine: %v", err)
 	}
 }

@@ -18,8 +18,8 @@ import (
 type DeployRequest struct {
 	Repository    string
 	DefaultBranch string
-	// NewestRunAt is the newest default-branch tip run already observed
-	// through GraphQL; a runs listing older than it is stale.
+	// NewestRunAt is the newest default-branch deploy tip run already
+	// observed through GraphQL; a listing whose deploy runs are older is stale.
 	NewestRunAt time.Time
 }
 
@@ -157,7 +157,9 @@ const runListingSlack = 2 * time.Minute
 
 // staleRunsPage rejects a listing GitHub served from a lagging index: a short
 // page while total_count says more runs exist, or a first page whose newest
-// run is older than a tip run already observed. One such page reported 40
+// deploy run is older than a deploy tip run already observed. Only deploy
+// runs count, because a fresh unrelated run proves nothing about the deploy
+// runs the gap is computed from. One such page reported 40
 // July runs for a repository with 204, which hid a real deploy gap.
 func staleRunsPage(runs rawDeployRuns, page int, mapped []deployRun, newestKnown time.Time) error {
 	seen := (page-1)*deployRunPageSize + len(runs.WorkflowRuns)
@@ -169,6 +171,9 @@ func staleRunsPage(runs rawDeployRuns, page int, mapped []deployRun, newestKnown
 	}
 	var newest time.Time
 	for _, run := range mapped {
+		if isPullRequestEvent(run.Event) || ClassifyPipeline(run.Path, run.Name) != model.PipelineAlertKindDeploy {
+			continue
+		}
 		if run.CreatedAt.After(newest) {
 			newest = run.CreatedAt
 		}

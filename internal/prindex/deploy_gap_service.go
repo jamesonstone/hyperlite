@@ -151,10 +151,13 @@ func deployFingerprint(activity *model.ProjectWorkflowActivity) string {
 	return strings.Join(parts, "|")
 }
 
+// newestTipRun is the newest deploy run on the tip, the freshness floor for
+// the REST listing.
 func newestTipRun(activity *model.ProjectWorkflowActivity) time.Time {
 	var newest time.Time
 	for _, run := range activity.Runs {
-		if run.Scope == model.WorkflowRunScopeTip && run.CreatedAt.After(newest) {
+		if run.Scope == model.WorkflowRunScopeTip && run.CreatedAt.After(newest) &&
+			ClassifyPipeline(run.File, run.Name) == model.PipelineAlertKindDeploy {
 			newest = run.CreatedAt
 		}
 	}
