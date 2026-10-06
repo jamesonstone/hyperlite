@@ -44,9 +44,18 @@ struct HyperliteUndeployedHeading: View {
 struct HyperliteUndeployedProjectLine: View {
     let project: HyperliteUndeployedProject
     let now: Date
+    var collapsed: Binding<Bool>? = nil
 
     var body: some View {
         HStack(spacing: 12) {
+            // The chevron sits in the rows' checkbox column, like a project
+            // section heading, so the name lines up with each row's PR number.
+            HStack(spacing: 0) {
+                if let collapsed {
+                    disclosureChevron(collapsed)
+                }
+            }
+            .frame(width: HyperlitePullRequestRowLayout.rowChromeLeading - 12, alignment: .trailing)
             Button {
                 open(project.runURL)
             } label: {
@@ -60,14 +69,37 @@ struct HyperliteUndeployedProjectLine: View {
             .buttonStyle(.plain)
             .disabled(project.runURL == nil)
             .help(project.runURL == nil ? "" : "Open the newest failed or skipped deploy run")
+            if !project.pullRequests.isEmpty {
+                Text(verbatim: "\(project.pullRequests.count)")
+                    .font(HyperliteTypography.compact.monospacedDigit())
+                    .foregroundStyle(HyperliteTheme.secondaryText.color)
+            }
             ForEach(project.pipelines, id: \.file) { gap in
                 pipelineButton(gap)
             }
             Spacer(minLength: 4)
         }
-        .padding(.leading, HyperlitePullRequestRowLayout.rowChromeLeading)
         .padding(.top, 4)
         .accessibilityElement(children: .contain)
+    }
+
+    private func disclosureChevron(_ collapsed: Binding<Bool>) -> some View {
+        Button {
+            collapsed.wrappedValue.toggle()
+        } label: {
+            Image(systemName: collapsed.wrappedValue ? "chevron.right" : "chevron.down")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(HyperliteTheme.mutedText.color)
+                .frame(width: 14, height: 14)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(collapsed.wrappedValue ? "Show undeployed pull requests" : "Hide undeployed pull requests")
+        .accessibilityLabel(
+            collapsed.wrappedValue
+                ? "Show \(project.section.repository) undeployed pull requests"
+                : "Hide \(project.section.repository) undeployed pull requests"
+        )
     }
 
     private func pipelineButton(_ gap: HyperliteDeployGap) -> some View {

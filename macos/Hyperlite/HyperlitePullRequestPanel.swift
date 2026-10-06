@@ -83,7 +83,12 @@ struct HyperlitePullRequestPanel<Actions: View>: View {
                                 set: { collapse.setCollapsed(HyperliteUndeployedPresentation.bandID, $0) }
                             ))
                         case let .undeployedProject(project):
-                            undeployedItem(project.id) { HyperliteUndeployedProjectLine(project: project, now: chipClock) }
+                            undeployedItem(project.id) {
+                                HyperliteUndeployedProjectLine(project: project, now: chipClock, collapsed: project.pullRequests.isEmpty ? nil : Binding(
+                                    get: { collapse.isCollapsed(project.id) },
+                                    set: { collapse.setCollapsed(project.id, $0) }
+                                ))
+                            }
                         case let .undeployedRow(project, pullRequest):
                             undeployedItem(project.rowID(pullRequest)) { HyperliteUndeployedRow(pullRequest: pullRequest, now: chipClock) }
                         case let .organization(group, _):

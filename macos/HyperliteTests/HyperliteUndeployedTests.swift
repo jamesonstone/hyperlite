@@ -38,6 +38,10 @@ enum HyperliteUndeployedTests {
         expect(Set(items.map(\.id)).count == items.count, "band items have unique identities")
         let folded = HyperlitePanelListItem.items(model: model, collapsed: [HyperliteUndeployedPresentation.bandID])
         expect(folded.map(\.id) == ["undeployed-band"], "collapsing the band hides its projects and rows")
+        let projectFolded = HyperlitePanelListItem.items(model: model, collapsed: ["undeployed:/b"])
+        expect(projectFolded.map(\.id) == [
+            "undeployed-band", "undeployed:/a", "undeployed:/a#12", "undeployed:/a#10", "undeployed:/b",
+        ], "a collapsed project keeps its line, drops its rows, and sinks to the bottom; got \(projectFolded.map(\.id))")
 
         let a = model.undeployed[1]
         expect(a.runURL?.absoluteString == "https://github.com/o/a/actions/runs/1", "the project line opens the failed run")
