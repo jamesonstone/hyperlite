@@ -157,7 +157,10 @@ failed, was cancelled, or was skipped), a **NOT DEPLOYED** band leads the list
 above every organization. It lists each behind project, its pipeline (`deploy
 ✕ 1d` or `deploy skipped 1d`), when it last deployed, a **re-run** link to the
 run, and the pull requests merged since that deploy. Hidden idle projects are
-included. The band collapses from its heading, and `j`/`k` walk its lines.
+included. The band collapses from its heading, and each project in it collapses
+from its own chevron, like a project section: a collapsed project keeps its name
+and undeployed-PR count and sinks to the bottom of the band. `j`/`k` walk the
+visible lines.
 Behind project headings show an amber `🚀✕N` badge, and the top bar shows
 `N not deployed`. Hyperlite reads deploy history through GitHub's REST API,
 which costs no GraphQL points. It rechecks a repository only when its default

@@ -129,9 +129,18 @@ enum HyperlitePanelListItem: Identifiable, Equatable {
         if !model.undeployed.isEmpty {
             items.append(.undeployedHeading(model.undeployed))
             if !collapsed.contains(HyperliteUndeployedPresentation.bandID) {
-                for project in model.undeployed {
+                // Expanded projects first, then collapsed ones, as in each
+                // organization. A project with no pull requests has no chevron,
+                // so a saved collapse is ignored until its pull requests return.
+                let isCollapsed = { (project: HyperliteUndeployedProject) in
+                    !project.pullRequests.isEmpty && collapsed.contains(project.id)
+                }
+                let ordered = model.undeployed.filter { !isCollapsed($0) } + model.undeployed.filter(isCollapsed)
+                for project in ordered {
                     items.append(.undeployedProject(project))
-                    items += project.pullRequests.map { .undeployedRow(project, $0) }
+                    if !isCollapsed(project) {
+                        items += project.pullRequests.map { .undeployedRow(project, $0) }
+                    }
                 }
             }
         }

@@ -1,30 +1,32 @@
 import Foundation
 
 enum HyperliteUndeployedTests {
+    private static let fixture = """
+    {"schema_version": 1, "generated_at": "2026-10-06T12:00:00Z", "refresh_interval_seconds": 300,
+     "projects": [
+      {"id": "/a", "name": "a", "path": "/a", "repository": "o/a", "status": "current", "pull_requests": [],
+       "workflows": {"catalog": [], "runs": [], "deployments": [],
+        "pipeline_alerts": [{"kind": "deploy", "name": "deploy", "conclusion": "FAILURE", "observed_at": "2026-10-05T16:44:45Z"}],
+        "deploys": {"checked_at": "2026-10-06T12:00:55.160197Z",
+         "pipelines": [{"file": "deploy.yaml", "name": "deploy", "conclusion": "FAILURE",
+           "url": "https://github.com/o/a/actions/runs/1", "attempt_at": "2026-10-05T16:44:06Z",
+           "last_success_at": "2026-10-02T19:26:12Z"}],
+         "pull_requests": [
+           {"number": 12, "title": "feat: ship :sparkles:", "url": "https://github.com/o/a/pull/12",
+            "head_ref_name": "GH-11", "merged_at": "2026-10-05T16:41:03Z"},
+           {"number": 10, "title": "fix(GH-9): b", "merged_at": "2026-10-04T10:00:00Z"}]}}},
+      {"id": "/b", "name": "b", "path": "/b", "repository": "p/b", "status": "current", "pull_requests": [],
+       "workflows": {"catalog": [], "runs": [], "deployments": [],
+        "deploys": {"checked_at": "2026-10-06T12:00:00Z",
+         "pipelines": [{"file": "deploy.yaml", "name": "deploy", "conclusion": "SKIPPED", "attempt_at": "2026-10-05T17:05:53Z"}],
+         "pull_requests": [{"number": 81, "title": "x", "merged_at": "2026-10-05T17:00:00Z"}]}}},
+      {"id": "/c", "name": "c", "path": "/c", "repository": "o/c", "status": "current", "pull_requests": [],
+       "workflows": {"catalog": [], "runs": [], "deployments": [], "deploys": {"checked_at": "2026-10-06T12:00:00Z"}}}
+     ], "errors": [], "warnings": []}
+    """
+
     static func run() throws {
-        let scan = try HyperliteJSON.decoder.decode(HyperliteProjectPullRequestScan.self, from: Data("""
-        {"schema_version": 1, "generated_at": "2026-10-06T12:00:00Z", "refresh_interval_seconds": 300,
-         "projects": [
-          {"id": "/a", "name": "a", "path": "/a", "repository": "o/a", "status": "current", "pull_requests": [],
-           "workflows": {"catalog": [], "runs": [], "deployments": [],
-            "pipeline_alerts": [{"kind": "deploy", "name": "deploy", "conclusion": "FAILURE", "observed_at": "2026-10-05T16:44:45Z"}],
-            "deploys": {"checked_at": "2026-10-06T12:00:55.160197Z",
-             "pipelines": [{"file": "deploy.yaml", "name": "deploy", "conclusion": "FAILURE",
-               "url": "https://github.com/o/a/actions/runs/1", "attempt_at": "2026-10-05T16:44:06Z",
-               "last_success_at": "2026-10-02T19:26:12Z"}],
-             "pull_requests": [
-               {"number": 12, "title": "feat: ship :sparkles:", "url": "https://github.com/o/a/pull/12",
-                "head_ref_name": "GH-11", "merged_at": "2026-10-05T16:41:03Z"},
-               {"number": 10, "title": "fix(GH-9): b", "merged_at": "2026-10-04T10:00:00Z"}]}}},
-          {"id": "/b", "name": "b", "path": "/b", "repository": "p/b", "status": "current", "pull_requests": [],
-           "workflows": {"catalog": [], "runs": [], "deployments": [],
-            "deploys": {"checked_at": "2026-10-06T12:00:00Z",
-             "pipelines": [{"file": "deploy.yaml", "name": "deploy", "conclusion": "SKIPPED", "attempt_at": "2026-10-05T17:05:53Z"}],
-             "pull_requests": [{"number": 81, "title": "x", "merged_at": "2026-10-05T17:00:00Z"}]}}},
-          {"id": "/c", "name": "c", "path": "/c", "repository": "o/c", "status": "current", "pull_requests": [],
-           "workflows": {"catalog": [], "runs": [], "deployments": [], "deploys": {"checked_at": "2026-10-06T12:00:00Z"}}}
-         ], "errors": [], "warnings": []}
-        """.utf8))
+        let scan = try HyperliteJSON.decoder.decode(HyperliteProjectPullRequestScan.self, from: Data(Self.fixture.utf8))
         let now = try date("2026-10-06T12:00:00Z")
         let model = HyperlitePullRequestPanelModel(scan: scan, hideIdle: true, now: now)
         expect(model.undeployed.map(\.section.id) == ["/b", "/a"],
@@ -38,6 +40,16 @@ enum HyperliteUndeployedTests {
         expect(Set(items.map(\.id)).count == items.count, "band items have unique identities")
         let folded = HyperlitePanelListItem.items(model: model, collapsed: [HyperliteUndeployedPresentation.bandID])
         expect(folded.map(\.id) == ["undeployed-band"], "collapsing the band hides its projects and rows")
+        let projectFolded = HyperlitePanelListItem.items(model: model, collapsed: ["undeployed:/b"])
+        expect(projectFolded.map(\.id) == [
+            "undeployed-band", "undeployed:/a", "undeployed:/a#12", "undeployed:/a#10", "undeployed:/b",
+        ], "a collapsed project keeps its line, drops its rows, and sinks to the bottom; got \(projectFolded.map(\.id))")
+        let bareScan = try HyperliteJSON.decoder.decode(HyperliteProjectPullRequestScan.self, from: Data(
+            Self.fixture.replacingOccurrences(of: #"[{"number": 81, "title": "x", "merged_at": "2026-10-05T17:00:00Z"}]"#, with: "[]").utf8
+        ))
+        let bare = HyperlitePullRequestPanelModel(scan: bareScan, hideIdle: true, now: now)
+        expect(HyperlitePanelListItem.items(model: bare, collapsed: ["undeployed:/b"]).map(\.id).prefix(2) == ["undeployed-band", "undeployed:/b"],
+               "a saved collapse does not sink a project that has no pull requests and so no chevron")
 
         let a = model.undeployed[1]
         expect(a.runURL?.absoluteString == "https://github.com/o/a/actions/runs/1", "the project line opens the failed run")
