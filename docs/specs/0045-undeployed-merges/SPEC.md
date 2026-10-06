@@ -70,8 +70,12 @@ Swift band share one data contract and each step depends on the previous one.
   skip-only gap with no undeployed merges is dropped, for example a manual
   redeploy of the same commit. A failed gap stays even with no merges, since
   direct pushes are also undeployed.
-- **REST, not GraphQL, and only when something changed.** One `actions/runs`
-  listing per repository, plus one `pulls` listing only when behind. Neither
+- **REST, not GraphQL, and only when something changed.** Default-branch
+  `actions/runs` pages (100 runs each, at most 3) are read until every behind
+  pipeline has found its last success. Closed `pulls` pages are read only
+  when behind (50 PRs each, at most 4), sorted by update, until a page reaches
+  updates older than the cutoff. A merged pull request is never updated
+  before it merged, so later pages cannot hold a newer merge. Neither
   spends GraphQL points. A repository is rechecked only when its fingerprint
   changes (tip OID plus deploy tip-run states), every 20 minutes while behind,
   or every 6 hours otherwise. A failed check keeps the cached gap and retries

@@ -53,8 +53,10 @@ struct HyperliteUndeployedProject: Equatable, Identifiable {
 
     var id: String { "undeployed:\(section.id)" }
     var latestAttempt: Date { pipelines.map(\.attemptAt).max() ?? .distantPast }
+    /// The newest behind pipeline's run; nil when GitHub gave no run link,
+    /// so the line never opens a generic Actions listing as a re-run.
     var runURL: URL? {
-        pipelines.lazy.compactMap { $0.url.flatMap(URL.init(string:)) }.first ?? section.actionsURL
+        pipelines.sorted { $0.attemptAt > $1.attemptAt }.lazy.compactMap(HyperliteUndeployedPresentation.runURL).first
     }
 
     func rowID(_ pullRequest: HyperliteUndeployedPullRequest) -> String { "\(id)#\(pullRequest.number)" }
@@ -98,9 +100,13 @@ enum HyperliteUndeployedPresentation {
         }
     }
 
-    static func lastDeployLabel(_ gaps: [HyperliteDeployGap], now: Date) -> String? {
-        guard let last = gaps.compactMap(\.lastSuccessAt).min() else { return nil }
+    static func lastDeployLabel(_ gap: HyperliteDeployGap, now: Date) -> String? {
+        guard let last = gap.lastSuccessAt else { return nil }
         return "last deploy \(HyperlitePresentation.ageLabel(for: last, now: now)) ago"
+    }
+
+    static func runURL(_ gap: HyperliteDeployGap) -> URL? {
+        gap.url.flatMap(URL.init(string:))
     }
 
     static func issueLabel(_ pullRequest: HyperliteUndeployedPullRequest) -> String? {

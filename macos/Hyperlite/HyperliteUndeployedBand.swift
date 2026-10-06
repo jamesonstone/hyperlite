@@ -39,55 +39,62 @@ struct HyperliteUndeployedHeading: View {
     }
 }
 
+/// A behind project: its name opens the newest behind run, and each behind
+/// pipeline is its own button with its own last-deploy age and re-run link.
 struct HyperliteUndeployedProjectLine: View {
     let project: HyperliteUndeployedProject
     let now: Date
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 12) {
             Button {
                 open(project.runURL)
             } label: {
-                HStack(spacing: 8) {
-                    Text(project.section.repository)
-                        .font(HyperliteTypography.body)
-                        .foregroundStyle(HyperliteTheme.primaryText.color)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                    ForEach(project.pipelines, id: \.file) { gap in
-                        Text(HyperliteUndeployedPresentation.pipelineLabel(gap, now: now))
-                            .foregroundStyle(HyperliteUndeployedStyle.tint)
-                            .lineLimit(1)
-                            .fixedSize()
-                    }
-                    if let last = HyperliteUndeployedPresentation.lastDeployLabel(project.pipelines, now: now) {
-                        Text(last)
-                            .foregroundStyle(HyperliteTheme.mutedText.color)
-                            .lineLimit(1)
-                            .fixedSize()
-                    }
-                    Spacer(minLength: 4)
-                }
-                .font(HyperliteTypography.compact)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .help("Open the deploy run on GitHub to re-run it")
-            Button {
-                open(project.runURL)
-            } label: {
-                Label("re-run", systemImage: "arrow.clockwise")
-                    .labelStyle(HyperliteCompactLabelStyle())
-                    .font(HyperliteTypography.compact)
-                    .foregroundStyle(HyperliteUndeployedStyle.tint)
+                Text(project.section.repository)
+                    .font(HyperliteTypography.body)
+                    .foregroundStyle(HyperliteTheme.primaryText.color)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .disabled(project.runURL == nil)
-            .help("Open the failed or skipped deploy run, where GitHub offers Re-run")
+            .help(project.runURL == nil ? "" : "Open the newest failed or skipped deploy run")
+            ForEach(project.pipelines, id: \.file) { gap in
+                pipelineButton(gap)
+            }
+            Spacer(minLength: 4)
         }
         .padding(.leading, HyperlitePullRequestRowLayout.rowChromeLeading)
         .padding(.top, 4)
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
+    }
+
+    private func pipelineButton(_ gap: HyperliteDeployGap) -> some View {
+        let url = HyperliteUndeployedPresentation.runURL(gap)
+        return Button {
+            open(url)
+        } label: {
+            HStack(spacing: 6) {
+                Text(HyperliteUndeployedPresentation.pipelineLabel(gap, now: now))
+                    .foregroundStyle(HyperliteUndeployedStyle.tint)
+                if let last = HyperliteUndeployedPresentation.lastDeployLabel(gap, now: now) {
+                    Text(last).foregroundStyle(HyperliteTheme.mutedText.color)
+                }
+                if url != nil {
+                    Label("re-run", systemImage: "arrow.clockwise")
+                        .labelStyle(HyperliteCompactLabelStyle())
+                        .foregroundStyle(HyperliteUndeployedStyle.tint)
+                }
+            }
+            .font(HyperliteTypography.compact)
+            .lineLimit(1)
+            .fixedSize()
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(url == nil)
+        .help(url == nil ? "GitHub reported no run link" : "Open this \(gap.name) run, where GitHub offers Re-run")
     }
 
     private func open(_ url: URL?) {

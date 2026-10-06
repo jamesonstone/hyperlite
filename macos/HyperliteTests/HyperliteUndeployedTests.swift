@@ -44,7 +44,10 @@ enum HyperliteUndeployedTests {
         expect(HyperliteUndeployedPresentation.pipelineLabel(a.pipelines[0], now: now) == "deploy ✕ 19h", "failure label")
         expect(HyperliteUndeployedPresentation.pipelineLabel(model.undeployed[0].pipelines[0], now: now) == "deploy skipped 18h",
                "skip label")
-        expect(HyperliteUndeployedPresentation.lastDeployLabel(a.pipelines, now: now) == "last deploy 3d ago", "last deploy age")
+        expect(HyperliteUndeployedPresentation.lastDeployLabel(a.pipelines[0], now: now) == "last deploy 3d ago", "last deploy age")
+        expect(model.undeployed[0].runURL == nil &&
+               HyperliteUndeployedPresentation.lastDeployLabel(model.undeployed[0].pipelines[0], now: now) == nil,
+               "without a run link the line never falls back to the Actions listing")
         expect(HyperliteUndeployedPresentation.issueLabel(a.pullRequests[0]) == "GH-11" &&
                HyperliteUndeployedPresentation.issueLabel(a.pullRequests[1]) == "GH-9", "issue from branch or title")
 

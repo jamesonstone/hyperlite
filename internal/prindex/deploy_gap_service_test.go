@@ -129,3 +129,51 @@ func TestCheckDeploysListsMergedPullRequestsSinceLastSuccess(t *testing.T) {
 		t.Fatalf("want only the pull request merged after the last deploy, got %#v", result.PullRequests)
 	}
 }
+
+type pagedRunner func(endpoint string) any
+
+func (r pagedRunner) Run(_ context.Context, _ string, _ string, args ...string) ([]byte, error) {
+	return json.Marshal(r(args[1]))
+}
+
+func TestCheckDeploysPagesToLastSuccessAndCutoff(t *testing.T) {
+	failure := func(at string) map[string]any {
+		return map[string]any{"path": ".github/workflows/deploy.yaml", "name": "deploy", "event": "workflow_run",
+			"status": "completed", "conclusion": "failure", "created_at": at, "head_commit": map[string]any{"timestamp": at}}
+	}
+	var pullPages []string
+	runner := pagedRunner(func(endpoint string) any {
+		switch {
+		case strings.Contains(endpoint, "/actions/runs?") && strings.Contains(endpoint, "page=1&"):
+			runs := make([]map[string]any, deployRunPageSize)
+			for index := range runs {
+				runs[index] = failure("2026-10-05T12:00:00Z")
+			}
+			return map[string]any{"workflow_runs": runs}
+		case strings.Contains(endpoint, "/actions/runs?"):
+			success := failure("2026-10-01T12:00:00Z")
+			success["conclusion"] = "success"
+			return map[string]any{"workflow_runs": []map[string]any{success}}
+		case strings.Contains(endpoint, "page=1&"):
+			pullPages = append(pullPages, endpoint)
+			pulls := make([]map[string]any, mergedPullPageSize)
+			for index := range pulls {
+				pulls[index] = map[string]any{"number": 100 + index, "updated_at": "2026-10-05T12:00:00Z", "head": map[string]any{}}
+			}
+			return pulls
+		default:
+			pullPages = append(pullPages, endpoint)
+			return []map[string]any{{"number": 7, "merged_at": "2026-10-02T12:00:00Z",
+				"updated_at": "2026-10-02T12:00:00Z", "head": map[string]any{"ref": "GH-6"}}}
+		}
+	})
+	result := GitHubClient{Runner: runner}.CheckDeploys(
+		context.Background(), []DeployRequest{{Repository: "o/r", DefaultBranch: "main"}},
+	)["o/r"]
+	if len(result.Pipelines) != 1 || result.Pipelines[0].LastSuccessAt == nil {
+		t.Fatalf("runs should page until the last success is found: %#v", result.Pipelines)
+	}
+	if len(pullPages) != 2 || len(result.PullRequests) != 1 || result.PullRequests[0].Number != 7 {
+		t.Fatalf("pulls should page past recently updated PRs to the merge after cutoff: pages=%v prs=%#v", pullPages, result.PullRequests)
+	}
+}

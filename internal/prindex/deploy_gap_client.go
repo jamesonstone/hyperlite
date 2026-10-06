@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/url"
 	"strings"
 	"sync"
@@ -43,11 +44,12 @@ type rawDeployRuns struct {
 }
 
 type rawMergedPull struct {
-	Number   int        `json:"number"`
-	Title    string     `json:"title"`
-	HTMLURL  string     `json:"html_url"`
-	MergedAt *time.Time `json:"merged_at"`
-	Head     struct {
+	Number    int        `json:"number"`
+	Title     string     `json:"title"`
+	HTMLURL   string     `json:"html_url"`
+	MergedAt  *time.Time `json:"merged_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	Head      struct {
 		Ref string `json:"ref"`
 	} `json:"head"`
 	User *struct {
@@ -79,46 +81,106 @@ func (c GitHubClient) CheckDeploys(ctx context.Context, requests []DeployRequest
 	return results
 }
 
+const (
+	deployRunPageSize  = 100
+	deployRunMaxPages  = 3
+	mergedPullPageSize = 50
+	mergedPullMaxPages = 4
+)
+
 func (c GitHubClient) checkDeploy(ctx context.Context, request DeployRequest) DeployResult {
 	branch := url.QueryEscape(request.DefaultBranch)
-	var runs rawDeployRuns
-	endpoint := "repos/" + request.Repository + "/actions/runs?exclude_pull_requests=true&per_page=100&branch=" + branch
-	if err := c.restGet(ctx, endpoint, &runs); err != nil {
+	runs, err := c.deployRuns(ctx, request.Repository, branch)
+	if err != nil {
 		return DeployResult{Error: "deploy runs: " + err.Error()}
 	}
-	mapped := make([]deployRun, 0, len(runs.WorkflowRuns))
-	for _, run := range runs.WorkflowRuns {
-		next := deployRun{
-			Path: run.Path, Name: run.Name, Event: run.Event, Status: run.Status,
-			Conclusion: run.Conclusion, URL: run.HTMLURL, CreatedAt: run.CreatedAt,
-		}
-		if run.HeadCommit != nil {
-			next.CommitAt = run.HeadCommit.Timestamp
-		}
-		mapped = append(mapped, next)
-	}
-	gaps, cutoff := deployGaps(mapped)
+	gaps, cutoff := deployGaps(runs)
 	if len(gaps) == 0 {
 		return DeployResult{}
 	}
-	var pulls []rawMergedPull
-	endpoint = "repos/" + request.Repository + "/pulls?state=closed&sort=updated&direction=desc&per_page=50&base=" + branch
-	if err := c.restGet(ctx, endpoint, &pulls); err != nil {
+	merged, err := c.mergedPullRequests(ctx, request.Repository, branch, cutoff)
+	if err != nil {
 		return DeployResult{Error: "merged pull requests: " + err.Error()}
-	}
-	merged := make([]mergedPullRequest, 0, len(pulls))
-	for _, pull := range pulls {
-		next := mergedPullRequest{
-			Number: pull.Number, Title: pull.Title, URL: pull.HTMLURL,
-			HeadRefName: pull.Head.Ref, MergedAt: pull.MergedAt,
-		}
-		if pull.User != nil {
-			next.Author = pull.User.Login
-		}
-		merged = append(merged, next)
 	}
 	undeployed := undeployedPullRequests(merged, cutoff)
 	return DeployResult{Pipelines: keepReportableGaps(gaps, undeployed), PullRequests: undeployed}
+}
+
+// deployRuns pages default-branch runs until every behind pipeline has found
+// its last success, so a busy repository whose first page is all newer than
+// that success still gets the true cutoff. Paging stops at a short page or
+// after deployRunMaxPages.
+func (c GitHubClient) deployRuns(ctx context.Context, repository, branch string) ([]deployRun, error) {
+	var mapped []deployRun
+	for page := 1; page <= deployRunMaxPages; page++ {
+		var runs rawDeployRuns
+		endpoint := fmt.Sprintf(
+			"repos/%s/actions/runs?exclude_pull_requests=true&per_page=%d&page=%d&branch=%s",
+			repository, deployRunPageSize, page, branch,
+		)
+		if err := c.restGet(ctx, endpoint, &runs); err != nil {
+			return nil, err
+		}
+		for _, run := range runs.WorkflowRuns {
+			next := deployRun{
+				Path: run.Path, Name: run.Name, Event: run.Event, Status: run.Status,
+				Conclusion: run.Conclusion, URL: run.HTMLURL, CreatedAt: run.CreatedAt,
+			}
+			if run.HeadCommit != nil {
+				next.CommitAt = run.HeadCommit.Timestamp
+			}
+			mapped = append(mapped, next)
+		}
+		if len(runs.WorkflowRuns) < deployRunPageSize || !missingLastSuccess(mapped) {
+			break
+		}
+	}
+	return mapped, nil
+}
+
+func missingLastSuccess(runs []deployRun) bool {
+	gaps, _ := deployGaps(runs)
+	for _, gap := range gaps {
+		if gap.LastSuccessAt == nil {
+			return true
+		}
+	}
+	return false
+}
+
+// mergedPullRequests pages closed pull requests by most recent update until
+// the page reaches updates older than cutoff. A merged pull request is never
+// updated before it merged, so nothing past that point merged after cutoff.
+func (c GitHubClient) mergedPullRequests(
+	ctx context.Context,
+	repository, branch string,
+	cutoff time.Time,
+) ([]mergedPullRequest, error) {
+	var merged []mergedPullRequest
+	for page := 1; page <= mergedPullMaxPages; page++ {
+		var pulls []rawMergedPull
+		endpoint := fmt.Sprintf(
+			"repos/%s/pulls?state=closed&sort=updated&direction=desc&per_page=%d&page=%d&base=%s",
+			repository, mergedPullPageSize, page, branch,
+		)
+		if err := c.restGet(ctx, endpoint, &pulls); err != nil {
+			return nil, err
+		}
+		for _, pull := range pulls {
+			next := mergedPullRequest{
+				Number: pull.Number, Title: pull.Title, URL: pull.HTMLURL,
+				HeadRefName: pull.Head.Ref, MergedAt: pull.MergedAt,
+			}
+			if pull.User != nil {
+				next.Author = pull.User.Login
+			}
+			merged = append(merged, next)
+		}
+		if len(pulls) < mergedPullPageSize || pulls[len(pulls)-1].UpdatedAt.Before(cutoff) {
+			break
+		}
+	}
+	return merged, nil
 }
 
 // keepReportableGaps drops skip-only gaps when nothing merged is waiting:

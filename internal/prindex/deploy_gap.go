@@ -33,7 +33,7 @@ type mergedPullRequest struct {
 	MergedAt    *time.Time
 }
 
-const undeployedPullRequestLimit = 30
+const undeployedPullRequestLimit = 100
 
 // mergeCommitSlack absorbs the second or so between a merge commit's
 // timestamp and the pull request's merged_at, so the deployed pull request
