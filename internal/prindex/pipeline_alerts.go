@@ -1,22 +1,48 @@
 package prindex
 
 import (
+	"path"
 	"strings"
 	"time"
 
 	"github.com/jamesonstone/hyperlite/internal/model"
 )
 
+// ClassifyPipeline names a workflow as a deploy pipeline when its file stem
+// or display name mentions deploying, GitHub Pages, production, or
+// promotion, and as main CI when it is literally main or ci. Deploy wins so
+// a main.yaml named "Deploy Web" is treated as a deploy.
 func ClassifyPipeline(file, name string) string {
-	stem := strings.ToLower(strings.TrimSuffix(strings.TrimSuffix(strings.TrimSpace(file), ".yaml"), ".yml"))
+	stem := strings.ToLower(strings.TrimSuffix(strings.TrimSuffix(strings.TrimSpace(path.Base(file)), ".yaml"), ".yml"))
 	display := strings.ToLower(strings.TrimSpace(name))
-	if strings.HasPrefix(stem, "deploy") || strings.HasPrefix(display, "deploy") {
+	if strings.HasPrefix(strings.TrimSpace(file), "dynamic/") {
+		// GitHub-managed runs (Dependabot, CodeQL, Pages) carry per-run names
+		// such as "pip in /deploy", so only the workflow path classifies them.
+		display = ""
+	}
+	if isDeployLabel(stem) || isDeployLabel(display) {
 		return model.PipelineAlertKindDeploy
 	}
 	if stem == "main" || stem == "ci" || display == "main" || display == "ci" {
 		return model.PipelineAlertKindMain
 	}
 	return ""
+}
+
+func isDeployLabel(label string) bool {
+	if strings.Contains(label, "deploy") {
+		return true
+	}
+	words := strings.FieldsFunc(label, func(r rune) bool {
+		return (r < 'a' || r > 'z') && (r < '0' || r > '9')
+	})
+	for _, word := range words {
+		switch word {
+		case "pages", "production", "prod", "prd", "promote":
+			return true
+		}
+	}
+	return false
 }
 
 func isFailedConclusion(value string) bool {

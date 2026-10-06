@@ -77,6 +77,15 @@ struct HyperlitePullRequestPanel<Actions: View>: View {
                     }
                     ForEach(HyperlitePanelListItem.items(model: model, collapsed: collapse.collapsed)) { item in
                         switch item {
+                        case let .undeployedHeading(projects):
+                            HyperliteUndeployedHeading(projects: projects, collapsed: Binding(
+                                get: { collapse.isCollapsed(HyperliteUndeployedPresentation.bandID) },
+                                set: { collapse.setCollapsed(HyperliteUndeployedPresentation.bandID, $0) }
+                            ))
+                        case let .undeployedProject(project):
+                            undeployedItem(project.id) { HyperliteUndeployedProjectLine(project: project, now: chipClock) }
+                        case let .undeployedRow(project, pullRequest):
+                            undeployedItem(project.rowID(pullRequest)) { HyperliteUndeployedRow(pullRequest: pullRequest, now: chipClock) }
                         case let .organization(group, _):
                             HyperliteOrganizationHeading(group: group)
                         case let .idleDivider(count):
@@ -127,13 +136,22 @@ struct HyperlitePullRequestPanel<Actions: View>: View {
             onToggleIgnore: { onToggleIgnore(section.project) },
             stageKind: .forSection(
                 section, chips: chips,
-                alerts: HyperlitePipelineAlertPresentation.alerts(from: section.project.workflows)
+                alerts: HyperlitePipelineAlertPresentation.alerts(from: section.project.workflows),
+                undeployed: section.project.workflows?.deploys?.isBehind == true
             )
         )
         .padding(.vertical, 4)
         .hyperliteNavHighlight(selected: selectionID == id)
         .background(HyperliteTheme.canvas.color)
         .id(id)
+    }
+
+    private func undeployedItem<Content: View>(_ id: String, @ViewBuilder content: () -> Content) -> some View {
+        content()
+            .padding(.vertical, HyperliteOpenPRSpacing.rowVerticalPadding)
+            .hyperliteNavHighlight(selected: selectionID == id)
+            .background(HyperliteUndeployedStyle.background)
+            .id(id)
     }
 
     private func pullRequestRow(_ row: HyperlitePullRequestRow) -> some View {
@@ -153,20 +171,32 @@ struct HyperlitePullRequestPanel<Actions: View>: View {
     /// Navigable entries in render order; collapsed rows are skipped.
     private func navItems(_ model: HyperlitePullRequestPanelModel) -> [HyperliteWorkspaceNavItem] {
         var items: [HyperliteWorkspaceNavItem] = []
-        let sections = HyperlitePanelListItem.items(model: model, collapsed: collapse.collapsed).compactMap { item in
-            if case let .section(section, _) = item { return section } else { return nil }
-        }
-        for section in sections {
-            items.append(HyperliteWorkspaceNavItem(
-                id: HyperliteWorkspaceNavigation.headerID(sectionID: section.id),
-                action: .open(section.repositoryURL ?? section.pullsURL)
-            ))
-            guard !collapse.isCollapsed(section.id) else { continue }
-            for row in section.rows {
-                items.append(HyperliteWorkspaceNavItem(id: row.id, action: .open(row.url)))
+        for item in HyperlitePanelListItem.items(model: model, collapsed: collapse.collapsed) {
+            switch item {
+            case let .undeployedProject(project):
+                items.append(HyperliteWorkspaceNavItem(id: project.id, action: .open(project.runURL)))
+            case let .undeployedRow(project, pullRequest):
+                items.append(HyperliteWorkspaceNavItem(
+                    id: project.rowID(pullRequest), action: .open(pullRequest.url.flatMap(URL.init(string:)))
+                ))
+            case let .section(section, _):
+                appendSection(section, to: &items)
+            default:
+                continue
             }
         }
         return items
+    }
+
+    private func appendSection(_ section: HyperliteProjectSection, to items: inout [HyperliteWorkspaceNavItem]) {
+        items.append(HyperliteWorkspaceNavItem(
+            id: HyperliteWorkspaceNavigation.headerID(sectionID: section.id),
+            action: .open(section.repositoryURL ?? section.pullsURL)
+        ))
+        guard !collapse.isCollapsed(section.id) else { return }
+        for row in section.rows {
+            items.append(HyperliteWorkspaceNavItem(id: row.id, action: .open(row.url)))
+        }
     }
 
     /// Re-renders once each time a fresh running chip would turn stale, so a

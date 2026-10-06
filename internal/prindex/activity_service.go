@@ -127,6 +127,13 @@ func refreshedWorkflowActivity(
 		Deployments: append([]model.Deployment{}, activity.Deployments...),
 		TreeOID:     activity.TreeOID,
 		CheckedAt:   &observed, ObservedAt: &observed,
+		TipOID: activity.TipOID, DefaultBranch: activity.DefaultBranch,
+	}
+	if existing != nil {
+		next.Deploys = cloneDeployStatus(existing.Deploys)
+		if next.DefaultBranch == "" {
+			next.DefaultBranch = existing.DefaultBranch
+		}
 	}
 	if existing != nil && existing.TreeOID == activity.TreeOID {
 		next.Catalog = append([]model.WorkflowDefinition{}, existing.Catalog...)

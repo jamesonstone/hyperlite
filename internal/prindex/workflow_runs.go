@@ -14,6 +14,7 @@ import (
 type repositoryActivity struct {
 	Repository      string
 	TipOID          string
+	DefaultBranch   string
 	TipRuns         []model.WorkflowRun
 	PullRequestRuns []model.WorkflowRun
 	Deployments     []model.Deployment
@@ -34,6 +35,7 @@ func repositoryActivityFromRaw(existing *repositoryActivity, raw *rawRepository,
 		}
 		if raw.DefaultBranchRef != nil && raw.DefaultBranchRef.Target != nil {
 			activity.TipOID = raw.DefaultBranchRef.Target.OID
+			activity.DefaultBranch = strings.TrimSpace(raw.DefaultBranchRef.Name)
 			activity.TipRuns = mappedWorkflowRuns(
 				raw.DefaultBranchRef.Target.CheckSuites,
 				model.WorkflowRunScopeTip, 0, raw.DefaultBranchRef.Name, raw.DefaultBranchRef.Target.OID,

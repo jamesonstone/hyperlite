@@ -9,10 +9,11 @@ enum HyperliteOpenPRProjectStageKind: Equatable {
     static func forSection(
         _ section: HyperliteProjectSection,
         chips: [HyperliteWorkflowChip],
-        alerts: [HyperlitePipelineAlert] = []
+        alerts: [HyperlitePipelineAlert] = [],
+        undeployed: Bool = false
     ) -> HyperliteOpenPRProjectStageKind {
         if chips.contains(where: \.isRunning) { return .notable }
-        if !alerts.isEmpty { return .alert }
+        if !alerts.isEmpty || undeployed { return .alert }
         switch HyperliteProjectSectionChrome.headingWeight(
             idle: section.rows.isEmpty,
             chips: chips,

@@ -19,7 +19,8 @@
   what-and-why, assignee, and next-step presentation, title-first one-line
   rows grouped by project section, review-mark reconciliation, per-project
   workflow activity decoding and chip freshness, persistent main/deploy
-  pipeline failure badges, every-project section plans with Pulls/Actions
+  pipeline failure badges, the NOT DEPLOYED band, heading badge, and quick
+  fact, every-project section plans with Pulls/Actions
   links, the bounded activity poll and ambient refresh schedules, heading
   hierarchy, project lanterns, the collapsible hidden-project list,
   hide-idle filtering, quick facts and the footer version label, and Open PRs

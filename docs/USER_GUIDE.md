@@ -150,7 +150,21 @@ failure lights it orange. Workflow chips sit on the heading row after the
 repository name. Failed default-branch **main**/**ci** or **deploy** pipelines
 keep a persistent orange **main** or **deploy** badge on that heading until the
 next matching run is green; those badges reuse the already-fetched Actions
-cache and do not add GitHub calls. Projects with open pull requests can be
+cache and do not add GitHub calls.
+
+When a deploy pipeline is behind (an automatic deploy after its last success
+failed, was cancelled, or was skipped), a **NOT DEPLOYED** band leads the list
+above every organization. It lists each behind project, its pipeline (`deploy
+✕ 1d` or `deploy skipped 1d`), when it last deployed, a **re-run** link to the
+run, and the pull requests merged since that deploy. Hidden idle projects are
+included. The band collapses from its heading, and `j`/`k` walk its lines.
+Behind project headings show an amber `🚀✕N` badge, and the top bar shows
+`N not deployed`. Hyperlite reads deploy history through GitHub's REST API,
+which costs no GraphQL points. It rechecks a repository only when its default
+branch or deploy runs change, every 20 minutes while behind, or every 6 hours
+otherwise.
+
+Projects with open pull requests can be
 collapsed with the chevron at the left of the heading. Collapsed, a project
 keeps its name and open-PR count; the collapse state persists per project.
 

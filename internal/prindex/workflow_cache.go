@@ -79,6 +79,7 @@ func cloneWorkflowActivity(activity *model.ProjectWorkflowActivity) *model.Proje
 	cloned.Runs = append([]model.WorkflowRun(nil), activity.Runs...)
 	cloned.Deployments = append([]model.Deployment(nil), activity.Deployments...)
 	cloned.PipelineAlerts = append([]model.PipelineAlert(nil), activity.PipelineAlerts...)
+	cloned.Deploys = cloneDeployStatus(activity.Deploys)
 	if activity.CheckedAt != nil {
 		checkedAt := *activity.CheckedAt
 		cloned.CheckedAt = &checkedAt

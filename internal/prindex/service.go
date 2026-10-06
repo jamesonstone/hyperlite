@@ -42,6 +42,7 @@ type Scanner struct {
 	Discovery RepositoryDiscoverer
 	Client    PullRequestClient
 	Workflows WorkflowClient
+	Deploys   DeployClient
 	Git       command.Runner
 	Store     CacheStore
 	Now       func() time.Time
@@ -68,6 +69,7 @@ func New(runner command.Runner) Scanner {
 		Discovery: discovery.Discoverer{Runner: runner, Cache: inspections},
 		Client:    client,
 		Workflows: client,
+		Deploys:   client,
 		Git:       runner,
 		Store:     Store{},
 		Now:       time.Now,
@@ -147,6 +149,9 @@ func (s Scanner) Scan(
 			return true
 		})
 		if err != nil {
+			return model.ProjectPullRequestScan{}, err
+		}
+		if scan.cache, err = s.refreshDeployGaps(ctx, scan.cache, repositories, now); err != nil {
 			return model.ProjectPullRequestScan{}, err
 		}
 	}
