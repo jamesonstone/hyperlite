@@ -81,3 +81,19 @@ func TestDeployRunPathKeepsDynamicWorkflowsDistinct(t *testing.T) {
 		t.Fatal("a GitHub-managed run named after a deploy folder must not classify as a deploy")
 	}
 }
+
+func TestDeployHistoryStopsAtThePageCapWithTheFailureFallback(t *testing.T) {
+	now := time.Date(2026, 10, 6, 12, 0, 0, 0, time.UTC)
+	page := historyPage(true, "next",
+		historyCommit("2026-10-05T12:00:00Z", mergedPull(2, "2026-10-05T12:00:01Z")),
+		historyCommit("2026-10-04T12:00:00Z", mergedPull(1, "2026-10-04T12:00:01Z"),
+			deploySuite("FAILURE", "workflow_run", "https://x/runs/1", "2026-10-04T12:05:00Z")))
+	runner := &scriptedGraphQLRunner{responses: []any{page}}
+	result := GitHubClient{Runner: runner}.checkDeploy(context.Background(), DeployRequest{Repository: "o/r"}, now)
+	if len(runner.queries) != deployHistoryMaxPages {
+		t.Fatalf("history must stop at %d pages, made %d queries", deployHistoryMaxPages, len(runner.queries))
+	}
+	if result.Error != "" || len(result.Pipelines) != 1 || result.Pipelines[0].LastSuccessAt != nil || len(result.PullRequests) != 2 {
+		t.Fatalf("a capped walk reports the gap from the oldest observed failure, got %#v", result)
+	}
+}

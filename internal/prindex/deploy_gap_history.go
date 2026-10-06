@@ -128,6 +128,12 @@ func (c GitHubClient) deployHistory(ctx context.Context, repository string, now 
 		}
 		after = history.PageInfo.EndCursor
 	}
+	// The page cap ended the walk with older commits still unread. This is a
+	// deliberate, bounded result, not an error: every attempt in the newest
+	// deployHistoryMaxPages*deployHistoryPageSize commits is present, and a
+	// pipeline whose last success lies beyond them falls back to the cutoff
+	// just before its oldest observed failure (pipelineGap). Reporting an
+	// error instead would leave a busy repository permanently unchecked.
 	return commits, nil
 }
 
