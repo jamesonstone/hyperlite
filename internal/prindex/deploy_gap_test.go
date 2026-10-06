@@ -137,3 +137,18 @@ func TestNeedsDeployCheck(t *testing.T) {
 		}
 	}
 }
+
+func TestStaleRunsPageRejectsLaggingListings(t *testing.T) {
+	short := rawDeployRuns{TotalCount: 204, WorkflowRuns: make([]rawDeployRun, 40)}
+	if staleRunsPage(short, 1, nil, time.Time{}) == nil {
+		t.Fatal("a short page while total_count reports more runs must be stale")
+	}
+	complete := rawDeployRuns{TotalCount: 40, WorkflowRuns: short.WorkflowRuns}
+	old := []deployRun{{CreatedAt: deployAt(-2400)}}
+	if staleRunsPage(complete, 1, old, deployAt(0)) == nil {
+		t.Fatal("a first page older than the observed tip run must be stale")
+	}
+	if err := staleRunsPage(complete, 1, []deployRun{{CreatedAt: deployAt(0).Add(-time.Minute)}}, deployAt(0)); err != nil {
+		t.Fatalf("a current page within slack is fine: %v", err)
+	}
+}

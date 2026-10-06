@@ -51,7 +51,9 @@ func (s Scanner) refreshDeployGaps(
 			continue
 		}
 		fingerprints[key] = fingerprint
-		requests = append(requests, DeployRequest{Repository: repository.GitHub, DefaultBranch: activity.DefaultBranch})
+		requests = append(requests, DeployRequest{
+			Repository: repository.GitHub, DefaultBranch: activity.DefaultBranch, NewestRunAt: newestTipRun(activity),
+		})
 	}
 	var results map[string]DeployResult
 	if len(requests) > 0 {
@@ -147,6 +149,16 @@ func deployFingerprint(activity *model.ProjectWorkflowActivity) string {
 	}
 	sort.Strings(parts[1:])
 	return strings.Join(parts, "|")
+}
+
+func newestTipRun(activity *model.ProjectWorkflowActivity) time.Time {
+	var newest time.Time
+	for _, run := range activity.Runs {
+		if run.Scope == model.WorkflowRunScopeTip && run.CreatedAt.After(newest) {
+			newest = run.CreatedAt
+		}
+	}
+	return newest
 }
 
 func anyTrue(values map[string]bool) bool {
