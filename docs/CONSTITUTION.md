@@ -43,10 +43,10 @@
   A refresh isolates failures per repository: pull-request detail queries
   select one repository each, only cheap probes batch repositories, and one
   slow, missing, or failing repository never fails another repository's rows.
-  Deploy-gap checks ride only on those refreshes. They use read-only REST
-  listings that spend no GraphQL points, run only for repositories whose
-  default-branch tip or deploy runs changed or whose periodic recheck is due,
-  and a failed check keeps the cached gap. Undeployed merges are
+  Deploy-gap checks ride only on those refreshes. They use one read-only,
+  roughly one-point GraphQL commit-history query per repository, run only for
+  repositories whose default-branch tip or deploy runs changed or whose
+  periodic recheck is due, and a failed check keeps the cached gap. Undeployed merges are
   informational. They never establish attention, readiness, or deploy
   authority, and Hyperlite never re-runs a deploy itself.
   A configured project whose directory is gone is soft-deleted into

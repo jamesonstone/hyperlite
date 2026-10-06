@@ -162,10 +162,12 @@ from its own chevron, like a project section: a collapsed project keeps its name
 and undeployed-PR count and sinks to the bottom of the band. `j`/`k` walk the
 visible lines.
 Behind project headings show an amber `🚀✕N` badge, and the top bar shows
-`N not deployed`. Hyperlite reads deploy history through GitHub's REST API,
-which costs no GraphQL points. It rechecks a repository only when its default
+`N not deployed`. Hyperlite reads deploy history from the default branch's
+last 50 commits and their Actions runs, in one small GraphQL query per
+repository. It rechecks a repository only when its default
 branch or deploy runs change, every 20 minutes while behind, or every 6 hours
-otherwise.
+otherwise. A deploy pipeline not attempted in over 30 days is treated as
+retired.
 
 Projects with open pull requests can be
 collapsed with the chevron at the left of the heading. Collapsed, a project

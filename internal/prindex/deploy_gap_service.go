@@ -51,9 +51,7 @@ func (s Scanner) refreshDeployGaps(
 			continue
 		}
 		fingerprints[key] = fingerprint
-		requests = append(requests, DeployRequest{
-			Repository: repository.GitHub, DefaultBranch: activity.DefaultBranch, NewestRunAt: newestTipRun(activity),
-		})
+		requests = append(requests, DeployRequest{Repository: repository.GitHub})
 	}
 	var results map[string]DeployResult
 	if len(requests) > 0 {
@@ -135,10 +133,15 @@ func hasDeployPipeline(activity *model.ProjectWorkflowActivity) bool {
 	return false
 }
 
+// deployFingerprintVersion changes whenever cached deploy statuses may be
+// wrong and must be rechecked once: v3 drops statuses computed from the
+// lagging REST runs listings.
+const deployFingerprintVersion = "v3"
+
 // deployFingerprint changes when the default-branch tip moves or a deploy
 // run on it changes state, which is when the deploy gap can change.
 func deployFingerprint(activity *model.ProjectWorkflowActivity) string {
-	parts := []string{activity.TipOID}
+	parts := []string{deployFingerprintVersion, activity.TipOID}
 	for _, run := range activity.Runs {
 		if run.Scope != model.WorkflowRunScopeTip || ClassifyPipeline(run.File, run.Name) != model.PipelineAlertKindDeploy {
 			continue
@@ -147,21 +150,8 @@ func deployFingerprint(activity *model.ProjectWorkflowActivity) string {
 			run.File, run.Status, run.Conclusion, run.UpdatedAt.UTC().Format(time.RFC3339),
 		}, ":"))
 	}
-	sort.Strings(parts[1:])
+	sort.Strings(parts[2:])
 	return strings.Join(parts, "|")
-}
-
-// newestTipRun is the newest deploy run on the tip, the freshness floor for
-// the REST listing.
-func newestTipRun(activity *model.ProjectWorkflowActivity) time.Time {
-	var newest time.Time
-	for _, run := range activity.Runs {
-		if run.Scope == model.WorkflowRunScopeTip && run.CreatedAt.After(newest) &&
-			ClassifyPipeline(run.File, run.Name) == model.PipelineAlertKindDeploy {
-			newest = run.CreatedAt
-		}
-	}
-	return newest
 }
 
 func anyTrue(values map[string]bool) bool {

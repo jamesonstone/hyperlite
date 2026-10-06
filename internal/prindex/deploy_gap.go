@@ -40,13 +40,19 @@ const undeployedPullRequestLimit = 100
 // is not listed as undeployed.
 const mergeCommitSlack = 10 * time.Second
 
+// deployAttemptMaxAge retires a pipeline whose newest attempt is older than
+// this: a deploy nobody has run in a month is retired, not behind.
+const deployAttemptMaxAge = 30 * 24 * time.Hour
+
 // deployGaps finds behind deploy pipelines in default-branch runs. A pipeline
 // is behind when an automatic attempt after its last success did not
 // deploy. Without a success in the window only a real failure counts, so a
-// conditional workflow that always skips is never flagged. The cutoff is the
-// oldest last-success commit time across behind pipelines; zero when unknown.
-func deployGaps(runs []deployRun) ([]model.DeployGap, time.Time) {
-	// The REST listing is not strictly newest first, so order it here.
+// conditional workflow that always skips is never flagged. A pipeline whose
+// newest attempt is older than deployAttemptMaxAge before now is retired and
+// dropped before the cutoff is chosen; a zero now keeps every pipeline. The
+// cutoff is the oldest last-success commit time across the remaining behind
+// pipelines; zero when unknown.
+func deployGaps(runs []deployRun, now time.Time) ([]model.DeployGap, time.Time) {
 	runs = append([]deployRun(nil), runs...)
 	sort.SliceStable(runs, func(i, j int) bool { return runs[i].CreatedAt.After(runs[j].CreatedAt) })
 	byFile := map[string][]deployRun{}
@@ -65,7 +71,7 @@ func deployGaps(runs []deployRun) ([]model.DeployGap, time.Time) {
 	var cutoff time.Time
 	for _, file := range order {
 		gap, since, behind := pipelineGap(file, byFile[file])
-		if !behind {
+		if !behind || (!now.IsZero() && now.Sub(gap.AttemptAt) > deployAttemptMaxAge) {
 			continue
 		}
 		gaps = append(gaps, gap)
