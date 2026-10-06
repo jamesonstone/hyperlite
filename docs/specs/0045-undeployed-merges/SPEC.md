@@ -57,36 +57,44 @@ Swift band share one data contract and each step depends on the previous one.
 ## DECISIONS
 
 - **Behind means an attempt after the last success did not deploy.** For each
-  deploy workflow, sort the default-branch runs newest first (the REST listing
-  is not reliably ordered). A pipeline is behind when, since its last success,
+  deploy workflow, read its runs on the default branch's recent commits,
+  newest first. A pipeline is behind when, since its last success,
   a run failed, was cancelled, or was skipped on an automatic trigger (`push`,
   `workflow_run`, or `dynamic`). A newest run that is still in progress is not
   behind. Without a success in the window, only a real failure counts, so a
   conditional workflow that always skips (labcore's Mint Production) is never
   flagged.
 - **Undeployed pull requests are the merges after the oldest last success.**
-  The cutoff is the successful run's head commit timestamp plus 10s of slack,
-  because GitHub's `merged_at` trails the merge commit by about a second. A
+  The cutoff is the successful run's commit time plus 10s of slack, because
+  GitHub's `merged_at` trails the merge commit by about a second. The pull
+  requests come from each newer commit's associated pull request. A
   skip-only gap with no undeployed merges is dropped, for example a manual
   redeploy of the same commit. A failed gap stays even with no merges, since
   direct pushes are also undeployed.
-- **REST, not GraphQL, and only when something changed.** Default-branch
-  `actions/runs` pages (100 runs each, at most 3) are read until every behind
-  pipeline has found its last success. Closed `pulls` pages are read only
-  when behind (50 PRs each, at most 4), sorted by update, until a page reaches
-  updates older than the cutoff. A merged pull request is never updated
-  before it merged, so later pages cannot hold a newer merge. Neither
-  spends GraphQL points. A repository is rechecked only when its fingerprint
-  changes (tip OID plus deploy tip-run states), every 20 minutes while behind,
-  or every 6 hours otherwise. A failed check keeps the cached gap and retries
-  after 15 minutes. A repeat forced refresh made zero deploy requests.
-- **Reject stale run listings.** GitHub's `actions/runs?branch=` listing
-  sometimes serves a lagging index. Right after delivery, one call returned 40
-  July runs for a repository with 204 runs, and that hid a real gap. A page
-  counts as stale when it is short while `total_count` reports more runs, or
-  when its newest run is more than 2 minutes older than the newest tip run
-  GraphQL already observed. A stale page is treated as a failed check, which
-  keeps the cached status and retries after the backoff (#161).
+- **Commit history, not run listings, and only when something changed.**
+  One GraphQL query per repository, costing about 1 point, reads the last 50
+  default-branch commits. Each commit comes with its GitHub Actions check
+  suites (workflow run, event, conclusion) and the pull request that produced
+  it. A repository is rechecked only when its fingerprint changes (tip OID
+  plus deploy tip-run states), every 20 minutes while behind, or every 6
+  hours otherwise. A failed check keeps the cached gap and retries after 15
+  minutes. The fingerprint carries a version, so a fix to the detection
+  rechecks every repository once.
+- **Superseded: REST run listings (#160 to #162).** The first design read
+  `actions/runs?branch=` and closed `pulls` pages to avoid GraphQL points. On
+  2026-10-06, after the Actions outage, those listings served lagging,
+  inconsistent pages:
+  - `total_count` changed from page to page (258, then 184, then 698).
+  - The "newest" runs were weeks old.
+  - The per-workflow listing randomly ended days early.
+
+  Guards on page shape (#162) and on tip-run presence could not catch a page
+  that was complete but outdated. The cached "no gap" results then hid every
+  real gap and emptied the band. Commit check suites stayed current
+  throughout, so detection moved to them (#165).
+- **Retired pipelines are not behind.** A deploy whose newest attempt is
+  older than 30 days is dropped. lsmc-vivarium's `deploy-dev` last failed in
+  August and would otherwise list every merge since June.
 - **Broader deploy classification.** A workflow counts as a deploy when its
   file stem or name contains `deploy`, or has a `pages`, `production`, `prod`,
   `prd`, or `promote` word. Release and publish workflows build artifacts and
