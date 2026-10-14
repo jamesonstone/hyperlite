@@ -21,8 +21,9 @@ struct HyperliteProjectSectionHeader: View {
 
     /// Two lines when there is pipeline status: the full repository name and
     /// count with the window actions, then a subheader of deploy badge,
-    /// pipeline alerts, and workflow chips aligned under the name. The name
-    /// never truncates; a crowded subheader clips at its right edge.
+    /// pipeline alerts, and workflow chips aligned under the name. The name has
+    /// its own line, so it shows in full at any normal width; a crowded
+    /// subheader clips at its right edge.
     var body: some View {
         VStack(alignment: .leading, spacing: HyperliteOpenPRSpacing.headingSubheaderSpacing) {
             titleLine
@@ -55,17 +56,22 @@ struct HyperliteProjectSectionHeader: View {
             }
             .buttonStyle(.plain)
             .disabled(section.repositoryURL == nil)
-            .help(section.repositoryURL == nil ? "" : "Open \(section.repository) on GitHub")
-            .fixedSize(horizontal: true, vertical: false)
+            .help(section.repositoryURL == nil ? section.repository : "Open \(section.repository) on GitHub")
             .layoutPriority(1)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(accessibilityLabel)
             .accessibilityHint(section.repositoryURL == nil ? "" : "Opens the repository on GitHub")
             Spacer(minLength: 12)
-            if let onToggleIgnore {
-                ignoreButton(onToggleIgnore)
+            // The controls always stay on screen; only in a window too narrow
+            // for the name does the name give way, truncating in the middle.
+            HStack(spacing: 6) {
+                if let onToggleIgnore {
+                    ignoreButton(onToggleIgnore)
+                }
+                githubButtons
             }
-            githubButtons
+            .fixedSize()
+            .layoutPriority(2)
         }
     }
 
@@ -138,7 +144,8 @@ struct HyperliteProjectSectionHeader: View {
                 .font(headingFont)
                 .foregroundStyle(headingColor)
                 .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
+                .truncationMode(.middle)
+                .layoutPriority(1)
             if isIgnored {
                 Text(HyperliteProjectIgnorePresentation.ignoredText)
                     .font(HyperliteTypography.compact)
