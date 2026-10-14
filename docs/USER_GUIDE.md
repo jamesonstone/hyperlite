@@ -146,8 +146,10 @@ workflow stays one line in secondary text. Repository names, workflow chips,
 and pull-request text share one left edge past the review checkbox. Each
 visible project is marked by a thin left lantern instead of a filled card;
 running work lights that lantern cyan, and a cached main/deploy pipeline
-failure lights it orange. Workflow chips sit on the heading row after the
-repository name. Failed default-branch **main**/**ci** or **deploy** pipelines
+failure lights it orange. Repository names are never truncated. When a project
+has pipeline status, it sits on a subheader under the name: the deploy badge,
+pipeline alerts, and workflow chips, aligned with the name and spaced apart.
+A crowded subheader clips at its right edge. Failed default-branch **main**/**ci** or **deploy** pipelines
 keep a persistent orange **main** or **deploy** badge on that heading until the
 next matching run is green; those badges reuse the already-fetched Actions
 cache and do not add GitHub calls.

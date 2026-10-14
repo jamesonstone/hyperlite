@@ -145,7 +145,7 @@ struct HyperlitePullRequestPanel<Actions: View>: View {
                 undeployed: section.project.workflows?.deploys?.isBehind == true
             )
         )
-        .padding(.vertical, 4)
+        .padding(.vertical, HyperliteOpenPRSpacing.headingVerticalPadding)
         .hyperliteNavHighlight(selected: selectionID == id)
         .background(HyperliteTheme.canvas.color)
         .id(id)
