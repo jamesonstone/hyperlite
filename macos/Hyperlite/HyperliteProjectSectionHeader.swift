@@ -19,7 +19,26 @@ struct HyperliteProjectSectionHeader: View {
         HyperlitePullRequestRowLayout.rowChromeLeading
     }
 
+    /// Two lines when there is pipeline status: the full repository name and
+    /// count with the window actions, then a subheader of deploy badge,
+    /// pipeline alerts, and workflow chips aligned under the name. The name has
+    /// its own line, so it shows in full at any normal width; a crowded
+    /// subheader clips at its right edge.
     var body: some View {
+        VStack(alignment: .leading, spacing: HyperliteOpenPRSpacing.headingSubheaderSpacing) {
+            titleLine
+            if hasStatusCluster {
+                statusCluster
+                    .fixedSize(horizontal: true, vertical: false)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .clipped()
+                    .padding(.leading, chromeLeading)
+            }
+        }
+        .contentShape(Rectangle())
+    }
+
+    private var titleLine: some View {
         HStack(spacing: 6) {
             // Lantern and chevron share the rows' checkbox column, so the
             // repository name lines up with each row's PR number.
@@ -37,32 +56,53 @@ struct HyperliteProjectSectionHeader: View {
             }
             .buttonStyle(.plain)
             .disabled(section.repositoryURL == nil)
-            .help(section.repositoryURL == nil ? "" : "Open \(section.repository) on GitHub")
-            .layoutPriority(0)
+            .help(section.repositoryURL == nil ? section.repository : "Open \(section.repository) on GitHub")
+            .layoutPriority(1)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(accessibilityLabel)
             .accessibilityHint(section.repositoryURL == nil ? "" : "Opens the repository on GitHub")
-            if let deploys = section.project.workflows?.deploys, deploys.isBehind, !isIgnored {
-                HyperliteDeployBehindBadge(status: deploys)
+            Spacer(minLength: 12)
+            // The controls always stay on screen; only in a window too narrow
+            // for the name does the name give way, truncating in the middle.
+            HStack(spacing: 6) {
+                if let onToggleIgnore {
+                    ignoreButton(onToggleIgnore)
+                }
+                githubButtons
+            }
+            .fixedSize()
+            .layoutPriority(2)
+        }
+    }
+
+    private var deployStatus: HyperliteDeployStatus? {
+        guard let deploys = section.project.workflows?.deploys, deploys.isBehind, !isIgnored else { return nil }
+        return deploys
+    }
+
+    private var hasStatusCluster: Bool {
+        !isIgnored && (deployStatus != nil || !pipelineAlerts.isEmpty || !stripChips.isEmpty)
+    }
+
+    /// The deploy badge, pipeline alerts, and workflow chips, set apart from
+    /// the repository name and from each other so a busy heading stays legible.
+    private var statusCluster: some View {
+        HStack(spacing: HyperliteOpenPRSpacing.headingGroupSpacing) {
+            if let deployStatus {
+                HyperliteDeployBehindBadge(status: deployStatus)
                     .layoutPriority(3)
             }
-            if !pipelineAlerts.isEmpty && !isIgnored {
+            if !pipelineAlerts.isEmpty {
                 HyperlitePipelineAlertStrip(alerts: pipelineAlerts)
                     .fixedSize(horizontal: true, vertical: false)
                     .layoutPriority(2)
             }
-            if !stripChips.isEmpty && !isIgnored {
+            if !stripChips.isEmpty {
                 HyperliteWorkflowStrip(chips: stripChips)
                     .fixedSize(horizontal: true, vertical: false)
                     .layoutPriority(1)
             }
-            Spacer(minLength: 4)
-            if let onToggleIgnore {
-                ignoreButton(onToggleIgnore)
-            }
-            githubButtons
         }
-        .contentShape(Rectangle())
     }
 
     /// The project's state at a glance: cyan while running, orange on a
@@ -104,7 +144,7 @@ struct HyperliteProjectSectionHeader: View {
                 .font(headingFont)
                 .foregroundStyle(headingColor)
                 .lineLimit(1)
-                .truncationMode(.tail)
+                .truncationMode(.middle)
                 .layoutPriority(1)
             if isIgnored {
                 Text(HyperliteProjectIgnorePresentation.ignoredText)
@@ -119,9 +159,11 @@ struct HyperliteProjectSectionHeader: View {
                     .truncationMode(.tail)
                     .help(section.project.message ?? section.idleText)
             } else {
-                Text("\(section.rows.count)")
+                Text(verbatim: "\(section.rows.count)")
                     .font(HyperliteTypography.compact.monospacedDigit())
                     .foregroundStyle(HyperliteTheme.secondaryText.color)
+                    .lineLimit(1)
+                    .fixedSize()
             }
         }
     }

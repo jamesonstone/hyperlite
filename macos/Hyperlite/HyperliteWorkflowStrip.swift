@@ -4,7 +4,7 @@ struct HyperliteWorkflowStrip: View {
     let chips: [HyperliteWorkflowChip]
 
     var body: some View {
-        HStack(alignment: .bottom, spacing: 8) {
+        HStack(alignment: .bottom, spacing: HyperliteOpenPRSpacing.chipSpacing) {
             ForEach(chips) { chip in
                 HyperliteWorkflowChipView(chip: chip)
             }
@@ -24,7 +24,7 @@ struct HyperliteWorkflowChipView: View {
             if case .running(let since) = chip.state {
                 HyperliteRunningWorkflowChip(title: chip.title, since: since)
             } else {
-                HStack(spacing: 3) {
+                HStack(spacing: HyperliteOpenPRSpacing.chipDotSpacing) {
                     if let dot = dotColor {
                         Circle().fill(dot).frame(width: 5, height: 5)
                     }

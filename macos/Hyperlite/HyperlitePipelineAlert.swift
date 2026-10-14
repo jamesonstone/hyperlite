@@ -23,7 +23,7 @@ struct HyperlitePipelineAlertStrip: View {
     let alerts: [HyperlitePipelineAlert]
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: HyperliteOpenPRSpacing.headingGroupSpacing) {
             ForEach(alerts) { alert in
                 HyperlitePipelineAlertBadge(alert: alert)
             }
