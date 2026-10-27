@@ -219,7 +219,7 @@ struct HyperliteProjectSectionHeader: View {
 
     private var headingColor: Color {
         switch headingWeight {
-        case .active: HyperliteTheme.primaryText.color
+        case .active: HyperliteTheme.cyan.color
         case .notable: HyperliteTheme.secondaryText.color
         case .idle: HyperliteTheme.mutedText.color
         }

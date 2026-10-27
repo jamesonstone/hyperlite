@@ -108,6 +108,9 @@ Observable acceptance:
 - Keep failed pipelines in their own reserved column. Putting them in the
   flex title would still be fine for titles, but leaving them intrinsic in
   the trailing cluster would shift every number column.
+- Project headings with rows use cyan type on a full-width surface band and
+  a hairline. A left-only color change would not mark the break when the eye
+  is on the trailing columns. Idle headings stay muted and unbanded.
 
 ## DISCOVERIES
 

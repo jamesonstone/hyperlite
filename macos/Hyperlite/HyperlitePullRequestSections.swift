@@ -99,6 +99,10 @@ enum HyperliteProjectSectionChrome {
         return .idle
     }
 
+    /// A full-width surface band marks projects that have rows, so a scan of
+    /// the trailing columns still sees the project break.
+    static func usesHeadingBand(idle: Bool) -> Bool { !idle }
+
     static func stripChips(
         _ chips: [HyperliteWorkflowChip],
         idle: Bool
