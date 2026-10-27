@@ -44,7 +44,7 @@ struct HyperlitePullRequestRowContent: View {
                 titleLabel
                     .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
                     .layoutPriority(Self.layout.titleLayoutPriority)
-                attentionCluster
+                trailingCluster
                 ageLabel
             }
             .contentShape(Rectangle())
@@ -85,24 +85,40 @@ struct HyperlitePullRequestRowContent: View {
             .frame(minWidth: 42, alignment: .leading)
     }
 
-    /// Unresolved work, in red beside the age: failed pipelines by short
-    /// name, then unresolved review feedback (CodeRabbit or human threads).
+    /// Failed pipelines, then added/removed counts, then unresolved review
+    /// feedback, then the age. Diffstat is informational; unresolved work
+    /// stays red.
     @ViewBuilder
-    private var attentionCluster: some View {
+    private var trailingCluster: some View {
         let reviewCount = review.needsAttention ? (row.unresolvedReviewThreads ?? 0) : 0
-        if !row.failedPipelines.isEmpty || reviewCount > 0 {
+        let diff = HyperlitePullRequestPresentation.diffstat(
+            additions: row.glance.additions,
+            deletions: row.glance.deletions
+        )
+        if !row.failedPipelines.isEmpty || diff.visible || reviewCount > 0 {
             HStack(alignment: .center, spacing: 6) {
                 ForEach(row.failedPipelines) { pipeline in
                     Label(pipeline.shortName, systemImage: "xmark")
                         .labelStyle(HyperliteCompactLabelStyle())
+                        .foregroundStyle(HyperliteTheme.red.color)
+                }
+                if diff.visible {
+                    HStack(alignment: .center, spacing: 4) {
+                        if let added = diff.additionsText {
+                            Text(added).foregroundStyle(HyperliteTheme.green.color)
+                        }
+                        if let removed = diff.deletionsText {
+                            Text(removed).foregroundStyle(HyperliteTheme.red.color)
+                        }
+                    }
                 }
                 if reviewCount > 0 {
                     Label("\(reviewCount)", systemImage: "text.bubble")
                         .labelStyle(HyperliteCompactLabelStyle())
+                        .foregroundStyle(HyperliteTheme.red.color)
                 }
             }
             .font(HyperliteTypography.compact)
-            .foregroundStyle(HyperliteTheme.red.color)
             .monospacedDigit()
             .lineLimit(1)
             .fixedSize()
@@ -148,9 +164,14 @@ struct HyperlitePullRequestRowContent: View {
         for row: HyperlitePullRequestRow,
         reviewStatus: HyperlitePullRequestReviewStatus
     ) -> String {
-        HyperlitePullRequestHoverPresentation.snapshot(
+        let hover = HyperlitePullRequestHoverPresentation.snapshot(
             row: row, reviewStatus: reviewStatus
         ).accessibilityLabel
+        let diff = HyperlitePullRequestPresentation.diffstat(
+            additions: row.glance.additions,
+            deletions: row.glance.deletions
+        ).accessibilityLabel
+        return diff.isEmpty ? hover : hover + ", " + diff
     }
 }
 
