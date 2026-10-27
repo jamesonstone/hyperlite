@@ -7,12 +7,6 @@ struct HyperlitePullRequestRowContent: View {
     var openIssue: () -> Void = {}
     var openPullRequest: () -> Void = {}
 
-    private var review: HyperliteReviewFeedbackPresentation {
-        HyperlitePullRequestPresentation.reviewFeedback(
-            unresolvedThreads: row.unresolvedReviewThreads
-        )
-    }
-
     private var titleColor: Color {
         row.status == .current
             ? HyperliteTheme.primaryText.color
@@ -44,8 +38,7 @@ struct HyperlitePullRequestRowContent: View {
                 titleLabel
                     .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
                     .layoutPriority(Self.layout.titleLayoutPriority)
-                trailingCluster
-                ageLabel
+                trailingColumns
             }
             .contentShape(Rectangle())
         }
@@ -85,44 +78,69 @@ struct HyperlitePullRequestRowContent: View {
             .frame(minWidth: 42, alignment: .leading)
     }
 
-    /// Failed pipelines, then added/removed counts, then unresolved review
-    /// feedback, then the age. Diffstat is informational; unresolved work
-    /// stays red.
-    @ViewBuilder
-    private var trailingCluster: some View {
-        let reviewCount = review.needsAttention ? (row.unresolvedReviewThreads ?? 0) : 0
+    /// Reserved scan columns: failed pipelines, added, removed, comments, age.
+    /// Empty cells keep their width so the same datapoint lines up on every row.
+    private var trailingColumns: some View {
         let diff = HyperlitePullRequestPresentation.diffstat(
             additions: row.glance.additions,
             deletions: row.glance.deletions
         )
-        if !row.failedPipelines.isEmpty || diff.visible || reviewCount > 0 {
-            HStack(alignment: .center, spacing: 6) {
-                ForEach(row.failedPipelines) { pipeline in
-                    Label(pipeline.shortName, systemImage: "xmark")
-                        .labelStyle(HyperliteCompactLabelStyle())
-                        .foregroundStyle(HyperliteTheme.red.color)
-                }
-                if diff.visible {
-                    HStack(alignment: .center, spacing: 4) {
-                        if let added = diff.additionsText {
-                            Text(added).foregroundStyle(HyperliteTheme.green.color)
-                        }
-                        if let removed = diff.deletionsText {
-                            Text(removed).foregroundStyle(HyperliteTheme.red.color)
-                        }
-                    }
-                }
-                if reviewCount > 0 {
-                    Label("\(reviewCount)", systemImage: "text.bubble")
-                        .labelStyle(HyperliteCompactLabelStyle())
-                        .foregroundStyle(HyperliteTheme.red.color)
-                }
+        let comments = HyperlitePullRequestPresentation.commentsColumn(
+            unresolvedThreads: row.unresolvedReviewThreads,
+            ciState: row.glance.ciState
+        )
+        return HStack(alignment: .center, spacing: 6) {
+            pipelineColumn
+            metric(diff.additionsText, color: HyperliteTheme.green.color)
+                .frame(width: HyperlitePullRequestRowLayout.additionsColumnWidth, alignment: .trailing)
+            metric(diff.deletionsText, color: HyperliteTheme.red.color)
+                .frame(width: HyperlitePullRequestRowLayout.deletionsColumnWidth, alignment: .trailing)
+            commentsGlyph(comments)
+                .frame(width: HyperlitePullRequestRowLayout.commentsColumnWidth, alignment: .center)
+            ageLabel
+                .frame(width: HyperlitePullRequestRowLayout.ageColumnWidth, alignment: .trailing)
+        }
+        .font(HyperliteTypography.compact)
+        .monospacedDigit()
+        .lineLimit(1)
+        .layoutPriority(Self.layout.metadataLayoutPriority)
+    }
+
+    private var pipelineColumn: some View {
+        HStack(alignment: .center, spacing: 6) {
+            ForEach(row.failedPipelines) { pipeline in
+                Label(pipeline.shortName, systemImage: "xmark")
+                    .labelStyle(HyperliteCompactLabelStyle())
+                    .foregroundStyle(HyperliteTheme.red.color)
             }
-            .font(HyperliteTypography.compact)
-            .monospacedDigit()
-            .lineLimit(1)
-            .fixedSize()
-            .layoutPriority(Self.layout.metadataLayoutPriority)
+        }
+        .frame(
+            width: HyperlitePullRequestRowLayout.failedPipelineColumnWidth,
+            alignment: .trailing
+        )
+        .clipped()
+    }
+
+    private func metric(_ text: String?, color: Color) -> some View {
+        Text(text ?? "")
+            .foregroundStyle(color)
+    }
+
+    @ViewBuilder
+    private func commentsGlyph(_ comments: HyperlitePullRequestCommentsColumn) -> some View {
+        switch comments {
+        case .threads(let count):
+            Label("\(count)", systemImage: "text.bubble")
+                .labelStyle(HyperliteCompactLabelStyle())
+                .foregroundStyle(HyperliteTheme.red.color)
+        case .pending:
+            Image(systemName: "arrow.triangle.2.circlepath")
+                .font(.system(size: 8, weight: .bold))
+                .foregroundStyle(HyperliteTheme.cyan.color)
+        case .clear:
+            Image(systemName: "checkmark")
+                .font(.system(size: 8, weight: .bold))
+                .foregroundStyle(HyperliteTheme.green.color)
         }
     }
 
@@ -138,8 +156,6 @@ struct HyperlitePullRequestRowContent: View {
             .font(HyperliteTypography.compact)
             .foregroundStyle(HyperliteTheme.mutedText.color)
             .monospacedDigit()
-            .fixedSize()
-            .layoutPriority(Self.layout.metadataLayoutPriority)
     }
 
     @ViewBuilder
@@ -171,7 +187,11 @@ struct HyperlitePullRequestRowContent: View {
             additions: row.glance.additions,
             deletions: row.glance.deletions
         ).accessibilityLabel
-        return diff.isEmpty ? hover : hover + ", " + diff
+        let comments = HyperlitePullRequestPresentation.commentsColumn(
+            unresolvedThreads: row.unresolvedReviewThreads,
+            ciState: row.glance.ciState
+        ).accessibilityLabel
+        return [hover, diff, comments].filter { !$0.isEmpty }.joined(separator: ", ")
     }
 }
 
