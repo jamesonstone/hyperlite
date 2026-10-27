@@ -140,7 +140,7 @@ clicking that eye toggles ignore. The list scrolls when long and stays open
 while the pointer is over the eye or the list.
 
 The open count leads the top bar in larger type. Headings for
-projects with open PRs use cyan semibold type on a full-width surface band
+projects with open PRs use primary semibold type on a full-width surface band
 with a hairline, so a scan of the trailing columns still sees the project
 break; idle headings drop to compact muted type so they recede. A no-PR project with a running or failing
 workflow stays one line in secondary text. Repository names, workflow chips,
