@@ -145,9 +145,21 @@ struct HyperlitePullRequestPanel<Actions: View>: View {
                 undeployed: section.project.workflows?.deploys?.isBehind == true
             )
         )
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, HyperliteOpenPRSpacing.headingVerticalPadding)
         .hyperliteNavHighlight(selected: selectionID == id)
-        .background(HyperliteTheme.canvas.color)
+        .background(
+            HyperliteProjectSectionChrome.usesHeadingBand(idle: section.rows.isEmpty)
+                ? HyperliteTheme.surface.color
+                : HyperliteTheme.canvas.color
+        )
+        .overlay(alignment: .bottom) {
+            if HyperliteProjectSectionChrome.usesHeadingBand(idle: section.rows.isEmpty) {
+                Rectangle()
+                    .fill(HyperliteTheme.mutedText.color.opacity(0.22))
+                    .frame(height: 1)
+            }
+        }
         .id(id)
     }
 

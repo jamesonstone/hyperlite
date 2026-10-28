@@ -4,6 +4,8 @@ enum HyperlitePullRequestDiffstatTests {
     static func run() {
         testHidesZeroDiff()
         testFormatsEachNonZeroSide()
+        testCommentsColumnStates()
+        testTrailingColumnsReserveWidth()
         testRowAccessibilityNamesCounts()
         testHoverStillOmitsDiffstat()
     }
@@ -31,6 +33,51 @@ enum HyperlitePullRequestDiffstatTests {
                "a zero added side should stay hidden")
     }
 
+    private static func testCommentsColumnStates() {
+        let threads = HyperlitePullRequestPresentation.commentsColumn(
+            unresolvedThreads: 3, ciState: "PENDING"
+        )
+        expect(
+            threads == .threads(3) &&
+                threads.accessibilityLabel == "3 unresolved review threads",
+            "unresolved threads win over pending CI"
+        )
+        let pending = HyperlitePullRequestPresentation.commentsColumn(
+            unresolvedThreads: 0, ciState: "PENDING"
+        )
+        expect(pending == .pending && pending.accessibilityLabel == "CI pending",
+               "pending CI with no threads should show the cycling state")
+        let expected = HyperlitePullRequestPresentation.commentsColumn(
+            unresolvedThreads: nil, ciState: "EXPECTED"
+        )
+        expect(expected == .pending, "expected CI should use the cycling state")
+        let clear = HyperlitePullRequestPresentation.commentsColumn(
+            unresolvedThreads: 0, ciState: "SUCCESS"
+        )
+        expect(
+            clear == .clear &&
+                clear.accessibilityLabel == "no unresolved review threads",
+            "a quiet row should show the clear check"
+        )
+    }
+
+    private static func testTrailingColumnsReserveWidth() {
+        let layout = HyperlitePullRequestRowLayout.titleFirst
+        expect(HyperlitePullRequestRowLayout.additionsColumnWidth >= 48,
+               "added column should fit a six-digit signed count")
+        expect(HyperlitePullRequestRowLayout.deletionsColumnWidth >= 48,
+               "removed column should fit a six-digit signed count")
+        expect(
+            HyperlitePullRequestRowLayout.commentsColumnWidth >=
+                layout.reviewFeedbackColumnWidth,
+            "comments column should keep the reserved feedback width"
+        )
+        expect(HyperlitePullRequestRowLayout.ageColumnWidth >= 28,
+               "age column should fit four-character labels")
+        expect(HyperlitePullRequestRowLayout.failedPipelineColumnWidth >= 56,
+               "pipeline column should reserve a short name without shifting counts")
+    }
+
     private static func testRowAccessibilityNamesCounts() {
         var glance = HyperlitePullRequestGlance.empty
         glance.additions = 12
@@ -41,6 +88,17 @@ enum HyperlitePullRequestDiffstatTests {
         )
         expect(spoken.contains("12 added") && spoken.contains("3 removed"),
                "the row should name the diffstat")
+        expect(spoken.contains("2 unresolved review threads"),
+               "the row should name the comments-column state")
+
+        var pendingGlance = HyperlitePullRequestGlance.empty
+        pendingGlance.ciState = "PENDING"
+        let pendingSpoken = HyperlitePullRequestRowContent.accessibilityLabel(
+            for: row(glance: pendingGlance, threads: 0),
+            reviewStatus: .unreviewed
+        )
+        expect(pendingSpoken.contains("CI pending"),
+               "a pending comments column should be spoken")
     }
 
     private static func testHoverStillOmitsDiffstat() {

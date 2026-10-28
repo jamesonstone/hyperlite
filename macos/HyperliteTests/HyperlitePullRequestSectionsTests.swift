@@ -211,6 +211,11 @@ enum HyperlitePullRequestSectionsTests {
             HyperliteProjectSectionChrome.headingWeight(idle: true, chips: quiet) == .idle,
             "quiet idle projects use compact weight"
         )
+        expect(
+            HyperliteProjectSectionChrome.usesHeadingBand(idle: false) &&
+                !HyperliteProjectSectionChrome.usesHeadingBand(idle: true),
+            "only projects with rows keep a full-width heading band"
+        )
     }
 
     private static func scan(projects: [HyperliteProjectPullRequests]) -> HyperliteProjectPullRequestScan {

@@ -24,8 +24,9 @@
   links, the bounded activity poll and ambient refresh schedules, heading
   hierarchy, project lanterns, the collapsible hidden-project list,
   hide-idle filtering, quick facts and the footer version label, Open PRs
-  keyboard-navigation selection and key classification, and Open PR row
-  added/removed line counts.
+  keyboard-navigation selection and key classification, Open PR row
+  added/removed line counts, and trailing column widths plus comments-column
+  states.
 - No live-integration suite is currently defined; the retired inferred
   attention and agent-session suites were removed with those features.
 

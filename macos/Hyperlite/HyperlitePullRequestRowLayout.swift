@@ -37,4 +37,11 @@ struct HyperlitePullRequestRowLayout: Equatable {
     /// issue: `PR #1,234` and `GH-1234` fit at list size.
     static let pullRequestNumberColumnWidth: CGFloat = 64
     static let issueNumberColumnWidth: CGFloat = 56
+
+    /// Trailing scan columns. `+26899` and `-12997` fit at compact list size.
+    static let failedPipelineColumnWidth: CGFloat = 64
+    static let additionsColumnWidth: CGFloat = 48
+    static let deletionsColumnWidth: CGFloat = 48
+    static let commentsColumnWidth: CGFloat = 28
+    static let ageColumnWidth: CGFloat = 32
 }

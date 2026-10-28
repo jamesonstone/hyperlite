@@ -140,8 +140,9 @@ clicking that eye toggles ignore. The list scrolls when long and stays open
 while the pointer is over the eye or the list.
 
 The open count leads the top bar in larger type. Headings for
-projects with open PRs use primary semibold type; idle headings drop to
-compact muted type so they recede. A no-PR project with a running or failing
+projects with open PRs use primary semibold type on a full-width surface band
+with a hairline, so a scan of the trailing columns still sees the project
+break; idle headings drop to compact muted type so they recede. A no-PR project with a running or failing
 workflow stays one line in secondary text. Repository names, workflow chips,
 and pull-request text share one left edge past the review checkbox. Each
 visible project is marked by a thin left lantern instead of a filled card;
@@ -229,8 +230,8 @@ percent left at reset, and at most sixty polls per quota window. Refresh and
 Force Cache Refresh cancel the loop and fetch pull requests early.
 
 Each row is one line: numbers, a compact ready/draft badge, optional
-merge-conflict icon, the title, added and removed line counts, unresolved
-work in red, and its age. Number
+merge-conflict icon, the title, then reserved trailing columns for failed
+pipelines, added lines, removed lines, comments, and age. Number
 and ready/draft stay whole words; a long title truncates instead of wrapping.
 Rows sit under their repository heading, so the project name is not repeated
 on every line. Each row leads with two labeled numbers: `PR #<n>` opens the
@@ -240,16 +241,18 @@ The title also opens the pull request. The conflict column stays aligned
 when there is no confirmed conflict;
 `MERGEABLE`, `UNKNOWN`, and older cache entries without the field stay blank.
 VoiceOver names confirmed conflicts only and omits unconfirmed `MERGEABLE`,
-`UNKNOWN`, and legacy rows. Unresolved work sits in red just before the age:
-each failed GitHub Actions pipeline on the current head by a short name (for
-example `✕ docs`, so a docs-check failure you can judge harmless is visible
-without opening the repository; hover shows the full name), `✕ checks` when a
-non-Actions check failed, then a speech-bubble count of unresolved,
-non-outdated review threads (CodeRabbit or human feedback). Immediately left
-of that comments icon, a non-zero glance diffstat shows green `+N` added and
-red `-N` removed line counts; a zero side stays hidden, and both-zero rows
-show no counts. Clean rows with no diff and no unresolved work show nothing
-there. Failed pipeline names come from one small follow-up query for
+`UNKNOWN`, and legacy rows. Trailing columns stay aligned across rows so each datapoint can be scanned
+down the list. Failed GitHub Actions pipelines on the current head sit in a
+reserved slot by a short name (for example `✕ docs`, so a docs-check failure
+you can judge harmless is visible without opening the repository; hover shows
+the full name), or `✕ checks` when a non-Actions check failed. Extra pipeline
+names clip there instead of shifting the counts. Green `+N` and red `-N`
+glance line counts occupy the next two columns, right-aligned; a zero side
+leaves that cell empty and keeps the width. The comments column always shows
+one glyph: a red speech-bubble count of unresolved, non-outdated review
+threads (CodeRabbit or human feedback); a cyan cycling icon when CI is
+pending or expected and there are no unresolved threads; or a green check
+when that column is otherwise clear. Age stays in the last column. Failed pipeline names come from one small follow-up query for
 failing heads only; green pull requests cost nothing extra, and a failed pull
 request run never turns the project heading red. The row content opens the pull
 request; its separate leading checkbox, immediately before the row text,
