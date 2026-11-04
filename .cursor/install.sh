@@ -13,9 +13,9 @@ case "$(uname -m)" in
     ;;
 esac
 
-if ! command -v make >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1 || ! command -v git >/dev/null 2>&1; then
+if ! command -v make >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1 || ! command -v git >/dev/null 2>&1 || ! command -v gcc >/dev/null 2>&1; then
   sudo apt-get update
-  sudo apt-get install -y make ca-certificates curl git
+  sudo apt-get install -y make ca-certificates curl git build-essential
 fi
 
 current=""
@@ -28,9 +28,9 @@ if [[ "$current" != "go${go_version}" ]]; then
   sudo rm -rf /usr/local/go
   sudo tar -C /usr/local -xzf "/tmp/${tarball}"
   rm -f "/tmp/${tarball}"
+  sudo ln -sfn /usr/local/go/bin/go /usr/local/bin/go
+  sudo ln -sfn /usr/local/go/bin/gofmt /usr/local/bin/gofmt
 fi
-sudo ln -sfn /usr/local/go/bin/go /usr/local/bin/go
-sudo ln -sfn /usr/local/go/bin/gofmt /usr/local/bin/gofmt
 
 cd "$(dirname "$0")/.."
 go mod download
