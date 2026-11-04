@@ -67,3 +67,13 @@ Read the named file under `docs/references/rules/` when its trigger applies; ski
 - Optional rules added with `kit rules add` declare their own triggers in their `Applies When` section.
 
 <!-- END KIT-MANAGED CONTRACT -->
+
+## Cursor Cloud specific instructions
+
+Cloud agents run on Linux. Hyperlite's native window needs macOS and Xcode, so the cloud gate is the Go CLI only.
+
+- `.cursor/install.sh` is the Build install command. It is idempotent. It installs Go 1.26.5 when that version is absent, symlinks `go` and `gofmt` into `/usr/local/bin` only in that case, installs a C compiler so `go test -race` can run, and downloads modules. An existing Go 1.26.5 on `PATH` is left in place. Shell exports from `install` do not survive into the agent.
+- Validate with `make fmt-check vet test test-race build`.
+- Do not run `make macos-test`, `make macos-build`, or `make hyper` in the cloud VM. Those targets need Swift, SwiftUI, AppKit, and Carbon. `make hyper` also quits every local process with bundle id `com.jamesonstone.hyperlite`.
+- CLI check that leaves `~/.config/hyperlite/config.yaml` alone: `bin/hyperlite version`, then `bin/hyperlite --config "$TMP/config.yaml" projects add <repository>` and `projects list --json`.
+- `pull-requests` without `--local` shells out to `gh` and needs GitHub authentication. Package tests use fake GitHub boundaries and do not.
