@@ -215,6 +215,11 @@ func TestLinkLinearAndGitHub(t *testing.T) {
 			name: "linear without a ticket", tracker: linear, branch: "feature/x", title: "build(deps): bump x",
 		},
 		{
+			name: "linear ignores a module version", tracker: linear,
+			branch: "dependabot/go_modules/golang.org/x/sys-0.48.0",
+			title:  "build(deps): bump golang.org/x/sys from 0.47.0 to 0.48.0",
+		},
+		{
 			name: "github branch", tracker: github, branch: "GH-538", title: "feat: rename field",
 			repo: "lsmc-bio/labcore-ui", label: "GH-538",
 			link: "https://github.com/lsmc-bio/labcore-ui/issues/538",

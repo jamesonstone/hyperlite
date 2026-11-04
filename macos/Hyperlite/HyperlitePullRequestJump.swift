@@ -7,7 +7,9 @@ struct HyperlitePullRequestJumpQuery: Equatable {
     let project: String
     let number: Int
     /// Set when the query names a ticket key such as `ENG-67` rather than a number.
-    let issueLabel: String? = nil
+    /// `var` keeps the default in the memberwise initializer. A defaulted `let`
+    /// is omitted, so `issueLabel:` does not compile.
+    var issueLabel: String? = nil
 }
 
 /// A request for the Open PRs list to bring an entry on screen. `token`

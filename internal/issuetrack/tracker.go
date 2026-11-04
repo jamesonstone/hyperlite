@@ -183,12 +183,25 @@ func linearKey(branch, title string) string {
 }
 
 func firstKey(pattern *regexp.Regexp, text string) string {
-	for _, match := range pattern.FindAllStringSubmatch(text, -1) {
-		if key := acceptKey(match[1]); key != "" {
+	for _, loc := range pattern.FindAllStringSubmatchIndex(text, -1) {
+		if len(loc) < 4 || loc[2] < 0 || loc[3] < 0 || dottedVersion(text, loc[3]) {
+			continue
+		}
+		if key := acceptKey(text[loc[2]:loc[3]]); key != "" {
 			return key
 		}
 	}
 	return ""
+}
+
+// dottedVersion reports a token that continues as a dotted numeric version,
+// such as sys-0.48.0 or lodash-4.17.21. end is the index just after the token.
+func dottedVersion(text string, end int) bool {
+	if end < 0 || end+1 >= len(text) || text[end] != '.' {
+		return false
+	}
+	next := text[end+1]
+	return next >= '0' && next <= '9'
 }
 
 func acceptKey(raw string) string {
