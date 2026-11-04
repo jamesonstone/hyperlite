@@ -22,11 +22,14 @@ struct HyperliteUndeployedPullRequest: Codable, Equatable {
     var headRefName: String? = nil
     var author: String? = nil
     let mergedAt: Date
+    /// Ticket key stamped from the checkout's Kit issue provider.
+    var issueLabel: String? = nil
 
     enum CodingKeys: String, CodingKey {
         case number, title, url, author
         case headRefName = "head_ref_name"
         case mergedAt = "merged_at"
+        case issueLabel = "issue_label"
     }
 }
 
@@ -110,7 +113,8 @@ enum HyperliteUndeployedPresentation {
     }
 
     static func issueLabel(_ pullRequest: HyperliteUndeployedPullRequest) -> String? {
-        HyperliteIssueReference.number(branch: pullRequest.headRefName ?? "", title: pullRequest.title).map { "GH-\($0)" }
+        if let label = pullRequest.issueLabel, !label.isEmpty { return label }
+        return HyperliteIssueReference.number(branch: pullRequest.headRefName ?? "", title: pullRequest.title).map { "GH-\($0)" }
     }
 
     /// Heading badge text: the undeployed PR count, or the failing pipeline

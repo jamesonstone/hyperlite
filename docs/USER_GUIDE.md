@@ -159,7 +159,8 @@ When a deploy pipeline is behind (an automatic deploy after its last success
 failed, was cancelled, or was skipped), a **NOT DEPLOYED** band leads the list
 above every organization. It lists each behind project, its pipeline (`deploy
 ✕ 1d` or `deploy skipped 1d`), when it last deployed, a **re-run** link to the
-run, and the pull requests merged since that deploy. Hidden idle projects are
+run, and the pull requests merged since that deploy. Those merged rows show
+the same issue key as an open row. Hidden idle projects are
 included. The band collapses from its heading, and each project in it collapses
 from its own chevron, like a project section: a collapsed project keeps its name
 and undeployed-PR count and sinks to the bottom of the band. `j`/`k` walk the
@@ -235,8 +236,16 @@ pipelines, added lines, removed lines, comments, and age. Number
 and ready/draft stay whole words; a long title truncates instead of wrapping.
 Rows sit under their repository heading, so the project name is not repeated
 on every line. Each row leads with two labeled numbers: `PR #<n>` opens the
-pull request, and `GH-<n>` opens the issue it tracks when its branch or title
-names one through the `GH-<n>` convention (the column stays blank otherwise).
+pull request, and the tracked issue opens beside it when the branch or title
+names one. The column stays blank otherwise. A repository that tracks GitHub
+issues keeps the `GH-<n>` label and opens that GitHub issue. A repository
+whose Kit `.kit.yaml` sets `issues.provider` to `linear` shows the Linear
+key, for example `ENG-67`, and opens
+`https://linear.app/<workspace>/issue/ENG-67`. Hyperlite reads that file from
+the configured checkout when it builds the list, not while drawing each row,
+and reuses the parse for that refresh when the file has not changed. A
+missing, unreadable, or invalid `.kit.yaml` keeps the GitHub labels and adds
+no error to the list.
 The title also opens the pull request. The conflict column stays aligned
 when there is no confirmed conflict;
 `MERGEABLE`, `UNKNOWN`, and older cache entries without the field stay blank.
@@ -325,7 +334,8 @@ in `git-wt`.
   local worktrees. Type a project and a number to jump straight to a pull
   request: `kahlo 33`, `kahlo #33`, or `kahlo GH-33` lists the pull request
   numbered 33 and any pull request tracking issue 33, each labeled with which
-  number matched. Choosing one closes the palette, expands its project, scrolls
+  number matched. `labcore ENG-67` jumps to a pull request tracking that
+  Linear issue. Choosing one closes the palette, expands its project, scrolls
   the row to the middle of the list, and highlights it; `Return` then opens it
   on GitHub.
 

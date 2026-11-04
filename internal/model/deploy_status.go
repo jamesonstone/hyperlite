@@ -33,6 +33,10 @@ type UndeployedPullRequest struct {
 	HeadRefName string    `json:"head_ref_name,omitempty"`
 	Author      string    `json:"author,omitempty"`
 	MergedAt    time.Time `json:"merged_at"`
+	// IssueLabel and IssueURL are stamped at projection from the checkout's
+	// Kit issue provider. They are not part of the deploy cache.
+	IssueLabel string `json:"issue_label,omitempty"`
+	IssueURL   string `json:"issue_url,omitempty"`
 }
 
 // IsBehind reports whether any deploy pipeline is behind.

@@ -8,6 +8,7 @@ import (
 
 	"github.com/jamesonstone/hyperlite/internal/config"
 	"github.com/jamesonstone/hyperlite/internal/discovery"
+	"github.com/jamesonstone/hyperlite/internal/issuetrack"
 	"github.com/jamesonstone/hyperlite/internal/model"
 )
 
@@ -129,6 +130,7 @@ func buildScanResult(
 			source, repository, scan.cache,
 			queryResults, warnings[filepath.Clean(source.Path)], mode, scan.now,
 		)
+		annotateIssueLinks(&project)
 		result.Projects = append(result.Projects, project)
 		if repository.GitHub != "" {
 			if project.CheckedAt == nil {
@@ -170,6 +172,46 @@ func firstMessage(values ...string) string {
 		}
 	}
 	return ""
+}
+
+// annotateIssueLinks copies the pull-request slices and stamps issue links
+// from the checkout's .kit.yaml. The GitHub cache keeps its original rows.
+func annotateIssueLinks(project *model.ProjectPullRequests) {
+	if project == nil || !projectHasIssueRows(project) {
+		return
+	}
+	tracker := issuetrack.Load(project.Path)
+	repository := project.Repository
+	if !strings.Contains(repository, "/") {
+		repository = project.Name
+	}
+	pulls := make([]model.ProjectPullRequest, len(project.PullRequests))
+	copy(pulls, project.PullRequests)
+	for i := range pulls {
+		pulls[i].IssueLabel, pulls[i].IssueURL = tracker.Link(pulls[i].HeadRefName, pulls[i].Title, repository)
+	}
+	project.PullRequests = pulls
+	deploys := project.Workflows
+	if deploys == nil || deploys.Deploys == nil {
+		return
+	}
+	status := *deploys.Deploys
+	merged := make([]model.UndeployedPullRequest, len(status.PullRequests))
+	copy(merged, status.PullRequests)
+	for i := range merged {
+		merged[i].IssueLabel, merged[i].IssueURL = tracker.Link(merged[i].HeadRefName, merged[i].Title, repository)
+	}
+	status.PullRequests = merged
+	cloned := *deploys
+	cloned.Deploys = &status
+	project.Workflows = &cloned
+}
+
+func projectHasIssueRows(project *model.ProjectPullRequests) bool {
+	if len(project.PullRequests) > 0 {
+		return true
+	}
+	return project.Workflows != nil && project.Workflows.Deploys != nil && len(project.Workflows.Deploys.PullRequests) > 0
 }
 
 func sortProjectPullRequests(values []model.ProjectPullRequest) {

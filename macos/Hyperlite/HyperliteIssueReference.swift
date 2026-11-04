@@ -1,8 +1,8 @@
 import Foundation
 
-/// Recovers the GitHub issue a pull request tracks. Hyperlite projects name
-/// branches and conventional-commit titles `GH-<number>`, so the tracked issue
-/// is derivable from the head branch first and the title as a fallback.
+/// Recovers a GitHub issue number from the `GH-<number>` convention. The
+/// helper stamps Linear and GitHub links onto each row; this fallback covers
+/// a payload that has no stamped label.
 enum HyperliteIssueReference {
     static func number(branch: String, title: String) -> Int? {
         ghNumber(in: branch) ?? ghNumber(in: title)
@@ -28,10 +28,15 @@ extension HyperlitePullRequestRow {
     /// The pull request's own number, labeled so it never reads as the issue.
     var pullRequestLabel: String { "PR #\(number)" }
 
-    /// The tracked issue in the repository's `GH-<n>` convention, when known.
-    var issueLabel: String? { linkedIssueNumber.map { "GH-\($0)" } }
+    /// The tracked issue. A label stamped by the helper wins, including a
+    /// Linear key. Otherwise the row still recognizes `GH-<n>`.
+    var issueLabel: String? {
+        if !resolvedIssueLabel.isEmpty { return resolvedIssueLabel }
+        return linkedIssueNumber.map { "GH-\($0)" }
+    }
 
     var issueURL: URL? {
+        if !resolvedIssueLabel.isEmpty { return resolvedIssueURL }
         guard let issue = linkedIssueNumber, repository.contains("/") else { return nil }
         return URL(string: "https://github.com/\(repository)/issues/\(issue)")
     }
