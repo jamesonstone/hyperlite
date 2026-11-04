@@ -10,7 +10,9 @@
 
 - Go package tests cover configuration, project discovery and selection, the
   Open PR index (including the concurrent probe-then-detail fetch with
-  per-repository failure isolation), CLI commands, and failure behavior.
+  per-repository failure isolation), per-repository issue links from
+  `.kit.yaml` (GitHub or Linear, and a silent GitHub fallback when the file
+  is missing or unreadable), CLI commands, and failure behavior.
 - Swift executable model tests and native type-checking cover schema and
   presentation behavior: Command-K entries (Theme and Font Size nested lists,
   without retired workspace actions), helper PATH including `~/.local/bin`,
@@ -26,7 +28,8 @@
   hide-idle filtering, quick facts and the footer version label, Open PRs
   keyboard-navigation selection and key classification, Open PR row
   added/removed line counts, and trailing column widths plus comments-column
-  states.
+  states, and issue-key labels for GitHub and Linear including a legacy
+  `GH-<n>` payload.
 - No live-integration suite is currently defined; the retired inferred
   attention and agent-session suites were removed with those features.
 

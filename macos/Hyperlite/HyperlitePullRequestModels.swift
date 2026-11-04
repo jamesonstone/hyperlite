@@ -77,6 +77,9 @@ struct HyperliteProjectPullRequest: Codable, Equatable, Identifiable {
     let hasMergeConflict: Bool
     let unresolvedReviewThreads: Int?
     let updatedAt: Date
+    /// Ticket label and URL stamped from the checkout's Kit issue provider.
+    var issueLabel: String = ""
+    var issueURL: String = ""
 
     var glance: HyperlitePullRequestGlance {
         HyperlitePullRequestGlance(
@@ -108,6 +111,8 @@ struct HyperliteProjectPullRequest: Codable, Equatable, Identifiable {
         case commentCount = "comment_count"
         case ciState = "ci_state"
         case summary, description
+        case issueLabel = "issue_label"
+        case issueURL = "issue_url"
         case isDraft = "is_draft"
         case hasMergeConflict = "has_merge_conflict"
         case unresolvedReviewThreads = "unresolved_review_threads"
@@ -145,6 +150,8 @@ extension HyperliteProjectPullRequest {
         ciState = try container.decodeIfPresent(String.self, forKey: .ciState) ?? ""
         summary = try container.decodeIfPresent(String.self, forKey: .summary) ?? ""
         description = try container.decodeIfPresent(String.self, forKey: .description) ?? ""
+        issueLabel = try container.decodeIfPresent(String.self, forKey: .issueLabel) ?? ""
+        issueURL = try container.decodeIfPresent(String.self, forKey: .issueURL) ?? ""
         updatedAt = try container.decode(Date.self, forKey: .updatedAt)
     }
 }
@@ -167,6 +174,9 @@ struct HyperlitePullRequestRow: Equatable, Identifiable {
     var glance: HyperlitePullRequestGlance = .empty
     /// Failed GitHub Actions pipelines on the current head commit.
     var failedPipelines: [HyperliteFailedPipeline] = []
+    /// Helper-stamped ticket. Empty means the row falls back to `GH-<n>`.
+    var resolvedIssueLabel: String = ""
+    var resolvedIssueURL: URL? = nil
 
     /// Section grouping key. Two configured projects can share a repository,
     /// so rows group by project identity; hand-built rows without a project
@@ -205,7 +215,9 @@ enum HyperlitePullRequestPresentation {
                         pullRequestNumber: pullRequest.number,
                         headOID: pullRequest.headRefOID,
                         rollup: pullRequest.glance.ciState
-                    )
+                    ),
+                    resolvedIssueLabel: pullRequest.issueLabel,
+                    resolvedIssueURL: URL(string: pullRequest.issueURL)
                 )
             }
         }.sorted {

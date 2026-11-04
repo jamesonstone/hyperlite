@@ -37,6 +37,10 @@ type ProjectPullRequest struct {
 	HasMergeConflict        bool      `json:"has_merge_conflict,omitempty"`
 	UnresolvedReviewThreads *int      `json:"unresolved_review_threads,omitempty"`
 	UpdatedAt               time.Time `json:"updated_at"`
+	// IssueLabel and IssueURL are stamped at projection from the checkout's
+	// Kit issue provider. They are not part of the GitHub cache.
+	IssueLabel string `json:"issue_label,omitempty"`
+	IssueURL   string `json:"issue_url,omitempty"`
 }
 
 type ProjectPullRequests struct {

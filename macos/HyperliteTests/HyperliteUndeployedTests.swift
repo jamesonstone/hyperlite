@@ -62,6 +62,9 @@ enum HyperliteUndeployedTests {
                "without a run link the line never falls back to the Actions listing")
         expect(HyperliteUndeployedPresentation.issueLabel(a.pullRequests[0]) == "GH-11" &&
                HyperliteUndeployedPresentation.issueLabel(a.pullRequests[1]) == "GH-9", "issue from branch or title")
+        var stamped = a.pullRequests[0]
+        stamped.issueLabel = "ENG-67"
+        expect(HyperliteUndeployedPresentation.issueLabel(stamped) == "ENG-67", "a stamped Linear key wins")
 
         let status = try require(scan.projects[0].workflows?.deploys)
         expect(HyperliteUndeployedPresentation.badgeCount(status) == 2, "the heading badge counts undeployed PRs")

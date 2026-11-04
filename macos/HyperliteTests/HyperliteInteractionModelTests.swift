@@ -19,7 +19,7 @@ struct HyperliteInteractionModelTests {
         HyperlitePullRequestSectionsTests.run()
         HyperliteOpenPRWatchStageTests.run()
         HyperliteWorkspaceNavigationTests.run()
-        HyperliteIssueReferenceTests.run()
+        try HyperliteIssueReferenceTests.run()
         HyperliteActivityPollScheduleTests.run()
         HyperliteAmbientRefreshScheduleTests.run()
         HyperliteMarkdownTests.run()

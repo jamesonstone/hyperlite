@@ -1,11 +1,13 @@
 import Foundation
 
 enum HyperliteIssueReferenceTests {
-    static func run() {
+    static func run() throws {
         testExtractsFromBranchAndTitle()
         testNoFalsePositives()
         testRowLinksToTrackedIssue()
         testRowFallsBackToPullRequest()
+        testResolvedLinkWins()
+        try testDecodedProviderLinks()
     }
 
     private static func testExtractsFromBranchAndTitle() {
@@ -47,6 +49,50 @@ enum HyperliteIssueReferenceTests {
         )
         expect(row.pullRequestLabel == "PR #46" && row.issueLabel == nil && row.issueURL == nil,
                "an unlinked row shows only the pull request number")
+    }
+
+    private static func testResolvedLinkWins() {
+        var row = row(
+            number: 1329, repository: "lsmc-bio/labcore",
+            headRefName: "GH-1265", title: "fix(ENG-67): admit buccal partner orders"
+        )
+        row.resolvedIssueLabel = "ENG-67"
+        row.resolvedIssueURL = URL(string: "https://linear.app/lsmc/issue/ENG-67")
+        expect(row.issueLabel == "ENG-67", "a stamped Linear key replaces the GitHub fallback")
+        expect(row.issueURL?.absoluteString == "https://linear.app/lsmc/issue/ENG-67",
+               "the stamped key opens the Linear ticket; got \(row.issueURL?.absoluteString ?? "nil")")
+    }
+
+    private static func testDecodedProviderLinks() throws {
+        let scan = try HyperliteJSON.decoder.decode(HyperliteProjectPullRequestScan.self, from: Data("""
+        {"schema_version": 1, "generated_at": "2026-11-04T18:00:00Z", "refresh_interval_seconds": 300,
+         "projects": [
+          {"id": "/labcore", "name": "labcore", "path": "/labcore", "repository": "lsmc-bio/labcore",
+           "status": "current", "pull_requests": [
+            {"id": "lsmc-bio/labcore#1329", "number": 1329, "title": "fix(ENG-67): admit",
+             "url": "https://github.com/lsmc-bio/labcore/pull/1329", "head_ref_name": "ENG-67",
+             "head_ref_oid": "h", "is_draft": false, "updated_at": "2026-11-04T18:00:00Z",
+             "issue_label": "ENG-67", "issue_url": "https://linear.app/lsmc/issue/ENG-67"}]},
+          {"id": "/docs", "name": "docs", "path": "/docs", "repository": "lsmc-bio/docs",
+           "status": "current", "pull_requests": [
+            {"id": "lsmc-bio/docs#1266", "number": 1266, "title": "validate",
+             "url": "https://github.com/lsmc-bio/docs/pull/1266", "head_ref_name": "GH-1265",
+             "head_ref_oid": "h", "is_draft": false, "updated_at": "2026-11-04T17:00:00Z",
+             "issue_label": "GH-1265", "issue_url": "https://github.com/lsmc-bio/docs/issues/1265"}]},
+          {"id": "/legacy", "name": "legacy", "path": "/legacy", "repository": "o/legacy",
+           "status": "current", "pull_requests": [
+            {"id": "o/legacy#3", "number": 3, "title": "old",
+             "url": "https://github.com/o/legacy/pull/3", "head_ref_name": "GH-3",
+             "head_ref_oid": "h", "is_draft": false, "updated_at": "2026-11-04T16:00:00Z"}]}
+         ], "errors": [], "warnings": []}
+        """.utf8))
+        let rows = HyperlitePullRequestPresentation.rows(scan: scan)
+        expect(rows.map(\.issueLabel) == ["ENG-67", "GH-1265", "GH-3"],
+               "newer rows first; legacy payload still derives GH-3; got \(rows.map(\.issueLabel))")
+        expect(rows[0].issueURL?.absoluteString == "https://linear.app/lsmc/issue/ENG-67" &&
+               rows[1].issueURL?.absoluteString == "https://github.com/lsmc-bio/docs/issues/1265" &&
+               rows[2].issueURL?.absoluteString == "https://github.com/o/legacy/issues/3",
+               "each provider keeps its own issue URL")
     }
 
     private static func row(
