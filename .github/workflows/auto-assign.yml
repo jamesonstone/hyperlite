@@ -20,13 +20,11 @@ jobs:
 
     steps:
       - name: Assign issue or pull request
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         continue-on-error: true
         with:
           script: |
-            const configured = [
-              "jamesonstone"
-            ];
+            const configured = [];
             const author = context.payload?.issue?.user?.login ?? context.payload?.pull_request?.user?.login ?? null;
             const seen = new Set();
             const assignees = [];
