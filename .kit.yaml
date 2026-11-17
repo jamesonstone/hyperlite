@@ -137,6 +137,9 @@ registry:
           path: docs/references/rules/work-cleanup.md
           installed_hash: sha256:851175416a1002676e3dccab2db1c6091e2a4928fc4c02fb2e51b53955c3fc6c
           state: managed
+github:
+    default_assignees:
+        - jamesonstone
 aws:
     profile: personal
     account_id: "643314767733"

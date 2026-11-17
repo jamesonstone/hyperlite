@@ -24,7 +24,9 @@ jobs:
         continue-on-error: true
         with:
           script: |
-            const configured = [];
+            const configured = [
+              "jamesonstone"
+            ];
             const author = context.payload?.issue?.user?.login ?? context.payload?.pull_request?.user?.login ?? null;
             const seen = new Set();
             const assignees = [];
