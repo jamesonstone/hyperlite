@@ -25,7 +25,8 @@
   fact, every-project section plans with Pulls/Actions
   links, the bounded activity poll and ambient refresh schedules, heading
   hierarchy, project lanterns, the collapsible hidden-project list,
-  hide-idle filtering, quick facts and the footer version label, Open PRs
+  hide-idle filtering, quick facts, header-graph segment widths, captions,
+  and palette roles, the footer version label, Open PRs
   keyboard-navigation selection and key classification, Open PR row
   added/removed line counts, and trailing column widths plus comments-column
   states, and issue-key labels for GitHub and Linear including a legacy

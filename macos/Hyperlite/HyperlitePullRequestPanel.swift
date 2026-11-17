@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The whole Open PRs pane: a top bar of quick facts and window actions, the
+/// The whole Open PRs pane: a top bar with the summary graph and window actions, the
 /// pull request list with pinned project headers, and a footer. The list is a
 /// LazyVStack that is the ScrollView's direct content, so only rows on screen
 /// are built, headers pin natively, and scrolling to an entry is exact.
@@ -49,7 +49,7 @@ struct HyperlitePullRequestPanel<Actions: View>: View {
 
     private func topBar(_ model: HyperlitePullRequestPanelModel) -> some View {
         HStack(alignment: .center, spacing: 10) {
-            HyperliteQuickFactsBar(facts: HyperliteQuickFacts.facts(model: model, now: chipClock))
+            HyperliteHeaderGraph(facts: HyperliteQuickFacts.facts(model: model, now: chipClock))
                 .layoutPriority(1)
             if isRefreshing || isPollingActivity {
                 HyperliteRefreshBadge(polling: !isRefreshing)

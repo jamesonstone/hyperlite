@@ -1,42 +1,6 @@
 import AppKit
 import SwiftUI
 
-/// Quick facts in the top bar. Lower-priority facts drop first when the
-/// window is narrow.
-struct HyperliteQuickFactsBar: View {
-    let facts: [HyperliteQuickFact]
-
-    var body: some View {
-        ViewThatFits(in: .horizontal) {
-            ForEach(Array(stride(from: facts.count, through: 1, by: -1)), id: \.self) { count in
-                row(Array(facts.prefix(count)))
-            }
-        }
-    }
-
-    private func row(_ shown: [HyperliteQuickFact]) -> some View {
-        HStack(spacing: 12) {
-            ForEach(shown) { fact in
-                Text(fact.text)
-                    .font(fact.id == "open" ? HyperliteTypography.sectionHeading : HyperliteTypography.compact)
-                    .foregroundStyle(color(fact))
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .fixedSize()
-                    .help(fact.help)
-            }
-        }
-    }
-
-    private func color(_ fact: HyperliteQuickFact) -> Color {
-        switch fact.tone {
-        case .alert: HyperliteTheme.red.color
-        case .attention: HyperliteTheme.orange.color
-        case .neutral: fact.id == "open" ? HyperliteTheme.primaryText.color : HyperliteTheme.secondaryText.color
-        }
-    }
-}
-
 /// Last update on the left, Hyperlite version on the right.
 struct HyperliteOpenPRFooter: View {
     let observedAt: Date?
