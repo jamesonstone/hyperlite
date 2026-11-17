@@ -37,7 +37,7 @@ enum HyperliteHeaderGraphTests {
         expect(widths.count == 3, "one width per segment")
         expect(near(widths[2], HyperliteHeaderGraphLayout.fixedSegment), "oldest keeps the fixed cap, got \(widths)")
         let flex = widths[0] + widths[1]
-        expect(near(widths[0] / flex, 10.0 / 12.0), "open takes its share of the count scale, got \(widths)")
+        expect(near(widths[0], flex * (10.0 / 12.0)), "open takes 10/12 of the shared width, got \(widths)")
         expect(widths[0] > widths[1], "the larger count is wider")
         expect(sumsToAvailable(widths, available: available), "widths and gaps fill the strip, got \(widths)")
     }
