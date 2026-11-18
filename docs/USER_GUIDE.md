@@ -88,12 +88,17 @@ flight, a thin bar sweeps across the top of the list and the top bar reads
 `updating from GitHub…` (or `checking workflows…` during the running-workflow
 poll); cached rows stay on screen, and nothing animates when idle.
 
-The top bar shows quick facts in priority order, as many as fit the window:
-open pull requests, projects with open pull requests, failing CI, pull
-requests needing review feedback, merge conflicts, pull requests older than 10
-and 30 days, ready and draft counts, updated today, bot pull requests, running
-projects, hidden projects with a failing pipeline, ignored projects, and the
-oldest pull request's age. Hover a fact for its definition. The footer shows
+The top bar shows the open-pull-request counts as one segmented strip: open pull
+requests, projects with open pull requests, merged work that is not deployed,
+failing CI, pull requests needing review feedback, merge conflicts, pull
+requests older than 10 and 30 days, ready and draft counts, updated today,
+bot pull requests, running projects, hidden projects with a failing pipeline,
+and ignored projects. Segment width follows the count, and the widths ease
+to their new sizes when a refresh changes the numbers. The oldest pull
+request's age is a fixed cap at the end of the strip, because it is an age
+rather than a count. A segment shows its label and count when there is room,
+and always on hover, along with the definition. A narrow window compresses
+the strip instead of dropping facts. The footer shows
 when Open PRs were last updated (left) and the Hyperlite version and commit
 (right). While you scroll, the current project's heading stays pinned at the
 top until the next project's heading replaces it.
@@ -139,7 +144,7 @@ its own eye: blue and open while watched, gray and closed while ignored;
 clicking that eye toggles ignore. The list scrolls when long and stays open
 while the pointer is over the eye or the list.
 
-The open count leads the top bar in larger type. Headings for
+Headings for
 projects with open PRs use primary semibold type on a full-width surface band
 with a hairline, so a scan of the trailing columns still sees the project
 break; idle headings drop to compact muted type so they recede. A no-PR project with a running or failing

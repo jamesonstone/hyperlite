@@ -12,6 +12,16 @@ feature_naming:
 registry:
     schema_version: 1
     artifacts:
+        - kind: project-guidance
+          slug: DESIGN.md
+          path: DESIGN.md
+          installed_hash: sha256:7744800713dd0616135a46bd2333ccd77cd7820031743103748ed219ec33e6eb
+          state: managed
+        - kind: project-guidance
+          slug: SECURITY.md
+          path: SECURITY.md
+          installed_hash: sha256:418e6602983021cedc2434d76bad915f34b23f668ec467ff24e4a4f92e97b7a7
+          state: managed
         - kind: ruleset
           slug: agent-team-orchestration
           path: docs/references/rules/agent-team-orchestration.md
@@ -30,7 +40,12 @@ registry:
         - kind: ruleset
           slug: backend-service-architecture
           path: docs/references/rules/backend-service-architecture.md
-          installed_hash: sha256:40b79a158bf9b83f21445555dc07cdf58641817bbe034ede4c72530346b212f3
+          installed_hash: sha256:930680753a24a14f699c8de86f92ac8f8580bd32f0239ec4dfc0050a034d6a1c
+          state: managed
+        - kind: ruleset
+          slug: ci-outage
+          path: docs/references/rules/ci-outage.md
+          installed_hash: sha256:9c581031c053606f07de71b463f5e4a08c25a76beef1e7fed10e3fbb71f005db
           state: managed
         - kind: ruleset
           slug: constitution-curation
@@ -55,7 +70,7 @@ registry:
         - kind: ruleset
           slug: delivery
           path: docs/references/rules/delivery.md
-          installed_hash: sha256:a58544639d2f5d602f4feb10efc954f49a3e6a67082c309217cbd8d132f7b9fa
+          installed_hash: sha256:0c578454c896ebcf84bea6dc17662c1a20ffd86f8f44dc2449437d4b237d5f70
           state: managed
         - kind: ruleset
           slug: deployment-recovery
@@ -70,7 +85,7 @@ registry:
         - kind: ruleset
           slug: github-pr-merge
           path: docs/references/rules/github-pr-merge.md
-          installed_hash: sha256:d488e4f2158b7aa2eac40992c009c93476f73e2b3cfa4709a2d6c3719939d023
+          installed_hash: sha256:67dc8a18311e32c38954c639b16d968e8bdd2f63151145201a1a3e971d88715c
           state: managed
         - kind: ruleset
           slug: infrastructure-change-approval
@@ -83,9 +98,24 @@ registry:
           installed_hash: sha256:c710688c0ec80b86dd2d7541da52465cf2a344e2ba501f902c005e9d6d1cf518
           state: managed
         - kind: ruleset
+          slug: local-runtime-lifecycle
+          path: docs/references/rules/local-runtime-lifecycle.md
+          installed_hash: sha256:78cf671384da7cdbfc45bc69583cfdb8d9a4095db520c0e9dacafc96faa6ca15
+          state: managed
+        - kind: ruleset
+          slug: mint-deployment-lifecycle
+          path: docs/references/rules/mint-deployment-lifecycle.md
+          installed_hash: sha256:9458013be90929df7b46d6a89f37fdaf118d9a804ce8d6ddded1a77385beece8
+          state: managed
+        - kind: ruleset
           slug: readme-header-tagline
           path: docs/references/rules/readme-header-tagline.md
-          installed_hash: sha256:c62b97608a5406a3250dd9ca5fd17587498723896168101573373ec874155e64
+          installed_hash: sha256:8cb9285dddbb78d5bbdbbbc0ac1b50fe65c5ae8c2cb369e68c334788432b8094
+          state: managed
+        - kind: ruleset
+          slug: shell-environment
+          path: docs/references/rules/shell-environment.md
+          installed_hash: sha256:772daed95820d3bd0fc02ff325ce778f86fce8d02f973622a3985e4f954a5cc2
           state: managed
         - kind: ruleset
           slug: slack-read-only
@@ -93,10 +123,23 @@ registry:
           installed_hash: sha256:5848917b9a2add0685efe744f6b441bd64cb623b6e7275aec871f0774a04dae8
           state: managed
         - kind: ruleset
+          slug: standard-operating-procedures
+          path: docs/references/rules/standard-operating-procedures.md
+          installed_hash: sha256:873dd91e427e2b29d9026f6e68961ab83a32b0edc5e409f0e531a8f78956af9f
+          state: managed
+        - kind: ruleset
           slug: testing-and-environment-validation
           path: docs/references/rules/testing-and-environment-validation.md
-          installed_hash: sha256:22e5f3647dbe7d5e940441b1fabaa17691a9f488200ee4e7a8ff94c56c78f09c
+          installed_hash: sha256:0598a2e87e725110c52fe4aa0c0a4cc61d68346ecf5a45b081f419b88ebca9d4
           state: managed
+        - kind: ruleset
+          slug: work-cleanup
+          path: docs/references/rules/work-cleanup.md
+          installed_hash: sha256:851175416a1002676e3dccab2db1c6091e2a4928fc4c02fb2e51b53955c3fc6c
+          state: managed
+github:
+    default_assignees:
+        - jamesonstone
 aws:
     profile: personal
     account_id: "643314767733"

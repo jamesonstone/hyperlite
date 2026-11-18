@@ -48,3 +48,6 @@ go.work.sum
 
 # Immutable local validation evidence
 tmp/
+
+# Kit local environment, cache, scratch artifacts, and SOPs
+/docs/sops/local/
