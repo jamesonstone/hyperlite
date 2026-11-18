@@ -26,11 +26,11 @@ Use [OWASP ASVS](https://asvs.owasp.org/) for applicable verification requiremen
 
 ## Vulnerability reporting
 
-Report suspected exploitable vulnerabilities privately. Coordinate remediation and disclosure with the maintainers before public disclosure; do not include exploitable details in public issues or pull requests.
+Report suspected exploitable vulnerabilities privately. Do not include exploitable details in public issues or pull requests.
 
-- **Supported versions (project-owned):** TODO: maintainers must state the supported-version policy when known. No support range is implied by this template.
-- **Private reporting channel (project-owned):** TODO: maintainers must publish a verified private channel. Prefer GitHub Private Vulnerability Reporting only when enabled and appropriate; otherwise document the project's actual private channel. No contact or reporting service is implied by this template.
-- **Response and disclosure expectations (project-owned):** TODO: maintainers must state actual expectations. Do not assume a response SLA or disclosure deadline.
+- **Supported versions:** None published.
+- **Private reporting channel:** GitHub [@jamesonstone](https://github.com/jamesonstone) or `jameson@stone.tc`.
+- **Response and disclosure:** Coordinate with that contact before public disclosure. No deadline is published.
 
 ## Project guidance
 
